@@ -57,6 +57,7 @@ private struct BenchmarkReport: Encodable {
     let screenName: String
     let screenColorSpace: String
     let screenMaximumFPS: Int
+    let requestedCallbackFPS: Int
     let displayLinkNominalHz: Double
     let osVersion: String
     let processor: String
@@ -103,9 +104,11 @@ final class CanvasBenchmark {
 
     func beforeFrame(viewport: CanvasViewport, window: NSWindow?, link: CADisplayLink) throws {
         guard !finished else { return }
-        guard viewport == initialViewport, window?.screen == screen,
+        let sameScreen = window?.screen?.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber
+            == screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber
+        guard viewport == initialViewport, sameScreen,
               window?.isMiniaturized == false, window?.occlusionState.contains(.visible) == true else {
-            throw BenchmarkFailure("Benchmark interrupted: viewport/display changed, window hidden or minimized")
+            throw BenchmarkFailure("Benchmark interrupted: viewport=\(viewport.width)x\(viewport.height) scale=\(viewport.scale), expected=\(initialViewport.width)x\(initialViewport.height) scale=\(initialViewport.scale), sameDisplay=\(sameScreen), minimized=\(window?.isMiniaturized ?? true), visible=\(window?.occlusionState.contains(.visible) ?? false)")
         }
         let now = CACurrentMediaTime()
         if trialStarted == nil {
@@ -163,13 +166,13 @@ final class CanvasBenchmark {
             imageWidth: info.width, imageHeight: info.height, imageBitDepth: info.bitDepth,
             viewportWidth: initialViewport.width, viewportHeight: initialViewport.height, backingScale: initialViewport.scale,
             screenName: screen.localizedName, screenColorSpace: screen.colorSpace?.localizedName ?? "unknown",
-            screenMaximumFPS: screen.maximumFramesPerSecond, displayLinkNominalHz: nominalHz,
+            screenMaximumFPS: screen.maximumFramesPerSecond, requestedCallbackFPS: 60, displayLinkNominalHz: nominalHz,
             osVersion: ProcessInfo.processInfo.operatingSystemVersionString, processor: Self.processor(),
             memoryBytes: ProcessInfo.processInfo.physicalMemory, openMilliseconds: openMs, warmupSecondsPerRun: warmup,
             processPeakRSSBytes: Self.peakRSS(), maximumObservedRenderingFootprintBytes: maximumFootprint, runs: trials,
             passesHost60HzThreshold: thresholds,
             qualifiesAsM0HostRun: thresholds && configuration == "Release" && options.duration >= 30 && options.runs >= 3
-                && UInt64(info.width) * UInt64(info.height) == 24_000_000 && abs(nominalHz - 60) < 1,
+                && UInt64(info.width) * UInt64(info.height) == 24_000_000 && nominalHz >= 59,
             limitations: ["Actual successful CPU submission intervals, not GPU completion or presentation timestamps.",
                 "Deterministic command trajectory; does not validate physical trackpad latency or cross-display gestures.",
                 "Fresh application open; OS file-cache coldness is uncontrolled. First trial vs later trials reported separately.",

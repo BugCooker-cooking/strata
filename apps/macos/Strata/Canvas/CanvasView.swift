@@ -96,6 +96,7 @@ final class CanvasView: NSView {
     func startBenchmark(options: BenchmarkOptions, info: ImageInfo, openMs: Double,
                         completion: @escaping (Result<URL, Error>) -> Void) throws {
         guard attached, let screen = window?.screen else { throw BenchmarkFailure("Canvas not attached") }
+        frameLink?.preferredFrameRateRange = CAFrameRateRange(minimum: 60, maximum: 60, preferred: 60)
         benchmark = CanvasBenchmark(options: options, engine: engine, info: info, viewport: viewport,
                                     screen: screen, openMs: openMs, completion: completion)
         markDirty()
