@@ -2,6 +2,9 @@
 
 use std::fmt;
 
+mod tiles;
+pub use tiles::{PixelValue, TILE_EDGE, TileCoord, TileError, TiledPixels};
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PixelFormat {
     Rgba8,

@@ -12,6 +12,8 @@ Strata is an open-source, AI-operable image editor with a portable Rust core and
 
 M0 开发中。已有可运行的原生只读图像预览：打开常见图片、平移/缩放、8/16 位源像素保留、ICC → Display P3 显示、错误处理。上图是完整 v1 的界面设计稿，不是当前功能截图。尚无编辑、图层、保存或 AI；不要把它当作正式编辑器。
 
+M0 的当前 Mac 基准已通过，额外设备与人工显示/输入验收继续追踪；M1a 已开始可移植基础工作，首步为 8/16 位稀疏分块与写时复制，尚未接入产品编辑流程。见 [M1a 实施记录](docs/research/2026-11-m1a-progress.md)。
+
 ## 开发
 
 - Rust **1.97.1**（rustup 自动读取 `rust-toolchain.toml`）。

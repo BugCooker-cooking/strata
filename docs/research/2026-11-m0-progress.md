@@ -26,10 +26,10 @@ Task 1–9 首次实现以统一检查点入库，后续增量提交。已按发
 | Rust 工具链 | 1.97.1；候选版本已改为精确 patch pin |
 | 原生工具链 | Xcode 27.1（27A9275）、Swift 6.4、XcodeGen 2.45.4 |
 | 机器 | M4 Mac mini、16 GiB，macOS 27.0.1；不是计划中的 M1 MacBook Air 性能基准机 |
-| Rust | 56 个 workspace 测试通过；clippy `-D warnings`、rustfmt、可移植扫描通过；GPU 验收另设强制模式，不能用跳过冒充通过 |
+| Rust | M0 基线 56 个 workspace 测试通过；M1a 新增分块测试后共 66 个，见后续实施记录。clippy `-D warnings`、rustfmt、可移植扫描通过；GPU 验收另设强制模式，不能用跳过冒充通过 |
 | GPU | `make test-gpu`：7 个 FFI、11 个视图数学、8 个真实 Metal 离屏测试通过，包括上传失败保留原状态、16 位源不变、透明边缘无色晕 |
 | Swift | Swift 6 严格并发编译通过，无需降级；7 个 XCTest（4 个桥接/画布、3 个帧统计）；0 失败、0 跳过。含 CAMetalLayer attach/零尺寸 resize/detach、文档保留、200ms 卡顿不能被过滤 |
-| 原生 UI | 已通过 UI 截图/交互确认示例照片显示、菜单放大、鼠标拖动与适合屏幕；触控板手势、Retina 跨屏未实测 |
+| 原生 UI | 已确认示例照片、菜单缩放/拖动/适合屏幕、P3/16 位夹具显示、透明边缘、损坏文件失败保留原画面，以及三次关闭重开；[实机记录](2026-11-m0-hardware-checklist.md)保留触控板、最小化/跨屏和对色缺口 |
 | 素材脚本 | `build/perf-24mp.jpg` 确认为 4000×6000；`build/color-fixtures-v1` 包含原生 P3/16 位/alpha 夹具；sRGB→P3 照片也已生成 |
 | 干净源码构建 | 提交 `2c46afe` 的 `git archive`，在 `build/clean-check.YPay7S` 完成 `make test`：56 Rust + 7 XCTest；仅复用下载的 registry 源码，不复用 target、绑定、工程或 DerivedData。日志 `validation.log` 与 xcresult 保留在该目录 |
 | Release | arm64 原生应用构建成功；Swift 优化与 Rust release profile 均启用 |
@@ -66,4 +66,4 @@ Task 1–9 首次实现以统一检查点入库，后续增量提交。已按发
 
 ## 下一步
 
-按[实机验收表](2026-11-m0-hardware-checklist.md)补齐上述 M0 显示/输入与设备证据，再准备 M1a 的命令/分块/保存任务；不因已有窗口就跳过存储与高位深门槛。第一版编辑、保存、图层与 AI 全部仍属于后续里程碑。
+发起人已确认先用当前 Mac，其他设备暂缺。按[实机验收表](2026-11-m0-hardware-checklist.md)保留 M0 缺口，同时执行不依赖额外设备的 [M1a 分块/命令/保存基础](../plans/2026-11-02-m1a-core-storage.md)；这不代表 M0 全部通过。新增分块测试与工作状态见 [M1a 进度](2026-11-m1a-progress.md)。第一版编辑、保存、图层与 AI 仍未对用户开放。
