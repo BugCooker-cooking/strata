@@ -9,7 +9,7 @@ rust-version = "1.97"
 license = "Apache-2.0"
 repository = "https://github.com/BugCooker-cooking/strata"
 
-# Rust 1.97.1 + the local Apple linker fails to load some Release proc-macro
+# The local Rust 1.97.1/macOS toolchain fails to load some Release proc-macro
 # dylibs with the default debug=0 build profile. Keep debug metadata in HOST
 # build dependencies only; application/runtime crates remain Release optimized.
 [profile.release.build-override]
