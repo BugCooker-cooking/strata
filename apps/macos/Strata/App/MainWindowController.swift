@@ -100,7 +100,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate {
         guard let window, window.attachedSheet == nil else { return }
         let alert = NSAlert()
         alert.messageText = "无法打开或显示图片"
-        alert.informativeText = error.localizedDescription
+        alert.informativeText = (error as? StrataError)?.userMessage
+            ?? "操作未能完成，请稍后重试。原来的图像会保留。"
         alert.beginSheetModal(for: window)
     }
 }
