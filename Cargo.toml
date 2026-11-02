@@ -1,0 +1,25 @@
+[workspace]
+resolver = "3"
+members = ["crates/strata-core", "crates/strata-pixels", "crates/strata-color", "crates/strata-io", "crates/strata-render", "crates/strata-ffi", "tools/uniffi-bindgen"]
+
+[workspace.package]
+version = "0.0.1"
+edition = "2024"
+rust-version = "1.97"
+license = "Apache-2.0"
+
+[workspace.dependencies]
+strata-pixels = { path = "crates/strata-pixels" }
+strata-core = { path = "crates/strata-core" }
+strata-color = { path = "crates/strata-color" }
+strata-io = { path = "crates/strata-io" }
+strata-render = { path = "crates/strata-render" }
+uniffi = "0.32.2"
+wgpu = "30.0.1"
+lcms2 = { version = "6.2.0", features = ["static"] }
+image = { version = "0.25.10", default-features = false, features = ["png", "jpeg", "webp", "tiff", "gif", "bmp"] }
+pollster = "1"
+bytemuck = { version = "1", features = ["derive"] }
+half = { version = "2", features = ["bytemuck"] }
+thiserror = "2"
+tempfile = "3"

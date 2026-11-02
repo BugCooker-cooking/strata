@@ -1,0 +1,38 @@
+name: Core and macOS checks
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust
+        run: rustup toolchain install 1.97.1 --profile minimal --component rustfmt --component clippy
+      - name: Lint
+        run: make lint
+      - name: Test
+        run: make test-core
+  macos:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust
+        run: rustup toolchain install 1.97.1 --profile minimal --component rustfmt --component clippy
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Report native toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+          xcodegen --version
+      - name: Lint
+        run: make lint
+      - name: Build and test from generated project
+        run: make test
+      # Hosted GPU availability is not guaranteed. A local test-gpu run is a separate gate.

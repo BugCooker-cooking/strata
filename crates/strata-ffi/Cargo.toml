@@ -1,0 +1,22 @@
+[package]
+name = "strata-ffi"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["lib", "staticlib", "cdylib"]
+
+[dependencies]
+strata-core.workspace = true
+strata-pixels.workspace = true
+strata-color.workspace = true
+strata-io.workspace = true
+strata-render.workspace = true
+uniffi.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+image.workspace = true
+tempfile.workspace = true
