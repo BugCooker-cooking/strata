@@ -20,14 +20,23 @@ jobs:
         run: make test-core
   macos:
     runs-on: macos-15
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
     steps:
       - uses: actions/checkout@v4
       - name: Install pinned Rust
         run: rustup toolchain install 1.97.1 --profile minimal --component rustfmt --component clippy
-      - name: Install XcodeGen
-        run: brew install xcodegen
+      - name: Install pinned XcodeGen 2.46.0
+        run: |
+          curl --fail --location --retry 3 \
+            https://github.com/yonaskolb/XcodeGen/releases/download/2.46.0/xcodegen.zip \
+            --output "$RUNNER_TEMP/xcodegen.zip"
+          printf '%s  %s\n' '4d9e34b62172d645eed6457cac13fc222569974098ef4ee9c3368bedf0196806' "$RUNNER_TEMP/xcodegen.zip" | shasum -a 256 -c -
+          unzip -q "$RUNNER_TEMP/xcodegen.zip" -d "$RUNNER_TEMP/strata-tools"
+          printf '%s\n' "$RUNNER_TEMP/strata-tools/xcodegen/bin" >> "$GITHUB_PATH"
       - name: Report native toolchain
         run: |
+          test "$(uname -m)" = arm64
           xcodebuild -version
           swift --version
           xcodegen --version
@@ -35,4 +44,13 @@ jobs:
         run: make lint
       - name: Build and test from generated project
         run: make test
+      - name: Build Release for arm64
+        run: make build CONFIGURATION=Release
+      - name: Preserve XCTest results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-xctest-results
+          path: build/DerivedData/Logs/Test/*.xcresult
+          retention-days: 14
       # Hosted GPU availability is not guaranteed. A local test-gpu run is a separate gate.

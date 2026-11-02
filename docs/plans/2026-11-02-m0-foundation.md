@@ -1,6 +1,6 @@
 # M0 项目地基与技术验证 Implementation Plan
 
-> **执行说明**：逐任务实现、先写失败测试再实现，并记录实测结果。本文不依赖未安装的 agent 技能；是否委派遵循当前会话规则。2026-11-02 已进入实施：本机原型可运行，M0 尚未全部验收，见[进度与接口偏差](../research/2026-11-m0-progress.md)。已通过 53 个 Rust 测试与 4 个 XCTest；性能、屏幕对色、跨屏、干净检出与远程 CI 仍待完成。
+> **执行说明**：逐任务实现、先写失败测试再实现，并记录实测结果。本文不依赖未安装的 agent 技能；是否委派遵循当前会话规则。2026-11-02 已进入实施：本机原型可运行，M0 尚未全部验收，见[进度与接口偏差](../research/2026-11-m0-progress.md)。已通过 56 个 Rust 测试与 7 个 XCTest、无生成物的干净源码构建、Linux/macOS 远程 CI；显示对色、跨屏和最低系统仍待实机验证。
 
 首次落地采用统一的本地 M0 检查点提交，下面 Task 1–9 的“提交”步骤表示对应代码已纳入该检查点，不表示逐一产生了示例消息中的独立 commit。接口与实际实现有差异时以进度记录和测试为准。
 
@@ -8,7 +8,7 @@
 
 **Architecture:** `strata-pixels` 定义共享的 `Rgba8/Rgba16` 缓冲；`strata-io` 保位深解码与 ICC；`strata-color` 按原位深生成 Display P3 显示副本；`strata-core` 持有未经显示量化的原始文档像素；`strata-render` 准备/提交显示缓存；`strata-ffi` 编排事务式打开与事件。Swift 持有 `CAMetalLayer`，显式 attach/detach；文档真值不能从屏幕缓存恢复。
 
-**Tech Stack（本机已构建）:** Rust 1.97.1（edition 2024）、uniffi 0.32.2、wgpu 30.0.1、lcms2 6.2.0、image 0.25.10，精确依赖见 Cargo.lock；Swift 6.4 / Xcode 27.1 / XcodeGen 2.45.4。macOS 14 部署目标已编译，但最低系统运行与 Linux CI 尚未验证。
+**Tech Stack（已构建）:** Rust 1.97.1（edition 2024）、uniffi 0.32.2、wgpu 30.0.1、lcms2 6.2.0、image 0.25.10，精确依赖见 Cargo.lock；本机 Swift 6.4 / Xcode 27.1 / XcodeGen 2.45.4，CI Swift 6.1.2 / Xcode 16.4 / XcodeGen 2.46.0。Linux CI 已通过；macOS 14 部署目标已编译，但最低系统运行尚未验证。
 
 **Spec:** [总体设计](../design/2026-11-02-strata-v1-design.md)（§4 硬规则、§5 架构、§6.2–6.3 存储与渲染、§6.9 色彩）· [实施计划 §3 M0](2026-11-02-strata-v1-roadmap.md) · [界面关键点](../design/ui-v1.md)
 
@@ -896,7 +896,7 @@ git commit -m "ci: add Linux core build and macOS app build with portability che
 **Interfaces:**
 - Consumes: Task 8 的 Release 应用（通过启动参数开启帧统计）
 
-- [ ] **Step 1: 写测试图生成脚本**
+- [x] **Step 1: 写测试图生成脚本**
 
 - `make-perf-image.sh`：`mkdir -p build && sips -z 6000 4000 docs/design/assets/sample-photo.jpg --out build/perf-24mp.jpg`
 - `make-p3-sample.sh`：`sips --matchTo "/System/Library/ColorSync/Profiles/Display P3.icc" docs/design/assets/sample-photo.jpg --out build/sample-p3.jpg`
@@ -905,7 +905,11 @@ git commit -m "ci: add Linux core build and macOS app build with portability che
 Run: `chmod +x scripts/make-*.sh && scripts/make-perf-image.sh && scripts/make-p3-sample.sh && sips -g pixelWidth -g pixelHeight build/perf-24mp.jpg`
 Expected: `pixelWidth: 4000`、`pixelHeight: 6000`；`build/sample-p3.jpg` 已生成
 
-- [ ] **Step 2: 渲染性能验证**
+- [x] **Step 2a: 本机程序驱动渲染性能验证**
+
+已用 `make benchmark` 在 M4 主机上完成真实 Release 画布的固定轨迹 3×30 秒；三轮达到下面的 60Hz 提交间隔门槛，详见[报告与限制](../research/2026-11-m0-rendering-wgpu-metal.md)。脚本请求 60Hz，保留屏幕 nominal 刷新率，不用零散 HUD 帧估算连续性能。
+
+- [ ] **Step 2b: 标准机与真实触控板复验**
 
 用 `make run CONFIGURATION=Release FRAME_STATS=1`，打开 24MP 图，固定视口/屏幕刷新率，持续平移缩放 30 秒、重复 3 次；记录物理尺寸、冷/热状态、fps、帧间隔 p50/p95、cpu_ms 与峰值内存。60Hz 基准持续交互典型值 ≥ 58fps、p95 帧间隔 ≤ 20ms；不把静止时的 dirty 帧统计计入。未达标则保留 M0 渲染项未完成并分析，不能只写“留给 M1”。这不替代 M1 多层/超内存基准。
 
@@ -929,29 +933,30 @@ git commit -m "docs: record M0 technical validation results"
 
 ---
 
-### Task 11: 发布到 GitHub（需发起人确认后执行）
+### Task 11: 接入 GitHub 私有仓库（已获发起人授权）
 
 **Files:**
-- Modify: `Cargo.toml`（`[workspace.package] repository`）、`README.md`（CI 徽章）、`apps/macos/project.yml`（如需调整 Bundle ID）
+- Modify: `Cargo.toml`（`[workspace.package] repository`）、`README.md`（私有仓库与 CI 记录）、`apps/macos/project.yml`（如需调整 Bundle ID）
 
-- [ ] **Step 1: 向发起人确认三件事**：GitHub 账号或组织名、仓库名（建议 `strata`）、公开还是先私有。另外确认 `CODE_OF_CONDUCT.md` 的联系方式是否改为邮箱。确认前不执行任何推送。
+- [x] **Step 1: 确认目标与公开范围**：发起人指定已有仓库 `BugCooker-cooking/strata`，目前私有，完成成品后再开源；不自动更改可见性。行为准则私密邮箱在开放外部贡献前另行确定，不阻塞已授权的私有开发。
 
-- [ ] **Step 2: 填写仓库地址与徽章并提交**
+- [x] **Step 2: 填写仓库地址与开发状态并提交**（私有仓库以实际 CI 运行链接为准）
 
 ```bash
 git add Cargo.toml README.md apps/macos/project.yml
 git commit -m "chore: set repository metadata"
 ```
 
-- [ ] **Step 3: 创建远程仓库并推送**
+- [x] **Step 3: 关联已有远程仓库并推送**
 
-Run: `gh repo create <owner>/<repo> --<public|private> --source . --remote origin --push`
-Expected: 输出仓库 URL
+已关联 `origin=https://github.com/BugCooker-cooking/strata.git`，推送 `main`。操作前核对目标与私有状态；后续增量推送沿用该授权，不再创建同名仓库。
 
-- [ ] **Step 4: 确认 CI 通过**
+- [x] **Step 4: 确认 CI 通过**
 
 Run: `gh run watch --exit-status`
 Expected: `linux` 与 `macos` 两个 job 都成功。失败时按日志修复，提交后重新推送，直到两个都通过。
+
+已验证：提交 `0624958` 的[远程运行](https://github.com/BugCooker-cooking/strata/actions/runs/41410183235)两个 job 均成功。后续提交仍需检查自身结果；本机 GPU、屏幕和最低系统门槛独立保留。
 
 ---
 

@@ -28,6 +28,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.activate(ignoringOtherApps: true)
         do {
             if let options = try BenchmarkOptions.parse(ProcessInfo.processInfo.arguments) {
+                // Opt-in diagnostic mode: ordinary app windows keep their normal level.
+                if options.keepVisible { controller.window?.level = .floating }
                 let start = CACurrentMediaTime()
                 controller.open(options.input) { [weak controller] result in
                     do {

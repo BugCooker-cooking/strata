@@ -7,6 +7,7 @@ struct BenchmarkOptions {
     let output: URL
     let duration: Double
     let runs: Int
+    let keepVisible: Bool
 
     static func parse(_ args: [String]) throws -> BenchmarkOptions? {
         guard args.contains("--benchmark-input") else { return nil }
@@ -26,7 +27,8 @@ struct BenchmarkOptions {
         guard !FileManager.default.fileExists(atPath: output.path) else {
             throw BenchmarkFailure("Refusing to overwrite benchmark output: \(output.path)")
         }
-        return BenchmarkOptions(input: input, output: output, duration: seconds, runs: runs)
+        return BenchmarkOptions(input: input, output: output, duration: seconds, runs: runs,
+                                keepVisible: args.contains("--benchmark-keep-visible"))
     }
 }
 
@@ -58,6 +60,7 @@ private struct BenchmarkReport: Encodable {
     let screenColorSpace: String
     let screenMaximumFPS: Int
     let requestedCallbackFPS: Int
+    let floatingWindow: Bool
     let displayLinkNominalHz: Double
     let osVersion: String
     let processor: String
@@ -166,7 +169,8 @@ final class CanvasBenchmark {
             imageWidth: info.width, imageHeight: info.height, imageBitDepth: info.bitDepth,
             viewportWidth: initialViewport.width, viewportHeight: initialViewport.height, backingScale: initialViewport.scale,
             screenName: screen.localizedName, screenColorSpace: screen.colorSpace?.localizedName ?? "unknown",
-            screenMaximumFPS: screen.maximumFramesPerSecond, requestedCallbackFPS: 60, displayLinkNominalHz: nominalHz,
+            screenMaximumFPS: screen.maximumFramesPerSecond, requestedCallbackFPS: 60,
+            floatingWindow: options.keepVisible, displayLinkNominalHz: nominalHz,
             osVersion: ProcessInfo.processInfo.operatingSystemVersionString, processor: Self.processor(),
             memoryBytes: ProcessInfo.processInfo.physicalMemory, openMilliseconds: openMs, warmupSecondsPerRun: warmup,
             processPeakRSSBytes: Self.peakRSS(), maximumObservedRenderingFootprintBytes: maximumFootprint, runs: trials,

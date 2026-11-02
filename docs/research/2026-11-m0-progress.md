@@ -2,7 +2,7 @@
 
 日期：2026-11-02（Asia/Taipei）。状态：**可运行原型已落地，M0 尚未全部验收**。
 
-本轮将 Task 1–9 的已实现源码/测试与计划一起保存为统一的本地 M0 检查点，未按原计划拆成逐任务微提交；后续继续小步提交。远程创建/推送仍未执行。
+Task 1–9 首次实现以统一检查点入库，后续增量提交。已按发起人授权关联并推送 [BugCooker-cooking/strata](https://github.com/BugCooker-cooking/strata)，核对为私有仓库；成品完成前保持私有。没有发布产品。
 
 ## 已实现
 
@@ -14,7 +14,10 @@
 - `strata-render`：视图数学、线性预乘浮点显示缓存、离屏读回、真实 CAMetalLayer 表面、P3 surface 配置、零尺寸与释放。
 - `strata-ffi`：UniFFI 绑定、锁外有序事件、generation 淘汰旧请求、GPU 准备成功后提交文档、画布 attach/detach/平移/缩放。
 - AppKit 最小窗口：打开图片、原始信息/位深、实色画布、拖动/滚动/捏合、缩放菜单、适合屏幕、错误提示。
-- `make run/test/lint/test-core/test-gpu`、XcodeGen、Rust 静态链接、Linux/macOS 工作流配置、24MP 与 P3 样例生成脚本。
+- `make run/test/lint/test-core/test-gpu`、XcodeGen、Rust 静态链接、Linux/macOS 工作流、24MP 与 P3 样例生成脚本。
+- `make color-fixtures`：可重复生成的原生 P3 色块、完整 16 位灰阶、透明边缘及预期值；3 个集成测试。
+- `make benchmark`：真实 Release 画布的 60Hz 固定命令轨迹，3×30 秒与原始时间戳、CPU/内存/环境报告；不丢弃卡顿，中断不能写成功报告。
+- `make verify-clean`：精确 HEAD 源码导出，验证无编译缓存、生成绑定和 Xcode 工程时仍可构建测试。
 
 ## 本机证据
 
@@ -22,14 +25,23 @@
 |---|---|
 | Rust 工具链 | 1.97.1；候选版本已改为精确 patch pin |
 | 原生工具链 | Xcode 27.1（27A9275）、Swift 6.4、XcodeGen 2.45.4 |
-| 机器 | arm64 Mac mini，macOS 27.0.1；不是计划中的 M1 MacBook Air 性能基准机 |
-| Rust | 53 个 workspace 测试通过；clippy `-D warnings`、rustfmt、可移植扫描通过；GPU 验收另设强制模式，不能用跳过冒充通过 |
+| 机器 | M4 Mac mini、16 GiB，macOS 27.0.1；不是计划中的 M1 MacBook Air 性能基准机 |
+| Rust | 56 个 workspace 测试通过；clippy `-D warnings`、rustfmt、可移植扫描通过；GPU 验收另设强制模式，不能用跳过冒充通过 |
 | GPU | `make test-gpu`：7 个 FFI、11 个视图数学、8 个真实 Metal 离屏测试通过，包括上传失败保留原状态、16 位源不变、透明边缘无色晕 |
-| Swift 桥接 | Swift 6 严格并发编译通过，无需降级；统一 `make test` 已通过 4 个 XCTest，含 CAMetalLayer attach/零尺寸 resize/detach、文档保留；0 失败、0 跳过 |
+| Swift | Swift 6 严格并发编译通过，无需降级；7 个 XCTest（4 个桥接/画布、3 个帧统计）；0 失败、0 跳过。含 CAMetalLayer attach/零尺寸 resize/detach、文档保留、200ms 卡顿不能被过滤 |
 | 原生 UI | 已通过 UI 截图/交互确认示例照片显示、菜单放大、鼠标拖动与适合屏幕；触控板手势、Retina 跨屏未实测 |
-| 素材脚本 | `build/perf-24mp.jpg` 确认为 4000×6000；sRGB→P3 照片生成成功，但不等于原生广色域验证 |
+| 素材脚本 | `build/perf-24mp.jpg` 确认为 4000×6000；`build/color-fixtures-v1` 包含原生 P3/16 位/alpha 夹具；sRGB→P3 照片也已生成 |
+| 干净源码构建 | 提交 `2c46afe` 的 `git archive`，在 `build/clean-check.YPay7S` 完成 `make test`：56 Rust + 7 XCTest；仅复用下载的 registry 源码，不复用 target、绑定、工程或 DerivedData。日志 `validation.log` 与 xcresult 保留在该目录 |
+| Release | arm64 原生应用构建成功；Swift 优化与 Rust release profile 均启用 |
+| 24MP 基准 | 三轮 59.88 / 59.87 / 60.03 fps，p95 16.93 / 16.92 / 16.96ms；本机 60Hz 阈值通过，详见[完整条件与限制](2026-11-m0-rendering-wgpu-metal.md) |
 
 首次 GPU 在沙盒内返回 NoAdapter，升级为本机 Metal 验证后通过。Xcode 测试也需要系统缓存/测试服务权限；没有把沙盒失败记成产品通过。完整结果可用上方命令复验。
+
+## 远程 CI 证据
+
+提交 `32fb272`、`27b1b6f`、`0624958` 的 Linux/macOS job 均通过；最近一轮为 [41410183235](https://github.com/BugCooker-cooking/strata/actions/runs/41410183235)。Ubuntu 24.04 验证核心与静态检查；macOS 15 arm64 从未生成工程的 checkout 执行 `make test`，未恢复编译缓存。已实测 Xcode 16.4（16F6）、Swift 6.1.2、XcodeGen 2.46.0。
+
+工作流显式选择 Xcode 16.4，下载并校验官方 XcodeGen 2.46.0 发布摘要；增加 Release 构建回归与 XCTest 结果归档。Hosted runner 的无 GPU 跳过不算本机 Metal 验收，macOS 15 CI 不算 macOS 14 实机验证。
 
 ## 与计划的必要接口调整
 
@@ -41,15 +53,16 @@
 6. `commit_image` 先检查候选所属 renderer，返回 Result；检查通过后不做可失败资源准备。resize 与 FFI 视图方法返回错误，不吞掉表面配置失败。
 7. Swift 保留源资源文件名 `sample-photo.jpg`，无需自定义重命名构建阶段。Rust staticlib 显式链接；生成器用 dylib，但应用不依赖项目目录中的 dylib。
 8. macOS 自带 Bash 3.2 在 `set -u` 下展开空数组会报错：构建脚本使用显式 Debug/Release 分支。
+9. 本机 Rust 1.97.1 的 Release 构建出现 host proc-macro 元数据加载失败；设置 `[profile.release.build-override] debug = true` 后通过，仅作用于构建依赖，运行时代码仍优化。尚未确定更底层的工具链原因。
+10. M0 明确设 `ARCHS: arm64`，避免 Xcode Release 默认通用架构错误地链接仅 arm64 的 Rust 静态库；通用产物留在 M8。
+11. 原生 XCTest 宿主启动不自动创建产品窗口，无 GPU 时仅跳过需要 adapter 的测试；`STRATA_REQUIRE_GPU=1` 可强制缺 GPU 失败。基准模式可置顶，报告注明窗口模式，并继续检查遮挡、视口、屏幕和用户输入。
 
 ## 尚未完成的 M0 门槛
 
-- Release 24MP 连续交互 3×30 秒、fps/p50/p95/内存实测；当前 HUD 的零散帧数不是持续性能基准。
-- 原生超 sRGB 色块 + 16 位渐变夹具生成器、与“预览”/数码测色计在同一 P3 屏幕对色。显示截图不能证明色彩正确。
-- 真正从无 target/Generated/.xcodeproj 的干净检出完成 `make test`；目前依赖顺序已写对，首次构建部分生成物已存在。
+- 与“预览”/数码测色计在同一 P3 屏幕对色。夹具已完成；显示截图不能证明色彩正确。
 - 最低 macOS 14 运行、Retina/非 Retina 跨屏、持续触控板平移/捏合、窗口最小化/恢复回归。
-- Linux/macOS GitHub Actions 实跑：本机无 Linux 容器/目标环境，远程尚未创建，工作流未跑。runner 原生工具版本仍需在首次 CI 后锁定。
-- 远程账号/仓库名/公开范围与行为准则私密联系方式确认，之后才创建/推送；没有发布产品。
+- M1 MacBook Air 标准机性能复验；当前主机的程序驱动结果不能替代标准机或真实触控板体验。
+- 行为准则私密联系方式在开放外部贡献前补齐，不阻塞私有仓库的已授权工作。
 
 ## 下一步
 
