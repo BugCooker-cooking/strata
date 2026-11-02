@@ -97,7 +97,7 @@ strata/
 **Interfaces:**
 - Produces: workspace 根；`strata_core::version() -> &'static str`
 
-- [ ] **Step 0: 验证工具链前提**
+- [x] **Step 0: 验证工具链前提**
 
 读取本机 Rust/Xcode/Swift/XcodeGen 版本，核对候选依赖的实际发布版与 API；用最小构建验证 macOS 14 部署和 Linux 编译。失败时记录原因并同步修改工具链、workspace、README 与 CI，禁止凭文档中的版本号宣称验证通过。后续固定值均指此步确认后的版本。
 
@@ -868,7 +868,7 @@ Expected: 第一条输出 `portability check passed`；第二条打印出违规�
 
 触发条件：`push` 到 `main` 和所有 `pull_request`。两个 job：
 - `linux`（开工验证后固定 runner）：checkout → 显式安装 rust-toolchain.toml 中锁定的 toolchain 与 components → `cargo fmt --all --check` → `cargo clippy --workspace --all-targets --locked -- -D warnings` → `cargo test --workspace --locked` → `scripts/check-portability.sh`。无 adapter 可跳过 GPU 测试，但日志明确区分通过/跳过。
-- `macos`（开工验证后固定 Apple 芯片 runner 与 Xcode）：checkout → 安装同一 Rust toolchain → 安装锁定 XcodeGen → `make lint` → `make test`；该 job 不预先生成工程，用于持续验证 `test → project → rust` 的依赖完整性。至少首次与发布前执行不恢复构建缓存的冷构建。
+- `macos`：macOS 15 arm64 / Xcode 16.4，checkout → 安装同一 Rust toolchain → 校验摘要并安装 XcodeGen 2.46.0 → `make lint` → `make test` → `make build CONFIGURATION=Release` → 归档 XCTest 结果；该 job 不预先生成工程，用于持续验证 `test → project → rust` 的依赖完整性。当前不恢复构建缓存。
 
 两个 job 可缓存 registry 与 target，缓存键包含 OS、架构、Rust 版本、profile 和 Cargo.lock 哈希；不能靠缓存提供未入库的工程/绑定。GPU runner 不可用时保留独立本机 `STRATA_REQUIRE_GPU=1` 验收记录，不能把跳过记为渲染通过。
 
@@ -917,14 +917,14 @@ Expected: `pixelWidth: 4000`、`pixelHeight: 6000`；`build/sample-p3.jpg` 已�
 
 Strata 与“预览”在同一 P3 屏幕、相同缩放显示照片及原生 P3 色块，关闭 True Tone/Night Shift 等自适应显示；用数码测色计相同模式测大色块内部，避免插值边缘，记录读数。每通道相差 ≤ 2（8 位读数）作为显示交叉验证；没有合适屏幕时明确“未验证”，不能凭截图勾选。另跑 Task 2/3/6 的 16 位样本与浮点参考测试；屏幕读数不能证明 16 位数据保真。
 
-- [ ] **Step 4: 写三份结论**
+- [x] **Step 4: 写三份结论**（已实测与待实测分别记录，不等于整个 M0 验收通过）
 
 每份一页，结构固定为：目标 / 方法 / 结果（附实测数据）/ 遇到的问题 / 对 M1 的结论。
 - 桥接：UniFFI 0.32 的 foreign trait 回调与线程模型、Swift 6 并发模式是否需要降级、绑定生成和链接方式。
 - 渲染：wgpu 30 在 `CAMetalLayer` 上的表面创建方式、24MP 下的帧率与 cpu_ms、没有 mipmap 时缩小显示的锯齿情况（M1 用分块缩略级别解决）。
 - 色彩：源 8/16 位像素保留 → 同位深 ICC 显示转换 → 线性预乘浮点缓存 → sRGB 传输曲线输出与 P3 layer；记录原生广色域、alpha、16 位测试数据，以及 HEIC、灰度/CMYK ICC 留到 M1 的支持边界。
 
-- [ ] **Step 5: 更新路线图与文档索引并提交**
+- [x] **Step 5: 更新路线图与文档索引并提交**
 
 ```bash
 git add scripts/make-perf-image.sh scripts/make-p3-sample.sh docs/research docs/plans/2026-11-02-strata-v1-roadmap.md docs/README.md
@@ -956,7 +956,7 @@ git commit -m "chore: set repository metadata"
 Run: `gh run watch --exit-status`
 Expected: `linux` 与 `macos` 两个 job 都成功。失败时按日志修复，提交后重新推送，直到两个都通过。
 
-已验证：提交 `0624958` 的[远程运行](https://github.com/BugCooker-cooking/strata/actions/runs/41410183235)两个 job 均成功。后续提交仍需检查自身结果；本机 GPU、屏幕和最低系统门槛独立保留。
+已验证：提交 `e80cbf1` 的[远程运行](https://github.com/BugCooker-cooking/strata/actions/runs/41421973474)两个 job 均成功，包含固定工具安装、Release 构建和测试结果归档。后续提交仍需检查自身结果；本机 GPU、屏幕和最低系统门槛独立保留。
 
 ---
 

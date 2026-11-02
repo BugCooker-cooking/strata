@@ -39,9 +39,9 @@ Task 1–9 首次实现以统一检查点入库，后续增量提交。已按发
 
 ## 远程 CI 证据
 
-提交 `32fb272`、`27b1b6f`、`0624958` 的 Linux/macOS job 均通过；最近一轮为 [41410183235](https://github.com/BugCooker-cooking/strata/actions/runs/41410183235)。Ubuntu 24.04 验证核心与静态检查；macOS 15 arm64 从未生成工程的 checkout 执行 `make test`，未恢复编译缓存。已实测 Xcode 16.4（16F6）、Swift 6.1.2、XcodeGen 2.46.0。
+提交 `32fb272`、`27b1b6f`、`0624958`、`e80cbf1` 的 Linux/macOS job 均通过；本轮源码验证为 [41421973474](https://github.com/BugCooker-cooking/strata/actions/runs/41421973474)。Ubuntu 24.04 验证核心与静态检查；macOS 15 arm64 从未生成工程的 checkout 执行 `make test`，未恢复编译缓存。已实测 Xcode 16.4（16F6）、Swift 6.1.2、XcodeGen 2.46.0。
 
-工作流显式选择 Xcode 16.4，下载并校验官方 XcodeGen 2.46.0 发布摘要；增加 Release 构建回归与 XCTest 结果归档。Hosted runner 的无 GPU 跳过不算本机 Metal 验收，macOS 15 CI 不算 macOS 14 实机验证。
+工作流显式选择 Xcode 16.4，下载并校验官方 XcodeGen 2.46.0 发布摘要；增加 Release 构建回归与 XCTest 结果归档。这三项均已在 `e80cbf1` 的远程运行通过。Hosted runner 的无 GPU 跳过不算本机 Metal 验收，macOS 15 CI 不算 macOS 14 实机验证。
 
 ## 与计划的必要接口调整
 
@@ -66,4 +66,4 @@ Task 1–9 首次实现以统一检查点入库，后续增量提交。已按发
 
 ## 下一步
 
-先补齐上述 M0 技术验收与故障注入，再准备 M1a 的命令/分块/保存任务；不因已有窗口就跳过存储与高位深门槛。第一版编辑、保存、图层与 AI 全部仍属于后续里程碑。
+按[实机验收表](2026-11-m0-hardware-checklist.md)补齐上述 M0 显示/输入与设备证据，再准备 M1a 的命令/分块/保存任务；不因已有窗口就跳过存储与高位深门槛。第一版编辑、保存、图层与 AI 全部仍属于后续里程碑。
