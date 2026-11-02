@@ -46,7 +46,12 @@ final class BridgeTests: XCTestCase {
         layer.colorspace = CGColorSpace(name: CGColorSpace.displayP3)
         let pointer = UInt64(UInt(bitPattern: Unmanaged.passUnretained(layer).toOpaque()))
         defer { try? engine.detachCanvas() }
-        try engine.attachCanvas(metalLayerPtr: pointer, viewport: CanvasViewport(width: 64, height: 64, scale: 1))
+        do {
+            try engine.attachCanvas(metalLayerPtr: pointer, viewport: CanvasViewport(width: 64, height: 64, scale: 1))
+        } catch StrataError.Render(let message) where message.contains("no GPU adapter") {
+            if ProcessInfo.processInfo.environment["STRATA_REQUIRE_GPU"] != nil { throw BenchmarkFailure(message) }
+            throw XCTSkip("No GPU adapter on this test host; local Metal validation is still required")
+        }
         try engine.resizeCanvas(viewport: CanvasViewport(width: 0, height: 0, scale: 1))
         XCTAssertTrue(try engine.renderFrame().skipped)
         try engine.resizeCanvas(viewport: CanvasViewport(width: 128, height: 128, scale: 2))

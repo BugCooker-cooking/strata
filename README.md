@@ -8,6 +8,8 @@ Strata is an open-source, AI-operable image editor with a portable Rust core and
 
 ## 当前状态
 
+目前在 [BugCooker-cooking/strata](https://github.com/BugCooker-cooking/strata) 私有开发；成品完成后再决定公开，不自动切换仓库可见性。
+
 M0 开发中。已有可运行的原生只读图像预览：打开常见图片、平移/缩放、8/16 位源像素保留、ICC → Display P3 显示、错误处理。上图是完整 v1 的界面设计稿，不是当前功能截图。尚无编辑、图层、保存或 AI；不要把它当作正式编辑器。
 
 ## 开发
@@ -31,4 +33,4 @@ M0 打开 PNG/JPEG/WebP/TIFF/GIF/BMP（GIF 首帧），HEIC 与不兼容的灰�
 
 [文档入口](docs/README.md) · [实施计划](docs/plans/2026-11-02-strata-v1-roadmap.md) · [贡献指南](CONTRIBUTING.md) · [行为准则](CODE_OF_CONDUCT.md)
 
-许可证：[Apache-2.0](LICENSE)。依赖保留其原许可证；发布前生成第三方许可清单。尚未创建远程仓库，CI 云端状态未验证。
+许可证：[Apache-2.0](LICENSE)。依赖保留其原许可证；发布前生成第三方许可清单。远程保持私有，CI 状态以实际运行记录为准。

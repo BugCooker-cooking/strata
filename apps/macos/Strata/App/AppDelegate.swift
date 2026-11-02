@@ -17,13 +17,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var controller: MainWindowController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Hosted CI may have no GPU. Tests create their own engines/layers as needed.
+        guard NSClassFromString("XCTestCase") == nil else { return }
         let events = EngineEvents { [weak self] event in self?.controller?.handle(event) }
         let engine = StrataEngine(listener: events)
         let controller = MainWindowController(engine: engine)
         self.controller = controller
         installMenu(controller)
-        // XCTest creates independent engines; do not auto-open a second image or steal focus.
-        guard NSClassFromString("XCTestCase") == nil else { return }
         controller.showWindow(nil)
         NSApp.activate(ignoringOtherApps: true)
         do {
