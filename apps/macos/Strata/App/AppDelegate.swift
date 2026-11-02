@@ -1,4 +1,5 @@
 import AppKit
+import QuartzCore
 
 @main
 enum StrataApplication {
@@ -25,6 +26,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard NSClassFromString("XCTestCase") == nil else { return }
         controller.showWindow(nil)
         NSApp.activate(ignoringOtherApps: true)
+        do {
+            if let options = try BenchmarkOptions.parse(ProcessInfo.processInfo.arguments) {
+                let start = CACurrentMediaTime()
+                controller.open(options.input) { [weak controller] result in
+                    do {
+                        let info = try result.get()
+                        guard let controller else { throw BenchmarkFailure("Window closed during image load") }
+                        try controller.canvas.startBenchmark(options: options, info: info,
+                            openMs: (CACurrentMediaTime() - start) * 1000) { result in
+                                switch result {
+                                case .success(let url): print("STRATA_BENCHMARK_REPORT \(url.path)")
+                                case .failure(let error): print("STRATA_BENCHMARK_FAILED \(error.localizedDescription)")
+                                }
+                                NSApp.terminate(nil)
+                            }
+                    } catch {
+                        print("STRATA_BENCHMARK_FAILED \(error.localizedDescription)")
+                        NSApp.terminate(nil)
+                    }
+                }
+                return
+            }
+        } catch {
+            print("STRATA_BENCHMARK_FAILED \(error.localizedDescription)")
+            NSApp.terminate(nil)
+            return
+        }
         if let sample = Bundle.main.url(forResource: "sample-photo", withExtension: "jpg") {
             controller.open(sample)
         }

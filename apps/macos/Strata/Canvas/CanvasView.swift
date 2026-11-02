@@ -9,6 +9,7 @@ final class CanvasView: NSView {
     private var dirty = true
     private var lastDrag: NSPoint?
     private let stats = FrameStatsHUD()
+    private var benchmark: CanvasBenchmark?
     var onError: ((Error) -> Void)?
 
     override var isFlipped: Bool { true }
@@ -60,6 +61,7 @@ final class CanvasView: NSView {
 
     /// Must run before the view/window releases its layer. Stops callbacks first.
     func shutdown() {
+        benchmark?.cancel(BenchmarkFailure("Canvas detached before benchmark completed"))
         frameLink?.invalidate()
         frameLink = nil
         if attached {
@@ -87,10 +89,25 @@ final class CanvasView: NSView {
 
     func markDirty() { dirty = true }
 
+    func cancelBenchmarkForDocumentChange() {
+        benchmark?.cancel(BenchmarkFailure("Document changed during benchmark"))
+    }
+
+    func startBenchmark(options: BenchmarkOptions, info: ImageInfo, openMs: Double,
+                        completion: @escaping (Result<URL, Error>) -> Void) throws {
+        guard attached, let screen = window?.screen else { throw BenchmarkFailure("Canvas not attached") }
+        benchmark = CanvasBenchmark(options: options, engine: engine, info: info, viewport: viewport,
+                                    screen: screen, openMs: openMs, completion: completion)
+        markDirty()
+    }
+
     @objc private func displayFrame(_ link: CADisplayLink) {
-        guard attached, dirty else { return }
+        let benchmarking = benchmark?.finished == false
+        guard attached, dirty || benchmarking else { return }
         do {
+            if benchmarking { try benchmark?.beforeFrame(viewport: viewport, window: window, link: link) }
             let frame = try engine.renderFrame()
+            if benchmarking { benchmark?.afterFrame(frame) }
             if !frame.skipped {
                 dirty = false
                 stats.record(timestamp: link.timestamp, cpuMs: frame.cpuMs)
@@ -98,21 +115,24 @@ final class CanvasView: NSView {
         } catch {
             // Avoid a repeated modal error on every display tick.
             dirty = false
-            onError?(error)
+            if benchmarking { benchmark?.cancel(error) } else { onError?(error) }
         }
     }
 
     override func scrollWheel(with event: NSEvent) {
+        benchmark?.cancel(BenchmarkFailure("User input interrupted benchmark"))
         // AppKit supplies momentum events; do not add a second inertia simulation.
         pan(dx: event.scrollingDeltaX, dy: event.scrollingDeltaY)
     }
 
     override func magnify(with event: NSEvent) {
+        benchmark?.cancel(BenchmarkFailure("User input interrupted benchmark"))
         let point = convert(event.locationInWindow, from: nil)
         zoom(at: point, factor: 1 + event.magnification)
     }
 
     override func mouseDown(with event: NSEvent) {
+        benchmark?.cancel(BenchmarkFailure("User input interrupted benchmark"))
         window?.makeFirstResponder(self)
         lastDrag = convert(event.locationInWindow, from: nil)
     }
@@ -137,8 +157,12 @@ final class CanvasView: NSView {
         } catch { onError?(error) }
     }
 
-    func zoomBy(_ factor: CGFloat) { zoom(at: NSPoint(x: bounds.midX, y: bounds.midY), factor: factor) }
+    func zoomBy(_ factor: CGFloat) {
+        benchmark?.cancel(BenchmarkFailure("User input interrupted benchmark"))
+        zoom(at: NSPoint(x: bounds.midX, y: bounds.midY), factor: factor)
+    }
     func fit() {
+        benchmark?.cancel(BenchmarkFailure("User input interrupted benchmark"))
         do { try engine.fitToScreen(); markDirty() } catch { onError?(error) }
     }
 }

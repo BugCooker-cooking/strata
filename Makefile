@@ -1,4 +1,4 @@
-.PHONY: test test-core test-app test-gpu lint rust project build run
+.PHONY: test test-core test-app test-gpu lint rust project build run color-fixtures benchmark verify-clean
 CONFIGURATION ?= Debug
 DERIVED_DATA ?= build/DerivedData
 XCODE_ARGS = -project apps/macos/Strata.xcodeproj -scheme Strata -configuration $(CONFIGURATION) -destination 'platform=macOS,arch=arm64' -derivedDataPath $(DERIVED_DATA)
@@ -30,3 +30,14 @@ lint:
 	cargo fmt --all --check
 	cargo clippy --workspace --all-targets --locked -- -D warnings
 	bash scripts/check-portability.sh
+
+# Refuses existing fixture outputs; choose a new directory for a separate run.
+FIXTURE_OUTPUT ?= build/color-fixtures-v1
+color-fixtures:
+	cargo run --locked -p strata-io --example make_color_fixtures -- $(FIXTURE_OUTPUT)
+
+benchmark:
+	bash scripts/run-canvas-benchmark.sh
+
+verify-clean:
+	bash scripts/verify-clean-build.sh

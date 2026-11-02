@@ -58,21 +58,23 @@ final class MainWindowController: NSWindowController, NSWindowDelegate {
         }
     }
 
-    func open(_ url: URL) {
+    func open(_ url: URL, completion: ((Result<ImageInfo, Error>) -> Void)? = nil) {
+        canvas.cancelBenchmarkForDocumentChange()
         requestID += 1
         let current = requestID
         status.stringValue = "正在解码与准备显示…"
         let engine = engine
         Task { [weak self] in
             do {
-                _ = try await Task.detached(priority: .userInitiated) { try engine.openImage(path: url.path) }.value
+                let info = try await Task.detached(priority: .userInitiated) { try engine.openImage(path: url.path) }.value
                 guard let self, self.requestID == current else { return }
                 self.window?.title = "\(url.lastPathComponent) — Strata"
+                completion?(.success(info))
             } catch {
                 guard let self, self.requestID == current else { return }
-                if case StrataError.Cancelled = error { return }
+                if case StrataError.Cancelled = error { completion?(.failure(error)); return }
                 self.status.stringValue = "打开失败 · 保留原来的图像"
-                self.showError(error)
+                if let completion { completion(.failure(error)) } else { self.showError(error) }
             }
         }
     }
