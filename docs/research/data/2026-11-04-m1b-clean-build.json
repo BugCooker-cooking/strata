@@ -1,0 +1,13 @@
+{
+  "source_revision": "883592567a450508e9db3c085140f3f73b0598ab",
+  "date": "2026-11-04",
+  "rust_passed": 138,
+  "rust_failed": 0,
+  "rust_ignored": 0,
+  "xctest_passed": 22,
+  "xctest_failed": 0,
+  "source_directory": "build/clean-check.2rUb9m",
+  "command": "make verify-clean",
+  "no_build_artifacts_reused": true,
+  "scope": "Exact committed source archive; offline registry sources only. Native display/physical-device acceptance is a separate gate."
+}
