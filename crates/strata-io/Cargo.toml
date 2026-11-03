@@ -6,8 +6,14 @@ rust-version.workspace = true
 license.workspace = true
 
 [dependencies]
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+rusqlite.workspace = true
+tempfile.workspace = true
 strata-pixels.workspace = true
 image.workspace = true
+tiff.workspace = true
 thiserror.workspace = true
 
 [dev-dependencies]

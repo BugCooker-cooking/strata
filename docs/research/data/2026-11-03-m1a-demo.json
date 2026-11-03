@@ -1,0 +1,45 @@
+{
+  "cases": [
+    {
+      "depth": 8,
+      "export_samples_exact": true,
+      "ids_metadata_tiles_icc_exact": true,
+      "input": "png",
+      "outputs": [
+        "png",
+        "tiff"
+      ]
+    },
+    {
+      "depth": 8,
+      "export_samples_exact": true,
+      "ids_metadata_tiles_icc_exact": true,
+      "input": "tiff",
+      "outputs": [
+        "png",
+        "tiff"
+      ]
+    },
+    {
+      "depth": 16,
+      "export_samples_exact": true,
+      "ids_metadata_tiles_icc_exact": true,
+      "input": "png",
+      "outputs": [
+        "png",
+        "tiff"
+      ]
+    },
+    {
+      "depth": 16,
+      "export_samples_exact": true,
+      "ids_metadata_tiles_icc_exact": true,
+      "input": "tiff",
+      "outputs": [
+        "png",
+        "tiff"
+      ]
+    }
+  ],
+  "passed": true
+}

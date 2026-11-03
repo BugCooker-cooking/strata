@@ -187,3 +187,18 @@ fn tile_iteration_is_stable_and_samples_are_row_major() {
     assert_eq!(&samples[index..index + 4], &[1, 2, 3, 4]);
     assert_eq!(samples.len(), 256 * 256 * 4);
 }
+
+#[test]
+fn block_versions_prevent_cache_aliasing_after_clear_and_reallocation() {
+    let coord = TileCoord::new(0, 0).unwrap();
+    let mut p = TiledPixels::new(PixelFormat::Rgba8, 1);
+    p.set_pixel(0, 0, PixelValue::Rgba8([1; 4])).unwrap();
+    let old = p.tile_version(coord).unwrap();
+    let snapshot = p.clone();
+    p.set_pixel(0, 0, PixelValue::Rgba8([2; 4])).unwrap();
+    assert_ne!(p.tile_version(coord), Some(old));
+    assert_eq!(snapshot.tile_version(coord), Some(old));
+    p.set_pixel(0, 0, PixelValue::Rgba8([0; 4])).unwrap();
+    p.set_pixel(0, 0, PixelValue::Rgba8([1; 4])).unwrap();
+    assert_ne!(p.tile_version(coord), Some(old));
+}

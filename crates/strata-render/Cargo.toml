@@ -7,8 +7,13 @@ license.workspace = true
 
 [dependencies]
 strata-pixels.workspace = true
+strata-core.workspace = true
 thiserror.workspace = true
 wgpu.workspace = true
 pollster.workspace = true
 bytemuck.workspace = true
 half.workspace = true
+
+[dev-dependencies]
+strata-color.workspace = true
+serde_json.workspace = true

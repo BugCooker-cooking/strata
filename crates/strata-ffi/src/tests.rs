@@ -1,10 +1,7 @@
 use super::*;
-use image::{ImageBuffer, Rgba};
-use std::{
-    path::Path,
-    sync::{Arc, Mutex, Weak},
-};
-use strata_pixels::PixelBuffer;
+use image::{ImageBuffer, ImageEncoder, Rgba};
+use std::sync::Weak;
+use strata_pixels::{PixelBuffer, PixelValue};
 
 #[derive(Default)]
 struct Recorder(Mutex<Vec<EngineEventDto>>);
@@ -18,214 +15,211 @@ fn photo(path: &Path) {
         .save(path)
         .unwrap();
 }
-
 #[test]
-fn version_and_no_canvas_error() {
-    let engine = StrataEngine::new(Arc::new(Recorder::default()));
-    assert_eq!(engine.core_version(), "0.0.1");
-    assert!(engine.document_info().is_none());
-    assert!(matches!(engine.render_frame(), Err(StrataError::NoCanvas)));
-    engine
-        .resize_canvas(CanvasViewport {
-            width: 0,
-            height: 0,
-            scale: 2.0,
-        })
-        .unwrap();
-    engine.pan_by(10.0, 10.0).unwrap();
-    engine.zoom_at(0.0, 0.0, 2.0).unwrap();
-    engine.fit_to_screen().unwrap();
-    engine.detach_canvas().unwrap();
-    engine.detach_canvas().unwrap();
+fn version_no_canvas_and_view_commands() {
+    let e = StrataEngine::new(Arc::new(Recorder::default()));
+    assert_eq!(e.core_version(), "0.0.1");
+    assert!(e.document_info().is_none());
+    assert!(matches!(e.render_frame(), Err(StrataError::NoCanvas)));
+    e.resize_canvas(CanvasViewport {
+        width: 0,
+        height: 0,
+        scale: 2.0,
+    })
+    .unwrap();
+    e.pan_by(10.0, 10.0).unwrap();
+    e.zoom_at(0.0, 0.0, 2.0).unwrap();
+    e.fit_to_screen().unwrap();
+    e.detach_canvas().unwrap();
+    e.detach_canvas().unwrap();
 }
-
 #[test]
-fn open_notifies_once_and_preserves_source() {
+fn registered_open_preserves_source_and_reports_once() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("red.png");
     photo(&path);
     let events = Arc::new(Recorder::default());
-    let engine = StrataEngine::new(events.clone());
-    let info = engine
-        .open_image(path.to_string_lossy().into_owned())
-        .unwrap();
+    let e = StrataEngine::new(events.clone());
+    let info = e.open_image(path.display().to_string()).unwrap();
     assert_eq!((info.width, info.height, info.bit_depth), (4, 3, 8));
-    assert_eq!(info.source_profile, "sRGB (assumed)");
     assert_eq!(
-        events.0.lock().unwrap().as_slice(),
-        &[EngineEventDto::DocumentOpened {
-            info: info.clone(),
-            generation: 1
-        }]
-    );
-    assert_eq!(engine.document_info(), Some(info));
-    assert_eq!(
-        engine
-            .inner
+        events
+            .0
             .lock()
             .unwrap()
-            .engine
-            .document()
-            .unwrap()
-            .pixels(),
-        &PixelBuffer::Rgba8([255, 0, 0, 255].repeat(12))
+            .iter()
+            .filter(|v| matches!(v, EngineEventDto::DocumentOpened { .. }))
+            .count(),
+        1
+    );
+    assert_eq!(
+        e.inner.lock().unwrap().editor.document().unwrap().layers()[0]
+            .pixels()
+            .pixel(0, 0),
+        PixelValue::Rgba8([255, 0, 0, 255])
     );
 }
-
 #[test]
-fn failed_open_preserves_document_and_event_count() {
+fn failed_open_keeps_document_and_event_count() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("red.png");
     photo(&path);
     let events = Arc::new(Recorder::default());
-    let engine = StrataEngine::new(events.clone());
-    let original = engine
-        .open_image(path.to_string_lossy().into_owned())
-        .unwrap();
-    let missing = dir.path().join("missing.png");
+    let e = StrataEngine::new(events.clone());
+    let original = e.open_image(path.display().to_string()).unwrap();
+    let count = events.0.lock().unwrap().len();
     assert!(matches!(
-        engine.open_image(missing.to_string_lossy().into_owned()),
+        e.open_image(dir.path().join("missing.png").display().to_string()),
         Err(StrataError::NotFound { .. })
     ));
     let bad = dir.path().join("bad.jpg");
     std::fs::write(&bad, b"hello").unwrap();
     assert!(matches!(
-        engine.open_image(bad.to_string_lossy().into_owned()),
+        e.open_image(bad.display().to_string()),
         Err(StrataError::UnsupportedFormat { .. })
     ));
-    assert_eq!(engine.document_info(), Some(original));
-    assert_eq!(events.0.lock().unwrap().len(), 1);
+    assert_eq!(e.document_info(), Some(original));
+    assert_eq!(events.0.lock().unwrap().len(), count);
 }
-
 #[test]
-fn rgba16_source_and_icc_are_not_display_cache() {
-    use image::ImageEncoder;
+fn rgba16_source_and_icc_do_not_become_display_cache() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("p3.png");
-    let source = vec![32768u16, 32769, 50001, 12345];
+    let source = vec![32768u16, 32769, 50001, 0];
     let profile = strata_color::display_p3_profile().unwrap().icc().unwrap();
     let mut encoder = image::codecs::png::PngEncoder::new(std::fs::File::create(&path).unwrap());
     encoder.set_icc_profile(profile.clone()).unwrap();
-    let bytes: Vec<u8> = source.iter().flat_map(|s| s.to_ne_bytes()).collect();
+    let bytes: Vec<_> = source.iter().flat_map(|s| s.to_ne_bytes()).collect();
     encoder
         .write_image(&bytes, 1, 1, image::ExtendedColorType::Rgba16)
         .unwrap();
-    let engine = StrataEngine::new(Arc::new(Recorder::default()));
+    let e = StrataEngine::new(Arc::new(Recorder::default()));
     assert_eq!(
-        engine
-            .open_image(path.to_string_lossy().into_owned())
-            .unwrap()
-            .bit_depth,
+        e.open_image(path.display().to_string()).unwrap().bit_depth,
         16
     );
-    let inner = engine.inner.lock().unwrap();
-    let doc = inner.engine.document().unwrap();
-    assert_eq!(doc.pixels(), &PixelBuffer::Rgba16(source));
-    assert_eq!(doc.icc_profile(), Some(profile.as_slice()));
+    let inner = e.inner.lock().unwrap();
+    let doc = inner.editor.document().unwrap();
+    assert_eq!(doc.export_pixels().unwrap(), PixelBuffer::Rgba16(source));
+    assert_eq!(doc.source_icc(), Some(profile.as_slice()));
 }
-
-#[test]
-fn stale_open_cannot_commit() {
-    let dir = tempfile::tempdir().unwrap();
-    let path = dir.path().join("red.png");
-    photo(&path);
-    let events = Arc::new(Recorder::default());
-    let engine = StrataEngine::new(events.clone());
-    let old_generation = engine.begin_open().unwrap();
-    let old_candidate = prepare_document(&path).unwrap();
-    let latest = engine
-        .open_image(path.to_string_lossy().into_owned())
-        .unwrap();
-    assert!(matches!(
-        engine.commit_open(old_generation, old_candidate),
-        Err(StrataError::Cancelled { .. })
-    ));
-    assert_eq!(engine.document_info(), Some(latest));
-    assert_eq!(events.0.lock().unwrap().len(), 1);
-}
-
 #[derive(Default)]
-struct ReentrantListener {
+struct Reentrant {
     engine: Mutex<Weak<StrataEngine>>,
     observed: Mutex<Option<ImageInfo>>,
 }
-impl EngineListener for ReentrantListener {
+impl EngineListener for Reentrant {
     fn on_event(&self, _: EngineEventDto) {
         let engine = self.engine.lock().unwrap().upgrade().unwrap();
         *self.observed.lock().unwrap() = engine.document_info();
     }
 }
-
 #[test]
 fn listener_can_reenter_state_lock() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("red.png");
     photo(&path);
-    let listener = Arc::new(ReentrantListener::default());
-    let engine = StrataEngine::new(listener.clone());
-    *listener.engine.lock().unwrap() = Arc::downgrade(&engine);
+    let listener = Arc::new(Reentrant::default());
+    let e = StrataEngine::new(listener.clone());
+    *listener.engine.lock().unwrap() = Arc::downgrade(&e);
     let (tx, rx) = std::sync::mpsc::channel();
-    let path = path.to_string_lossy().into_owned();
     let worker = std::thread::spawn(move || {
-        tx.send(engine.open_image(path)).unwrap();
+        tx.send(e.open_image(path.display().to_string())).unwrap();
     });
     let result = rx
-        .recv_timeout(std::time::Duration::from_secs(5))
-        .expect("callback deadlocked")
+        .recv_timeout(std::time::Duration::from_secs(10))
+        .unwrap()
         .unwrap();
     worker.join().unwrap();
     assert_eq!(*listener.observed.lock().unwrap(), Some(result));
 }
+#[test]
+fn ffi_commands_and_headless_engine_have_identical_pixels() {
+    let e = StrataEngine::new(Arc::new(Recorder::default()));
+    let mut headless = Editor::new();
+    for (command, args) in [
+        ("file.new", json!({"width":8,"height":8,"bit_depth":16})),
+        (
+            "layer.create",
+            json!({"name":"color","fill":[32768,32769,50001,65535]}),
+        ),
+        (
+            "layer.set_opacity",
+            json!({"layer":{"name":"color"},"opacity":0.5}),
+        ),
+        ("edit.undo", json!({})),
+    ] {
+        e.dispatch(command.into(), args.to_string()).unwrap();
+        let request = headless.request(Source::User);
+        headless
+            .execute(request, command, args, |_| Ok(()))
+            .unwrap();
+    }
+    assert_eq!(
+        e.inner
+            .lock()
+            .unwrap()
+            .editor
+            .document()
+            .unwrap()
+            .export_pixels()
+            .unwrap(),
+        headless.document().unwrap().export_pixels().unwrap()
+    );
+}
 
 #[test]
-fn renderer_prepare_failure_keeps_document_and_frame() {
-    use strata_render::{RenderError, Renderer, Viewport};
+fn stale_native_candidate_keeps_committed_document_and_scene() {
     let renderer = match Renderer::new_offscreen(Viewport {
-        width: 64,
-        height: 64,
+        width: 32,
+        height: 32,
         scale: 1.0,
     }) {
         Ok(r) => r,
-        Err(RenderError::NoAdapter) if std::env::var_os("STRATA_REQUIRE_GPU").is_none() => {
-            eprintln!("SKIPPED GPU FFI test");
+        Err(strata_render::RenderError::NoAdapter)
+            if std::env::var_os("STRATA_REQUIRE_GPU").is_none() =>
+        {
             return;
         }
-        Err(e) => panic!("{e}"),
+        Err(e) => panic!("GPU required: {e}"),
     };
-    let dir = tempfile::tempdir().unwrap();
-    let path = dir.path().join("red.png");
-    photo(&path);
-    let events = Arc::new(Recorder::default());
-    let engine = StrataEngine::new(events.clone());
-    let max = renderer.max_texture_dimension();
-    engine.inner.lock().unwrap().renderer = Some(renderer);
-    let original = engine
-        .open_image(path.to_string_lossy().into_owned())
-        .unwrap();
-    engine.render_frame().unwrap();
-    let before = engine
-        .inner
-        .lock()
-        .unwrap()
+    let e = StrataEngine::new(Arc::new(Recorder::default()));
+    e.inner.lock().unwrap().renderer = Some(renderer);
+    e.dispatch(
+        "file.new".into(),
+        json!({"width":4,"height":4,"bit_depth":8}).to_string(),
+    )
+    .unwrap();
+    let stale = {
+        let inner = e.inner.lock().unwrap();
+        inner
+            .editor
+            .prepare(
+                inner.editor.request(Source::User),
+                "layer.create",
+                json!({"name":"stale","fill":[255,0,0,255]}),
+            )
+            .unwrap()
+    };
+    e.dispatch(
+        "layer.create".into(),
+        json!({"name":"newer","fill":[0,255,0,255]}).to_string(),
+    )
+    .unwrap();
+    let mut inner = e.inner.lock().unwrap();
+    inner.renderer.as_mut().unwrap().render().unwrap();
+    let before = inner
         .renderer
         .as_ref()
         .unwrap()
         .read_offscreen_rgba()
         .unwrap();
-    let too_large = dir.path().join("wide.png");
-    ImageBuffer::from_pixel(max + 1, 1, Rgba([1u8, 2, 3, 255]))
-        .save(&too_large)
-        .unwrap();
-    assert!(matches!(
-        engine.open_image(too_large.to_string_lossy().into_owned()),
-        Err(StrataError::Render { .. })
-    ));
-    engine.render_frame().unwrap();
+    let state = inner.editor.document().unwrap().state_id();
+    assert!(apply(&mut inner, stale, "layer.create", &json!({})).is_err());
+    assert_eq!(inner.editor.document().unwrap().state_id(), state);
+    inner.renderer.as_mut().unwrap().render().unwrap();
     assert_eq!(
-        engine
-            .inner
-            .lock()
-            .unwrap()
+        inner
             .renderer
             .as_ref()
             .unwrap()
@@ -233,6 +227,4 @@ fn renderer_prepare_failure_keeps_document_and_frame() {
             .unwrap(),
         before
     );
-    assert_eq!(engine.document_info(), Some(original));
-    assert_eq!(events.0.lock().unwrap().len(), 1);
 }

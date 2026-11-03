@@ -1,0 +1,85 @@
+{
+  "cases": [
+    {
+      "depth": 8,
+      "height": 4000,
+      "steps": [
+        {
+          "admitted": true,
+          "attempted_layer": 1,
+          "error": null,
+          "milliseconds": 24.328167,
+          "referenced_source_bytes": 100663296
+        },
+        {
+          "admitted": true,
+          "attempted_layer": 2,
+          "error": null,
+          "milliseconds": 17.313542,
+          "referenced_source_bytes": 201326592
+        },
+        {
+          "admitted": true,
+          "attempted_layer": 3,
+          "error": null,
+          "milliseconds": 17.408125,
+          "referenced_source_bytes": 301989888
+        },
+        {
+          "admitted": true,
+          "attempted_layer": 4,
+          "error": null,
+          "milliseconds": 18.926624999999998,
+          "referenced_source_bytes": 402653184
+        },
+        {
+          "admitted": true,
+          "attempted_layer": 5,
+          "error": null,
+          "milliseconds": 16.645542,
+          "referenced_source_bytes": 503316480
+        },
+        {
+          "admitted": false,
+          "attempted_layer": 6,
+          "error": "document resource limit exceeded",
+          "milliseconds": 0.023209,
+          "referenced_source_bytes": 503316480
+        }
+      ],
+      "target_independent_layers": 20,
+      "width": 6000
+    },
+    {
+      "depth": 16,
+      "height": 4000,
+      "steps": [
+        {
+          "admitted": true,
+          "attempted_layer": 1,
+          "error": null,
+          "milliseconds": 34.334583,
+          "referenced_source_bytes": 201326592
+        },
+        {
+          "admitted": true,
+          "attempted_layer": 2,
+          "error": null,
+          "milliseconds": 26.486458000000002,
+          "referenced_source_bytes": 402653184
+        },
+        {
+          "admitted": false,
+          "attempted_layer": 3,
+          "error": "document resource limit exceeded",
+          "milliseconds": 0.012458,
+          "referenced_source_bytes": 402653184
+        }
+      ],
+      "target_independent_layers": 20,
+      "width": 6000
+    }
+  ],
+  "document_limit_bytes": 536870912,
+  "stage": "M1a bounded admission; full 20-layer residency is M1b"
+}

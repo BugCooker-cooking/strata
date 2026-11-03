@@ -39,6 +39,8 @@ pub struct Renderer {
     image: Option<PreparedImage>,
     viewport: Viewport,
     view: ViewTransform,
+    scene: Option<super::scene::Scene>,
+    scene_pipeline: wgpu::RenderPipeline,
 }
 
 enum Target {
@@ -205,6 +207,7 @@ impl Renderer {
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
+        let scene_pipeline = super::scene::pipeline(&device, format);
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
             label: Some("Linear image sampler"),
             mag_filter: wgpu::FilterMode::Linear,
@@ -222,6 +225,8 @@ impl Renderer {
             image: None,
             viewport: vp,
             view: ViewTransform::default(),
+            scene: None,
+            scene_pipeline,
         })
     }
 
@@ -243,6 +248,13 @@ impl Renderer {
     }
 
     pub fn fit_to_screen(&mut self) {
+        if let Some(scene) = &self.scene {
+            let frame = scene.document.frame();
+            self.view = ViewTransform::fit(frame.width, frame.height, self.viewport);
+            self.view.center_x += frame.x as f32;
+            self.view.center_y += frame.y as f32;
+            return;
+        }
         if let Some(image) = &self.image {
             self.view = ViewTransform::fit(image.width, image.height, self.viewport);
         }
@@ -352,6 +364,7 @@ impl Renderer {
         }
         self.view = ViewTransform::fit(prepared.width, prepared.height, self.viewport);
         self.image = Some(prepared);
+        self.scene = None;
         Ok(())
     }
 
@@ -388,6 +401,16 @@ impl Renderer {
                 cpu_ms: 0.0,
                 skipped: true,
             });
+        }
+        if let Some(scene) = &mut self.scene {
+            scene.prepare_visible(
+                &self.device,
+                &self.queue,
+                &self.scene_pipeline,
+                &self.sampler,
+                self.view,
+                self.viewport,
+            )?;
         }
         let frame = if let Target::Surface { surface, config } = &self.target {
             match surface.get_current_texture() {
@@ -453,6 +476,9 @@ impl Renderer {
                 pass.set_bind_group(0, &image.bind_group, &[]);
                 pass.draw(0..6, 0..1);
             }
+            if let Some(scene) = &self.scene {
+                scene.draw(&mut pass, &self.scene_pipeline);
+            }
         }
         self.queue.submit([encoder.finish()]);
         if let Some(frame) = frame {
@@ -462,6 +488,48 @@ impl Renderer {
             cpu_ms: start.elapsed().as_secs_f32() * 1000.0,
             skipped: false,
         })
+    }
+
+    pub fn prepare_document(
+        &mut self,
+        document: &strata_core::Document,
+        fit: bool,
+    ) -> Result<super::scene::PreparedScene, RenderError> {
+        let view = if fit {
+            let f = document.frame();
+            let mut v = ViewTransform::fit(f.width, f.height, self.viewport);
+            v.center_x += f.x as f32;
+            v.center_y += f.y as f32;
+            v
+        } else {
+            self.view
+        };
+        let mut scene = super::scene::Scene::new(document.clone(), self.scene.as_ref());
+        scene.prepare_visible(
+            &self.device,
+            &self.queue,
+            &self.scene_pipeline,
+            &self.sampler,
+            view,
+            self.viewport,
+        )?;
+        Ok(super::scene::PreparedScene {
+            owner: self.id,
+            scene,
+            view,
+        })
+    }
+    pub fn commit_document(
+        &mut self,
+        prepared: super::scene::PreparedScene,
+    ) -> Result<(), RenderError> {
+        if prepared.owner != self.id {
+            return Err(gpu_error("scene belongs to another renderer"));
+        }
+        self.scene = Some(prepared.scene);
+        self.view = prepared.view;
+        self.image = None;
+        Ok(())
     }
 
     pub fn read_offscreen_rgba(&self) -> Result<Vec<u8>, RenderError> {

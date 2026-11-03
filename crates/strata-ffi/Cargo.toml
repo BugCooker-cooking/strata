@@ -16,6 +16,8 @@ strata-io.workspace = true
 strata-render.workspace = true
 uniffi.workspace = true
 thiserror.workspace = true
+serde_json.workspace = true
+uuid.workspace = true
 
 [dev-dependencies]
 image.workspace = true

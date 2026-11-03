@@ -1,0 +1,381 @@
+use crate::{RenderError, ViewTransform, Viewport};
+use half::f16;
+use std::{
+    collections::{BTreeSet, HashMap},
+    sync::Arc,
+};
+use strata_core::{
+    Document,
+    composite::{Compositor, LinearTile},
+};
+use strata_pixels::TileCoord;
+
+const MAX_GPU_TILES: usize = 1024;
+pub struct PreparedScene {
+    pub(crate) owner: u64,
+    pub(crate) scene: Scene,
+    pub(crate) view: ViewTransform,
+}
+pub(crate) struct Scene {
+    pub document: Document,
+    compositor: Compositor,
+    cache: HashMap<(TileCoord, u32), Arc<GpuTile>>,
+    visible: Vec<DrawTile>,
+    last: Option<(ViewTransform, Viewport)>,
+    camera: Option<(wgpu::Buffer, wgpu::BindGroup)>,
+}
+struct GpuTile {
+    _texture: wgpu::Texture,
+    view: wgpu::TextureView,
+    signatures: Vec<u64>,
+}
+struct DrawTile {
+    _tile: Arc<GpuTile>,
+    _uniform: wgpu::Buffer,
+    bind: wgpu::BindGroup,
+    coord: TileCoord,
+    lod: u32,
+}
+
+pub(crate) fn pipeline(device: &wgpu::Device, format: wgpu::TextureFormat) -> wgpu::RenderPipeline {
+    let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+        label: Some("Strata tiled canvas"),
+        source: wgpu::ShaderSource::Wgsl(include_str!("scene.wgsl").into()),
+    });
+    device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+        label: Some("Tiled linear P3"),
+        layout: None,
+        vertex: wgpu::VertexState {
+            module: &shader,
+            entry_point: Some("vs_main"),
+            compilation_options: Default::default(),
+            buffers: &[],
+        },
+        primitive: Default::default(),
+        depth_stencil: None,
+        multisample: Default::default(),
+        fragment: Some(wgpu::FragmentState {
+            module: &shader,
+            entry_point: Some("fs_main"),
+            compilation_options: Default::default(),
+            targets: &[Some(wgpu::ColorTargetState {
+                format,
+                blend: Some(wgpu::BlendState::PREMULTIPLIED_ALPHA_BLENDING),
+                write_mask: wgpu::ColorWrites::ALL,
+            })],
+        }),
+        multiview_mask: None,
+        cache: None,
+    })
+}
+fn err(e: impl std::fmt::Display) -> RenderError {
+    RenderError::Gpu(e.to_string())
+}
+impl Scene {
+    pub fn new(document: Document, old: Option<&Scene>) -> Self {
+        Self {
+            document,
+            compositor: old
+                .map(|s| s.compositor.clone())
+                .unwrap_or_else(|| Compositor::new(128)),
+            cache: old.map(|s| s.cache.clone()).unwrap_or_default(),
+            visible: Vec::new(),
+            last: None,
+            camera: None,
+        }
+    }
+    pub fn prepare_visible(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        pipeline: &wgpu::RenderPipeline,
+        sampler: &wgpu::Sampler,
+        view: ViewTransform,
+        vp: Viewport,
+    ) -> Result<(), RenderError> {
+        if self.last == Some((view, vp)) {
+            return Ok(());
+        }
+        if self.camera.is_none() {
+            let buffer = device.create_buffer(&wgpu::BufferDescriptor {
+                label: Some("Shared canvas camera"),
+                size: 32,
+                usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+                mapped_at_creation: false,
+            });
+            let bind = device.create_bind_group(&wgpu::BindGroupDescriptor {
+                label: Some("Canvas camera"),
+                layout: &pipeline.get_bind_group_layout(1),
+                entries: &[wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: buffer.as_entire_binding(),
+                }],
+            });
+            self.camera = Some((buffer, bind));
+        }
+        queue.write_buffer(
+            &self.camera.as_ref().unwrap().0,
+            0,
+            bytemuck::cast_slice(&[
+                view.center_x,
+                view.center_y,
+                vp.width.max(1) as f32,
+                vp.height.max(1) as f32,
+                view.zoom,
+                0.0,
+                0.0,
+                0.0,
+            ]),
+        );
+        let lod = (-view.zoom.log2()).floor().clamp(0.0, 8.0) as u32;
+        let coords = visible_coords(&self.document, view, vp)?;
+        let current: Vec<_> = self.visible.iter().map(|t| (t.coord, t.lod)).collect();
+        let next: Vec<_> = coords.iter().map(|c| (*c, lod)).collect();
+        if self.last.is_some() && current == next {
+            self.last = Some((view, vp));
+            return Ok(());
+        }
+        let mut visible = Vec::new();
+        for coord in coords {
+            let mut signatures = Vec::new();
+            let mut neighbor_coords = Vec::new();
+            for y in -1..=1 {
+                for x in -1..=1 {
+                    let c = TileCoord::new(coord.x() + x, coord.y() + y).map_err(err)?;
+                    signatures.push(Compositor::signature(&self.document, c));
+                    neighbor_coords.push(c);
+                }
+            }
+            let cached = self
+                .cache
+                .get(&(coord, lod))
+                .filter(|t| t.signatures == signatures)
+                .cloned();
+            let tile = if let Some(tile) = cached {
+                tile
+            } else {
+                let neighbors = neighbor_coords
+                    .into_iter()
+                    .map(|c| self.compositor.tile(&self.document, c).map_err(err))
+                    .collect::<Result<Vec<_>, _>>()?;
+                // Prepare the next sharper level while its source neighbors
+                // are resident. Crossing a zoom threshold then stays a cache
+                // lookup instead of recomposing the whole image mid-gesture.
+                let levels = if lod > 0 && self.last.is_none() {
+                    vec![lod - 1, lod]
+                } else {
+                    vec![lod]
+                };
+                let mut selected = None;
+                for level in levels {
+                    let (size, data) = mip_with_gutter(&neighbors, level);
+                    let allocation = device.push_error_scope(wgpu::ErrorFilter::OutOfMemory);
+                    let validation = device.push_error_scope(wgpu::ErrorFilter::Validation);
+                    let texture = device.create_texture(&wgpu::TextureDescriptor {
+                        label: Some("Visible source tile mip with gutter"),
+                        size: wgpu::Extent3d {
+                            width: size,
+                            height: size,
+                            depth_or_array_layers: 1,
+                        },
+                        mip_level_count: 1,
+                        sample_count: 1,
+                        dimension: wgpu::TextureDimension::D2,
+                        format: wgpu::TextureFormat::Rgba16Float,
+                        usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+                        view_formats: &[],
+                    });
+                    queue.write_texture(
+                        wgpu::TexelCopyTextureInfo {
+                            texture: &texture,
+                            mip_level: 0,
+                            origin: wgpu::Origin3d::ZERO,
+                            aspect: wgpu::TextureAspect::All,
+                        },
+                        bytemuck::cast_slice(&data),
+                        wgpu::TexelCopyBufferLayout {
+                            offset: 0,
+                            bytes_per_row: Some(size * 8),
+                            rows_per_image: Some(size),
+                        },
+                        wgpu::Extent3d {
+                            width: size,
+                            height: size,
+                            depth_or_array_layers: 1,
+                        },
+                    );
+                    let texture_view = texture.create_view(&Default::default());
+                    if let Some(error) = pollster::block_on(validation.pop())
+                        .or(pollster::block_on(allocation.pop()))
+                    {
+                        return Err(err(error));
+                    }
+                    let tile = Arc::new(GpuTile {
+                        _texture: texture,
+                        view: texture_view,
+                        signatures: signatures.clone(),
+                    });
+                    if self.cache.len() >= MAX_GPU_TILES {
+                        self.cache.clear();
+                    }
+                    self.cache.insert((coord, level), tile.clone());
+                    if level == lod {
+                        selected = Some(tile);
+                    }
+                }
+                selected.unwrap()
+            };
+            let uniform = device.create_buffer(&wgpu::BufferDescriptor {
+                label: Some("Tile placement"),
+                size: 32,
+                usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+                mapped_at_creation: false,
+            });
+            update_uniform(queue, &uniform, coord, lod);
+            let bind = device.create_bind_group(&wgpu::BindGroupDescriptor {
+                label: Some("Tile display"),
+                layout: &pipeline.get_bind_group_layout(0),
+                entries: &[
+                    wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: uniform.as_entire_binding(),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 1,
+                        resource: wgpu::BindingResource::TextureView(&tile.view),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 2,
+                        resource: wgpu::BindingResource::Sampler(sampler),
+                    },
+                ],
+            });
+            visible.push(DrawTile {
+                _tile: tile,
+                _uniform: uniform,
+                bind,
+                coord,
+                lod,
+            });
+        }
+        self.visible = visible;
+        self.last = Some((view, vp));
+        Ok(())
+    }
+    pub fn draw<'a>(&'a self, pass: &mut wgpu::RenderPass<'a>, pipeline: &'a wgpu::RenderPipeline) {
+        pass.set_pipeline(pipeline);
+        if let Some((_, bind)) = &self.camera {
+            pass.set_bind_group(1, bind, &[]);
+        }
+        for tile in &self.visible {
+            pass.set_bind_group(0, &tile.bind, &[]);
+            pass.draw(0..6, 0..1);
+        }
+    }
+}
+fn update_uniform(queue: &wgpu::Queue, buffer: &wgpu::Buffer, coord: TileCoord, lod: u32) {
+    let [x, y] = coord.origin();
+    let n = (256 >> lod) as f32;
+    let size = n + 2.0;
+    let data = [
+        x as f32,
+        y as f32,
+        256.0,
+        0.0,
+        1.0 / size,
+        1.0 / size,
+        n / size,
+        n / size,
+    ];
+    queue.write_buffer(buffer, 0, bytemuck::cast_slice(&data));
+}
+fn visible_coords(
+    doc: &Document,
+    view: ViewTransform,
+    vp: Viewport,
+) -> Result<BTreeSet<TileCoord>, RenderError> {
+    let (left, top) = view.screen_to_image(vp, 0.0, 0.0);
+    let (right, bottom) = view.screen_to_image(vp, vp.width as f32, vp.height as f32);
+    let mut out = BTreeSet::new();
+    for layer in doc.layers() {
+        if !layer.info().visible || layer.info().opacity == 0.0 {
+            continue;
+        }
+        for (coord, _) in layer.pixels().tiles() {
+            let [x, y] = coord.origin();
+            let x = x
+                .checked_add(layer.info().x)
+                .ok_or(RenderError::InvalidView)?;
+            let y = y
+                .checked_add(layer.info().y)
+                .ok_or(RenderError::InvalidView)?;
+            if x as f64 > right as f64
+                || y as f64 > bottom as f64
+                || x as f64 + 256.0 < (left as f64)
+                || y as f64 + 256.0 < (top as f64)
+            {
+                continue;
+            }
+            let (a, _) = TileCoord::locate(x, y);
+            let (b, _) = TileCoord::locate(x + 255, y + 255);
+            for tx in a.x()..=b.x() {
+                for ty in a.y()..=b.y() {
+                    out.insert(TileCoord::new(tx, ty).map_err(err)?);
+                }
+            }
+            if out.len() > MAX_GPU_TILES {
+                return Err(err("visible tile limit exceeded"));
+            }
+        }
+    }
+    Ok(out)
+}
+fn mip_with_gutter(neighbors: &[LinearTile], lod: u32) -> (u32, Vec<f16>) {
+    let step = 1i32 << lod;
+    let n = 256 / step;
+    let size = n + 2;
+    let mut data = Vec::with_capacity((size * size * 4) as usize);
+    for y in -1..=n {
+        for x in -1..=n {
+            let mut sum = [0.0f64; 4];
+            for dy in 0..step {
+                for dx in 0..step {
+                    let px = x * step + dx;
+                    let py = y * step + dy;
+                    let tile = ((py.div_euclid(256) + 1) * 3 + px.div_euclid(256) + 1) as usize;
+                    let p =
+                        neighbors[tile][(py.rem_euclid(256) * 256 + px.rem_euclid(256)) as usize];
+                    for i in 0..3 {
+                        sum[i] += f64::from(p[i]) * f64::from(p[3]);
+                    }
+                    sum[3] += f64::from(p[3]);
+                }
+            }
+            for value in sum {
+                data.push(f16::from_f64(value / f64::from(step * step)));
+            }
+        }
+    }
+    (size as u32, data)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn mip_filters_premultiplied_and_gutters_match_neighbors() {
+        let transparent = Arc::new(vec![[1.0, 0.0, 0.0, 0.0]; 256 * 256]);
+        let white = Arc::new(vec![[1.0; 4]; 256 * 256]);
+        let mut tiles = vec![transparent.clone(); 9];
+        tiles[4] = white.clone();
+        tiles[5] = white;
+        for lod in [0, 1, 4, 8] {
+            let (size, data) = mip_with_gutter(&tiles, lod);
+            let center = (size as usize + 1) * 4;
+            assert_eq!(data[center].to_f32(), 1.0);
+            assert_eq!(data[size as usize * 4].to_f32(), 0.0);
+            let right = (size as usize * 2 - 1) * 4;
+            assert_eq!(data[right].to_f32(), 1.0);
+        }
+    }
+}

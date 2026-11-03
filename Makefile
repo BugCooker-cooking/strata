@@ -1,4 +1,4 @@
-.PHONY: test test-core test-app test-gpu lint rust project build run color-fixtures benchmark verify-clean
+.PHONY: test test-core test-app test-gpu lint rust project build run color-fixtures benchmark verify-clean commands
 CONFIGURATION ?= Debug
 DERIVED_DATA ?= build/DerivedData
 XCODE_ARGS = -project apps/macos/Strata.xcodeproj -scheme Strata -configuration $(CONFIGURATION) -destination 'platform=macOS,arch=arm64' -derivedDataPath $(DERIVED_DATA)
@@ -41,3 +41,6 @@ benchmark:
 
 verify-clean:
 	bash scripts/verify-clean-build.sh
+
+commands:
+	cargo run --locked -p strata-devtool -- examples

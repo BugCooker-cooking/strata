@@ -1,13 +1,58 @@
 import AppKit
 import QuartzCore
+import UniformTypeIdentifiers
 import XCTest
 @testable import Strata
 
 @MainActor
 final class BridgeTests: XCTestCase {
+    func testProjectTypeKeepsSingleExtensionInSavePanel() throws {
+        let type = try XCTUnwrap(UTType(filenameExtension: "strata"))
+        XCTAssertEqual(type.identifier, "dev.strata-editor.project")
+        let panel = NSSavePanel()
+        panel.nameFieldStringValue = "example.strata"
+        panel.allowedContentTypes = [type]
+        XCTAssertEqual(panel.nameFieldStringValue, "example.strata")
+    }
+
     func testCoreVersion() {
         let engine = StrataEngine(listener: EngineEvents { _ in })
         XCTAssertEqual(engine.coreVersion(), "0.0.1")
+    }
+
+    func testCommandHistoryProjectRoundtripAndExport() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let engine = StrataEngine(listener: EngineEvents { _ in })
+        func invoke(_ id: String, _ params: [String: Any]) throws {
+            _ = try engine.dispatch(command: id, paramsJson: commandJSON(params))
+        }
+        try invoke("file.new", ["width": 16, "height": 16, "bit_depth": 16])
+        try invoke("layer.create", ["name": "颜色", "fill": [32768, 32769, 50001, 65535]])
+        try invoke("layer.set_opacity", ["layer": ["name": "颜色"], "opacity": 0.5])
+        try invoke("edit.undo", [:])
+        let before = try EditorSnapshot.decode(engine.snapshotJson())
+        XCTAssertEqual(before.layers.count, 2)
+        XCTAssertEqual(before.layers.last?.opacity, 1)
+        let project = directory.appendingPathComponent("roundtrip.strata")
+        let target = try engine.grantWrite(path: project.path, overwrite: false)
+        try invoke("file.save_as", ["resource": target])
+        XCTAssertFalse(try EditorSnapshot.decode(engine.snapshotJson()).dirty)
+        try invoke("layer.rename", ["layer": ["name": "颜色"], "name": "修改"])
+        let input = try engine.grantRead(path: project.path)
+        try invoke("file.open", ["resource": input, "discard_changes": true])
+        let reopened = try EditorSnapshot.decode(engine.snapshotJson())
+        XCTAssertEqual(reopened.layers.map(\.id), before.layers.map(\.id))
+        XCTAssertEqual(reopened.layers.last?.name, "颜色")
+        XCTAssertEqual(reopened.bitDepth, 16)
+        for format in ["png", "tiff"] {
+            let output = directory.appendingPathComponent("export.\(format)")
+            let resource = try engine.grantWrite(path: output.path, overwrite: false)
+            try invoke("file.export", ["resource": resource, "format": format])
+            let imported = StrataEngine(listener: EngineEvents { _ in })
+            XCTAssertEqual(try imported.openImage(path: output.path).bitDepth, 16)
+        }
     }
 
     func testOpenImageDeliversMainThreadEvent() async throws {

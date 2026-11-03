@@ -2,6 +2,12 @@ import XCTest
 @testable import Strata
 
 final class BenchmarkTests: XCTestCase {
+    func testCallbackRateUsesDisplayDivisorAtOrAboveSixtyWhenAvailable() {
+        for (maximum, expected) in [(60, 60), (120, 60), (144, 72), (160, 80), (240, 60), (30, 30)] {
+            XCTAssertEqual(FrameMeasurements.callbackRate(maximumFPS: maximum), expected)
+        }
+    }
+
     func testSixtyHzSequencePassesHostThreshold() {
         let summary = FrameMeasurements.summarize(timestamps: (0..<1800).map { Double($0) / 60 },
             cpuMs: Array(repeating: 1.0, count: 1800), elapsed: 30, skipped: 0)

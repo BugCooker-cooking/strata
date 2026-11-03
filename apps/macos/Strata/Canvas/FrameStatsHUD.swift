@@ -15,7 +15,7 @@ final class FrameStatsHUD: NSTextField {
         backgroundColor = .windowBackgroundColor
         textColor = .secondaryLabelColor
         font = .monospacedSystemFont(ofSize: 11, weight: .regular)
-        stringValue = "M0 · GPU 预览"
+        stringValue = "M1a · 分块画布"
         #if DEBUG
         isHidden = false
         #else

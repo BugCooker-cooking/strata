@@ -2,10 +2,34 @@
 //! belong to consumers; neither may replace these full-depth source samples.
 
 use crate::{PixelBuffer, PixelFormat};
-use std::{collections::BTreeMap, fmt, sync::Arc};
+use std::{
+    collections::BTreeMap,
+    fmt,
+    sync::{
+        Arc,
+        atomic::{AtomicU64, Ordering},
+    },
+};
 
 pub const TILE_EDGE: u32 = 256;
 const TILE_SAMPLES: usize = TILE_EDGE as usize * TILE_EDGE as usize * 4;
+static NEXT_BLOCK_VERSION: AtomicU64 = AtomicU64::new(1);
+fn block_version() -> u64 {
+    NEXT_BLOCK_VERSION.fetch_add(1, Ordering::Relaxed)
+}
+#[derive(Debug)]
+struct Block {
+    samples: PixelBuffer,
+    version: u64,
+}
+impl Block {
+    fn new(samples: PixelBuffer) -> Self {
+        Self {
+            samples,
+            version: block_version(),
+        }
+    }
+}
 
 /// Coordinates on the tile grid, with origins representable as i64 pixels.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -85,10 +109,73 @@ impl PixelValue {
 pub struct TiledPixels {
     format: PixelFormat,
     max_tiles: usize,
-    tiles: BTreeMap<TileCoord, Arc<PixelBuffer>>,
+    tiles: BTreeMap<TileCoord, Arc<Block>>,
 }
 
 impl TiledPixels {
+    /// Validated bulk import. Padding remains zero; hidden RGB is preserved.
+    pub fn from_dense(
+        width: u32,
+        height: u32,
+        source: &PixelBuffer,
+        max_tiles: usize,
+    ) -> Result<Self, TileError> {
+        source
+            .validate(width, height)
+            .map_err(|_| TileError::InvalidBuffer)?;
+        let mut result = Self::new(source.format(), max_tiles);
+        for ty in 0..height.div_ceil(TILE_EDGE) {
+            for tx in 0..width.div_ceil(TILE_EDGE) {
+                let mut block = match source.format() {
+                    PixelFormat::Rgba8 => PixelBuffer::Rgba8(zero_samples()?),
+                    PixelFormat::Rgba16 => PixelBuffer::Rgba16(zero_samples()?),
+                };
+                let rows = TILE_EDGE.min(height - ty * TILE_EDGE) as usize;
+                let cols = TILE_EDGE.min(width - tx * TILE_EDGE) as usize * 4;
+                for row in 0..rows {
+                    let src = (((ty * TILE_EDGE) as usize + row) * width as usize
+                        + (tx * TILE_EDGE) as usize)
+                        * 4;
+                    let dst = row * TILE_EDGE as usize * 4;
+                    match (&mut block, source) {
+                        (PixelBuffer::Rgba8(out), PixelBuffer::Rgba8(input)) => {
+                            out[dst..dst + cols].copy_from_slice(&input[src..src + cols])
+                        }
+                        (PixelBuffer::Rgba16(out), PixelBuffer::Rgba16(input)) => {
+                            out[dst..dst + cols].copy_from_slice(&input[src..src + cols])
+                        }
+                        _ => unreachable!(),
+                    }
+                }
+                result.insert_tile(TileCoord::new(i64::from(tx), i64::from(ty))?, block)?;
+            }
+        }
+        Ok(result)
+    }
+
+    /// Replace a complete block after validation. Only all-RGBA-zero blocks vanish.
+    pub fn insert_tile(&mut self, coord: TileCoord, block: PixelBuffer) -> Result<(), TileError> {
+        if block.format() != self.format {
+            return Err(TileError::FormatMismatch {
+                expected: self.format,
+                actual: block.format(),
+            });
+        }
+        block
+            .validate(TILE_EDGE, TILE_EDGE)
+            .map_err(|_| TileError::InvalidBuffer)?;
+        if all_zero(&block) {
+            self.tiles.remove(&coord);
+            return Ok(());
+        }
+        if !self.tiles.contains_key(&coord) && self.tiles.len() >= self.max_tiles {
+            return Err(TileError::TileLimit {
+                limit: self.max_tiles,
+            });
+        }
+        self.tiles.insert(coord, Arc::new(Block::new(block)));
+        Ok(())
+    }
     pub fn new(format: PixelFormat, max_tiles: usize) -> Self {
         Self {
             format,
@@ -111,14 +198,19 @@ impl TiledPixels {
     }
 
     pub fn tile(&self, coord: TileCoord) -> Option<&PixelBuffer> {
-        self.tiles.get(&coord).map(Arc::as_ref)
+        self.tiles.get(&coord).map(|b| &b.samples)
+    }
+    /// Process-local identity changes on every real write and cannot be confused
+    /// by allocator address reuse. Shared immutable snapshots keep the version.
+    pub fn tile_version(&self, coord: TileCoord) -> Option<u64> {
+        self.tiles.get(&coord).map(|b| b.version)
     }
 
     /// Deterministic x-then-y grid order; samples inside each tile are row-major.
     pub fn tiles(&self) -> impl ExactSizeIterator<Item = (&TileCoord, &PixelBuffer)> {
         self.tiles
             .iter()
-            .map(|(coord, data)| (coord, data.as_ref()))
+            .map(|(coord, data)| (coord, &data.samples))
     }
 
     pub fn pixel(&self, x: i64, y: i64) -> PixelValue {
@@ -152,21 +244,22 @@ impl TiledPixels {
                 PixelFormat::Rgba8 => PixelBuffer::Rgba8(zero_samples()?),
                 PixelFormat::Rgba16 => PixelBuffer::Rgba16(zero_samples()?),
             };
-            self.tiles.insert(coord, Arc::new(pixels));
+            self.tiles.insert(coord, Arc::new(Block::new(pixels)));
         }
         let shared = self.tiles.get_mut(&coord).expect("tile was inserted");
         // Allocate the copy before replacing the shared block. A failed pixel
         // allocation cannot partially mutate a historical version.
         if Arc::get_mut(shared).is_none() {
-            let copy = match shared.as_ref() {
+            let copy = match &shared.samples {
                 PixelBuffer::Rgba8(samples) => PixelBuffer::Rgba8(copy_samples(samples)?),
                 PixelBuffer::Rgba16(samples) => PixelBuffer::Rgba16(copy_samples(samples)?),
             };
-            *shared = Arc::new(copy);
+            *shared = Arc::new(Block::new(copy));
         }
         let tile = Arc::get_mut(shared).expect("private block has no external Arc or Weak handles");
+        tile.version = block_version();
         let i = sample_index(offset);
-        match (&mut *tile, value) {
+        match (&mut tile.samples, value) {
             (PixelBuffer::Rgba8(samples), PixelValue::Rgba8(pixel)) => {
                 samples[i..i + 4].copy_from_slice(&pixel)
             }
@@ -177,7 +270,7 @@ impl TiledPixels {
         }
         // Only a write of four zeros can make the whole tile removable.
         // Transparent pixels with hidden RGB are still document data.
-        if value.is_zero() && all_zero(tile) {
+        if value.is_zero() && all_zero(&tile.samples) {
             self.tiles.remove(&coord);
         }
         Ok(true)
@@ -222,6 +315,7 @@ fn copy_samples<T: Copy>(source: &[T]) -> Result<Vec<T>, TileError> {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum TileError {
+    InvalidBuffer,
     InvalidCoordinate {
         x: i64,
         y: i64,
@@ -239,6 +333,7 @@ pub enum TileError {
 impl fmt::Display for TileError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::InvalidBuffer => write!(f, "invalid tile or image sample count"),
             Self::InvalidCoordinate { x, y } => {
                 write!(f, "tile ({x}, {y}) exceeds pixel coordinate range")
             }

@@ -18,13 +18,12 @@ targets:
     sources:
       - path: Strata
       - path: Generated
-        excludes: ["*.h", "*.modulemap"]
+        excludes: ["*.h", "*.modulemap", "Info.plist"]
       - path: ../../docs/design/assets/sample-photo.jpg
         buildPhase: resources
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: dev.strata-editor.Strata
-        GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: Strata
         INFOPLIST_KEY_NSPrincipalClass: NSApplication
         HEADER_SEARCH_PATHS: "$(SRCROOT)/Generated"
@@ -35,6 +34,16 @@ targets:
           OTHER_LDFLAGS: "$(inherited) $(SRCROOT)/../../target/debug/libstrata_ffi.a"
         Release:
           OTHER_LDFLAGS: "$(inherited) $(SRCROOT)/../../target/release/libstrata_ffi.a"
+    info:
+      path: Generated/Info.plist
+      properties:
+        NSPrincipalClass: NSApplication
+        UTExportedTypeDeclarations:
+          - UTTypeIdentifier: dev.strata-editor.project
+            UTTypeDescription: Strata Project
+            UTTypeConformsTo: [public.data]
+            UTTypeTagSpecification:
+              public.filename-extension: [strata]
     dependencies:
       - sdk: AppKit.framework
       - sdk: Metal.framework

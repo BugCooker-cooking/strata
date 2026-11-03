@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/strata-core", "crates/strata-pixels", "crates/strata-color", "crates/strata-io", "crates/strata-render", "crates/strata-ffi", "tools/uniffi-bindgen"]
+members = ["crates/strata-core", "crates/strata-pixels", "crates/strata-color", "crates/strata-io", "crates/strata-render", "crates/strata-ffi", "tools/uniffi-bindgen", "tools/strata-devtool"]
 
 [workspace.package]
 version = "0.0.1"
@@ -30,3 +30,10 @@ bytemuck = { version = "1", features = ["derive"] }
 half = { version = "2", features = ["bytemuck"] }
 thiserror = "2"
 tempfile = "3"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+schemars = { version = "1.2.3", features = ["uuid1"] }
+uuid = { version = "1.29.0", features = ["v4", "serde"] }
+sha2 = "0.11.1"
+rusqlite = { version = "0.41.1", default-features = false, features = ["bundled"] }
+tiff = "0.11.3"

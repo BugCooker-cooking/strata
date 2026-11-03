@@ -96,6 +96,7 @@ final class CanvasBenchmark {
     private var previousY: Double = 0
     private var previousZoom: Double = 1
     private(set) var finished = false
+    var hasStarted: Bool { trialStarted != nil || !trials.isEmpty }
     private let warmup: Double = 2
 
     init(options: BenchmarkOptions, engine: StrataEngine, info: ImageInfo, viewport: CanvasViewport,
@@ -169,7 +170,8 @@ final class CanvasBenchmark {
             imageWidth: info.width, imageHeight: info.height, imageBitDepth: info.bitDepth,
             viewportWidth: initialViewport.width, viewportHeight: initialViewport.height, backingScale: initialViewport.scale,
             screenName: screen.localizedName, screenColorSpace: screen.colorSpace?.localizedName ?? "unknown",
-            screenMaximumFPS: screen.maximumFramesPerSecond, requestedCallbackFPS: 60,
+            screenMaximumFPS: screen.maximumFramesPerSecond,
+            requestedCallbackFPS: FrameMeasurements.callbackRate(maximumFPS: screen.maximumFramesPerSecond),
             floatingWindow: options.keepVisible, displayLinkNominalHz: nominalHz,
             osVersion: ProcessInfo.processInfo.operatingSystemVersionString, processor: Self.processor(),
             memoryBytes: ProcessInfo.processInfo.physicalMemory, openMilliseconds: openMs, warmupSecondsPerRun: warmup,

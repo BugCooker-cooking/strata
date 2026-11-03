@@ -16,6 +16,13 @@ struct FrameSummary: Codable {
 }
 
 enum FrameMeasurements {
+    // CADisplayLink chooses divisors of the display refresh rate. On 160 Hz,
+    // requesting exactly 60 can yield 53.3; request 80 without relaxing gates.
+    static func callbackRate(maximumFPS: Int) -> Int {
+        let maximum = max(1, maximumFPS)
+        return maximum / max(1, maximum / 60)
+    }
+
     static func percentile(_ values: [Double], _ quantile: Double) -> Double? {
         guard !values.isEmpty else { return nil }
         let sorted = values.sorted()

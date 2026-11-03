@@ -3,7 +3,9 @@
 mod view;
 pub use view::*;
 mod renderer;
+mod scene;
 pub use renderer::{CANVAS_BG_SRGB, FrameStats, PreparedImage, Renderer};
+pub use scene::PreparedScene;
 
 #[derive(Debug, thiserror::Error)]
 pub enum RenderError {
