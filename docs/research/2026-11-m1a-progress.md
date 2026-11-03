@@ -1,6 +1,6 @@
 # M1a 实施记录
 
-日期：2026-11-03。状态：功能闭环和当前 Mac 验收通过，正在完成提交后的干净构建和远程 CI 验收。
+日期：2026-11-03。状态：M1a Task 1–8 完成，功能闭环、当前 Mac 验收、提交后干净构建和远程双平台 CI 均通过。
 
 [详细计划](../plans/2026-11-02-m1a-core-storage.md)的边界是像素图层编辑、命令与历史、工程往返和 PNG/TIFF 双位深导出。它不是完整 M1 或可公开发布的成品。仓库保持私有；当前 Mac 先行验证，M0 缺少的 macOS 14、M1 标准机、跨屏、真实触控板和校准对色仍见[实机表](2026-11-m0-hardware-checklist.md)。
 
@@ -30,7 +30,11 @@ Esc 在连续拖动中的物理按键验收尚未用真实触控板执行；核�
 
 ## 自动化与文件安全证据
 
-本机 `make lint`、`STRATA_REQUIRE_GPU=1 make test`、`make commands` 和 Release 构建通过：103 项 Rust 测试（含 11 项 GPU 集成测试）、10 项 XCTest、25 个命令隔离示例。最终提交的干净构建和远程 CI 记录在收尾后更新。
+本机 `make lint`、`STRATA_REQUIRE_GPU=1 make test`、`make commands` 和 Release 构建通过：103 项 Rust 测试（含 11 项 GPU 集成测试）、10 项 XCTest、25 个命令隔离示例。
+
+实现提交：`5c893d8791ca3d5e1129c32c0d13913d526019a5`。提交后执行 `STRATA_REQUIRE_GPU=1 make verify-clean`，从该 HEAD 的 `git archive` 新目录重建；不复用 `target`、生成的桥接文件或 Xcode 项目。103 项 Rust 与 10 项 XCTest 全部再次通过。完整本机日志在 `build/m1a-clean-final.log` 与 `build/clean-check.glb3Cz/validation.log`。
+
+[远程 CI 41559294090](https://github.com/BugCooker-cooking/strata/actions/runs/41559294090) 对同一实现提交全部通过：Ubuntu 24.04 的 lint、Rust 测试、25 个命令说明/隔离示例，以及 macOS 15 arm64 / Xcode 16.4 的 lint、生成项目后的构建测试和 Release 构建。该运行耗时 Linux 6 分 20 秒、macOS 5 分 13 秒。仓库经核对仍为 `PRIVATE`。本记录的收尾提交只修改计划/验收文档，不改变已验证实现。
 
 `strata-devtool demo` 覆盖 PNG/TIFF×8/16 位四种输入，通过复制、改名、位置/不透明度/混合/显隐、undo/redo、保存重开和两种格式导出，精确比较元数据/ID/ICC/样本。证据：`data/2026-11-03-m1a-demo.json`。
 
@@ -54,7 +58,7 @@ Esc 在连续拖动中的物理按键验收尚未用真实触控板执行；核�
 
 打开耗时 2326 ms，进程峰值 RSS 466,386,944 字节，渲染后采样的最大 physical footprint 713,426,288 字节。完整逐帧数据见 `data/2026-11-03-m1a-render-after.json`。这次系统报告 G27M7Pro 为 120 Hz、请求 60 fps；首次失败报告为 160 Hz，测试没有修改系统刷新率，因此不能把两组数据当作同条件 A/B 或将差值全部归因于代码。160 Hz 回调档位选择由单元测试覆盖，尚未取得该档位的最终实测通过记录。
 
-帧统计为成功 CPU 提交间隔，不是 GPU 完成或屏幕呈现时间；本机结果不替代 M1 标准机和物理手势验收。采样运行标记旧 HEAD 加 `dirty`，对应本次待提交实现；提交后的源代码构建验证另行记录。
+帧统计为成功 CPU 提交间隔，不是 GPU 完成或屏幕呈现时间；本机结果不替代 M1 标准机和物理手势验收。采样运行标记旧 HEAD 加 `dirty`，对应随后提交的 `5c893d8` 实现；该提交的干净源码构建验证见上。
 
 ## M1b 交接
 
