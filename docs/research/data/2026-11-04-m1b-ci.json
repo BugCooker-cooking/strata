@@ -1,0 +1,23 @@
+{
+  "databaseId": 41711000823,
+  "headSha": "6e57d3a4c3268272a735ee0c80dc8f7c8285e60b",
+  "status": "completed",
+  "conclusion": "success",
+  "url": "https://github.com/BugCooker-cooking/strata/actions/runs/41711000823",
+  "date": "2026-11-04",
+  "jobs": [
+    {
+      "name": "macos",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/BugCooker-cooking/strata/actions/runs/41711000823/job/126178698082"
+    },
+    {
+      "name": "linux",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/BugCooker-cooking/strata/actions/runs/41711000823/job/126178698505"
+    }
+  ],
+  "scope": "Hosted Linux/macOS CI; physical display, trackpad, cross-display, minimum macOS 14 and standard M1-device acceptance are separate."
+}
