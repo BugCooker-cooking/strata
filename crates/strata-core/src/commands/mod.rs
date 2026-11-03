@@ -61,6 +61,13 @@ params!(OpenFile {
     discard_changes: bool
 });
 params!(SaveFile { resource: String });
+params!(PlaceFile {
+    resource: String,
+    #[serde(default)]
+    x: i64,
+    #[serde(default)]
+    y: i64
+});
 params!(ExportFile {
     resource: String,
     format: String

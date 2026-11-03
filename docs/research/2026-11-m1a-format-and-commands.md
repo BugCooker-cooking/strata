@@ -26,12 +26,14 @@ PNG/TIFF 导出保持文档位深并嵌入工作 ICC；未编辑单层精确保�
 | 图层 | `layer.list/create/delete/duplicate/rename/set_visibility/set_opacity/set_blend_mode/set_position/move_order/select` |
 | 事务与历史 | `document.batch`、`edit.undo/redo/undo_turn` |
 | 视图 | `view.pan/zoom/fit` |
-| 文件 | `file.save/save_as/export` |
+| 文件 | `file.save/save_as/export/place` |
 | 工作空间 | `color.convert`（sRGB、Display P3） |
 
 来源 User/AI/Test、会话、文档、revision 和 call ID 由宿主绑定，不能通过 JSON 冒充。执行器先验证控制权与参数，创建候选；宿主准备显示资源成功后再次检查 revision/epoch，才提交核心状态与画面。事件在锁外送达。停止回合立即撤销提交资格；暂停只允许明确白名单的用户编辑。call ID 重试返回原结果，同 ID 不同参数冲突；提交时再次检查，覆盖同时准备的重试。普通收据保留一小时，视图收据 30 秒，最多 4096 条。
 
 文件参数只接受宿主生成的能力 token。能力绑定来源、目标、时效、文件大小/mtime（Unix 还绑定 device/inode）；覆盖权限由原生面板或开发工具显式提供。写能力单次使用，失败后也需重新授权。不能把这些校验当作对同机恶意进程的完整沙箱；更细的外发/模型权限属于 M2。
+
+M1b 首批新增 `file.place`：资源为已授权的图片，`x/y` 默认为 0，在活动图层上方插入新像素层，不调整画板或缩放图片。8→16 位先升位后转换 ICC，16→8 位先转换 ICC 再按全量程量化（含 alpha）；当前文档位深和工作 ICC 不变。准备后、提交前均复核资源；失败不增加历史。与 `file.open` 不同，置入只增加一条编辑历史；与其他文件动作一样不允许批事务。最近文件目前只在原生宿主菜单暴露，没有注册空壳 `file.recent.list`。
 
 批事务预先排除文件、视图、历史和生命周期命令；中途失败不提交。稳定结果引用示例：
 

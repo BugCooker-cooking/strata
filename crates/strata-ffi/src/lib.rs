@@ -11,6 +11,8 @@ use strata_core::{
 };
 use strata_render::{Renderer, Viewport};
 uniffi::setup_scaffolding!();
+mod thumbnails;
+pub use thumbnails::LayerThumbnail;
 
 #[derive(Debug, Clone, PartialEq, uniffi::Record)]
 pub struct ImageInfo {
@@ -136,6 +138,20 @@ pub struct StrataEngine {
 
 #[uniffi::export]
 impl StrataEngine {
+    /// Small host display copies. Never replace document samples or enter history.
+    pub fn layer_thumbnails(&self, revision: u64) -> Result<Vec<LayerThumbnail>, StrataError> {
+        let doc = {
+            let inner = self.lock()?;
+            if inner.editor.snapshot().revision != revision {
+                return Ok(Vec::new());
+            }
+            inner.editor.document().cloned()
+        };
+        doc.as_ref()
+            .map(thumbnails::make)
+            .transpose()
+            .map(|v| v.unwrap_or_default())
+    }
     pub fn artboard_overlay(&self) -> Option<ArtboardOverlay> {
         let inner = self.inner.lock().ok()?;
         let renderer = inner.renderer.as_ref()?;
@@ -307,6 +323,12 @@ impl StrataEngine {
     pub fn resize_canvas(&self, viewport: CanvasViewport) -> Result<(), StrataError> {
         if let Some(renderer) = &mut self.lock()?.renderer {
             renderer.resize(viewport.into()).map_err(render_error)?;
+        }
+        Ok(())
+    }
+    pub fn set_canvas_background(&self, red: u8, green: u8, blue: u8) -> Result<(), StrataError> {
+        if let Some(renderer) = &mut self.lock()?.renderer {
+            renderer.set_background([red, green, blue]);
         }
         Ok(())
     }

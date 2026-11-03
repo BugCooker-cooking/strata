@@ -22,7 +22,7 @@ pub enum Source {
     Test,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum Control {
     User,
@@ -114,6 +114,7 @@ pub struct Snapshot {
     pub history_cursor: usize,
     pub executions: Vec<Value>,
     pub control_events: Vec<Value>,
+    pub control: Control,
 }
 
 enum Action {
@@ -121,6 +122,7 @@ enum Action {
     View,
     New,
     Edit,
+    Place(String),
     History(usize),
     Open(Option<std::path::PathBuf>),
     External(WriteCandidate),
@@ -149,7 +151,7 @@ impl PreparedCommand {
     pub fn changes_display(&self) -> bool {
         matches!(
             self.action,
-            Action::New | Action::Open(_) | Action::Edit | Action::History(_)
+            Action::New | Action::Open(_) | Action::Edit | Action::Place(_) | Action::History(_)
         ) && !self.replay
     }
     pub fn replaces_document(&self) -> bool {
@@ -287,6 +289,7 @@ impl Editor {
             history_cursor: self.cursor,
             executions: self.executions.clone(),
             control_events: self.control_events.clone(),
+            control: self.control.clone(),
         }
     }
     pub fn begin_turn(&mut self) -> Result<Uuid, CommandError> {
@@ -465,15 +468,18 @@ impl Editor {
             }
             CommandKind::Mutate => {
                 let doc = candidate.as_mut().ok_or(CommandError::NoDocument)?;
-                let result = if id == "document.batch" {
-                    batch(doc, params.clone(), self.snapshot())?
+                let (action, result) = if id == "file.place" {
+                    let (resource, result) = self.prepare_place(&request, doc, params.clone())?;
+                    (Action::Place(resource), result)
+                } else if id == "document.batch" {
+                    (Action::Edit, batch(doc, params.clone(), self.snapshot())?)
                 } else {
-                    mutate(doc, id, params.clone())?
+                    (Action::Edit, mutate(doc, id, params.clone())?)
                 };
                 doc.validate()?;
                 doc.state = StateId::fresh();
                 selected = doc.active;
-                (Action::Edit, result)
+                (action, result)
             }
             CommandKind::History => {
                 let next = match id {
@@ -616,10 +622,13 @@ impl Editor {
         }
         if matches!(
             prepared.action,
-            Action::New | Action::Open(_) | Action::Edit | Action::History(_)
+            Action::New | Action::Open(_) | Action::Edit | Action::Place(_) | Action::History(_)
         ) && self.revision == u64::MAX
         {
             return Err(CommandError::Invalid("revision exhausted".into()));
+        }
+        if let Action::Place(resource) = &prepared.action {
+            self.resource(resource, &prepared.request, false)?;
         }
         match prepared.action {
             Action::External(write) => {
@@ -633,7 +642,7 @@ impl Editor {
                 self.project_path = path;
                 self.revision += 1;
             }
-            Action::Edit => {
+            Action::Edit | Action::Place(_) => {
                 let after = prepared.candidate.clone().ok_or(CommandError::NoDocument)?;
                 let before = self.document.clone().ok_or(CommandError::NoDocument)?;
                 let mut unique = HashSet::new();

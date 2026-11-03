@@ -14,6 +14,11 @@ final class CanvasView: NSView {
     private var benchmark: CanvasBenchmark?
     var onError: ((Error) -> Void)?
     var onCommitted: (() -> Void)?
+    var onViewChanged: ((ArtboardOverlay?, Double, CGFloat) -> Void)?
+    var onPointerMoved: ((NSPoint) -> Void)?
+    var onToolKey: ((String) -> Bool)?
+    var zoomTool = false
+    private var pointerTracking: NSTrackingArea?
     var movesLayer = false
     var isEditingEnabled = true
     var activeLayer: EditorSnapshot.Layer?
@@ -68,6 +73,7 @@ final class CanvasView: NSView {
             let pointer = UInt64(UInt(bitPattern: Unmanaged.passUnretained(metal).toOpaque()))
             try engine.attachCanvas(metalLayerPtr: pointer, viewport: viewport)
             attached = true
+            updateCanvasAppearance()
             let link = displayLink(target: self, selector: #selector(displayFrame(_:)))
             link.add(to: .main, forMode: .common)
             frameLink = link
@@ -95,6 +101,20 @@ final class CanvasView: NSView {
         super.viewDidChangeBackingProperties()
         layer?.contentsScale = scale
         resizeCanvas()
+    }
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance(); updateCanvasAppearance()
+    }
+    private func updateCanvasAppearance() {
+        guard attached else { return }
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            if let color = WorkspaceColors.canvas.usingColorSpace(.sRGB) {
+                try? engine.setCanvasBackground(red: UInt8((color.redComponent * 255).rounded()), green: UInt8((color.greenComponent * 255).rounded()), blue: UInt8((color.blueComponent * 255).rounded()))
+            }
+        }
+        artboardTitle.foregroundColor = WorkspaceColors.secondary.cgColor
+        artboardBorder.strokeColor = WorkspaceColors.secondary.withAlphaComponent(0.5).cgColor
+        markDirty()
     }
 
     private func resizeCanvas() {
@@ -152,7 +172,9 @@ final class CanvasView: NSView {
     private func updateArtboardOverlay() {
         CATransaction.begin(); CATransaction.setDisableActions(true)
         defer { CATransaction.commit() }
-        guard let frame = engine.artboardOverlay() else {
+        let overlay = engine.artboardOverlay()
+        onViewChanged?(overlay, Double(engine.canvasZoom()), scale)
+        guard let frame = overlay else {
             artboardBorder.isHidden = true; artboardTitle.isHidden = true; return
         }
         artboardBorder.isHidden = false; artboardTitle.isHidden = false
@@ -179,6 +201,10 @@ final class CanvasView: NSView {
     override func mouseDown(with event: NSEvent) {
         benchmark?.cancel(BenchmarkFailure("User input interrupted benchmark"))
         window?.makeFirstResponder(self)
+        if zoomTool {
+            zoom(at: convert(event.locationInWindow, from: nil), factor: event.modifierFlags.contains(.option) ? 0.8 : 1.25)
+            return
+        }
         lastDrag = convert(event.locationInWindow, from: nil)
         if movesLayer, isEditingEnabled, let layer = activeLayer, let point = lastDrag {
             do { try engine.beginLayerMove(layerId: layer.id); layerDrag = (point, layer.x, layer.y, CGFloat(engine.canvasZoom())); layerPosition = (layer.x, layer.y) }
@@ -209,8 +235,20 @@ final class CanvasView: NSView {
         catch { onError?(error) }
     }
     override func keyDown(with event: NSEvent) {
-        if event.keyCode == 53 { cancelLayerDrag() } else { super.keyDown(with: event) }
+        if event.keyCode == 53 { cancelLayerDrag() }
+        else if !event.modifierFlags.contains(.command), !event.modifierFlags.contains(.control),
+                let key = event.charactersIgnoringModifiers?.uppercased(), onToolKey?(key) == true { return }
+        else { super.keyDown(with: event) }
     }
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        if let pointerTracking { removeTrackingArea(pointerTracking) }
+        let area = NSTrackingArea(rect: .zero, options: [.mouseMoved, .activeInKeyWindow, .inVisibleRect], owner: self)
+        addTrackingArea(area); pointerTracking = area
+    }
+    override func mouseMoved(with event: NSEvent) { onPointerMoved?(convert(event.locationInWindow, from: nil)) }
+    func panByPoints(dx: CGFloat, dy: CGFloat) { pan(dx: dx, dy: dy) }
+    func actualSize() { zoomBy(1 / CGFloat(engine.canvasZoom())) }
     private func cancelLayerDrag() {
         guard layerDrag != nil else { return }
         do { try engine.endLayerMove(x: 0, y: 0, cancel: true) } catch { onError?(error) }

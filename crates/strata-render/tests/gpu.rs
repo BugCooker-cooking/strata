@@ -236,6 +236,29 @@ fn transparent_image_shows_background() {
 }
 
 #[test]
+fn changing_workspace_background_preserves_image_samples() {
+    let Some(mut r) = renderer() else {
+        return;
+    };
+    put(
+        &mut r,
+        PixelBuffer::Rgba8([200, 100, 50, 255].repeat(4)),
+        2,
+        2,
+    );
+    r.set_background([214, 214, 216]);
+    r.render().unwrap();
+    let frame = r.read_offscreen_rgba().unwrap();
+    close(pixel(&frame, 0, 0), &[214, 214, 216, 255]);
+    close(pixel(&frame, 32, 32), &[200, 100, 50, 255]);
+    r.set_background(CANVAS_BG_SRGB);
+    r.render().unwrap();
+    let frame = r.read_offscreen_rgba().unwrap();
+    close(pixel(&frame, 0, 0), &[20, 20, 21, 255]);
+    close(pixel(&frame, 32, 32), &[200, 100, 50, 255]);
+}
+
+#[test]
 fn empty_scene_and_zero_size_are_safe() {
     let Some(mut r) = renderer() else {
         return;

@@ -41,6 +41,7 @@ pub struct Renderer {
     view: ViewTransform,
     scene: Option<super::scene::Scene>,
     scene_pipeline: wgpu::RenderPipeline,
+    background: [u8; 3],
 }
 
 enum Target {
@@ -227,6 +228,7 @@ impl Renderer {
             view: ViewTransform::default(),
             scene: None,
             scene_pipeline,
+            background: CANVAS_BG_SRGB,
         })
     }
 
@@ -238,6 +240,10 @@ impl Renderer {
     }
     pub fn viewport(&self) -> Viewport {
         self.viewport
+    }
+    /// Host presentation preference only. Never changes source pixels or export.
+    pub fn set_background(&mut self, color: [u8; 3]) {
+        self.background = color;
     }
     pub fn set_view(&mut self, view: ViewTransform) -> Result<(), RenderError> {
         if !view.is_valid() {
@@ -451,7 +457,7 @@ impl Renderer {
             self.queue
                 .write_buffer(&self.uniform, 0, bytemuck::bytes_of(&matrix));
         }
-        let bg = CANVAS_BG_SRGB.map(|v| linear(v as f32 / 255.0) as f64);
+        let bg = self.background.map(|v| linear(v as f32 / 255.0) as f64);
         {
             let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("Strata canvas"),

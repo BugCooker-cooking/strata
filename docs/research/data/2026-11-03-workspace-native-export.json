@@ -1,0 +1,30 @@
+{
+  "bit_depth": 8,
+  "layers": [
+    {
+      "blend_mode": "normal",
+      "id": "d575db6b-caff-4793-8a44-2239993e17ac",
+      "name": "sample-photo",
+      "opacity": 1.0,
+      "visible": true,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "blend_mode": "screen",
+      "id": "414e340c-51ec-4e4f-99e0-ffa57c466d6b",
+      "name": "置入验收",
+      "opacity": 0.55,
+      "visible": true,
+      "x": 0,
+      "y": 0
+    }
+  ],
+  "outputs": [
+    {
+      "file": "workspace-ui-final-20261103.png",
+      "pixels_icc_dimensions_exact": true
+    }
+  ],
+  "passed": true
+}

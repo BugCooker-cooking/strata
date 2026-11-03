@@ -237,6 +237,15 @@ fn build_catalog() -> Vec<CommandSpec> {
         json!({"resource":"fixture-read"})
     );
     command!(
+        "file.place",
+        PlaceFile,
+        Mutate,
+        "置入图片",
+        "Place image",
+        "Place an authorized image above the active layer without resizing. Convert to the document working ICC and depth; x/y are canvas pixels. One undoable edit; not batchable.",
+        json!({"resource":"fixture-read","x":0,"y":0})
+    );
+    command!(
         "file.save",
         SaveFile,
         External,
@@ -276,7 +285,7 @@ fn build_catalog() -> Vec<CommandSpec> {
             "document.batch" => schemars::schema_for!(BatchResult),
             _ => schemars::schema_for!(LayerResult),
         };
-        if item.id == "file.open" {
+        if item.id == "file.open" || item.id == "file.place" {
             item.effects.push("file.read");
             item.permissions.push("read_resource");
         }
@@ -284,7 +293,7 @@ fn build_catalog() -> Vec<CommandSpec> {
             item.effects = vec!["document.read", "file.write"];
             item.permissions.push("write_resource");
         }
-        if item.id == "document.batch" {
+        if item.id == "document.batch" || item.id == "file.place" {
             item.batchable = false;
         }
     }

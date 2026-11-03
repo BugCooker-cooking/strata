@@ -55,6 +55,16 @@ fn examples() -> Result<(), Box<dyn Error>> {
                     editor.stop_turn();
                     args = json!({"turn_id":turn});
                 }
+                "file.place" => {
+                    let path = dir.path().join("input.png");
+                    let grant = editor.grant_write(&path, false, Source::Test)?;
+                    run(
+                        &mut editor,
+                        "file.export",
+                        json!({"resource":grant,"format":"png"}),
+                    )?;
+                    args["resource"] = json!(editor.grant_read(&path, Source::Test)?);
+                }
                 "file.open" => {
                     let path = dir.path().join("input.strata");
                     let grant = editor.grant_write(&path, false, Source::Test)?;

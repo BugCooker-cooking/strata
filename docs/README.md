@@ -4,6 +4,8 @@ Strata 是一个开源的、可以完全由 AI 驱动的专业级图像编辑器
 
 当前已接入 M1a 图层编辑、命令/历史、工程保存和同位深导出；尚无模型接入、选区或蒙版。v0.1 仍以“主体选择 + 蒙版曝光 + 用户修正 + 安全保存”为目标，完整 P0 作为 v1.0 目标。已验证与未完成门槛见 [M1a 记录](research/2026-11-m1a-progress.md)。
 
+原生界面框架、独立文档标签、最近文件与图片置入已落地；见 [工作区计划](plans/2026-11-03-workspace-and-m1b.md) 与 [实施记录](research/2026-11-workspace-progress.md)。下图仍是设计稿。
+
 ![Strata 第一版界面](design/screenshots/ui-v1.png)
 
 ## 从这里开始

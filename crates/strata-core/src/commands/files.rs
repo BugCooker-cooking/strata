@@ -116,7 +116,7 @@ impl Editor {
         self.resources.insert(id.clone(), resource);
         Ok(id)
     }
-    fn resource(
+    pub(super) fn resource(
         &self,
         id: &str,
         request: &Request,
@@ -165,6 +165,77 @@ impl Editor {
         )?
         .into_document();
         Ok((doc, None))
+    }
+    pub(super) fn prepare_place(
+        &self,
+        request: &Request,
+        doc: &mut Document,
+        params: Value,
+    ) -> Result<(String, Value), CommandError> {
+        let p: PlaceFile = parse(params)?;
+        if doc.layers.len() >= crate::MAX_LAYERS {
+            return Err(DocumentError::ResourceLimit.into());
+        }
+        let resource = self.resource(&p.resource, request, false)?;
+        let image = strata_io::decode_image(&resource.path)?;
+        let added = u64::from(image.width.div_ceil(256))
+            * u64::from(image.height.div_ceil(256))
+            * doc
+                .format
+                .byte_count(256, 256)
+                .map_err(DocumentError::from)? as u64;
+        let existing: u64 = doc.layers.iter().map(|l| l.pixels.referenced_bytes()).sum();
+        if existing + added > crate::MAX_DOCUMENT_BYTES {
+            return Err(DocumentError::ResourceLimit.into());
+        }
+        let profile = strata_color::resolve_profile(image.icc_profile.as_deref())
+            .map_err(DocumentError::from)?;
+        // Promote before transforming, quantize only after transforming. Alpha
+        // uses the same full-range depth mapping as the RGB samples.
+        let source = match (image.pixels, doc.format) {
+            (PixelBuffer::Rgba8(v), PixelFormat::Rgba16) => {
+                PixelBuffer::Rgba16(v.into_iter().map(|v| u16::from(v) * 257).collect())
+            }
+            (pixels, _) => pixels,
+        };
+        let converted = strata_color::convert_to_profile(
+            &source,
+            image.width,
+            image.height,
+            &profile.icc,
+            &doc.working_icc,
+        )
+        .map_err(DocumentError::from)?;
+        let pixels = match (converted, doc.format) {
+            (PixelBuffer::Rgba16(v), PixelFormat::Rgba8) => PixelBuffer::Rgba8(
+                v.into_iter()
+                    .map(|v| ((u32::from(v) + 128) / 257) as u8)
+                    .collect(),
+            ),
+            (pixels, _) => pixels,
+        };
+        let name = resource
+            .path
+            .file_stem()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .into_owned();
+        let mut layer = Layer::new(
+            name,
+            TiledPixels::from_dense(image.width, image.height, &pixels, tile_limit(doc.format))
+                .map_err(DocumentError::from)?,
+        );
+        layer.info.x = p.x;
+        layer.info.y = p.y;
+        let id = layer.id();
+        let index = doc
+            .active
+            .and_then(|id| doc.layers.iter().position(|l| l.id() == id))
+            .map_or(doc.layers.len(), |index| index + 1);
+        doc.layers.insert(index, layer);
+        doc.active = Some(id);
+        self.resource(&p.resource, request, false)?;
+        Ok((p.resource, json!({"layer_id":id})))
     }
     pub(super) fn prepare_write(
         &self,
