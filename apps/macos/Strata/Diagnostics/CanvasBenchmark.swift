@@ -44,6 +44,23 @@ private struct BenchmarkRun: Codable {
     let timestampsSeconds: [Double]
     let cpuMs: [Double]
 }
+private struct BenchmarkDocumentMemory: Codable {
+    let layerCount: Int
+    let referencedSourceBytes: UInt64
+    let sourceTileCount: Int
+    let uniqueSourceBlocks: Int
+    let historyEntries: Int
+}
+private struct BenchmarkManagedMemory: Codable {
+    struct Limits: Codable { let cpuBytes: UInt64; let gpuBytes: UInt64; let diskBytes: UInt64 }
+    struct Usage: Codable {
+        let cpuBytes: UInt64; let gpuBytes: UInt64; let diskBytes: UInt64
+        let peakCpuBytes: UInt64; let peakGpuBytes: UInt64; let peakDiskBytes: UInt64
+        let backingReadBytes: UInt64; let backingWriteBytes: UInt64
+    }
+    let limits: Limits
+    let usage: Usage
+}
 
 private struct BenchmarkReport: Encodable {
     let schemaVersion = 1
@@ -69,9 +86,13 @@ private struct BenchmarkReport: Encodable {
     let warmupSecondsPerRun: Double
     let processPeakRSSBytes: UInt64?
     let maximumObservedRenderingFootprintBytes: UInt64?
+    let openPeakRSSBytes: UInt64?
+    let documentMemory: BenchmarkDocumentMemory?
+    let managedMemory: BenchmarkManagedMemory?
     let runs: [BenchmarkRun]
     let passesHost60HzThreshold: Bool
     let qualifiesAsM0HostRun: Bool
+    let qualifiesAsM1HostRun: Bool
     let limitations: [String]
 }
 
@@ -92,6 +113,7 @@ final class CanvasBenchmark {
     private var trials: [BenchmarkRun] = []
     private var nominalHz: Double = 0
     private var maximumFootprint: UInt64?
+    private let openPeakRSS: UInt64?
     private var previousX: Double = 0
     private var previousY: Double = 0
     private var previousZoom: Double = 1
@@ -104,6 +126,7 @@ final class CanvasBenchmark {
         self.options = options; self.engine = engine; self.info = info
         initialViewport = viewport; self.screen = screen; self.openMs = openMs
         self.completion = completion
+        openPeakRSS = Self.peakRSS()
     }
 
     func beforeFrame(viewport: CanvasViewport, window: NSWindow?, link: CADisplayLink) throws {
@@ -165,6 +188,12 @@ final class CanvasBenchmark {
         let configuration = "Release"
         #endif
         let thresholds = trials.allSatisfy { $0.summary.passes60HzThreshold }
+        let decoder = JSONDecoder(); decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let documentMemory = (try? engine.documentMemoryJson()).flatMap { try? decoder.decode(BenchmarkDocumentMemory.self, from: Data($0.utf8)) }
+        let managedMemory = try? decoder.decode(BenchmarkManagedMemory.self, from: Data(engine.memoryStatsJson().utf8))
+        let expectedTiles = Int((info.width + 255) / 256) * Int((info.height + 255) / 256) * 20
+        let fullHostRun = thresholds && configuration == "Release" && options.duration >= 30 && options.runs >= 3
+            && UInt64(info.width) * UInt64(info.height) == 24_000_000 && nominalHz >= 59
         let report = BenchmarkReport(configuration: configuration, date: ISO8601DateFormatter().string(from: Date()),
             sourceRevision: ProcessInfo.processInfo.environment["STRATA_SOURCE_REVISION"] ?? "unrecorded",
             imageWidth: info.width, imageHeight: info.height, imageBitDepth: info.bitDepth,
@@ -175,10 +204,11 @@ final class CanvasBenchmark {
             floatingWindow: options.keepVisible, displayLinkNominalHz: nominalHz,
             osVersion: ProcessInfo.processInfo.operatingSystemVersionString, processor: Self.processor(),
             memoryBytes: ProcessInfo.processInfo.physicalMemory, openMilliseconds: openMs, warmupSecondsPerRun: warmup,
-            processPeakRSSBytes: Self.peakRSS(), maximumObservedRenderingFootprintBytes: maximumFootprint, runs: trials,
+            processPeakRSSBytes: Self.peakRSS(), maximumObservedRenderingFootprintBytes: maximumFootprint,
+            openPeakRSSBytes: openPeakRSS, documentMemory: documentMemory, managedMemory: managedMemory, runs: trials,
             passesHost60HzThreshold: thresholds,
-            qualifiesAsM0HostRun: thresholds && configuration == "Release" && options.duration >= 30 && options.runs >= 3
-                && UInt64(info.width) * UInt64(info.height) == 24_000_000 && nominalHz >= 59,
+            qualifiesAsM0HostRun: fullHostRun && documentMemory?.layerCount == 1,
+            qualifiesAsM1HostRun: fullHostRun && documentMemory?.layerCount == 20 && documentMemory?.sourceTileCount == expectedTiles && documentMemory?.uniqueSourceBlocks == expectedTiles,
             limitations: ["Actual successful CPU submission intervals, not GPU completion or presentation timestamps.",
                 "Deterministic command trajectory; does not validate physical trackpad latency or cross-display gestures.",
                 "Fresh application open; OS file-cache coldness is uncontrolled. First trial vs later trials reported separately.",

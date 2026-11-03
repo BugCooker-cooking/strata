@@ -2,8 +2,9 @@
 
 use std::fmt;
 
+pub mod memory;
 mod tiles;
-pub use tiles::{PixelValue, TILE_EDGE, TileCoord, TileError, TiledPixels};
+pub use tiles::{PixelValue, TILE_EDGE, TileBuffer, TileCoord, TileError, TiledPixels};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PixelFormat {
@@ -70,6 +71,12 @@ impl PixelBuffer {
 
     pub fn byte_len(&self) -> usize {
         self.sample_len() * self.format().bytes_per_sample()
+    }
+    pub fn allocation_bytes(&self) -> usize {
+        match self {
+            Self::Rgba8(v) => v.capacity(),
+            Self::Rgba16(v) => v.capacity() * 2,
+        }
     }
 
     pub fn validate(&self, width: u32, height: u32) -> Result<(), PixelError> {

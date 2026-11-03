@@ -19,7 +19,7 @@ fn document_ids_survive_snapshot_and_import_is_lossless() {
     assert_eq!(doc.id(), snapshot.id());
     assert_eq!(doc.layers()[0].id(), snapshot.layers()[0].id());
     assert_eq!(
-        doc.layers()[0].pixels().pixel(0, 0),
+        doc.layers()[0].pixels().pixel(0, 0).unwrap(),
         PixelValue::Rgba16([1, 32768, 32769, 0])
     );
     assert_eq!(doc.bit_depth(), 16);
@@ -63,7 +63,7 @@ fn invalid_icc_fallback_keeps_original_bytes() {
     assert!(doc.profile_fallback());
     assert_eq!(doc.source_icc(), Some([1, 2, 3].as_slice()));
     assert_eq!(
-        doc.layers()[0].pixels().pixel(0, 0),
+        doc.layers()[0].pixels().pixel(0, 0).unwrap(),
         PixelValue::Rgba8([1, 2, 3, 0])
     );
 }

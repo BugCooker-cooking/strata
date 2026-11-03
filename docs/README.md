@@ -21,6 +21,7 @@ Strata 是一个开源的、可以完全由 AI 驱动的专业级图像编辑器
 | [M0 实机验收表](research/2026-11-m0-hardware-checklist.md) | P3 对色、触控板、跨屏、窗口恢复、标准机与最低系统的步骤和记录模板 |
 | [M1a 详细计划](plans/2026-11-02-m1a-core-storage.md) / [实施记录](research/2026-11-m1a-progress.md) | 分块、图层、命令/历史、工程往返、当前 Mac 验收与 M1b 边界 |
 | [工程格式与命令](research/2026-11-m1a-format-and-commands.md) | SQLite v0、安全写入、能力句柄、命令目录与可重现演示 |
+| [M1b 尺寸/HEIC/恢复/内存验收](research/2026-11-m1b-recovery-memory-progress.md) | 导出重采样、系统 HEIC、空闲恢复、全局预算与 50MP×30 独立图层压力验证 |
 | [M1b 导出选项验收](research/2026-11-export-options-progress.md) | JPEG/无损 WebP、输出 ICC、质量/背景、显式量化与原生验证 |
 | [桥接](research/2026-11-m0-bridge-uniffi.md) / [渲染](research/2026-11-m0-rendering-wgpu-metal.md) / [色彩](research/2026-11-m0-color-p3.md) | 技术验证记录；不把未实测项目标成完成 |
 | [Photoshop 功能全景与优先级](research/photoshop-feature-inventory.md) | Photoshop 全部功能的分类清单，以及 Strata 的优先级（P0–P3） |

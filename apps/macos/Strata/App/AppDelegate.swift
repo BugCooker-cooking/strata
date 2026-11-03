@@ -16,12 +16,16 @@ enum StrataApplication {
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var controller: MainWindowController?
     private var controllers: [MainWindowController] = []
+    private var recoveryDirectory: URL?
+    private var memoryPressure: DispatchSourceMemoryPressure?
 
     private func makeController() -> MainWindowController {
         let reference = WindowReference()
         let events = EngineEvents { event in reference.controller?.handle(event) }
         let new = MainWindowController(engine: StrataEngine(listener: events))
         reference.controller = new; controllers.append(new)
+        new.syncRecentFiles()
+        if let recoveryDirectory { new.startRecovery(directory: recoveryDirectory) }
         new.onNewTab = { [weak self, weak new] in
             guard let self else { return }
             let next = self.makeController()
@@ -56,11 +60,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Hosted CI may have no GPU. Tests create their own engines/layers as needed.
         guard NSClassFromString("XCTestCase") == nil else { return }
+        do {
+            recoveryDirectory = try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+                .appendingPathComponent("Strata/Recovery", isDirectory: true)
+        } catch { NSLog("Recovery directory unavailable: %@", error.localizedDescription) }
         let controller = makeController()
         self.controller = controller
         installMenu(controller)
         controller.showWindow(nil)
         NSApp.activate(ignoringOtherApps: true)
+        let engine = controller.engine
+        let pressure = DispatchSource.makeMemoryPressureSource(eventMask: [.warning, .critical], queue: .global(qos: .utility))
+        pressure.setEventHandler { try? engine.trimMemory() }; pressure.resume(); memoryPressure = pressure
         do {
             if let options = try BenchmarkOptions.parse(ProcessInfo.processInfo.arguments) {
                 // Opt-in diagnostic mode: ordinary app windows keep their normal level.
@@ -93,18 +104,73 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             NSApp.terminate(nil)
             return
         }
+        if presentRecovery() { return }
         if let sample = Bundle.main.url(forResource: "sample-photo", withExtension: "jpg") {
             controller.open(sample)
         }
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        memoryPressure?.cancel()
+    }
+    @objc private func showRecovery() { _ = presentRecovery() }
+    @discardableResult private func presentRecovery() -> Bool {
+        guard let controller, !controller.busy, let window = controller.window, window.attachedSheet == nil else { return false }
+        do {
+            let active = Set(controllers.compactMap { $0.state?.sessionId } + controllers.compactMap { $0.recovery?.recoveredEntry })
+            let entries = try RecoveryEntry.decode(controller.engine.recoveryEntriesJson()).filter { !active.contains($0.id) }
+            guard !entries.isEmpty else { return false }
+            let alert = NSAlert(); alert.messageText = "找到 \(entries.count) 份未保存的恢复副本"
+            let names = entries.prefix(5).map { $0.info?.label ?? "无法读取的副本" }.joined(separator: "\n")
+            alert.informativeText = "\(names)\n\n恢复后将作为未保存文档打开，请另存工程。无法读取的副本会保留，供再次尝试。"
+            alert.addButton(withTitle: "恢复副本"); alert.addButton(withTitle: "稍后"); alert.addButton(withTitle: "丢弃这些副本")
+            alert.beginSheetModal(for: window) { [weak self] response in
+                guard let self else { return }
+                if response == .alertFirstButtonReturn { self.restore(entries, index: 0) }
+                else if response == .alertThirdButtonReturn {
+                    for entry in entries { do { try controller.engine.discardRecovery(id: entry.id) } catch { controller.showError(error); break } }
+                }
+            }
+            return true
+        } catch { controller.showError(error); return false }
+    }
+    private func restore(_ entries: [RecoveryEntry], index: Int) {
+        guard index < entries.count else { return }
+        let entry = entries[index]
+        guard let info = entry.info else { restore(entries, index: index + 1); return }
+        let next: MainWindowController
+        if let controller, !controller.workspace.hasDocument { next = controller }
+        else {
+            next = makeController()
+            if let window = next.window { controller?.window?.addTabbedWindow(window, ordered: .above) }
+        }
+        next.showWindow(nil); next.window?.makeKeyAndOrderFront(nil)
+        do {
+            let resource = try next.engine.grantRead(path: entry.path)
+            next.perform("file.recover", ["resource": resource]) { [weak self, weak next] ok in
+                if ok, let next { next.documentURL = nil; next.fileName = info.label + "（恢复）"; next.recovery?.recoveredEntry = entry.id; next.refresh() }
+                self?.restore(entries, index: index + 1)
+            }
+        } catch { next.showError(error) }
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         let pending = controllers.filter { !$0.canTerminateNow }
-        if pending.isEmpty { return .terminateNow }
-        confirmTermination(pending, index: 0) { approved in sender.reply(toApplicationShouldTerminate: approved) }
+        if pending.isEmpty { finishTermination(sender); return .terminateLater }
+        confirmTermination(pending, index: 0) { [weak self] approved in
+            if approved { self?.finishTermination(sender) } else { sender.reply(toApplicationShouldTerminate: false) }
+        }
         return .terminateLater
+    }
+    private func finishTermination(_ sender: NSApplication) {
+        let group = DispatchGroup()
+        for controller in controllers {
+            controller.busy = true
+            if let monitor = controller.recovery { group.enter(); monitor.stop(discard: true) { group.leave() } }
+        }
+        group.notify(queue: .main) { sender.reply(toApplicationShouldTerminate: true) }
     }
     private func confirmTermination(_ pending: [MainWindowController], index: Int, completion: @escaping @MainActor @Sendable (Bool) -> Void) {
         guard index < pending.count else { completion(true); return }
@@ -120,6 +186,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func installMenu(_ controller: MainWindowController) {
+        controller.syncRecentFiles()
         let bar = NSMenu()
         let app = NSMenu()
         app.addItem(withTitle: "关于 Strata", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
@@ -131,6 +198,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         open.target = controller
         let recent = NSMenu(title: "最近打开"); recent.delegate = self
         let recentItem = NSMenuItem(title: "最近打开", action: nil, keyEquivalent: ""); recentItem.submenu = recent; file.addItem(recentItem)
+        let recovery = file.addItem(withTitle: "恢复未保存文档…", action: #selector(showRecovery), keyEquivalent: ""); recovery.target = self
         let place = file.addItem(withTitle: "置入图片…", action: #selector(MainWindowController.placeImage), keyEquivalent: "P"); place.target = controller
         for (title, action, key) in [
             ("新建标签页…", #selector(MainWindowController.newTab), "n"),
@@ -172,14 +240,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func menuNeedsUpdate(_ menu: NSMenu) {
         guard menu.title == "最近打开" else { return }
         menu.removeAllItems()
-        for url in RecentFileStore().urls {
-            let item = menu.addItem(withTitle: url.lastPathComponent, action: #selector(MainWindowController.openRecent(_:)), keyEquivalent: "")
-            item.target = controller; item.representedObject = url; item.toolTip = url.path
+        controller?.syncRecentFiles()
+        let json = try? controller?.engine.dispatch(command: "file.recent.list", paramsJson: "{}")
+        let values = json.flatMap { try? JSONDecoder().decode(HostRecentList.self, from: Data($0.utf8)) }?.files ?? []
+        for value in values {
+            guard let path = value.path else { continue }
+            let url = URL(fileURLWithPath: path)
+            let item = menu.addItem(withTitle: value.name, action: #selector(MainWindowController.openRecent(_:)), keyEquivalent: "")
+            item.target = controller; item.representedObject = url; item.toolTip = value.available ? path : "文件不可用：\(path)"; item.isEnabled = value.available
         }
         if menu.items.isEmpty { let item = menu.addItem(withTitle: "暂无最近文件", action: nil, keyEquivalent: ""); item.isEnabled = false }
         else { menu.addItem(.separator()); let clear = menu.addItem(withTitle: "清除菜单", action: #selector(clearRecent), keyEquivalent: ""); clear.target = self }
     }
-    @objc private func clearRecent() { RecentFileStore().clear() }
+    @objc private func clearRecent() { RecentFileStore().clear(); controllers.forEach { $0.syncRecentFiles() } }
+}
+
+private struct HostRecentList: Decodable {
+    struct Entry: Decodable { let name: String; let path: String?; let available: Bool }
+    let files: [Entry]
 }
 
 @MainActor

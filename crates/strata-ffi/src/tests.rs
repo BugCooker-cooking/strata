@@ -55,7 +55,8 @@ fn registered_open_preserves_source_and_reports_once() {
     assert_eq!(
         e.inner.lock().unwrap().editor.document().unwrap().layers()[0]
             .pixels()
-            .pixel(0, 0),
+            .pixel(0, 0)
+            .unwrap(),
         PixelValue::Rgba8([255, 0, 0, 255])
     );
 }

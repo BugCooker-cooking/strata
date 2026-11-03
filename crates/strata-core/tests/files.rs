@@ -165,6 +165,7 @@ fn working_space_conversion_preserves_depth_alpha_and_undo_restores_exactly() {
         .unwrap()
         .pixels()
         .pixel(0, 0)
+        .unwrap()
     else {
         panic!()
     };

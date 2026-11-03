@@ -1,6 +1,8 @@
 mod executor;
 mod export;
+mod new;
 mod registry;
+mod resample;
 pub use executor::{
     CommandError, Control, Editor, HistoryInfo, MoveInteraction, PreparedCommand, Request,
     Snapshot, Source,
@@ -48,6 +50,19 @@ pub struct NewResult {
     pub layer_id: Option<crate::LayerId>,
 }
 #[derive(Serialize, JsonSchema)]
+pub struct RecentEntry {
+    pub id: String,
+    pub name: String,
+    pub path: Option<String>,
+    pub available: bool,
+    pub read_resource: Option<String>,
+}
+#[derive(Serialize, JsonSchema)]
+pub struct RecentListResult {
+    pub scope: String,
+    pub files: Vec<RecentEntry>,
+}
+#[derive(Serialize, JsonSchema)]
 pub struct BatchResult {
     pub results: Vec<Value>,
 }
@@ -73,6 +88,12 @@ params!(ExportFile {
     resource: String,
     format: String,
     #[serde(default)]
+    webp_lossless: Option<bool>,
+    #[serde(default)]
+    width: Option<u32>,
+    #[serde(default)]
+    height: Option<u32>,
+    #[serde(default)]
     target_space: Option<String>,
     #[serde(default)]
     quality: Option<u8>,
@@ -82,9 +103,19 @@ params!(ExportFile {
     allow_quantization: bool
 });
 params!(NewDocument {
-    width: u32,
-    height: u32,
+    #[serde(default)]
+    width: Option<u32>,
+    #[serde(default)]
+    height: Option<u32>,
     bit_depth: u8,
+    #[serde(default)]
+    preset: Option<String>,
+    #[serde(default)]
+    resolution_dpi: Option<u32>,
+    #[serde(default)]
+    background: Option<[u16;4]>,
+    #[serde(default)]
+    working_space: Option<String>,
     #[serde(default)]
     discard_changes: bool
 });

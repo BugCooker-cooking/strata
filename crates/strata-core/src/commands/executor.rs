@@ -12,7 +12,7 @@ use strata_pixels::{PixelBuffer, PixelFormat, TiledPixels};
 use uuid::Uuid;
 #[path = "files.rs"]
 mod files;
-use files::{Resource, WriteCandidate};
+use files::{RecentFile, Resource, WriteCandidate};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
@@ -100,6 +100,8 @@ struct HistoryEntry {
 
 #[derive(Serialize, JsonSchema)]
 pub struct Snapshot {
+    pub resolution_dpi: Option<u32>,
+    pub preset: Option<String>,
     pub session_id: Uuid,
     pub document_id: Option<DocumentId>,
     pub revision: u64,
@@ -125,12 +127,14 @@ enum Action {
     Place(String),
     History(usize),
     Open(Option<std::path::PathBuf>),
-    External(WriteCandidate),
+    Recover,
+    External(Box<WriteCandidate>),
 }
 
 /// An opaque staged transaction. The host can prepare display resources before
 /// commit; no public method can mutate its candidate.
 pub struct PreparedCommand {
+    read_resource: Option<String>,
     request: Request,
     command: String,
     params: Value,
@@ -151,11 +155,16 @@ impl PreparedCommand {
     pub fn changes_display(&self) -> bool {
         matches!(
             self.action,
-            Action::New | Action::Open(_) | Action::Edit | Action::Place(_) | Action::History(_)
+            Action::New
+                | Action::Open(_)
+                | Action::Recover
+                | Action::Edit
+                | Action::Place(_)
+                | Action::History(_)
         ) && !self.replay
     }
     pub fn replaces_document(&self) -> bool {
-        matches!(self.action, Action::New | Action::Open(_))
+        matches!(self.action, Action::New | Action::Open(_) | Action::Recover)
     }
 }
 
@@ -172,6 +181,7 @@ struct Receipt {
 
 #[derive(Clone)]
 pub struct Editor {
+    pool: strata_pixels::memory::MemoryPool,
     pub(crate) document: Option<Document>,
     session: Uuid,
     revision: u64,
@@ -184,8 +194,10 @@ pub struct Editor {
     receipts: HashMap<Uuid, Receipt>,
     pub(crate) project_path: Option<std::path::PathBuf>,
     resources: HashMap<String, Resource>,
+    recent: Vec<RecentFile>,
     executions: Vec<Value>,
     control_events: Vec<Value>,
+    decoder: Option<std::sync::Arc<dyn strata_io::PlatformDecoder>>,
 }
 impl Default for Editor {
     fn default() -> Self {
@@ -195,6 +207,7 @@ impl Default for Editor {
 impl Editor {
     pub fn new() -> Self {
         Self {
+            pool: strata_pixels::memory::MemoryPool::global(),
             document: None,
             session: Uuid::new_v4(),
             revision: 0,
@@ -207,9 +220,44 @@ impl Editor {
             receipts: HashMap::new(),
             project_path: None,
             resources: HashMap::new(),
+            recent: Vec::new(),
             executions: Vec::new(),
             control_events: Vec::new(),
+            decoder: None,
         }
+    }
+    pub fn with_decoder(decoder: std::sync::Arc<dyn strata_io::PlatformDecoder>) -> Self {
+        Self {
+            decoder: Some(decoder),
+            ..Self::new()
+        }
+    }
+    pub fn with_memory_pool(pool: strata_pixels::memory::MemoryPool) -> Self {
+        Self {
+            pool,
+            ..Self::new()
+        }
+    }
+    fn decode_image(
+        &self,
+        path: &std::path::Path,
+    ) -> Result<(strata_io::DecodedImage, strata_pixels::memory::Reservation), CommandError> {
+        let bytes = match &self.decoder {
+            Some(decoder) => decoder.decoded_bytes(path, strata_io::DEFAULT_DECODE_LIMIT)?,
+            None => strata_io::decoded_bytes(path, strata_io::DEFAULT_DECODE_LIMIT)?,
+        };
+        let allocation = self
+            .pool
+            .reserve(
+                strata_pixels::memory::MemoryKind::Transient,
+                bytes * 3 + 16 * 1024 * 1024,
+            )
+            .map_err(DocumentError::from)?;
+        let image = match &self.decoder {
+            Some(decoder) => decoder.decode(path, strata_io::DEFAULT_DECODE_LIMIT),
+            None => strata_io::decode_image(path),
+        }?;
+        Ok((image, allocation))
     }
     pub fn document(&self) -> Option<&Document> {
         self.document.as_ref()
@@ -268,6 +316,11 @@ impl Editor {
     }
     pub fn snapshot(&self) -> Snapshot {
         Snapshot {
+            resolution_dpi: self.document.as_ref().map(Document::resolution_dpi),
+            preset: self
+                .document
+                .as_ref()
+                .and_then(|d| d.preset().map(str::to_owned)),
             session_id: self.session,
             document_id: self.document.as_ref().map(Document::id),
             revision: self.revision,
@@ -395,6 +448,7 @@ impl Editor {
                 return Err(CommandError::CallConflict);
             }
             return Ok(PreparedCommand {
+                read_resource: None,
                 request,
                 command: id.into(),
                 params,
@@ -408,59 +462,51 @@ impl Editor {
         }
         self.authorize(&request.source, id, kind)?;
         self.check_request(&request)?;
-        let mut candidate = self.document.clone();
+        // View/query calls run for every display-link frame. They never need a
+        // copy of every layer's tile index; edits alone stage a COW document.
+        let mut candidate = if kind == CommandKind::Mutate {
+            self.document.clone()
+        } else {
+            None
+        };
         let mut selected = self.selected;
+        let mut read_resource = None;
         let (action, result) = match kind {
             CommandKind::Query => {
                 let _: Empty = parse(params.clone())?;
                 (
                     Action::Query,
-                    if id == "layer.list" {
+                    if id == "file.recent.list" {
+                        self.recent_result(&request)
+                    } else if id == "layer.list" {
                         json!({"layers":self.snapshot().layers})
                     } else {
                         json!(self.snapshot())
                     },
                 )
             }
-            CommandKind::Lifecycle if id == "file.open" => {
-                let (doc, path) = self.prepare_open(&request, params.clone())?;
+            CommandKind::Lifecycle if id == "file.open" || id == "file.recover" => {
+                let (doc, path) =
+                    self.prepare_open(&request, params.clone(), id == "file.recover")?;
+                read_resource = Some(parse::<OpenFile>(params.clone())?.resource);
                 selected = doc.active_layer();
                 let result = json!({"document_id":doc.id(),"layer_id":selected});
                 candidate = Some(doc);
-                (Action::Open(path), result)
+                (
+                    if id == "file.recover" {
+                        Action::Recover
+                    } else {
+                        Action::Open(path)
+                    },
+                    result,
+                )
             }
             CommandKind::Lifecycle => {
                 let p: NewDocument = parse(params.clone())?;
                 if self.dirty() && !p.discard_changes {
                     return Err(CommandError::UnsavedChanges);
                 }
-                let format = match p.bit_depth {
-                    8 => PixelFormat::Rgba8,
-                    16 => PixelFormat::Rgba16,
-                    _ => return Err(CommandError::Invalid("bit_depth must be 8 or 16".into())),
-                };
-                let samples = format
-                    .sample_count(p.width, p.height)
-                    .map_err(DocumentError::from)?;
-                if format
-                    .byte_count(p.width, p.height)
-                    .map_err(DocumentError::from)? as u64
-                    > crate::MAX_DOCUMENT_BYTES
-                {
-                    return Err(DocumentError::ResourceLimit.into());
-                }
-                let pixels = match format {
-                    PixelFormat::Rgba8 => PixelBuffer::Rgba8(vec![0; samples]),
-                    PixelFormat::Rgba16 => PixelBuffer::Rgba16(vec![0; samples]),
-                };
-                let doc = DocumentCandidate::from_image(
-                    p.width,
-                    p.height,
-                    pixels,
-                    None,
-                    "Background".into(),
-                )?
-                .into_document();
+                let doc = super::new::document(p, self.pool.clone())?;
                 selected = doc.active_layer();
                 let result = json!({"document_id":doc.id(),"layer_id":selected});
                 candidate = Some(doc);
@@ -526,7 +572,7 @@ impl Editor {
                     "layer.select" => {
                         let p: Target = parse(params.clone())?;
                         selected = Some(
-                            candidate
+                            self.document
                                 .as_ref()
                                 .ok_or(CommandError::NoDocument)?
                                 .resolve(&p.layer)?,
@@ -555,11 +601,16 @@ impl Editor {
                 (Action::View, json!({"view":id,"params":params}))
             }
             CommandKind::External => (
-                Action::External(self.prepare_write(&request, id, params.clone())?),
+                Action::External(Box::new(self.prepare_write(
+                    &request,
+                    id,
+                    params.clone(),
+                )?)),
                 json!({"status":"completed","command":id}),
             ),
         };
         Ok(PreparedCommand {
+            read_resource,
             request,
             command: id.into(),
             params,
@@ -622,7 +673,12 @@ impl Editor {
         }
         if matches!(
             prepared.action,
-            Action::New | Action::Open(_) | Action::Edit | Action::Place(_) | Action::History(_)
+            Action::New
+                | Action::Open(_)
+                | Action::Recover
+                | Action::Edit
+                | Action::Place(_)
+                | Action::History(_)
         ) && self.revision == u64::MAX
         {
             return Err(CommandError::Invalid("revision exhausted".into()));
@@ -630,9 +686,12 @@ impl Editor {
         if let Action::Place(resource) = &prepared.action {
             self.resource(resource, &prepared.request, false)?;
         }
+        if let Some(resource) = &prepared.read_resource {
+            self.resource(resource, &prepared.request, false)?;
+        }
         match prepared.action {
             Action::External(write) => {
-                self.commit_write(&prepared.request, &prepared.command, write)?;
+                self.commit_write(&prepared.request, &prepared.command, *write)?;
             }
             Action::Open(path) => {
                 self.saved = prepared.candidate.as_ref().map(Document::state_id);
@@ -640,6 +699,14 @@ impl Editor {
                 self.history.clear();
                 self.cursor = 0;
                 self.project_path = path;
+                self.revision += 1;
+            }
+            Action::Recover => {
+                self.document = prepared.candidate;
+                self.saved = None;
+                self.history.clear();
+                self.cursor = 0;
+                self.project_path = None;
                 self.revision += 1;
             }
             Action::Edit | Action::Place(_) => {
@@ -653,14 +720,16 @@ impl Editor {
                     .chain([&before, &after])
                 {
                     for layer in d.layers() {
-                        for (_, tile) in layer.pixels().tiles() {
-                            if unique.insert(tile as *const PixelBuffer as usize) {
-                                bytes += tile.byte_len() as u64;
+                        for coord in layer.pixels().tile_coords() {
+                            if unique.insert(layer.pixels().tile_version(*coord)) {
+                                bytes +=
+                                    (256 * 256 * 4 * layer.pixels().format().bytes_per_sample())
+                                        as u64;
                             }
                         }
                     }
                 }
-                if bytes > 768 * 1024 * 1024 {
+                if bytes > 24 * 1024 * 1024 * 1024 {
                     return Err(DocumentError::ResourceLimit.into());
                 }
                 self.history.truncate(self.cursor);
@@ -738,15 +807,18 @@ impl Editor {
     }
 }
 
-fn mutate(doc: &mut Document, id: &str, params: Value) -> Result<Value, CommandError> {
+pub(super) fn mutate(doc: &mut Document, id: &str, params: Value) -> Result<Value, CommandError> {
     if id == "color.convert" {
         let p: ConvertColor = parse(params)?;
         let icc = strata_color::working_profile(&p.space).map_err(DocumentError::from)?;
+        let pool = doc.memory_pool();
         for layer in &mut doc.layers {
-            let mut converted = TiledPixels::new(doc.format, tile_limit(doc.format));
+            let mut converted =
+                TiledPixels::with_pool(doc.format, tile_limit(doc.format), pool.clone());
             for (coord, tile) in layer.pixels.tiles() {
+                let tile = tile.map_err(DocumentError::from)?;
                 let pixels =
-                    strata_color::convert_to_profile(tile, 256, 256, &doc.working_icc, &icc)
+                    strata_color::convert_to_profile(&tile, 256, 256, &doc.working_icc, &icc)
                         .map_err(DocumentError::from)?;
                 converted
                     .insert_tile(*coord, pixels)
@@ -765,8 +837,9 @@ fn mutate(doc: &mut Document, id: &str, params: Value) -> Result<Value, CommandE
         if p.name.len() > 1024 || doc.layers.len() >= crate::MAX_LAYERS {
             return Err(DocumentError::ResourceLimit.into());
         }
-        let mut pixels = TiledPixels::new(doc.format, tile_limit(doc.format));
-        if let Some(fill) = p.fill {
+        let mut pixels =
+            TiledPixels::with_pool(doc.format, tile_limit(doc.format), doc.memory_pool());
+        if let Some(fill) = p.fill.filter(|fill| *fill != [0; 4]) {
             if doc.format == PixelFormat::Rgba8 && fill.iter().any(|&v| v > 255) {
                 return Err(CommandError::Invalid("8-bit fill exceeds 255".into()));
             }
@@ -785,22 +858,36 @@ fn mutate(doc: &mut Document, id: &str, params: Value) -> Result<Value, CommandE
             if fill != [0; 4] && existing + added > crate::document::MAX_DOCUMENT_BYTES {
                 return Err(DocumentError::ResourceLimit.into());
             }
-            let count = doc
-                .format
-                .sample_count(doc.frame.width, doc.frame.height)
-                .map_err(DocumentError::from)?
-                / 4;
-            let dense = match doc.format {
-                PixelFormat::Rgba8 => PixelBuffer::Rgba8(fill.map(|v| v as u8).repeat(count)),
-                PixelFormat::Rgba16 => PixelBuffer::Rgba16(fill.repeat(count)),
-            };
-            pixels = TiledPixels::from_dense(
-                doc.frame.width,
-                doc.frame.height,
-                &dense,
-                tile_limit(doc.format),
-            )
-            .map_err(DocumentError::from)?;
+            for ty in 0..doc.frame.height.div_ceil(256) {
+                for tx in 0..doc.frame.width.div_ceil(256) {
+                    let _scratch = doc
+                        .memory_pool()
+                        .reserve(strata_pixels::memory::MemoryKind::Transient, tile_bytes)
+                        .map_err(DocumentError::from)?;
+                    let mut tile = match doc.format {
+                        PixelFormat::Rgba8 => PixelBuffer::Rgba8(vec![0; 256 * 256 * 4]),
+                        PixelFormat::Rgba16 => PixelBuffer::Rgba16(vec![0; 256 * 256 * 4]),
+                    };
+                    for y in 0..256.min(doc.frame.height - ty * 256) as usize {
+                        for x in 0..256.min(doc.frame.width - tx * 256) as usize {
+                            let i = (y * 256 + x) * 4;
+                            match &mut tile {
+                                PixelBuffer::Rgba8(v) => {
+                                    v[i..i + 4].copy_from_slice(&fill.map(|v| v as u8))
+                                }
+                                PixelBuffer::Rgba16(v) => v[i..i + 4].copy_from_slice(&fill),
+                            }
+                        }
+                    }
+                    pixels
+                        .insert_tile(
+                            strata_pixels::TileCoord::new(i64::from(tx), i64::from(ty))
+                                .map_err(DocumentError::from)?,
+                            tile,
+                        )
+                        .map_err(DocumentError::from)?;
+                }
+            }
         }
         let mut layer = Layer::new(p.name, pixels);
         layer.info.x = doc.frame.x;

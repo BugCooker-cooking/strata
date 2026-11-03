@@ -80,8 +80,8 @@ fn placement_converts_working_space_and_depth_with_one_exact_undo() {
                 ),
                 (v, _) => v,
             };
-            let tile = layer.pixels().tiles().next().unwrap().1;
-            match (tile, &expected) {
+            let tile = layer.pixels().tiles().next().unwrap().1.unwrap();
+            match (&*tile, &expected) {
                 (PixelBuffer::Rgba8(a), PixelBuffer::Rgba8(b)) => assert_eq!(&a[..4], b),
                 (PixelBuffer::Rgba16(a), PixelBuffer::Rgba16(b)) => assert_eq!(&a[..4], b),
                 _ => panic!("wrong depth"),

@@ -1,15 +1,21 @@
 use serde::Deserialize;
 use serde_json::{Value, json};
+mod dataset;
+mod documentation;
+mod memory_stress;
 mod validation;
 use std::{collections::HashMap, error::Error, path::Path};
 use strata_core::{Editor, Source, commands::catalog};
+fn native_editor() -> Editor {
+    Editor::with_decoder(std::sync::Arc::new(strata_platform::NativeDecoder))
+}
 
 fn run(editor: &mut Editor, id: &str, args: Value) -> Result<Value, Box<dyn Error>> {
     let request = editor.request(Source::Test);
     Ok(editor.execute(request, id, args, |_| Ok(()))?)
 }
 fn fresh() -> Result<Editor, Box<dyn Error>> {
-    let mut e = Editor::new();
+    let mut e = native_editor();
     run(
         &mut e,
         "file.new",
@@ -31,7 +37,7 @@ fn examples() -> Result<(), Box<dyn Error>> {
         for example in &spec.examples {
             let dir = tempfile::tempdir()?;
             let mut editor = if spec.id == "file.new" {
-                Editor::new()
+                native_editor()
             } else {
                 fresh()?
             };
@@ -71,6 +77,14 @@ fn examples() -> Result<(), Box<dyn Error>> {
                     run(&mut editor, "file.save_as", json!({"resource":grant}))?;
                     let grant = editor.grant_read(&path, Source::Test)?;
                     args["resource"] = json!(grant);
+                }
+                "file.recover" => {
+                    let store = strata_io::recovery::RecoveryStore::new(dir.path())?;
+                    let info = editor
+                        .checkpoint_recovery(&store, "Recovery fixture")?
+                        .ok_or("missing checkpoint")?;
+                    args["resource"] =
+                        json!(editor.grant_read(&store.path(&info.session_id)?, Source::Test)?);
                 }
                 "file.save" | "file.save_as" | "file.export" => {
                     let grant = editor.grant_write(
@@ -130,7 +144,7 @@ fn script(path: &Path) -> Result<(), Box<dyn Error>> {
     if script.commands.len() > 4096 {
         return Err("too many commands".into());
     }
-    let mut editor = Editor::new();
+    let mut editor = native_editor();
     let mut resources = HashMap::new();
     for r in script.resources {
         let grant = if r.write {
@@ -160,11 +174,25 @@ fn main() -> Result<(), Box<dyn Error>> {
     match args.get(1).map(String::as_str) {
         Some("catalog") => println!("{}", serde_json::to_string_pretty(catalog())?),
         Some("examples") => examples()?,
+        Some("docs") => documentation::write(Path::new(args.get(2).ok_or("missing Markdown output path")?))?,
         Some("run") => script(Path::new(args.get(2).ok_or("missing script path")?))?,
         Some("demo") => println!("{}", serde_json::to_string_pretty(&validation::demo(Path::new(args.get(2).ok_or("missing new output directory")?))?)?),
         Some("capacity") => println!("{}", serde_json::to_string_pretty(&validation::capacity()?)?),
+        Some("memory-stress") => {
+            let width = args.get(3).map(|s| s.parse()).transpose()?.unwrap_or(8000);
+            let height = args.get(4).map(|s| s.parse()).transpose()?.unwrap_or(6250);
+            let layers = args.get(5).map(|s| s.parse()).transpose()?.unwrap_or(30);
+            memory_stress::run(Path::new(args.get(2).ok_or("missing new output directory")?), width, height, layers)?;
+        }
+        Some("fixture-project") => {
+            let path=Path::new(args.get(2).ok_or("missing output project")?);
+            let width=args.get(3).ok_or("missing width")?.parse()?;let height=args.get(4).ok_or("missing height")?.parse()?;
+            let layers=args.get(5).ok_or("missing layers")?.parse()?;let depth=args.get(6).ok_or("missing depth")?.parse()?;
+            dataset::Dataset::new(width,height,layers,depth)?.write(path)?;
+            println!("{}",json!({"path":path,"width":width,"height":height,"layers":layers,"bit_depth":depth,"seed":dataset::SEED}));
+        }
         Some("verify-exports") => println!("{}", serde_json::to_string_pretty(&validation::verify_exports(Path::new(args.get(2).ok_or("missing project")?), &args[3..])?)?),
-        _ => return Err("usage: strata-devtool catalog | examples | run SCRIPT.json | demo NEW_DIRECTORY | capacity | verify-exports PROJECT IMAGE...".into()),
+        _ => return Err("usage: strata-devtool catalog | examples | run SCRIPT.json | demo NEW_DIRECTORY | capacity | memory-stress NEW_DIRECTORY [WIDTH HEIGHT LAYERS] | verify-exports PROJECT IMAGE...".into()),
     }
     Ok(())
 }

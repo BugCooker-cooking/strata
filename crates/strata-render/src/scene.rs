@@ -9,6 +9,7 @@ use strata_core::{
     composite::{Compositor, LinearTile},
 };
 use strata_pixels::TileCoord;
+use strata_pixels::memory::{CacheSlot, MemoryKind, Reservation};
 
 const MAX_GPU_TILES: usize = 1024;
 pub struct PreparedScene {
@@ -19,15 +20,16 @@ pub struct PreparedScene {
 pub(crate) struct Scene {
     pub document: Document,
     compositor: Compositor,
-    cache: HashMap<(TileCoord, u32), Arc<GpuTile>>,
+    cache: HashMap<(TileCoord, u32), Arc<CacheSlot<GpuTile>>>,
     visible: Vec<DrawTile>,
     last: Option<(ViewTransform, Viewport)>,
-    camera: Option<(wgpu::Buffer, wgpu::BindGroup)>,
+    camera: Option<(wgpu::Buffer, wgpu::BindGroup, Reservation)>,
 }
 struct GpuTile {
     _texture: wgpu::Texture,
     view: wgpu::TextureView,
     signatures: Vec<u64>,
+    _reservation: Reservation,
 }
 struct DrawTile {
     _tile: Arc<GpuTile>,
@@ -35,6 +37,7 @@ struct DrawTile {
     bind: wgpu::BindGroup,
     coord: TileCoord,
     lod: u32,
+    _reservation: Reservation,
 }
 
 pub(crate) fn pipeline(device: &wgpu::Device, format: wgpu::TextureFormat) -> wgpu::RenderPipeline {
@@ -97,6 +100,11 @@ impl Scene {
             return Ok(());
         }
         if self.camera.is_none() {
+            let reservation = self
+                .document
+                .memory_pool()
+                .reserve(MemoryKind::Gpu, 256)
+                .map_err(err)?;
             let buffer = device.create_buffer(&wgpu::BufferDescriptor {
                 label: Some("Shared canvas camera"),
                 size: 32,
@@ -111,7 +119,7 @@ impl Scene {
                     resource: buffer.as_entire_binding(),
                 }],
             });
-            self.camera = Some((buffer, bind));
+            self.camera = Some((buffer, bind, reservation));
         }
         queue.write_buffer(
             &self.camera.as_ref().unwrap().0,
@@ -149,8 +157,8 @@ impl Scene {
             let cached = self
                 .cache
                 .get(&(coord, lod))
-                .filter(|t| t.signatures == signatures)
-                .cloned();
+                .and_then(|t| t.get())
+                .filter(|t| t.signatures == signatures);
             let tile = if let Some(tile) = cached {
                 tile
             } else {
@@ -169,6 +177,11 @@ impl Scene {
                 let mut selected = None;
                 for level in levels {
                     let (size, data) = mip_with_gutter(&neighbors, level);
+                    let reservation = self
+                        .document
+                        .memory_pool()
+                        .reserve(MemoryKind::Gpu, u64::from(size) * u64::from(size) * 8)
+                        .map_err(err)?;
                     let allocation = device.push_error_scope(wgpu::ErrorFilter::OutOfMemory);
                     let validation = device.push_error_scope(wgpu::ErrorFilter::Validation);
                     let texture = device.create_texture(&wgpu::TextureDescriptor {
@@ -214,11 +227,19 @@ impl Scene {
                         _texture: texture,
                         view: texture_view,
                         signatures: signatures.clone(),
+                        _reservation: reservation,
                     });
                     if self.cache.len() >= MAX_GPU_TILES {
                         self.cache.clear();
                     }
-                    self.cache.insert((coord, level), tile.clone());
+                    // The cache owns an evictable reference; the draw list pins
+                    // only the textures used by the current frame.
+                    let slot = CacheSlot::with_kind(
+                        &self.document.memory_pool(),
+                        tile.clone(),
+                        MemoryKind::Gpu,
+                    );
+                    self.cache.insert((coord, level), slot);
                     if level == lod {
                         selected = Some(tile);
                     }
@@ -251,6 +272,11 @@ impl Scene {
                 ],
             });
             visible.push(DrawTile {
+                _reservation: self
+                    .document
+                    .memory_pool()
+                    .reserve(MemoryKind::Gpu, 256)
+                    .map_err(err)?,
                 _tile: tile,
                 _uniform: uniform,
                 bind,
@@ -264,7 +290,7 @@ impl Scene {
     }
     pub fn draw<'a>(&'a self, pass: &mut wgpu::RenderPass<'a>, pipeline: &'a wgpu::RenderPipeline) {
         pass.set_pipeline(pipeline);
-        if let Some((_, bind)) = &self.camera {
+        if let Some((_, bind, _)) = &self.camera {
             pass.set_bind_group(1, bind, &[]);
         }
         for tile in &self.visible {
@@ -301,7 +327,7 @@ fn visible_coords(
         if !layer.info().visible || layer.info().opacity == 0.0 {
             continue;
         }
-        for (coord, _) in layer.pixels().tiles() {
+        for coord in layer.pixels().tile_coords() {
             let [x, y] = coord.origin();
             let x = x
                 .checked_add(layer.info().x)
@@ -364,8 +390,20 @@ mod tests {
     use super::*;
     #[test]
     fn mip_filters_premultiplied_and_gutters_match_neighbors() {
-        let transparent = Arc::new(vec![[1.0, 0.0, 0.0, 0.0]; 256 * 256]);
-        let white = Arc::new(vec![[1.0; 4]; 256 * 256]);
+        let transparent = Arc::new(
+            strata_core::composite::LinearPixels::new(
+                vec![[1.0, 0.0, 0.0, 0.0]; 256 * 256],
+                &strata_pixels::memory::MemoryPool::global(),
+            )
+            .unwrap(),
+        );
+        let white = Arc::new(
+            strata_core::composite::LinearPixels::new(
+                vec![[1.0; 4]; 256 * 256],
+                &strata_pixels::memory::MemoryPool::global(),
+            )
+            .unwrap(),
+        );
         let mut tiles = vec![transparent.clone(); 9];
         tiles[4] = white.clone();
         tiles[5] = white;

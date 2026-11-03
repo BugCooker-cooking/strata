@@ -6,9 +6,32 @@ use std::{
     hash::{Hash, Hasher},
     sync::Arc,
 };
-use strata_pixels::{PixelBuffer, PixelFormat, PixelValue, TILE_EDGE, TileCoord};
+use strata_pixels::memory::{CacheSlot, MemoryKind, Reservation};
+use strata_pixels::{PixelBuffer, PixelFormat, TILE_EDGE, TileCoord};
 
-pub type LinearTile = Arc<Vec<[f32; 4]>>; // straight linear P3, row-major
+pub type LinearTile = Arc<LinearPixels>; // straight linear P3, row-major
+pub struct LinearPixels {
+    pixels: Vec<[f32; 4]>,
+    _reservation: Reservation,
+}
+impl LinearPixels {
+    pub fn new(
+        pixels: Vec<[f32; 4]>,
+        pool: &strata_pixels::memory::MemoryPool,
+    ) -> Result<Self, strata_pixels::memory::MemoryError> {
+        let reservation = pool.reserve(MemoryKind::CpuCache, (pixels.len() * 16) as u64)?;
+        Ok(Self {
+            pixels,
+            _reservation: reservation,
+        })
+    }
+}
+impl std::ops::Deref for LinearPixels {
+    type Target = Vec<[f32; 4]>;
+    fn deref(&self) -> &Self::Target {
+        &self.pixels
+    }
+}
 
 pub fn blend(back: [f64; 4], front: [f64; 4], mode: BlendMode, opacity: f64) -> [f64; 4] {
     let ab = back[3];
@@ -41,7 +64,7 @@ pub fn blend(back: [f64; 4], front: [f64; 4], mode: BlendMode, opacity: f64) -> 
 
 #[derive(Clone)]
 pub struct Compositor {
-    cache: HashMap<TileCoord, (u64, LinearTile, u64)>,
+    cache: HashMap<TileCoord, (u64, Arc<CacheSlot<LinearPixels>>, u64)>,
     clock: u64,
     capacity: usize,
     pub recomputed: u64,
@@ -66,18 +89,28 @@ impl Compositor {
         let key = fingerprint(doc, coord);
         if let Some((old, tile, used)) = self.cache.get_mut(&coord)
             && *old == key
+            && let Some(tile) = tile.get()
         {
             *used = self.clock;
-            return Ok(tile.clone());
+            return Ok(tile);
         }
-        let tile = Arc::new(compose_tile(doc, coord)?);
+        let pool = doc.memory_pool();
+        let reservation = pool.reserve(MemoryKind::CpuCache, 256 * 256 * 16)?;
+        let slot = CacheSlot::new(
+            &pool,
+            LinearPixels {
+                pixels: compose_tile(doc, coord)?,
+                _reservation: reservation,
+            },
+        );
+        let tile = slot.get().expect("new cache entry is resident");
         self.recomputed += 1;
         if self.cache.len() >= self.capacity
             && let Some(victim) = self.cache.iter().min_by_key(|(_, v)| v.2).map(|(k, _)| *k)
         {
             self.cache.remove(&victim);
         }
-        self.cache.insert(coord, (key, tile.clone(), self.clock));
+        self.cache.insert(coord, (key, slot, self.clock));
         Ok(tile)
     }
     pub fn cached_tiles(&self) -> usize {
@@ -106,7 +139,7 @@ fn fingerprint(doc: &Document, coord: TileCoord) -> u64 {
         for tx in first.x()..=last.x() {
             for ty in first.y()..=last.y() {
                 if let Ok(c) = TileCoord::new(tx, ty)
-                    && layer.pixels.tile(c).is_some()
+                    && layer.pixels.contains_tile(c)
                 {
                     touched = true;
                     layer.pixels.tile_version(c).hash(&mut hash);
@@ -126,6 +159,9 @@ fn fingerprint(doc: &Document, coord: TileCoord) -> u64 {
 }
 
 fn compose_tile(doc: &Document, coord: TileCoord) -> Result<Vec<[f32; 4]>, DocumentError> {
+    let _scratch = doc
+        .memory_pool()
+        .reserve(MemoryKind::Transient, 256 * 256 * (32 + 16))?;
     let mut out = vec![[0.0f64; 4]; 256 * 256];
     let [ox, oy] = coord.origin();
     for layer in doc.layers() {
@@ -143,11 +179,11 @@ fn compose_tile(doc: &Document, coord: TileCoord) -> Result<Vec<[f32; 4]>, Docum
         for tx in first.x()..=last.x() {
             for ty in first.y()..=last.y() {
                 let source_coord = TileCoord::new(tx, ty)?;
-                let Some(source) = layer.pixels.tile(source_coord) else {
+                let Some(source) = layer.pixels.tile(source_coord)? else {
                     continue;
                 };
                 let linear =
-                    strata_color::to_linear_p3(source, TILE_EDGE, TILE_EDGE, doc.working_icc())?;
+                    strata_color::to_linear_p3(&source, TILE_EDGE, TILE_EDGE, doc.working_icc())?;
                 let [px, py] = source_coord.origin();
                 for y in 0..256usize {
                     for x in 0..256usize {
@@ -199,24 +235,42 @@ impl Document {
                 PixelFormat::Rgba8 => PixelBuffer::Rgba8(vec![0; count]),
                 PixelFormat::Rgba16 => PixelBuffer::Rgba16(vec![0; count]),
             };
-            for y in 0..self.frame.height {
-                for x in 0..self.frame.width {
-                    let wx = self.frame.x + i64::from(x);
-                    let wy = self.frame.y + i64::from(y);
-                    let p = wx
-                        .checked_sub(l.info.x)
-                        .zip(wy.checked_sub(l.info.y))
-                        .map(|(x, y)| l.pixels.pixel(x, y))
-                        .unwrap_or(PixelValue::zero(self.format));
-                    let i = (y as usize * self.frame.width as usize + x as usize) * 4;
-                    match (&mut out, p) {
-                        (PixelBuffer::Rgba8(v), PixelValue::Rgba8(p)) => {
-                            v[i..i + 4].copy_from_slice(&p)
+            for (coord, tile) in l.pixels.tiles() {
+                let tile = tile?;
+                let [ox, oy] = coord.origin();
+                for y in 0..256i64 {
+                    let Some(dy) = oy
+                        .checked_add(y)
+                        .and_then(|v| v.checked_add(l.info.y))
+                        .and_then(|v| v.checked_sub(self.frame.y))
+                    else {
+                        continue;
+                    };
+                    if !(0..i64::from(self.frame.height)).contains(&dy) {
+                        continue;
+                    }
+                    for x in 0..256i64 {
+                        let Some(dx) = ox
+                            .checked_add(x)
+                            .and_then(|v| v.checked_add(l.info.x))
+                            .and_then(|v| v.checked_sub(self.frame.x))
+                        else {
+                            continue;
+                        };
+                        if !(0..i64::from(self.frame.width)).contains(&dx) {
+                            continue;
                         }
-                        (PixelBuffer::Rgba16(v), PixelValue::Rgba16(p)) => {
-                            v[i..i + 4].copy_from_slice(&p)
+                        let i = (dy as usize * self.frame.width as usize + dx as usize) * 4;
+                        let src = (y as usize * 256 + x as usize) * 4;
+                        match (&mut out, &*tile) {
+                            (PixelBuffer::Rgba8(v), PixelBuffer::Rgba8(p)) => {
+                                v[i..i + 4].copy_from_slice(&p[src..src + 4])
+                            }
+                            (PixelBuffer::Rgba16(v), PixelBuffer::Rgba16(p)) => {
+                                v[i..i + 4].copy_from_slice(&p[src..src + 4])
+                            }
+                            _ => unreachable!(),
                         }
-                        _ => unreachable!(),
                     }
                 }
             }

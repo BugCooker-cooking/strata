@@ -1,7 +1,10 @@
 //! Bounded, bit-depth-preserving image decoding.
 
 pub mod export;
+mod metadata;
 pub mod project;
+pub mod recovery;
+mod webp_lossy;
 
 use image::{ColorType, DynamicImage, ImageDecoder, ImageError, ImageReader, Limits};
 use std::{
@@ -14,8 +17,61 @@ use strata_pixels::{PixelBuffer, PixelFormat};
 /// Maximum final RGBA buffer size. Decoder scratch/metadata are also limited where supported.
 pub const DEFAULT_DECODE_LIMIT: u64 = 512 * 1024 * 1024;
 
+/// Optional trusted platform codec. Portable document code never calls platform
+/// APIs itself. Hosts bind the same decoder to open and place operations.
+pub trait PlatformDecoder: Send + Sync + std::fmt::Debug {
+    fn decoded_bytes(&self, path: &Path, limit: u64) -> Result<u64, IoError> {
+        decoded_bytes(path, limit)
+    }
+    fn decode(&self, path: &Path, limit: u64) -> Result<DecodedImage, IoError>;
+}
+
+pub fn decoded_bytes(path: &Path, limit: u64) -> Result<u64, IoError> {
+    let mut reader = ImageReader::new(BufReader::new(File::open(path)?)).with_guessed_format()?;
+    if reader.format().is_none() {
+        return Err(IoError::Unsupported {
+            path: path.to_owned(),
+            reason: "unrecognized file signature".into(),
+        });
+    }
+    let mut limits = Limits::default();
+    limits.max_alloc = Some(limit);
+    reader.limits(limits);
+    let decoder = reader.into_decoder().map_err(|e| IoError::Decode {
+        path: path.to_owned(),
+        reason: e.to_string(),
+    })?;
+    let (w, h) = decoder.dimensions();
+    let format = match decoder.color_type() {
+        ColorType::L8 | ColorType::La8 | ColorType::Rgb8 | ColorType::Rgba8 => PixelFormat::Rgba8,
+        ColorType::L16 | ColorType::La16 | ColorType::Rgb16 | ColorType::Rgba16 => {
+            PixelFormat::Rgba16
+        }
+        other => {
+            return Err(IoError::Unsupported {
+                path: path.to_owned(),
+                reason: format!("unsupported pixel format {other:?}"),
+            });
+        }
+    };
+    let bytes = format
+        .byte_count(w, h)
+        .map_err(|_| IoError::ResourceLimit {
+            path: path.to_owned(),
+            limit,
+        })? as u64;
+    if bytes > limit {
+        return Err(IoError::ResourceLimit {
+            path: path.to_owned(),
+            limit,
+        });
+    }
+    Ok(bytes)
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct DecodedImage {
+    pub resolution_dpi: u32,
     pub width: u32,
     pub height: u32,
     pub pixels: PixelBuffer,
@@ -157,6 +213,7 @@ pub fn decode_image_with_limit(path: &Path, limit: u64) -> Result<DecodedImage, 
             reason: e.to_string(),
         })?;
     Ok(DecodedImage {
+        resolution_dpi: metadata::resolution(path),
         width,
         height,
         pixels,

@@ -43,7 +43,7 @@ enum EditorTool: String, CaseIterable, Identifiable {
     private static let info: [EditorTool: (String, String, String)] = [
         .move: ("移动", "cursorarrow", "V"), .marquee: ("矩形选框", "rectangle.dashed", "M"),
         .lasso: ("套索", "lasso", "L"), .selection: ("快速选择", "wand.and.rays", "W"),
-        .subject: ("选择主体", "person.crop.rectangle.dashed", ""), .crop: ("裁剪", "crop", "C"),
+        .subject: ("选择主体", "person.crop.rectangle", ""), .crop: ("裁剪", "crop", "C"),
         .eyedropper: ("吸管", "eyedropper", "I"), .heal: ("修复画笔", "bandage", "J"),
         .clone: ("仿制图章", "seal", "S"), .brush: ("画笔", "paintbrush.pointed", "B"),
         .eraser: ("橡皮擦", "eraser", "E"), .gradient: ("渐变", "square.lefthalf.filled", "G"),
@@ -78,6 +78,8 @@ final class WorkspaceModel: ObservableObject {
     @Published var thumbnails: [String: NSImage] = [:]
     @Published var fileName = "未命名"
     @Published var busy = false
+    @Published var recoveryStatus = ""
+    @Published var recoveryError = ""
     @Published var tool = EditorTool.hand
     @Published var inspector = InspectorTab.properties
     @Published var assistantVisible = true

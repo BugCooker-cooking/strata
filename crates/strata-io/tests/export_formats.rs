@@ -5,6 +5,106 @@ use strata_io::{
 use strata_pixels::PixelBuffer;
 
 #[test]
+fn lossy_webp_quality_retains_alpha_icc_and_resolution_and_is_failure_safe() {
+    use strata_io::export::{ExportOptions, export_with_options};
+    let dir = tempfile::tempdir().unwrap();
+    let icc = strata_color::working_profile("display_p3").unwrap();
+    let source: Vec<u8> = (0..128 * 64)
+        .flat_map(|i| {
+            [
+                (i * 37) as u8,
+                (i * 71 + i / 128 * 3) as u8,
+                (i * 13) as u8,
+                (i * 17) as u8,
+            ]
+        })
+        .collect();
+    let pixels = PixelBuffer::Rgba8(source.clone());
+    let mut sizes = Vec::new();
+    for quality in [20, 95] {
+        let path = dir.path().join(format!("q{quality}.webp"));
+        export_with_options(
+            &path,
+            ExportOptions {
+                format: ExportFormat::WebPLossy { quality },
+                resolution_dpi: 300,
+            },
+            128,
+            64,
+            &pixels,
+            &icc,
+            false,
+        )
+        .unwrap();
+        let decoded = strata_io::decode_image(&path).unwrap();
+        assert_eq!(decoded.resolution_dpi, 300);
+        assert_eq!(decoded.icc_profile.as_deref(), Some(icc.as_slice()));
+        let PixelBuffer::Rgba8(samples) = decoded.pixels else {
+            panic!()
+        };
+        assert_eq!(samples.len(), source.len());
+        assert!(
+            samples
+                .chunks_exact(4)
+                .zip(source.chunks_exact(4))
+                .all(|(a, b)| a[3] == b[3])
+        );
+        sizes.push(std::fs::metadata(path).unwrap().len());
+    }
+    assert!(sizes[1] > sizes[0]);
+    let path = dir.path().join("keep.webp");
+    std::fs::write(&path, b"old").unwrap();
+    for quality in [0, 101] {
+        assert!(
+            export_with_options(
+                &path,
+                ExportOptions {
+                    format: ExportFormat::WebPLossy { quality },
+                    resolution_dpi: 300
+                },
+                128,
+                64,
+                &pixels,
+                &icc,
+                true
+            )
+            .is_err()
+        );
+        assert_eq!(std::fs::read(&path).unwrap(), b"old");
+    }
+}
+
+#[test]
+fn all_raster_formats_roundtrip_document_print_resolution() {
+    use strata_io::export::{ExportOptions, export_with_options};
+    let dir = tempfile::tempdir().unwrap();
+    let icc = strata_color::working_profile("srgb").unwrap();
+    for format in [
+        ExportFormat::Png,
+        ExportFormat::Tiff,
+        ExportFormat::Jpeg { quality: 90 },
+        ExportFormat::WebP,
+        ExportFormat::WebPLossy { quality: 80 },
+    ] {
+        let path = dir.path().join(format!("{format:?}"));
+        export_with_options(
+            &path,
+            ExportOptions {
+                format,
+                resolution_dpi: 300,
+            },
+            16,
+            16,
+            &PixelBuffer::Rgba8([31, 128, 225, 255].repeat(16 * 16)),
+            &icc,
+            false,
+        )
+        .unwrap();
+        assert_eq!(strata_io::decode_image(&path).unwrap().resolution_dpi, 300);
+    }
+}
+
+#[test]
 fn webp_is_sample_exact_including_transparent_rgb_and_embedded_icc() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("lossless.webp");

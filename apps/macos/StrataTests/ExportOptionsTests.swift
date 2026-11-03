@@ -36,4 +36,33 @@ final class ExportOptionsTests: XCTestCase {
         XCTAssertNil(try options.parameters()["background"])
         XCTAssertNil(try options.parameters()["allow_quantization"])
     }
+    func testResizeDimensionsAndAspectLockRejectInvalidOrUnboundedOutput() throws {
+        let options = ExportOptionsController(panel: NSSavePanel(), bitDepth: 16, width: 4000, height: 3000)
+        XCTAssertNil(try options.parameters()["width"])
+        options.width.stringValue = "2000"
+        options.controlTextDidChange(Notification(name: NSControl.textDidChangeNotification, object: options.width))
+        XCTAssertEqual(options.height.stringValue, "1500")
+        XCTAssertEqual(try options.parameters()["width"] as? UInt32, 2000)
+        options.lockAspect.state = .off; options.height.stringValue = "500"
+        XCTAssertEqual(try options.parameters()["height"] as? UInt32, 500)
+        options.width.stringValue = "1"; options.lockAspect.state = .on; options.changeAspect()
+        XCTAssertEqual(options.height.stringValue, "1")
+        for invalid in ["0", "-1", "0.5", "4294967296", "bad"] {
+            options.width.stringValue = invalid; XCTAssertThrowsError(try options.parameters())
+        }
+        options.width.stringValue = "100000"; options.height.stringValue = "100000"
+        XCTAssertThrowsError(try options.parameters())
+    }
+    func testLossyWebPModeHasQualityAndKeepsJpegMatteOutOfItsPayload() throws {
+        let options = ExportOptionsController(panel: NSSavePanel(), bitDepth: 16)
+        options.format.selectItem(at: 3); options.changeFormat(options.format)
+        options.webpMode.selectItem(at: 1); options.changeEncoding()
+        XCTAssertTrue(options.quality.isEnabled); XCTAssertThrowsError(try options.parameters())
+        options.quantization.state = .on; options.quality.stringValue = "83"
+        XCTAssertEqual(try options.parameters()["webp_lossless"] as? Bool, false)
+        XCTAssertEqual(try options.parameters()["quality"] as? Int, 83)
+        XCTAssertNil(try options.parameters()["background"])
+        options.webpMode.selectItem(at: 0); options.changeEncoding()
+        XCTAssertFalse(options.quality.isEnabled); XCTAssertNil(try options.parameters()["quality"])
+    }
 }

@@ -21,7 +21,7 @@ pub fn make(doc: &Document) -> Result<Vec<LayerThumbnail>, StrataError> {
             // Fit occupied source tiles, independent of opacity/visibility/position.
             // Sparse layers remain sparse: at most 48×48 samples per layer.
             let mut bounds: Option<(i64, i64, i64, i64)> = None;
-            for (coord, _) in layer.pixels().tiles() {
+            for coord in layer.pixels().tile_coords() {
                 let [x, y] = coord.origin();
                 bounds = Some(match bounds {
                     Some((a, b, c, d)) => (
@@ -44,7 +44,11 @@ pub fn make(doc: &Document) -> Result<Vec<LayerThumbnail>, StrataError> {
                 for x in 0..width {
                     let sx = left as f64 + (f64::from(x) + 0.5) * w / f64::from(width);
                     let sy = top as f64 + (f64::from(y) + 0.5) * h / f64::from(height);
-                    match layer.pixels().pixel(sx.floor() as i64, sy.floor() as i64) {
+                    match layer
+                        .pixels()
+                        .pixel(sx.floor() as i64, sy.floor() as i64)
+                        .map_err(crate::render_error)?
+                    {
                         PixelValue::Rgba8(v) => samples.extend(v.map(|v| u16::from(v) * 257)),
                         PixelValue::Rgba16(v) => samples.extend(v),
                     }

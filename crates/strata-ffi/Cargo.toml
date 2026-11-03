@@ -9,6 +9,7 @@ license.workspace = true
 crate-type = ["lib", "staticlib", "cdylib"]
 
 [dependencies]
+strata-platform.workspace = true
 strata-core.workspace = true
 strata-pixels.workspace = true
 strata-color.workspace = true

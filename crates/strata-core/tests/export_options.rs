@@ -136,3 +136,118 @@ fn invalid_export_parameters_are_atomic_and_lossless_color_conversion_is_exact()
     assert_eq!(out.pixels, expected);
     assert_eq!(out.pixels.format().bit_depth(), 16);
 }
+
+#[test]
+fn resized_copies_keep_depth_and_document_state_and_validate_dimensions_before_writing() {
+    for depth in [8, 16] {
+        let dir = tempfile::tempdir().unwrap();
+        let mut e = Editor::new();
+        run(
+            &mut e,
+            "file.new",
+            json!({"width":4,"height":2,"bit_depth":depth}),
+        );
+        run(
+            &mut e,
+            "layer.create",
+            json!({"name":"color","fill":if depth==8 {[190,60,25,255]} else {[32768,32769,50001,65535]}}),
+        );
+        let source = e.document().unwrap().export_pixels().unwrap();
+        let before = e.snapshot();
+        let path = dir.path().join("resized.png");
+        std::fs::write(&path, b"existing destination").unwrap();
+        let resource = e.grant_write(&path, true, Source::User).unwrap();
+        for dimensions in [
+            json!({"width":0,"height":1}),
+            json!({"width":1}),
+            json!({"height":1}),
+            json!({"width":u32::MAX,"height":u32::MAX}),
+            json!({"width":1.5,"height":1}),
+        ] {
+            let mut p = json!({"resource":resource,"format":"png"});
+            p.as_object_mut()
+                .unwrap()
+                .extend(dimensions.as_object().unwrap().clone());
+            let r = e.request(Source::User);
+            assert!(e.prepare(r, "file.export", p).is_err());
+            assert_eq!(std::fs::read(&path).unwrap(), b"existing destination");
+        }
+        run(
+            &mut e,
+            "file.export",
+            json!({"resource":resource,"format":"png","width":7,"height":3,"target_space":"display_p3"}),
+        );
+        let out = strata_io::decode_image(&path).unwrap();
+        assert_eq!(
+            (out.width, out.height, out.pixels.format().bit_depth()),
+            (7, 3, depth)
+        );
+        assert_eq!(e.document().unwrap().export_pixels().unwrap(), source);
+        assert_eq!(e.snapshot().revision, before.revision);
+        assert_eq!(e.snapshot().history.len(), before.history.len());
+        assert_eq!(e.snapshot().dirty, before.dirty);
+    }
+}
+
+#[test]
+fn reduction_filters_in_linear_light_and_does_not_bleed_transparent_rgb() {
+    for (pixels, expected) in [
+        (vec![0, 0, 0, 255, 255, 255, 255, 255], [188, 188, 188, 255]),
+        (vec![255, 0, 0, 255, 0, 0, 255, 0], [255, 0, 0, 128]),
+    ] {
+        let dir = tempfile::tempdir().unwrap();
+        let input = dir.path().join("input.png");
+        let output = dir.path().join("output.png");
+        let icc = strata_color::working_profile("srgb").unwrap();
+        strata_io::export::export_image(
+            &input,
+            strata_io::export::ExportFormat::Png,
+            2,
+            1,
+            &PixelBuffer::Rgba8(pixels),
+            &icc,
+            false,
+        )
+        .unwrap();
+        let mut e = Editor::new();
+        let resource = e.grant_read(&input, Source::User).unwrap();
+        run(&mut e, "file.open", json!({"resource":resource}));
+        let resource = e.grant_write(&output, false, Source::User).unwrap();
+        run(
+            &mut e,
+            "file.export",
+            json!({"resource":resource,"format":"png","width":1,"height":1}),
+        );
+        let PixelBuffer::Rgba8(actual) = strata_io::decode_image(&output).unwrap().pixels else {
+            panic!()
+        };
+        for (a, b) in actual.iter().zip(expected) {
+            assert!(a.abs_diff(b) <= 1, "{actual:?} != {expected:?}");
+        }
+    }
+}
+
+#[test]
+fn lossy_webp_requires_quantization_and_does_not_change_document_truth() {
+    let mut e = fresh();
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("lossy.webp");
+    let before = serde_json::to_value(e.snapshot()).unwrap();
+    let source = e.document().unwrap().export_pixels().unwrap();
+    let token = e.grant_write(&path, false, Source::User).unwrap();
+    let args = json!({"resource":token,"format":"webp","webp_lossless":false,"quality":80});
+    let r = e.request(Source::User);
+    assert!(e.prepare(r, "file.export", args.clone()).is_err());
+    assert!(!path.exists());
+    let mut allowed = args;
+    allowed["allow_quantization"] = json!(true);
+    run(&mut e, "file.export", allowed);
+    let out = strata_io::decode_image(&path).unwrap();
+    assert_eq!((out.width, out.height), (16, 16));
+    assert_eq!(e.document().unwrap().export_pixels().unwrap(), source);
+    assert_eq!(e.snapshot().revision, before["revision"].as_u64().unwrap());
+    assert_eq!(
+        e.snapshot().history.len(),
+        before["history"].as_array().unwrap().len()
+    );
+}

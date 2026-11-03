@@ -3,8 +3,12 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use strata_pixels::{PixelBuffer, PixelFormat, TiledPixels};
 
-pub const MAX_DOCUMENT_BYTES: u64 = 512 * 1024 * 1024;
+pub const MAX_DOCUMENT_BYTES: u64 = 16 * 1024 * 1024 * 1024;
+pub const MAX_FLAT_IMAGE_BYTES: u64 = 512 * 1024 * 1024;
 pub const MAX_LAYERS: usize = 128;
+pub(crate) fn default_resolution_dpi() -> u32 {
+    72
+}
 
 #[derive(Debug, thiserror::Error)]
 pub enum DocumentError {
@@ -22,6 +26,8 @@ pub enum DocumentError {
     Tiles(#[from] strata_pixels::TileError),
     #[error(transparent)]
     Color(#[from] strata_color::ColorError),
+    #[error(transparent)]
+    Memory(#[from] strata_pixels::memory::MemoryError),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
@@ -40,6 +46,9 @@ pub struct Frame {
 /// ```
 #[derive(Clone, Debug)]
 pub struct Document {
+    pub(crate) resolution_dpi: u32,
+    pub(crate) preset: Option<String>,
+    pub(crate) pool: strata_pixels::memory::MemoryPool,
     pub(crate) id: DocumentId,
     pub(crate) state: StateId,
     pub(crate) frame: Frame,
@@ -52,6 +61,15 @@ pub struct Document {
     pub(crate) profile_fallback: bool,
 }
 impl Document {
+    pub fn resolution_dpi(&self) -> u32 {
+        self.resolution_dpi
+    }
+    pub fn preset(&self) -> Option<&str> {
+        self.preset.as_deref()
+    }
+    pub fn memory_pool(&self) -> strata_pixels::memory::MemoryPool {
+        self.pool.clone()
+    }
     pub fn id(&self) -> DocumentId {
         self.id
     }
@@ -102,6 +120,13 @@ impl Document {
         }
     }
     pub(crate) fn validate(&self) -> Result<(), DocumentError> {
+        if !(1..=2400).contains(&self.resolution_dpi)
+            || self.preset.as_ref().is_some_and(|p| p.len() > 64)
+        {
+            return Err(DocumentError::Invalid(
+                "resolution or preset metadata".into(),
+            ));
+        }
         self.format
             .byte_count(self.frame.width, self.frame.height)?;
         self.frame
@@ -135,7 +160,7 @@ impl Document {
             bytes = bytes
                 .checked_add(layer.pixels.referenced_bytes())
                 .ok_or(DocumentError::ResourceLimit)?;
-            for (coord, _) in layer.pixels.tiles() {
+            for coord in layer.pixels.tile_coords() {
                 let [x, y] = coord.origin();
                 for (origin, offset) in [(x, info.x), (y, info.y)] {
                     origin
@@ -149,7 +174,7 @@ impl Document {
             || self
                 .format
                 .byte_count(self.frame.width, self.frame.height)? as u64
-                > MAX_DOCUMENT_BYTES
+                > MAX_FLAT_IMAGE_BYTES
         {
             return Err(DocumentError::ResourceLimit);
         }
@@ -169,8 +194,25 @@ impl DocumentCandidate {
         icc: Option<Vec<u8>>,
         name: String,
     ) -> Result<Self, DocumentError> {
+        Self::from_image_with_pool(
+            width,
+            height,
+            pixels,
+            icc,
+            name,
+            strata_pixels::memory::MemoryPool::global(),
+        )
+    }
+    pub fn from_image_with_pool(
+        width: u32,
+        height: u32,
+        pixels: PixelBuffer,
+        icc: Option<Vec<u8>>,
+        name: String,
+        pool: strata_pixels::memory::MemoryPool,
+    ) -> Result<Self, DocumentError> {
         pixels.validate(width, height)?;
-        if pixels.byte_len() as u64 > MAX_DOCUMENT_BYTES
+        if pixels.byte_len() as u64 > MAX_FLAT_IMAGE_BYTES
             || icc.as_ref().is_some_and(|v| v.len() > 4 * 1024 * 1024)
         {
             return Err(DocumentError::ResourceLimit);
@@ -179,10 +221,19 @@ impl DocumentCandidate {
         let format = pixels.format();
         let layer = Layer::new(
             name,
-            TiledPixels::from_dense(width, height, &pixels, tile_limit(format))?,
+            TiledPixels::from_dense_with_pool(
+                width,
+                height,
+                &pixels,
+                tile_limit(format),
+                pool.clone(),
+            )?,
         );
         let active = Some(layer.id());
         let doc = Document {
+            resolution_dpi: default_resolution_dpi(),
+            preset: None,
+            pool,
             id: DocumentId::fresh(),
             state: StateId::fresh(),
             frame: Frame {

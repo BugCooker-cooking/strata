@@ -2,6 +2,7 @@ import AppKit
 import UniformTypeIdentifiers
 
 extension MainWindowController {
+    func syncRecentFiles() { do { try engine.setRecentFiles(paths: RecentFileStore().urls.map(\.path)) } catch { showError(error) } }
     func open(_ url: URL, recordRecent: Bool = true, completion: ((Result<ImageInfo, Error>) -> Void)? = nil) {
         canvas.cancelBenchmarkForDocumentChange()
         confirmDiscard { [weak self] approved in
@@ -11,7 +12,7 @@ extension MainWindowController {
                 self.perform("file.open", ["resource": resource, "discard_changes": true]) { ok in
                     if ok {
                         self.documentURL = url.standardizedFileURL; self.fileName = url.lastPathComponent; self.refresh()
-                        if recordRecent && !url.path.hasPrefix(Bundle.main.bundleURL.path + "/") { RecentFileStore().record(url) }
+                        if recordRecent && !url.path.hasPrefix(Bundle.main.bundleURL.path + "/") { RecentFileStore().record(url); self.syncRecentFiles() }
                         if let info = self.engine.documentInfo() { completion?(.success(info)) }
                     }
                     else { completion?(.failure(BenchmarkFailure("Open failed"))) }
@@ -31,7 +32,7 @@ extension MainWindowController {
     }
     @objc func openImage() {
         guard !busy, let window else { return }; let panel = NSOpenPanel(); panel.allowsMultipleSelection = false
-        panel.allowedContentTypes = ["strata", "png", "jpg", "jpeg", "webp", "tiff", "tif", "gif", "bmp"].compactMap { UTType(filenameExtension: $0) }; panel.allowsOtherFileTypes = true
+        panel.allowedContentTypes = ["strata", "png", "jpg", "jpeg", "webp", "tiff", "tif", "heic", "heif", "gif", "bmp"].compactMap { UTType(filenameExtension: $0) }; panel.allowsOtherFileTypes = true
         panel.beginSheetModal(for: window) { [weak self] response in if response == .OK, let url = panel.url { self?.openInTab(url) } }
     }
     private func openInTab(_ url: URL) { if let onOpenURL { onOpenURL(url) } else { open(url) } }
@@ -40,7 +41,7 @@ extension MainWindowController {
         guard workspace.permissions.edits, workspace.hasDocument, let window else { return }
         let panel = NSOpenPanel(); panel.allowsMultipleSelection = false
         panel.title = "置入图片"; panel.prompt = "置入"
-        panel.allowedContentTypes = [.png, .jpeg, .tiff, .gif, .bmp, .webP]
+        panel.allowedContentTypes = [.png, .jpeg, .tiff, .gif, .bmp, .webP, .heic, .heif]
         panel.beginSheetModal(for: window) { [weak self] response in
             guard let self, response == .OK, let url = panel.url else { return }
             do { let resource = try self.engine.grantRead(path: url.path)
@@ -52,10 +53,10 @@ extension MainWindowController {
         guard !busy else { return }
         confirmDiscard { [weak self] ok in guard let self, ok, let window = self.window else { return }
             let alert = NSAlert(); alert.messageText = "新建文档"; alert.addButton(withTitle: "创建"); alert.addButton(withTitle: "取消")
-            let width = NSTextField(string: "1024"), height = NSTextField(string: "768"); let depth = NSPopUpButton(); depth.addItems(withTitles: ["8 位", "16 位"])
-            let fields = NSStackView(views: [NSTextField(labelWithString: "宽度"), width, NSTextField(labelWithString: "高度"), height, depth]); fields.orientation = .vertical; fields.frame = NSRect(x: 0, y: 0, width: 220, height: 150); alert.accessoryView = fields
+            let options = NewDocumentOptionsController(alert: alert)
             alert.beginSheetModal(for: window) { response in guard response == .alertFirstButtonReturn else { return }
-                self.perform("file.new", ["width": width.integerValue, "height": height.integerValue, "bit_depth": depth.indexOfSelectedItem == 0 ? 8 : 16, "discard_changes": true]) { ok in if ok { self.documentURL = nil; self.fileName = "未命名"; self.refresh() } }
+                do { self.perform("file.new", try options.parameters()) { ok in if ok { self.documentURL = nil; self.fileName = "未命名"; self.refresh() } } }
+                catch { self.showError(error) }
             }
         }
     }
@@ -66,7 +67,7 @@ extension MainWindowController {
         let write: (URL, Bool) -> Void = { [weak self] url, overwrite in guard let self else { return }
             do { let resource = try self.engine.grantWrite(path: url.path, overwrite: overwrite)
                 self.perform(asNew ? "file.save_as" : "file.save", ["resource": resource]) { ok in
-                    if ok { RecentFileStore().record(url) }; completion(ok)
+                    if ok { RecentFileStore().record(url); self.syncRecentFiles() }; completion(ok)
                 }
             }
             catch { self.showError(error); completion(false) }
@@ -78,7 +79,7 @@ extension MainWindowController {
     }
     @objc func exportDocument() {
         guard state?.frame != nil, !busy, let window else { return }; let panel = NSSavePanel(); panel.nameFieldStringValue = "导出.png"; panel.allowedContentTypes = [.png]
-        let options = ExportOptionsController(panel: panel, bitDepth: state?.bitDepth ?? 8)
+        let options = ExportOptionsController(panel: panel, bitDepth: state?.bitDepth ?? 8, width: state?.frame?.width ?? 1, height: state?.frame?.height ?? 1)
         panel.beginSheetModal(for: window) { [weak self] response in guard let self, response == .OK, let chosen = panel.url else { return }
             do { var params = try options.parameters()
                 params["resource"] = try self.engine.grantWrite(path: chosen.path, overwrite: FileManager.default.fileExists(atPath: chosen.path))

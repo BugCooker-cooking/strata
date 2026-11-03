@@ -1,12 +1,14 @@
 //! Sparse integer sample storage. Display mipmaps and global memory accounting
 //! belong to consumers; neither may replace these full-depth source samples.
 
+use crate::memory::{DiskSlot, Evictable, MemoryError, MemoryKind, MemoryPool, Reservation};
 use crate::{PixelBuffer, PixelFormat};
 use std::{
     collections::BTreeMap,
     fmt,
+    ops::Deref,
     sync::{
-        Arc,
+        Arc, Mutex,
         atomic::{AtomicU64, Ordering},
     },
 };
@@ -19,15 +21,117 @@ fn block_version() -> u64 {
 }
 #[derive(Debug)]
 struct Block {
-    samples: PixelBuffer,
+    data: Mutex<BlockData>,
+    pool: MemoryPool,
     version: u64,
+    format: PixelFormat,
+    used: AtomicU64,
+}
+#[derive(Debug)]
+struct BlockData {
+    resident: Option<Arc<Resident>>,
+    backing: Option<DiskSlot>,
+}
+#[derive(Debug)]
+struct Resident {
+    samples: PixelBuffer,
+    _reservation: Reservation,
+}
+#[derive(Clone, Debug)]
+pub struct TileBuffer(Arc<Resident>);
+impl Deref for TileBuffer {
+    type Target = PixelBuffer;
+    fn deref(&self) -> &PixelBuffer {
+        &self.0.samples
+    }
+}
+impl AsRef<PixelBuffer> for TileBuffer {
+    fn as_ref(&self) -> &PixelBuffer {
+        self
+    }
+}
+fn raw(samples: &PixelBuffer) -> &[u8] {
+    match samples {
+        PixelBuffer::Rgba8(v) => v,
+        PixelBuffer::Rgba16(v) => bytemuck::cast_slice(v),
+    }
 }
 impl Block {
-    fn new(samples: PixelBuffer) -> Self {
-        Self {
-            samples,
+    fn new(pool: &MemoryPool, samples: PixelBuffer) -> Result<Arc<Self>, TileError> {
+        let reservation = pool.reserve(MemoryKind::Source, samples.allocation_bytes() as u64)?;
+        let block = Arc::new(Self {
+            format: samples.format(),
+            data: Mutex::new(BlockData {
+                resident: Some(Arc::new(Resident {
+                    samples,
+                    _reservation: reservation,
+                })),
+                backing: None,
+            }),
+            pool: pool.clone(),
             version: block_version(),
+            used: AtomicU64::new(pool.tick()),
+        });
+        pool.register(block.clone());
+        Ok(block)
+    }
+    fn load(self: &Arc<Self>) -> Result<TileBuffer, TileError> {
+        self.used.store(self.pool.tick(), Ordering::Relaxed);
+        let mut data = self.data.lock().unwrap_or_else(|e| e.into_inner());
+        if let Some(resident) = &data.resident {
+            return Ok(TileBuffer(resident.clone()));
         }
+        let reservation = self.pool.reserve(
+            MemoryKind::Source,
+            (TILE_SAMPLES * self.format.bytes_per_sample()) as u64,
+        )?;
+        let mut samples = match self.format {
+            PixelFormat::Rgba8 => PixelBuffer::Rgba8(zero_samples()?),
+            PixelFormat::Rgba16 => PixelBuffer::Rgba16(zero_samples()?),
+        };
+        let backing = data
+            .backing
+            .as_ref()
+            .expect("nonresident blocks have a backing file");
+        let bytes: &mut [u8] = match &mut samples {
+            PixelBuffer::Rgba8(v) => v,
+            PixelBuffer::Rgba16(v) => bytemuck::cast_slice_mut(v),
+        };
+        self.pool.reload(backing, bytes)?;
+        let resident = Arc::new(Resident {
+            samples,
+            _reservation: reservation,
+        });
+        data.resident = Some(resident.clone());
+        drop(data);
+        self.pool.register(self.clone());
+        self.pool.reloaded();
+        Ok(TileBuffer(resident))
+    }
+}
+impl Evictable for Block {
+    fn kind(&self) -> MemoryKind {
+        MemoryKind::Source
+    }
+    fn used(&self) -> u64 {
+        self.used.load(Ordering::Relaxed)
+    }
+    fn evict(&self) -> Result<bool, MemoryError> {
+        let Ok(mut data) = self.data.try_lock() else {
+            return Ok(false);
+        };
+        let Some(resident) = &data.resident else {
+            return Ok(false);
+        };
+        if Arc::strong_count(resident) > 1 {
+            return Ok(false);
+        }
+        if data.backing.is_none() {
+            let bytes = raw(&resident.samples);
+            data.backing = Some(self.pool.spill(bytes)?);
+        }
+        data.resident = None;
+        Ok(true)
     }
 }
 
@@ -110,6 +214,7 @@ pub struct TiledPixels {
     format: PixelFormat,
     max_tiles: usize,
     tiles: BTreeMap<TileCoord, Arc<Block>>,
+    pool: MemoryPool,
 }
 
 impl TiledPixels {
@@ -120,10 +225,19 @@ impl TiledPixels {
         source: &PixelBuffer,
         max_tiles: usize,
     ) -> Result<Self, TileError> {
+        Self::from_dense_with_pool(width, height, source, max_tiles, MemoryPool::global())
+    }
+    pub fn from_dense_with_pool(
+        width: u32,
+        height: u32,
+        source: &PixelBuffer,
+        max_tiles: usize,
+        pool: MemoryPool,
+    ) -> Result<Self, TileError> {
         source
             .validate(width, height)
             .map_err(|_| TileError::InvalidBuffer)?;
-        let mut result = Self::new(source.format(), max_tiles);
+        let mut result = Self::with_pool(source.format(), max_tiles, pool);
         for ty in 0..height.div_ceil(TILE_EDGE) {
             for tx in 0..width.div_ceil(TILE_EDGE) {
                 let mut block = match source.format() {
@@ -173,15 +287,23 @@ impl TiledPixels {
                 limit: self.max_tiles,
             });
         }
-        self.tiles.insert(coord, Arc::new(Block::new(block)));
+        let block = Block::new(&self.pool, block)?;
+        self.tiles.insert(coord, block);
         Ok(())
     }
     pub fn new(format: PixelFormat, max_tiles: usize) -> Self {
+        Self::with_pool(format, max_tiles, MemoryPool::global())
+    }
+    pub fn with_pool(format: PixelFormat, max_tiles: usize, pool: MemoryPool) -> Self {
         Self {
             format,
             max_tiles,
             tiles: BTreeMap::new(),
+            pool,
         }
+    }
+    pub fn memory_pool(&self) -> &MemoryPool {
+        &self.pool
     }
 
     pub fn format(&self) -> PixelFormat {
@@ -197,8 +319,14 @@ impl TiledPixels {
         self.tiles.len() as u64 * TILE_SAMPLES as u64 * self.format.bytes_per_sample() as u64
     }
 
-    pub fn tile(&self, coord: TileCoord) -> Option<&PixelBuffer> {
-        self.tiles.get(&coord).map(|b| &b.samples)
+    pub fn tile(&self, coord: TileCoord) -> Result<Option<TileBuffer>, TileError> {
+        self.tiles.get(&coord).map(|b| b.load()).transpose()
+    }
+    pub fn contains_tile(&self, coord: TileCoord) -> bool {
+        self.tiles.contains_key(&coord)
+    }
+    pub fn tile_coords(&self) -> impl ExactSizeIterator<Item = &TileCoord> {
+        self.tiles.keys()
     }
     /// Process-local identity changes on every real write and cannot be confused
     /// by allocator address reuse. Shared immutable snapshots keep the version.
@@ -207,18 +335,19 @@ impl TiledPixels {
     }
 
     /// Deterministic x-then-y grid order; samples inside each tile are row-major.
-    pub fn tiles(&self) -> impl ExactSizeIterator<Item = (&TileCoord, &PixelBuffer)> {
-        self.tiles
-            .iter()
-            .map(|(coord, data)| (coord, &data.samples))
+    pub fn tiles(
+        &self,
+    ) -> impl ExactSizeIterator<Item = (&TileCoord, Result<TileBuffer, TileError>)> {
+        self.tiles.iter().map(|(coord, data)| (coord, data.load()))
     }
 
-    pub fn pixel(&self, x: i64, y: i64) -> PixelValue {
+    pub fn pixel(&self, x: i64, y: i64) -> Result<PixelValue, TileError> {
         let (coord, offset) = TileCoord::locate(x, y);
-        self.tile(coord)
+        Ok(self
+            .tile(coord)?
             .map_or(PixelValue::zero(self.format), |tile| {
-                read_pixel(tile, sample_index(offset))
-            })
+                read_pixel(&tile, sample_index(offset))
+            }))
     }
 
     /// Returns whether samples changed. Validation, capacity and pixel-buffer
@@ -230,36 +359,28 @@ impl TiledPixels {
                 actual: value.format(),
             });
         }
-        if self.pixel(x, y) == value {
+        if self.pixel(x, y)? == value {
             return Ok(false);
         }
         let (coord, offset) = TileCoord::locate(x, y);
-        if !self.tiles.contains_key(&coord) {
+        let mut pixels = if let Some(tile) = self.tile(coord)? {
+            match &*tile {
+                PixelBuffer::Rgba8(samples) => PixelBuffer::Rgba8(copy_samples(samples)?),
+                PixelBuffer::Rgba16(samples) => PixelBuffer::Rgba16(copy_samples(samples)?),
+            }
+        } else {
             if self.tiles.len() >= self.max_tiles {
                 return Err(TileError::TileLimit {
                     limit: self.max_tiles,
                 });
             }
-            let pixels = match self.format {
+            match self.format {
                 PixelFormat::Rgba8 => PixelBuffer::Rgba8(zero_samples()?),
                 PixelFormat::Rgba16 => PixelBuffer::Rgba16(zero_samples()?),
-            };
-            self.tiles.insert(coord, Arc::new(Block::new(pixels)));
-        }
-        let shared = self.tiles.get_mut(&coord).expect("tile was inserted");
-        // Allocate the copy before replacing the shared block. A failed pixel
-        // allocation cannot partially mutate a historical version.
-        if Arc::get_mut(shared).is_none() {
-            let copy = match &shared.samples {
-                PixelBuffer::Rgba8(samples) => PixelBuffer::Rgba8(copy_samples(samples)?),
-                PixelBuffer::Rgba16(samples) => PixelBuffer::Rgba16(copy_samples(samples)?),
-            };
-            *shared = Arc::new(Block::new(copy));
-        }
-        let tile = Arc::get_mut(shared).expect("private block has no external Arc or Weak handles");
-        tile.version = block_version();
+            }
+        };
         let i = sample_index(offset);
-        match (&mut tile.samples, value) {
+        match (&mut pixels, value) {
             (PixelBuffer::Rgba8(samples), PixelValue::Rgba8(pixel)) => {
                 samples[i..i + 4].copy_from_slice(&pixel)
             }
@@ -270,8 +391,10 @@ impl TiledPixels {
         }
         // Only a write of four zeros can make the whole tile removable.
         // Transparent pixels with hidden RGB are still document data.
-        if value.is_zero() && all_zero(&tile.samples) {
+        if value.is_zero() && all_zero(&pixels) {
             self.tiles.remove(&coord);
+        } else {
+            self.insert_tile(coord, pixels)?;
         }
         Ok(true)
     }
@@ -313,8 +436,9 @@ fn copy_samples<T: Copy>(source: &[T]) -> Result<Vec<T>, TileError> {
     Ok(samples)
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum TileError {
+    Memory(String),
     InvalidBuffer,
     InvalidCoordinate {
         x: i64,
@@ -333,6 +457,7 @@ pub enum TileError {
 impl fmt::Display for TileError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::Memory(e) => write!(f, "{e}"),
             Self::InvalidBuffer => write!(f, "invalid tile or image sample count"),
             Self::InvalidCoordinate { x, y } => {
                 write!(f, "tile ({x}, {y}) exceeds pixel coordinate range")
@@ -347,3 +472,8 @@ impl fmt::Display for TileError {
 }
 
 impl std::error::Error for TileError {}
+impl From<MemoryError> for TileError {
+    fn from(e: MemoryError) -> Self {
+        Self::Memory(e.to_string())
+    }
+}

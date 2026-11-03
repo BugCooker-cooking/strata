@@ -832,6 +832,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "libwebp-sys"
+version = "0.9.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "54cd30df7c7165ce74a456e4ca9732c603e8dc5e60784558c1c6dc047f876733"
+dependencies = [
+ "cc",
+ "glob",
+]
+
+[[package]]
 name = "linux-raw-sys"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1531,7 +1541,9 @@ dependencies = [
  "strata-core",
  "strata-io",
  "strata-pixels",
+ "strata-platform",
  "tempfile",
+ "uuid",
 ]
 
 [[package]]
@@ -1544,6 +1556,7 @@ dependencies = [
  "strata-core",
  "strata-io",
  "strata-pixels",
+ "strata-platform",
  "strata-render",
  "tempfile",
  "thiserror",
@@ -1556,6 +1569,7 @@ name = "strata-io"
 version = "0.0.1"
 dependencies = [
  "image",
+ "png",
  "rusqlite",
  "serde",
  "serde_json",
@@ -1565,11 +1579,33 @@ dependencies = [
  "tempfile",
  "thiserror",
  "tiff",
+ "webp",
 ]
 
 [[package]]
 name = "strata-pixels"
 version = "0.0.1"
+dependencies = [
+ "bytemuck",
+ "serde",
+ "sha2",
+ "tempfile",
+ "thiserror",
+]
+
+[[package]]
+name = "strata-platform"
+version = "0.0.1"
+dependencies = [
+ "libc",
+ "serde",
+ "serde_json",
+ "strata-color",
+ "strata-core",
+ "strata-io",
+ "strata-pixels",
+ "tempfile",
+]
 
 [[package]]
 name = "strata-render"
@@ -1973,6 +2009,15 @@ checksum = "d7d179596ff5ec0f6de4db64d54011bde6289cc49603d3a6e4ce3f329207ab88"
 dependencies = [
  "js-sys",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "webp"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c071456adef4aca59bf6a583c46b90ff5eb0b4f758fc347cea81290288f37ce1"
+dependencies = [
+ "libwebp-sys",
 ]
 
 [[package]]

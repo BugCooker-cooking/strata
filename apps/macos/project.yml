@@ -49,6 +49,7 @@ targets:
       - sdk: Metal.framework
       - sdk: QuartzCore.framework
       - sdk: CoreGraphics.framework
+      - sdk: ImageIO.framework
       - sdk: Security.framework
       - sdk: SystemConfiguration.framework
     preBuildScripts:

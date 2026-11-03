@@ -1,6 +1,6 @@
 # Contributing to Strata
 
-项目处于 M1a 内部开发检查点。开始前阅读[总体设计](docs/design/2026-11-02-strata-v1-design.md)、[当前计划](docs/plans/2026-11-02-m1a-core-storage.md)、[工程与命令契约](docs/research/2026-11-m1a-format-and-commands.md)及[验收矩阵](docs/plans/2026-11-02-p0-acceptance-matrix.md)。
+项目处于 M1b 内部开发阶段，完整检查点尚未关闭。开始前阅读[总体设计](docs/design/2026-11-02-strata-v1-design.md)、[当前计划](docs/plans/2026-11-03-workspace-and-m1b.md)、[工程与命令契约](docs/research/2026-11-m1a-format-and-commands.md)及[验收矩阵](docs/plans/2026-11-02-p0-acceptance-matrix.md)。
 
 ## 开发约定
 
@@ -9,6 +9,7 @@
 - Rust 依赖在 workspace 统一声明，提交 `Cargo.lock`；新增 crate 时显式添加 workspace member。
 - Conventional Commits：`feat:`、`fix:`、`test:`、`docs:`、`chore:`、`ci:`。署名反映实际贡献者。
 - 不提交 API Key、用户图片、构建产物、生成绑定；测试素材须有可分发许可证或由测试生成。
+- macOS 的 `make lint` 同时运行固定 SwiftLint 0.59.1；便携工具按 SHA-256 校验并放在 `build/tools`，不修改系统安装。首次需要下载，Linux 的原生 lint 门槛由 macOS CI 执行。
 
 ## 八条硬规则
 

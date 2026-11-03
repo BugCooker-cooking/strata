@@ -143,7 +143,7 @@ private struct LayerProperties: View {
                 if let frame = model.snapshot?.frame {
                     Divider(); caption("画板")
                     HStack { Text(frame.name).lineLimit(1); Spacer(); Text("\(frame.width) × \(frame.height) px").monospacedDigit() }
-                    Text("\(model.snapshot?.profileName ?? "RGB") · \(model.snapshot?.bitDepth ?? 8) 位").font(.system(size: 11)).foregroundStyle(Color(nsColor: WorkspaceColors.secondary))
+                    Text("\(model.snapshot?.profileName ?? "RGB") · \(model.snapshot?.bitDepth ?? 8) 位 · \(model.snapshot?.resolutionDpi ?? 72) dpi").font(.system(size: 11)).foregroundStyle(Color(nsColor: WorkspaceColors.secondary))
                 }
                 Spacer(minLength: 0)
             }.padding(12)
@@ -358,6 +358,7 @@ struct WorkspaceStatusBar: View {
             }
             Text(readout.coordinates).monospacedDigit()
             Spacer(minLength: 8)
+            if !model.recoveryStatus.isEmpty { Text(model.recoveryStatus).help(model.recoveryError).lineLimit(1) }
             if model.snapshot?.profileFallback == true { Label("ICC 无效，按 sRGB 处理", systemImage: "exclamationmark.triangle").foregroundStyle(Color(nsColor: WorkspaceColors.warning)) }
             Text(model.busy ? "正在处理…" : model.snapshot?.dirty == true ? "有未保存修改" : "无未保存修改")
             Circle().fill(Color(nsColor: WorkspaceColors.muted)).frame(width: 5, height: 5)

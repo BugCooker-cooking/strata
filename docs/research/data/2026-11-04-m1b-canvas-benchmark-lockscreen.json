@@ -1,0 +1,23 @@
+{
+  "date": "2026-11-04",
+  "configuration": "Release",
+  "workload": {
+    "width": 6000,
+    "height": 4000,
+    "pixels": 24000000,
+    "independent_layers": 20,
+    "bit_depths": [
+      8,
+      16
+    ]
+  },
+  "requested_runs": 3,
+  "requested_seconds_per_run": 30,
+  "input": "build/m1b-fixtures/24mp-random-8.strata",
+  "status": "blocked_locked_screen",
+  "process_observed_seconds": 53,
+  "process_cpu_after_open_percent": 0,
+  "report_written": false,
+  "reason": "macOS was locked; CUA reported automatic unlock unavailable, so CADisplayLink could not produce a visible-window report. The process was terminated after the bounded wait.",
+  "scope": "This is an environment gate, not a passing frame-rate result. Re-run after manually unlocking the Mac; standard M1 Mac, macOS 14, cross-display and physical trackpad remain external device gates."
+}

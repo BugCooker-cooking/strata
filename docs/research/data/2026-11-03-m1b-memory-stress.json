@@ -1,0 +1,56 @@
+{
+  "date": "2026-11-03",
+  "environment": {
+    "cpu": "Apple M4",
+    "model": "Mac16,10",
+    "physical_memory_bytes": 17179869184,
+    "macos": "27.0.1",
+    "rust": "1.97.1",
+    "profile": "release"
+  },
+  "workload": {
+    "bit_depth": 16,
+    "content": "distinct filled samples; independent immutable blocks, no deduplication",
+    "height": 6250,
+    "history_undo_after_eviction_exact": true,
+    "independent_layers": 30,
+    "limits": {
+      "cpu_bytes": 268435456,
+      "disk_bytes": 34359738368,
+      "gpu_bytes": 67108864
+    },
+    "passed": true,
+    "project_bytes": 12600696832,
+    "reopened_samples_verified": 6291456000,
+    "source_bytes": 12582912000,
+    "source_samples_verified": 6291456000,
+    "temporary_project_removed": true,
+    "timing_ms": {
+      "generated": 14196,
+      "saved": 137333,
+      "total": 182962,
+      "verified": 30657
+    },
+    "usage": {
+      "cpu_bytes": 0,
+      "cpu_cache_bytes": 0,
+      "disk_bytes": 0,
+      "evictions": 142997,
+      "gpu_bytes": 0,
+      "peak_cpu_bytes": 268435456,
+      "peak_disk_bytes": 12582912000,
+      "peak_gpu_bytes": 0,
+      "reloads": 96000,
+      "source_bytes": 0,
+      "transient_bytes": 0
+    },
+    "width": 8000
+  },
+  "process": {
+    "real_seconds": 183.34,
+    "maximum_resident_set_size_bytes": 411615232,
+    "peak_memory_footprint_bytes": 457491296,
+    "swaps": 0
+  },
+  "scope": "Headless current-Mac validation with 30 independently allocated filled RGBA16 layers; no shared or deduplicated blocks. Pixel payload reservations are not a process RSS hard cap. GPU stress and standard-machine acceptance remain separate."
+}

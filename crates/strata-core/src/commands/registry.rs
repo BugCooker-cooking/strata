@@ -53,7 +53,7 @@ fn build_catalog() -> Vec<CommandSpec> {
         Lifecycle,
         "新建文档",
         "New document",
-        "Create one artboard and a transparent pixel layer; replacing dirty content requires discard_changes.",
+        "Create one artboard and a pixel background. Supply positive width/height or preset web_1080p, a4_300dpi, photo_4x6_300dpi, square_2048 (explicit dimensions must match). bit_depth is 8/16; resolution_dpi is integer 1..2400 (preset default, otherwise 72); working_space is srgb/display_p3; background is optional RGBA at document depth, otherwise sparse transparent. Preset metadata is kept only for exact geometry/density. Replacing dirty content requires discard_changes.",
         json!({"width":16,"height":16,"bit_depth":16})
     );
     command!(
@@ -63,6 +63,15 @@ fn build_catalog() -> Vec<CommandSpec> {
         "文档信息",
         "Inspect document",
         "Read metadata, revision and saved state for the bound document.",
+        json!({})
+    );
+    command!(
+        "file.recent.list",
+        Empty,
+        Query,
+        "最近文件",
+        "List recent files",
+        "Read host-provided recent metadata (maximum 10). User/Test sees host history; AI sees only entries with a still-valid read resource for that exact turn/source in this editor session, with paths omitted. Listing never grants resources. Availability is advisory. Allowed with no document; not batchable.",
         json!({})
     );
     command!(
@@ -237,6 +246,15 @@ fn build_catalog() -> Vec<CommandSpec> {
         json!({"resource":"fixture-read"})
     );
     command!(
+        "file.recover",
+        OpenFile,
+        Lifecycle,
+        "恢复未保存文档",
+        "Recover document",
+        "Restore an authorized app recovery checkpoint as a dirty, untitled document. Never overwrite or authorize the original_path. Validate all samples before replacing content; discard_changes is required for a dirty current document.",
+        json!({"resource":"fixture-read","discard_changes":true})
+    );
+    command!(
         "file.place",
         PlaceFile,
         Mutate,
@@ -269,14 +287,15 @@ fn build_catalog() -> Vec<CommandSpec> {
         External,
         "导出图片",
         "Export image",
-        "Export PNG/TIFF at document depth, JPEG (quality 1..100, default 90) or lossless WebP at 8-bit. Optional target_space is srgb/display_p3, otherwise keep working ICC. JPEG requires an explicit 8-bit RGB background in output space. 16-bit to JPEG/WebP requires allow_quantization=true. Export never changes document samples or dirty state.",
+        "Export PNG/TIFF at document depth or JPEG/WebP at 8-bit. WebP defaults to lossless; webp_lossless=false enables lossy RGB with lossless alpha, quality 1..100 (default 80). JPEG quality is 1..100 (default 90) and requires an 8-bit RGB background in output space. quality is rejected for lossless WebP; webp_lossless is rejected for non-WebP. Optional width/height must both be positive, bounded to 512 MiB output samples; WebP dimensions <=16383. Resize uses linear-light premultiplied area reduction / bilinear enlargement. target_space is optional srgb/display_p3, otherwise keep working ICC. All outputs include document DPI. 16-bit to JPEG/WebP requires allow_quantization=true. Source samples/history/dirty state do not change.",
         json!({"resource":"fixture-export","format":"png"})
     );
     for item in &mut list {
         item.returns = match item.id {
             "document.inspect" => schemars::schema_for!(Snapshot),
             "layer.list" => schemars::schema_for!(LayerListResult),
-            "file.new" | "file.open" => schemars::schema_for!(NewResult),
+            "file.recent.list" => schemars::schema_for!(RecentListResult),
+            "file.new" | "file.open" | "file.recover" => schemars::schema_for!(NewResult),
             "file.save" | "file.save_as" | "file.export" => schemars::schema_for!(ExternalResult),
             "edit.undo" | "edit.redo" | "edit.undo_turn" => schemars::schema_for!(HistoryResult),
             "view.pan" | "view.zoom" | "view.fit" | "layer.select" => {
@@ -285,7 +304,7 @@ fn build_catalog() -> Vec<CommandSpec> {
             "document.batch" => schemars::schema_for!(BatchResult),
             _ => schemars::schema_for!(LayerResult),
         };
-        if item.id == "file.open" || item.id == "file.place" {
+        if matches!(item.id, "file.open" | "file.place" | "file.recover") {
             item.effects.push("file.read");
             item.permissions.push("read_resource");
         }
@@ -295,13 +314,25 @@ fn build_catalog() -> Vec<CommandSpec> {
         }
         if item.id == "file.export" {
             item.examples.extend([
+                json!({"resource":"fixture-export","format":"webp","webp_lossless":false,"quality":80,"allow_quantization":true}),
+                json!({"resource":"fixture-export","format":"png","width":8,"height":4}),
                 json!({"resource":"fixture-export","format":"tiff","target_space":"display_p3"}),
                 json!({"resource":"fixture-export","format":"jpeg","quality":90,"background":[255,255,255],"target_space":"srgb","allow_quantization":true}),
                 json!({"resource":"fixture-export","format":"webp","allow_quantization":true}),
             ]);
         }
+        if item.id == "file.new" {
+            item.examples.extend([
+            json!({"preset":"a4_300dpi","bit_depth":16,"background":[65535,65535,65535,65535],"working_space":"display_p3"}),
+            json!({"width":128,"height":96,"bit_depth":8,"resolution_dpi":150,"background":[10,20,30,128]})]);
+        }
         if item.id == "document.batch" || item.id == "file.place" {
             item.batchable = false;
+        }
+        if item.id == "file.recent.list" {
+            item.batchable = false;
+            item.effects = vec!["history.read", "file.metadata.read"];
+            item.permissions = vec!["host_recent_visibility"];
         }
     }
     // This command changes source working samples and is undoable, unlike a

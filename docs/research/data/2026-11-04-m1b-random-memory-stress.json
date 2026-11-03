@@ -1,0 +1,298 @@
+{
+  "algorithm": "splitmix64-coordinate-v1",
+  "bit_depth": 16,
+  "cold_hot_identical_probes": {
+    "cold_ms": 32.475542000000004,
+    "hot_ms": 0.010916,
+    "layers": 30,
+    "source_cache_trimmed_before_cold": true
+  },
+  "converted_alpha_samples_verified": 1572864000,
+  "edited_independent_blocks": 24000,
+  "events": [
+    {
+      "elapsed_ms": 0,
+      "managed": {
+        "backing_read_bytes": 0,
+        "backing_write_bytes": 0,
+        "cpu_bytes": 0,
+        "cpu_cache_bytes": 0,
+        "disk_bytes": 0,
+        "evictions": 0,
+        "gpu_bytes": 0,
+        "peak_cpu_bytes": 0,
+        "peak_disk_bytes": 0,
+        "peak_gpu_bytes": 0,
+        "reloads": 0,
+        "source_bytes": 0,
+        "transient_bytes": 0
+      },
+      "process": {
+        "disk_read_bytes": 172032,
+        "disk_write_bytes": 0,
+        "peak_rss_bytes": 8601600,
+        "physical_footprint_bytes": 3359224,
+        "resident_bytes": 8601600
+      },
+      "stage": "start"
+    },
+    {
+      "elapsed_ms": 89148,
+      "managed": {
+        "backing_read_bytes": 0,
+        "backing_write_bytes": 0,
+        "cpu_bytes": 0,
+        "cpu_cache_bytes": 0,
+        "disk_bytes": 0,
+        "evictions": 0,
+        "gpu_bytes": 0,
+        "peak_cpu_bytes": 0,
+        "peak_disk_bytes": 0,
+        "peak_gpu_bytes": 0,
+        "reloads": 0,
+        "source_bytes": 0,
+        "transient_bytes": 0
+      },
+      "process": {
+        "disk_read_bytes": 23775129600,
+        "disk_write_bytes": 8733388800,
+        "peak_rss_bytes": 24117248,
+        "physical_footprint_bytes": 14926328,
+        "resident_bytes": 20398080
+      },
+      "stage": "streamed_random_fixture"
+    },
+    {
+      "elapsed_ms": 142716,
+      "managed": {
+        "backing_read_bytes": 0,
+        "backing_write_bytes": 12324962304,
+        "cpu_bytes": 257949696,
+        "cpu_cache_bytes": 0,
+        "disk_bytes": 12324962304,
+        "evictions": 23508,
+        "gpu_bytes": 0,
+        "peak_cpu_bytes": 268435456,
+        "peak_disk_bytes": 12324962304,
+        "peak_gpu_bytes": 0,
+        "reloads": 0,
+        "source_bytes": 257949696,
+        "transient_bytes": 0
+      },
+      "process": {
+        "disk_read_bytes": 49132257280,
+        "disk_write_bytes": 21047869440,
+        "peak_rss_bytes": 340688896,
+        "physical_footprint_bytes": 293765936,
+        "resident_bytes": 246104064
+      },
+      "stage": "open"
+    },
+    {
+      "elapsed_ms": 153582,
+      "managed": {
+        "backing_read_bytes": 12598116352,
+        "backing_write_bytes": 12582912000,
+        "cpu_bytes": 268435456,
+        "cpu_cache_bytes": 0,
+        "disk_bytes": 12582912000,
+        "evictions": 47517,
+        "gpu_bytes": 0,
+        "peak_cpu_bytes": 268435456,
+        "peak_disk_bytes": 12582912000,
+        "peak_gpu_bytes": 0,
+        "reloads": 24029,
+        "source_bytes": 268435456,
+        "transient_bytes": 0
+      },
+      "process": {
+        "disk_read_bytes": 61780828160,
+        "disk_write_bytes": 21307916288,
+        "peak_rss_bytes": 340688896,
+        "physical_footprint_bytes": 317604680,
+        "resident_bytes": 298467328
+      },
+      "stage": "all_source_samples_exact"
+    },
+    {
+      "elapsed_ms": 319420,
+      "managed": {
+        "backing_read_bytes": 37763940352,
+        "backing_write_bytes": 25165824000,
+        "cpu_bytes": 268435456,
+        "cpu_cache_bytes": 0,
+        "disk_bytes": 25165824000,
+        "evictions": 119517,
+        "gpu_bytes": 0,
+        "peak_cpu_bytes": 268435456,
+        "peak_disk_bytes": 25165824000,
+        "peak_gpu_bytes": 0,
+        "reloads": 72029,
+        "source_bytes": 268435456,
+        "transient_bytes": 0
+      },
+      "process": {
+        "disk_read_bytes": 87122694144,
+        "disk_write_bytes": 33865662464,
+        "peak_rss_bytes": 340688896,
+        "physical_footprint_bytes": 324567880,
+        "resident_bytes": 308051968
+      },
+      "stage": "pixel_edit_alpha_exact"
+    },
+    {
+      "elapsed_ms": 331367,
+      "managed": {
+        "backing_read_bytes": 50346852352,
+        "backing_write_bytes": 25165824000,
+        "cpu_bytes": 268435456,
+        "cpu_cache_bytes": 0,
+        "disk_bytes": 12582912000,
+        "evictions": 143517,
+        "gpu_bytes": 0,
+        "peak_cpu_bytes": 268435456,
+        "peak_disk_bytes": 25165824000,
+        "peak_gpu_bytes": 0,
+        "reloads": 96029,
+        "source_bytes": 268435456,
+        "transient_bytes": 0
+      },
+      "process": {
+        "disk_read_bytes": 99766771712,
+        "disk_write_bytes": 33865662464,
+        "peak_rss_bytes": 340688896,
+        "physical_footprint_bytes": 346719048,
+        "resident_bytes": 322551808
+      },
+      "stage": "undo_redo_and_continuous_edits"
+    },
+    {
+      "elapsed_ms": 466434,
+      "managed": {
+        "backing_read_bytes": 75512676352,
+        "backing_write_bytes": 37748736000,
+        "cpu_bytes": 0,
+        "cpu_cache_bytes": 0,
+        "disk_bytes": 12582912000,
+        "evictions": 215517,
+        "gpu_bytes": 0,
+        "peak_cpu_bytes": 268435456,
+        "peak_disk_bytes": 25165824000,
+        "peak_gpu_bytes": 0,
+        "reloads": 144029,
+        "source_bytes": 0,
+        "transient_bytes": 0
+      },
+      "process": {
+        "disk_read_bytes": 170521329664,
+        "disk_write_bytes": 54996242432,
+        "peak_rss_bytes": 341082112,
+        "physical_footprint_bytes": 382255944,
+        "resident_bytes": 296501248
+      },
+      "stage": "recovery_samples_exact"
+    },
+    {
+      "elapsed_ms": 541859,
+      "managed": {
+        "backing_read_bytes": 88095588352,
+        "backing_write_bytes": 37748736000,
+        "cpu_bytes": 0,
+        "cpu_cache_bytes": 0,
+        "disk_bytes": 0,
+        "evictions": 239026,
+        "gpu_bytes": 0,
+        "peak_cpu_bytes": 268435456,
+        "peak_disk_bytes": 25165824000,
+        "peak_gpu_bytes": 0,
+        "reloads": 168029,
+        "source_bytes": 0,
+        "transient_bytes": 0
+      },
+      "process": {
+        "disk_read_bytes": 205728071680,
+        "disk_write_bytes": 63009423360,
+        "peak_rss_bytes": 341082112,
+        "physical_footprint_bytes": 271991624,
+        "resident_bytes": 228818944
+      },
+      "stage": "saved_and_released"
+    },
+    {
+      "elapsed_ms": 588387,
+      "managed": {
+        "backing_read_bytes": 100678500352,
+        "backing_write_bytes": 50331648000,
+        "cpu_bytes": 0,
+        "cpu_cache_bytes": 0,
+        "disk_bytes": 0,
+        "evictions": 286514,
+        "gpu_bytes": 0,
+        "peak_cpu_bytes": 268435456,
+        "peak_disk_bytes": 25165824000,
+        "peak_gpu_bytes": 0,
+        "reloads": 192029,
+        "source_bytes": 0,
+        "transient_bytes": 0
+      },
+      "process": {
+        "disk_read_bytes": 241733738496,
+        "disk_write_bytes": 75583946752,
+        "peak_rss_bytes": 341082112,
+        "physical_footprint_bytes": 332661576,
+        "resident_bytes": 298074112
+      },
+      "stage": "reopened_samples_exact"
+    }
+  ],
+  "height": 6250,
+  "independent_layers": 30,
+  "limits": {
+    "cpu_bytes": 268435456,
+    "disk_bytes": 34359738368,
+    "gpu_bytes": 67108864
+  },
+  "passed": true,
+  "pixel_edit_undo_redo_exact": true,
+  "process": {
+    "disk_read_bytes": 241733742592,
+    "disk_write_bytes": 75583946752,
+    "peak_rss_bytes": 341082112,
+    "physical_footprint_bytes": 332661576,
+    "resident_bytes": 298123264
+  },
+  "project_bytes": 12600676352,
+  "recovery_samples_verified": 6291456000,
+  "reopened_samples_verified": 6291456000,
+  "seed": 6004514643731619878,
+  "source_bytes": 12582912000,
+  "source_samples_verified": 6291456000,
+  "temporary_projects_removed": true,
+  "total_ms": 588387,
+  "usage": {
+    "backing_read_bytes": 100678500352,
+    "backing_write_bytes": 50331648000,
+    "cpu_bytes": 0,
+    "cpu_cache_bytes": 0,
+    "disk_bytes": 0,
+    "evictions": 286514,
+    "gpu_bytes": 0,
+    "peak_cpu_bytes": 268435456,
+    "peak_disk_bytes": 25165824000,
+    "peak_gpu_bytes": 0,
+    "reloads": 192029,
+    "source_bytes": 0,
+    "transient_bytes": 0
+  },
+  "width": 8000,
+  "binary_sha256": "7735eff8b4bc8a312258b0905cb3df0e293638964fb70284392ae88e84289e1e",
+  "environment": {
+    "cpu": "Apple M4",
+    "model": "Mac16,10",
+    "physical_memory_bytes": 17179869184,
+    "macos": "27.0.1",
+    "rust": "1.97.1",
+    "profile": "release"
+  },
+  "acceptance_scope": "Current Mac headless full random working set; native multi-layer rendering and unavailable-device gates are separate."
+}

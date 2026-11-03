@@ -5,8 +5,8 @@ use std::{
     time::SystemTime,
 };
 use strata_io::{
-    export::{ExportFormat, export_image},
-    project::{ProjectArchive, StorageError, read_project, write_project},
+    export::{ExportFormat, ExportOptions, export_with_options},
+    project::{StorageError, write_project_source},
 };
 
 #[derive(Clone, Debug, PartialEq)]
@@ -41,6 +41,11 @@ pub(super) struct Resource {
     stamp: Option<FileStamp>,
     issued: Instant,
 }
+#[derive(Clone)]
+pub(super) struct RecentFile {
+    id: String,
+    path: PathBuf,
+}
 pub(super) struct WriteCandidate {
     resource: String,
     path: PathBuf,
@@ -51,8 +56,9 @@ pub(super) struct WriteCandidate {
 }
 enum WriteData {
     Project {
-        archive: ProjectArchive,
+        document: Document,
         incremental: bool,
+        _allocation: strata_pixels::memory::Reservation,
     },
     Image {
         pixels: PixelBuffer,
@@ -60,10 +66,84 @@ enum WriteData {
         height: u32,
         icc: Vec<u8>,
         format: ExportFormat,
+        resolution_dpi: u32,
+        _allocation: strata_pixels::memory::Reservation,
     },
 }
 
 impl Editor {
+    /// Trusted host metadata only; adding history never grants a read resource.
+    pub fn set_recent_files(&mut self, paths: Vec<PathBuf>) -> Result<(), CommandError> {
+        if paths.len() > 128
+            || paths
+                .iter()
+                .any(|p| !p.is_absolute() || p.as_os_str().len() > 16384)
+        {
+            return Err(CommandError::Invalid("invalid host recent metadata".into()));
+        }
+        let mut seen = std::collections::HashSet::new();
+        let mut next = Vec::new();
+        for path in paths {
+            if !seen.insert(path.clone()) {
+                continue;
+            }
+            let id = self
+                .recent
+                .iter()
+                .find(|r| r.path == path)
+                .map(|r| r.id.clone())
+                .unwrap_or_else(|| Uuid::new_v4().to_string());
+            next.push(RecentFile { id, path });
+            if next.len() == 10 {
+                break;
+            }
+        }
+        self.recent = next;
+        Ok(())
+    }
+    pub(super) fn recent_result(&self, request: &Request) -> Value {
+        let model = matches!(request.source, Source::Ai { .. });
+        let files = self
+            .recent
+            .iter()
+            .filter_map(|entry| {
+                let canonical = fs::canonicalize(&entry.path).ok();
+                let read_resource = self
+                    .resources
+                    .iter()
+                    .find(|(id, r)| {
+                        !r.write
+                            && canonical.as_ref() == Some(&r.path)
+                            && self.resource(id, request, false).is_ok()
+                    })
+                    .map(|(id, _)| id.clone());
+                if model && read_resource.is_none() {
+                    return None;
+                }
+                Some(RecentEntry {
+                    id: entry.id.clone(),
+                    name: entry
+                        .path
+                        .file_name()
+                        .unwrap_or_default()
+                        .to_string_lossy()
+                        .into_owned(),
+                    path: (!model).then(|| entry.path.to_string_lossy().into_owned()),
+                    available: entry.path.is_file(),
+                    read_resource,
+                })
+            })
+            .collect();
+        json!(RecentListResult {
+            scope: if model {
+                "authorized_resources"
+            } else {
+                "host_history"
+            }
+            .into(),
+            files
+        })
+    }
     /// Trusted host call after a file dialog or explicit CLI resource binding.
     /// This API is never registered in the model command catalog.
     pub fn grant_read(&mut self, path: &Path, source: Source) -> Result<String, CommandError> {
@@ -136,22 +216,38 @@ impl Editor {
         &self,
         request: &Request,
         params: Value,
+        recovery: bool,
     ) -> Result<(Document, Option<PathBuf>), CommandError> {
         let p: OpenFile = parse(params)?;
         if self.dirty() && !p.discard_changes {
             return Err(CommandError::UnsavedChanges);
         }
         let resource = self.resource(&p.resource, request, false)?;
+        if recovery {
+            let metadata = strata_io::project::read_project_metadata(&resource.path)?;
+            let info: strata_io::recovery::RecoveryInfo = serde_json::from_value(
+                metadata
+                    .get("recovery")
+                    .cloned()
+                    .ok_or_else(|| StorageError::Invalid("missing recovery metadata".into()))?,
+            )
+            .map_err(StorageError::from)?;
+            info.validate()?;
+            let doc = Document::read_file(&resource.path, true, self.pool.clone())?;
+            self.resource(&p.resource, request, false)?;
+            return Ok((doc, None));
+        }
         use std::io::Read;
         let mut signature = [0u8; 16];
         let mut file = fs::File::open(&resource.path).map_err(StorageError::Io)?;
         let count = file.read(&mut signature).map_err(StorageError::Io)?;
         if count == 16 && &signature == b"SQLite format 3\0" {
-            let doc = Document::from_archive(read_project(&resource.path)?)?;
+            let doc = Document::read_file(&resource.path, false, self.pool.clone())?;
+            self.resource(&p.resource, request, false)?;
             return Ok((doc, Some(resource.path.clone())));
         }
-        let image = strata_io::decode_image(&resource.path)?;
-        let doc = DocumentCandidate::from_image(
+        let (image, _decode_allocation) = self.decode_image(&resource.path)?;
+        let mut doc = DocumentCandidate::from_image_with_pool(
             image.width,
             image.height,
             image.pixels,
@@ -162,8 +258,11 @@ impl Editor {
                 .unwrap_or_default()
                 .to_string_lossy()
                 .into_owned(),
+            self.pool.clone(),
         )?
         .into_document();
+        doc.resolution_dpi = image.resolution_dpi;
+        self.resource(&p.resource, request, false)?;
         Ok((doc, None))
     }
     pub(super) fn prepare_place(
@@ -177,7 +276,7 @@ impl Editor {
             return Err(DocumentError::ResourceLimit.into());
         }
         let resource = self.resource(&p.resource, request, false)?;
-        let image = strata_io::decode_image(&resource.path)?;
+        let (image, _decode_allocation) = self.decode_image(&resource.path)?;
         let added = u64::from(image.width.div_ceil(256))
             * u64::from(image.height.div_ceil(256))
             * doc
@@ -222,8 +321,14 @@ impl Editor {
             .into_owned();
         let mut layer = Layer::new(
             name,
-            TiledPixels::from_dense(image.width, image.height, &pixels, tile_limit(doc.format))
-                .map_err(DocumentError::from)?,
+            TiledPixels::from_dense_with_pool(
+                image.width,
+                image.height,
+                &pixels,
+                tile_limit(doc.format),
+                doc.memory_pool(),
+            )
+            .map_err(DocumentError::from)?,
         );
         layer.info.x = p.x;
         layer.info.y = p.y;
@@ -256,16 +361,25 @@ impl Editor {
         let data = if let Some(export) = export {
             WriteData::Image {
                 pixels: export.pixels(doc)?,
-                width: doc.frame.width,
-                height: doc.frame.height,
+                width: export.width,
+                height: export.height,
                 icc: export.icc,
                 format: export.format,
+                resolution_dpi: doc.resolution_dpi(),
+                _allocation: export.allocation,
             }
         } else {
             WriteData::Project {
-                archive: doc.to_archive()?,
+                document: doc.clone(),
                 incremental: id == "file.save"
                     && self.project_path.as_ref() == Some(&resource.path),
+                _allocation: self
+                    .pool
+                    .reserve(
+                        strata_pixels::memory::MemoryKind::Transient,
+                        10 * 1024 * 1024,
+                    )
+                    .map_err(DocumentError::from)?,
             }
         };
         Ok(WriteCandidate {
@@ -290,18 +404,24 @@ impl Editor {
         let project = matches!(write.data, WriteData::Project { .. });
         let result = match write.data {
             WriteData::Project {
-                archive,
+                document,
                 incremental,
-            } => write_project(&write.path, &archive, write.overwrite, incremental),
+                _allocation,
+            } => write_project_source(&write.path, &document, write.overwrite, incremental),
             WriteData::Image {
                 pixels,
                 width,
                 height,
                 icc,
                 format,
-            } => export_image(
+                resolution_dpi,
+                _allocation,
+            } => export_with_options(
                 &write.path,
-                format,
+                ExportOptions {
+                    format,
+                    resolution_dpi,
+                },
                 width,
                 height,
                 &pixels,

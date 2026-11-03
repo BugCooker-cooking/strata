@@ -11,6 +11,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
     private var assistantItem: NSSplitViewItem!
     private var allowClose = false
     private var thumbnailRevision: UInt64?
+    var recovery: RecoveryMonitor?
     var fileName = "未命名"
     var documentURL: URL?
     var state: EditorSnapshot? { workspace.snapshot }
@@ -26,6 +27,10 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
     var hasUnsavedChanges: Bool { state?.dirty == true }
     var canTerminateNow: Bool { !busy && (allowClose || !hasUnsavedChanges) }
     func setBenchmarkRunning(_ running: Bool) { busy = running }
+    func startRecovery(directory: URL) {
+        do { try engine.configureRecovery(directory: directory.path); recovery = RecoveryMonitor(engine: engine, controller: self) }
+        catch { workspace.recoveryStatus = "恢复目录不可用"; workspace.recoveryError = error.localizedDescription }
+    }
 
     init(engine: StrataEngine) {
         self.engine = engine; canvas = CanvasView(engine: engine)
@@ -159,6 +164,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
     private func apply(_ snapshot: EditorSnapshot) {
         let oldControl = state?.control?.kind
         workspace.snapshot = snapshot; window?.isDocumentEdited = snapshot.dirty
+        recovery?.observe(snapshot)
         if let path = engine.projectPath() { documentURL = URL(fileURLWithPath: path); fileName = documentURL!.lastPathComponent }
         workspace.fileName = fileName; window?.title = "\(fileName) — Strata"
         if thumbnailRevision != snapshot.revision {
@@ -191,7 +197,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
                 DispatchQueue.main.async {
                     guard let self else { return }; self.busy = false; self.refresh()
                     switch result {
-                    case .success: if command == "file.new" || command == "file.open" { self.canvas.fit() }; completion?(true)
+                    case .success: if ["file.new", "file.open", "file.recover"].contains(command) { self.canvas.fit() }; completion?(true)
                     case .failure(let error): self.showError(error); completion?(false)
                     }
                 }
@@ -218,7 +224,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         confirmDiscard { [weak self] ok in if ok { self?.allowClose = true; self?.close() } }; return false
     }
     func requestTermination(_ completion: @escaping @MainActor @Sendable (Bool) -> Void) { if busy { completion(false) } else { confirmDiscard(completion) } }
-    func windowWillClose(_ notification: Notification) { canvas.shutdown(); onClosed?() }
+    func windowWillClose(_ notification: Notification) { recovery?.stop(discard: true); canvas.shutdown(); onClosed?() }
     func windowDidBecomeMain(_ notification: Notification) { onBecameMain?() }
     func windowDidDeminiaturize(_ notification: Notification) { canvas.markDirty() }
     func windowDidChangeOcclusionState(_ notification: Notification) { canvas.visibilityChanged() }

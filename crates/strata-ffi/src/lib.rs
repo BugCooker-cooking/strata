@@ -121,7 +121,6 @@ fn render_error(e: impl std::fmt::Display) -> StrataError {
 pub trait EngineListener: Send + Sync {
     fn on_event(&self, event: EngineEventDto);
 }
-#[derive(Default)]
 struct Inner {
     editor: Editor,
     renderer: Option<Renderer>,
@@ -130,10 +129,23 @@ struct Inner {
     open_generation: u64,
     interaction: Option<MoveInteraction>,
 }
+impl Default for Inner {
+    fn default() -> Self {
+        Self {
+            editor: Editor::with_decoder(Arc::new(strata_platform::NativeDecoder)),
+            renderer: None,
+            events: VecDeque::new(),
+            delivering: false,
+            open_generation: 0,
+            interaction: None,
+        }
+    }
+}
 #[derive(uniffi::Object)]
 pub struct StrataEngine {
     inner: Mutex<Inner>,
     listener: Arc<dyn EngineListener>,
+    recovery: Mutex<Option<strata_io::recovery::RecoveryStore>>,
 }
 
 #[uniffi::export]
@@ -171,7 +183,84 @@ impl StrataEngine {
         Arc::new(Self {
             inner: Mutex::new(Inner::default()),
             listener,
+            recovery: Mutex::new(None),
         })
+    }
+    pub fn configure_recovery(&self, directory: String) -> Result<(), StrataError> {
+        let store =
+            strata_io::recovery::RecoveryStore::new(Path::new(&directory)).map_err(render_error)?;
+        *self.recovery.lock().map_err(render_error)? = Some(store);
+        Ok(())
+    }
+    pub fn recovery_entries_json(&self) -> Result<String, StrataError> {
+        let store = self.recovery.lock().map_err(render_error)?;
+        let store = store
+            .as_ref()
+            .ok_or_else(|| render_error("recovery directory not configured"))?;
+        serde_json::to_string(&store.list().map_err(render_error)?).map_err(render_error)
+    }
+    /// IO is serialized with cleanup; the live editor lock is held only while
+    /// cloning immutable document/history indices, never for disk writes.
+    pub fn checkpoint_recovery(&self, label: String) -> Result<String, StrataError> {
+        let store = self.recovery.lock().map_err(render_error)?;
+        let store = store
+            .as_ref()
+            .ok_or_else(|| render_error("recovery directory not configured"))?;
+        let editor = self.lock()?.editor.clone();
+        let info = editor
+            .checkpoint_recovery(store, &label)
+            .map_err(command_error)?;
+        serde_json::to_string(&info).map_err(render_error)
+    }
+    pub fn clear_recovery_if_clean(&self) -> Result<(), StrataError> {
+        let store = self.recovery.lock().map_err(render_error)?;
+        let inner = self.lock()?;
+        if !inner.editor.dirty()
+            && let Some(store) = store.as_ref()
+        {
+            store
+                .remove(&inner.editor.snapshot().session_id.to_string())
+                .map_err(render_error)?;
+        }
+        Ok(())
+    }
+    pub fn discard_recovery(&self, id: Option<String>) -> Result<(), StrataError> {
+        let store = self.recovery.lock().map_err(render_error)?;
+        if let Some(store) = store.as_ref() {
+            let id = match id {
+                Some(id) => id,
+                None => self.lock()?.editor.snapshot().session_id.to_string(),
+            };
+            store.remove(&id).map_err(render_error)?;
+        }
+        Ok(())
+    }
+    pub fn memory_stats_json(&self) -> String {
+        json!({"limits":strata_pixels::memory::MemoryPool::global().limits(),"usage":strata_pixels::memory::MemoryPool::global().stats()}).to_string()
+    }
+    pub fn document_memory_json(&self) -> Result<String, StrataError> {
+        let inner = self.lock()?;
+        let Some(doc) = inner.editor.document() else {
+            return Ok("null".into());
+        };
+        let mut versions = std::collections::HashSet::new();
+        let mut referenced = 0u64;
+        let mut tiles = 0usize;
+        for layer in doc.layers() {
+            referenced += layer.pixels().referenced_bytes();
+            tiles += layer.pixels().tile_count();
+            for coord in layer.pixels().tile_coords() {
+                if let Some(version) = layer.pixels().tile_version(*coord) {
+                    versions.insert(version);
+                }
+            }
+        }
+        Ok(json!({"layer_count":doc.layers().len(),"referenced_source_bytes":referenced,"source_tile_count":tiles,"unique_source_blocks":versions.len(),"history_entries":inner.editor.snapshot().history.len()}).to_string())
+    }
+    pub fn trim_memory(&self) -> Result<(), StrataError> {
+        strata_pixels::memory::MemoryPool::global()
+            .trim()
+            .map_err(render_error)
     }
     pub fn core_version(&self) -> String {
         strata_core::version().into()
@@ -197,6 +286,12 @@ impl StrataEngine {
             .editor
             .project_path()
             .map(|p| p.to_string_lossy().into_owned())
+    }
+    pub fn set_recent_files(&self, paths: Vec<String>) -> Result<(), StrataError> {
+        self.lock()?
+            .editor
+            .set_recent_files(paths.into_iter().map(std::path::PathBuf::from).collect())
+            .map_err(command_error)
     }
     pub fn grant_read(&self, path: String) -> Result<String, StrataError> {
         self.lock()?
@@ -262,6 +357,11 @@ impl StrataEngine {
             apply(&mut inner, prepared, &command, &params)?
         };
         self.deliver_events()?;
+        if matches!(command.as_str(), "file.new" | "file.open" | "file.recover")
+            && let Err(error) = self.discard_recovery(None)
+        {
+            eprintln!("recovery cleanup after document replacement failed: {error}");
+        }
         Ok(result.to_string())
     }
     /// Convenience host API, implemented by the registered file.open command.

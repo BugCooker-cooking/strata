@@ -14,6 +14,8 @@ tempfile.workspace = true
 strata-pixels.workspace = true
 image.workspace = true
 tiff.workspace = true
+png.workspace = true
+webp.workspace = true
 thiserror.workspace = true
 
 [dev-dependencies]

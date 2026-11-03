@@ -8,6 +8,7 @@ use std::{
     time::Instant,
 };
 use strata_pixels::PixelBuffer;
+use strata_pixels::memory::{MemoryKind, MemoryPool, Reservation};
 
 pub const CANVAS_BG_SRGB: [u8; 3] = [0x14, 0x14, 0x15];
 static NEXT_RENDERER: AtomicU64 = AtomicU64::new(1);
@@ -26,6 +27,7 @@ pub struct PreparedImage {
     height: u32,
     _texture: wgpu::Texture,
     bind_group: wgpu::BindGroup,
+    _allocation: Reservation,
 }
 
 pub struct Renderer {
@@ -42,6 +44,7 @@ pub struct Renderer {
     scene: Option<super::scene::Scene>,
     scene_pipeline: wgpu::RenderPipeline,
     background: [u8; 3],
+    target_allocation: Reservation,
 }
 
 enum Target {
@@ -149,6 +152,17 @@ impl Renderer {
             vp.height.max(1),
             device.limits().max_texture_dimension_2d,
         )?;
+        // Surface drawables are estimated as three RGBA8 buffers. This tracks
+        // application resources; driver/device overhead is measured as RSS.
+        let target_allocation = MemoryPool::global()
+            .reserve(
+                MemoryKind::Gpu,
+                u64::from(vp.width.max(1))
+                    * u64::from(vp.height.max(1))
+                    * if surface.is_some() { 12 } else { 4 }
+                    + 256,
+            )
+            .map_err(gpu_error)?;
         let (target, format) = if let Some(surface) = surface {
             let capabilities = surface.get_capabilities(&adapter);
             let format = [wgpu::TextureFormat::Bgra8UnormSrgb, OUTPUT_FORMAT]
@@ -229,6 +243,7 @@ impl Renderer {
             scene: None,
             scene_pipeline,
             background: CANVAS_BG_SRGB,
+            target_allocation,
         })
     }
 
@@ -274,6 +289,13 @@ impl Renderer {
     ) -> Result<PreparedImage, RenderError> {
         check_texture_fits(width, height, self.max_texture_dimension())?;
         pixels.validate(width, height)?;
+        let bytes = u64::from(width) * u64::from(height) * 8;
+        let _scratch = MemoryPool::global()
+            .reserve(MemoryKind::Transient, bytes)
+            .map_err(gpu_error)?;
+        let allocation = MemoryPool::global()
+            .reserve(MemoryKind::Gpu, bytes)
+            .map_err(gpu_error)?;
         let mut cache = Vec::<f16>::new();
         cache
             .try_reserve_exact(pixels.sample_len())
@@ -359,6 +381,7 @@ impl Renderer {
                 height,
                 _texture: texture,
                 bind_group,
+                _allocation: allocation,
             }
         })
     }
@@ -384,6 +407,19 @@ impl Renderer {
             self.max_texture_dimension(),
         )?;
         if vp.width > 0 && vp.height > 0 {
+            let allocation = MemoryPool::global()
+                .reserve(
+                    MemoryKind::Gpu,
+                    u64::from(vp.width)
+                        * u64::from(vp.height)
+                        * if matches!(self.target, Target::Surface { .. }) {
+                            12
+                        } else {
+                            4
+                        }
+                        + 256,
+                )
+                .map_err(gpu_error)?;
             match &mut self.target {
                 Target::Offscreen(texture) => *texture = output_texture(&self.device, vp)?,
                 Target::Surface { surface, config } => {
@@ -394,6 +430,7 @@ impl Renderer {
                     *config = next;
                 }
             }
+            self.target_allocation = allocation;
         }
         self.view = self.view.rescaled(self.viewport.scale, vp.scale);
         self.viewport = vp;
@@ -548,6 +585,15 @@ impl Renderer {
         }
         let row = (width * 4).div_ceil(wgpu::COPY_BYTES_PER_ROW_ALIGNMENT)
             * wgpu::COPY_BYTES_PER_ROW_ALIGNMENT;
+        let _gpu = MemoryPool::global()
+            .reserve(MemoryKind::Gpu, u64::from(row) * u64::from(height))
+            .map_err(gpu_error)?;
+        let _cpu = MemoryPool::global()
+            .reserve(
+                MemoryKind::Transient,
+                u64::from(row) * u64::from(height) * 2,
+            )
+            .map_err(gpu_error)?;
         let buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Display readback"),
             size: u64::from(row) * u64::from(height),

@@ -35,7 +35,10 @@ fn extreme_pixel_coordinates_roundtrip_without_overflow() {
 #[test]
 fn absent_pixels_and_zero_writes_allocate_no_tiles() {
     let mut pixels = TiledPixels::new(PixelFormat::Rgba16, 0);
-    assert_eq!(pixels.pixel(i64::MIN, i64::MAX), PixelValue::Rgba16([0; 4]));
+    assert_eq!(
+        pixels.pixel(i64::MIN, i64::MAX).unwrap(),
+        PixelValue::Rgba16([0; 4])
+    );
     assert!(!pixels.set_pixel(-1, 0, PixelValue::Rgba16([0; 4])).unwrap());
     assert_eq!(pixels.tile_count(), 0);
     assert_eq!(pixels.referenced_bytes(), 0);
@@ -59,7 +62,7 @@ fn writes_cross_tile_boundaries_at_both_depths() {
                 PixelFormat::Rgba16 => PixelValue::Rgba16([i as u16 + 1, 32768, 32769, 65535]),
             };
             assert!(pixels.set_pixel(x, y, value).unwrap());
-            assert_eq!(pixels.pixel(x, y), value);
+            assert_eq!(pixels.pixel(x, y).unwrap(), value);
         }
         assert_eq!(pixels.tile_count(), 4);
         assert_eq!(
@@ -67,7 +70,7 @@ fn writes_cross_tile_boundaries_at_both_depths() {
             4 * 256 * 256 * 4 * format.bytes_per_sample() as u64
         );
         assert_eq!(
-            pixels.pixel(-1, 0),
+            pixels.pixel(-1, 0).unwrap(),
             match format {
                 PixelFormat::Rgba8 => PixelValue::Rgba8([0; 4]),
                 PixelFormat::Rgba16 => PixelValue::Rgba16([0; 4]),
@@ -81,7 +84,7 @@ fn transparent_nonzero_rgb_is_retained() {
     let mut pixels = TiledPixels::new(PixelFormat::Rgba16, 1);
     let hidden = PixelValue::Rgba16([1, 32768, 32769, 0]);
     pixels.set_pixel(-1, -1, hidden).unwrap();
-    assert_eq!(pixels.pixel(-1, -1), hidden);
+    assert_eq!(pixels.pixel(-1, -1).unwrap(), hidden);
     assert_eq!(pixels.tile_count(), 1);
 }
 
@@ -98,8 +101,8 @@ fn wrong_depth_and_tile_limit_fail_without_mutating() {
         pixels.set_pixel(256, 0, value),
         Err(TileError::TileLimit { limit: 1 })
     );
-    assert_eq!(pixels.pixel(0, 0), value);
-    assert_eq!(pixels.pixel(256, 0), PixelValue::Rgba8([0; 4]));
+    assert_eq!(pixels.pixel(0, 0).unwrap(), value);
+    assert_eq!(pixels.pixel(256, 0).unwrap(), PixelValue::Rgba8([0; 4]));
     assert_eq!(pixels.tile_count(), 1);
     // The cap limits new blocks, not writes into an existing block.
     assert!(pixels.set_pixel(255, 255, value).unwrap());
@@ -114,23 +117,14 @@ fn copy_on_write_preserves_snapshot_and_shares_untouched_tile() {
     pixels.set_pixel(-1, -1, original).unwrap();
     pixels.set_pixel(256, 256, original).unwrap();
     let snapshot = pixels.clone();
-    assert!(std::ptr::eq(
-        pixels.tile(a).unwrap(),
-        snapshot.tile(a).unwrap()
-    ));
+    assert_eq!(pixels.tile_version(a), snapshot.tile_version(a));
     pixels
         .set_pixel(-1, -1, PixelValue::Rgba16([7; 4]))
         .unwrap();
-    assert_eq!(snapshot.pixel(-1, -1), original);
-    assert_eq!(pixels.pixel(-1, -1), PixelValue::Rgba16([7; 4]));
-    assert!(!std::ptr::eq(
-        pixels.tile(a).unwrap(),
-        snapshot.tile(a).unwrap()
-    ));
-    assert!(std::ptr::eq(
-        pixels.tile(b).unwrap(),
-        snapshot.tile(b).unwrap()
-    ));
+    assert_eq!(snapshot.pixel(-1, -1).unwrap(), original);
+    assert_eq!(pixels.pixel(-1, -1).unwrap(), PixelValue::Rgba16([7; 4]));
+    assert_ne!(pixels.tile_version(a), snapshot.tile_version(a));
+    assert_eq!(pixels.tile_version(b), snapshot.tile_version(b));
 }
 
 #[test]
@@ -141,10 +135,7 @@ fn equal_write_does_not_copy_or_report_change() {
     let snapshot = pixels.clone();
     assert!(!pixels.set_pixel(0, 0, value).unwrap());
     let coord = TileCoord::new(0, 0).unwrap();
-    assert!(std::ptr::eq(
-        pixels.tile(coord).unwrap(),
-        snapshot.tile(coord).unwrap()
-    ));
+    assert_eq!(pixels.tile_version(coord), snapshot.tile_version(coord));
 }
 
 #[test]
@@ -162,7 +153,10 @@ fn clearing_last_nonzero_pixel_reclaims_tile_but_keeps_snapshot() {
     pixels.set_pixel(1, 0, PixelValue::Rgba8([0; 4])).unwrap();
     assert_eq!(pixels.tile_count(), 0);
     assert_eq!(snapshot.tile_count(), 1);
-    assert_eq!(snapshot.pixel(0, 0), PixelValue::Rgba8([1, 0, 0, 0]));
+    assert_eq!(
+        snapshot.pixel(0, 0).unwrap(),
+        PixelValue::Rgba8([1, 0, 0, 0])
+    );
     assert!(pixels.set_pixel(256, 0, PixelValue::Rgba8([1; 4])).unwrap());
 }
 
@@ -180,7 +174,8 @@ fn tile_iteration_is_stable_and_samples_are_row_major() {
         coords,
         [TileCoord::new(0, 0).unwrap(), TileCoord::new(1, 0).unwrap()]
     );
-    let PixelBuffer::Rgba16(samples) = pixels.tile(coords[0]).unwrap() else {
+    let tile = pixels.tile(coords[0]).unwrap().unwrap();
+    let PixelBuffer::Rgba16(samples) = &*tile else {
         panic!("wrong format")
     };
     let index = (2 * TILE_EDGE as usize + 1) * 4;

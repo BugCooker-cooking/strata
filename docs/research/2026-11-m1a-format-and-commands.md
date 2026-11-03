@@ -8,15 +8,15 @@
 
 元数据保存文档/内容/图层稳定 ID、画板位置/尺寸/名称、图层顺序/位置/显隐/不透明度/混合模式、活动图层、源 ICC 与工作 ICC、回退信息。会话 ID、运行 revision、历史、控制权和能力句柄不写入工程。
 
-读取先验证签名、版本、数据库完整性、元数据与像素额度，再验证摘要、位深、ID 唯一性、引用、坐标和属性。当前源块总量限 512 MiB，图层最多 128，元数据限 4 MiB，块记录最多 2048。解码、导出和历史快照各有额外临时内存；这不是整个进程的 512 MiB 上限。
+读取先验证签名、版本、数据库完整性、元数据与像素额度，再验证摘要、位深、ID 唯一性、引用、坐标和属性。M1b 更新后，单文档源块逻辑限 16 GiB，图层最多 128，元数据限 4 MiB，块记录最多 65536（还受总字节限制）。工程命令使用逐块读写，内存形式的 `ProjectArchive` 读出辅助接口仍限 512 MiB。画板、图片解码和平面导出各限 512 MiB，并受全局资源预算约束。
 
 首次保存与另存为在同目录创建临时工程，事务完成后重新读取验证、同步，再原子发布。已保存工程的普通保存更新变化块的摘要/数据，SQLite 使用 DELETE rollback journal、FULL synchronous、fullfsync；正常完成后没有常驻 WAL 边车。崩溃留下的 rollback journal 在私有临时副本中恢复，打开原文件不会擅自写回。保存始终绑定固定内容状态；期间新编辑不会被错误标记为已保存。
 
-发布前失败保留旧文件。已有目标的事务已提交，或新目标已原子发布后的同步失败返回 `PublishedUncertain`，保留脏状态，并在文件记录中显示持久性不确定；仅临时数据库的事务提交不算发布。进程崩溃与故障注入测试不能代替物理断电测试。30 秒检查点、恢复 UI、磁盘历史后备和全局内存预算属于 M1b。
+发布前失败保留旧文件。已有目标的事务已提交，或新目标已原子发布后的同步失败返回 `PublishedUncertain`，保留脏状态，并在文件记录中显示持久性不确定；仅临时数据库的事务提交不算发布。进程崩溃与故障注入测试不能代替物理断电测试。M1b 已接入独立恢复副本与磁盘块后备，详见下文。
 
 PNG/TIFF 导出保持文档位深并嵌入工作 ICC；未编辑单层精确保留源样本（包括透明 RGB）。编辑导出使用线性 Display P3 浮点转换、f64 alpha/混合计算和原位深量化。无隐式 16→8 位降级。写出后重解码比较像素和 ICC，验证成功才发布。TIFF ICC 使用独立且有上限的元数据读取，避免 image 0.25.10 对小图片静默丢失 profile。
 
-M1b 导出扩展：`format` 还可选 `jpeg`、`webp`（无损）。`target_space` 可省略以保留工作 ICC，或为 `srgb` / `display_p3`。JPEG 的 `quality` 范围 1–100（默认 90），必须提供输出色域下 8 位 RGB `background`，透明区域在线性光下合成；非 JPEG 不接受这两个参数。16 位文档导出 JPEG/WebP 必须设置 `allow_quantization:true`，先转换色域再进行全量程量化。PNG/TIFF 不降位；所有导出不改变文档样本、工作色域、历史或脏状态。无损输出逐像素复核；JPEG 为有损，仅验证可重解码、尺寸、8 位不透明输出及 ICC，不声称样本无损。临时文件验证成功后仍使用原有同步/原子发布路径。尚无尺寸缩放或有损 WebP。
+M1b 导出扩展：`format` 还可选 `jpeg`、`webp`（无损）。`target_space` 可省略以保留工作 ICC，或为 `srgb` / `display_p3`。JPEG 的 `quality` 范围 1–100（默认 90），必须提供输出色域下 8 位 RGB `background`，透明区域在线性光下合成；非 JPEG 不接受这两个参数。16 位文档导出 JPEG/WebP 必须设置 `allow_quantization:true`，先转换色域再进行全量程量化。PNG/TIFF 不降位；所有导出不改变文档样本、工作色域、历史或脏状态。无损输出逐像素复核；JPEG 为有损，仅验证可重解码、尺寸、8 位不透明输出及 ICC，不声称样本无损。临时文件验证成功后仍使用原有同步/原子发布路径。新增可选 `width` / `height`：必须同时提供正整数；省略为原尺寸。缩小采用线性光面积滤波，放大采用像素中心双线性滤波，均按预乘 alpha 过滤，并按行处理浮点中间数据。相同尺寸不重新采样。尚无有损 WebP。
 
 ## 命令执行
 
@@ -24,7 +24,7 @@ M1b 导出扩展：`format` 还可选 `jpeg`、`webp`（无损）。`target_spac
 
 | 类别 | 命令 |
 |---|---|
-| 文档 | `file.new`、`file.open`、`document.inspect` |
+| 文档 | `file.new`、`file.open`、`file.recover`、`document.inspect` |
 | 图层 | `layer.list/create/delete/duplicate/rename/set_visibility/set_opacity/set_blend_mode/set_position/move_order/select` |
 | 事务与历史 | `document.batch`、`edit.undo/redo/undo_turn` |
 | 视图 | `view.pan/zoom/fit` |
@@ -46,7 +46,15 @@ M1b 首批新增 `file.place`：资源为已授权的图片，`x/y` 默认为 0�
 ]}
 ```
 
-历史最多 64 条，历史引用的独立像素块预算 768 MiB；源像素 COW。拖动只更新预览，松手提交一次，Esc 或新 revision/控制权变化取消预览。文件执行记录独立于撤销栈。活动图层属于视图选择，不新增编辑历史。
+历史最多 64 条，历史/当前候选引用的独立像素块逻辑额度 24 GiB；源像素 COW，旧版本和当前版本共用同一进程资源池。默认 CPU 像素/CPU 缓存/暂存预算合计 2 GiB，GPU 资源估算 512 MiB，临时块文件配额 32 GiB。优先淘汰可重建缓存，再将未被读取者固定的源/历史块写入同一个匿名临时文件；回载校验 SHA-256，错误向调用方报告，不以零块替代。额度不足时拒绝候选，文档/历史不提交。计数器覆盖托管资源，另有元数据、系统编解码器、GPU 驱动及原生 UI 开销，不能据此声称进程 RSS 硬上限。拖动只更新预览，松手提交一次，Esc 或新 revision/控制权变化取消预览。文件执行记录独立于撤销栈。活动图层属于视图选择，不新增编辑历史。
+
+## HEIC 与恢复副本
+
+`strata-platform` 在 macOS 用 ImageIO 解码 HEIC 主图；核心通过受信宿主的 `PlatformDecoder` 接口调用。portable crates 不链接平台 API。图像按 RGB ICC、8/16 位整数输出及 EXIF 方向规范化，打开和置入走同一资源检查。原生样例验证了 8 位 P3；10 位/HDR/深度辅助图的真实设备样例仍待补，不将辅助内容当作已支持。
+
+宿主将恢复目录绑定到 Application Support/Strata/Recovery；目录私有，文件名为宿主会话 UUID。恢复工程的元数据外包一层 `id/recovery/document`，正文工程格式不变。首份副本或更换文档时原子发布；同一文档后续检查点用 FULL-sync SQLite 事务更新变化块。启动发现热 rollback journal 时，在私有副本中恢复并读取，保留源文件。
+
+原生计时器在脏文档 30 秒空闲后触发，1 秒轮询，忙碌时顺延；成功只更新恢复时间，不清脏状态、不改变历史和保存路径。发布/事务提交前失败显示状态并保留上次完整副本；已提交后的同步错误显示未确认，不声称旧文件未变。`file.recover` 接受读取资源与 `discard_changes`，校验全部块并准备画布后提交为未保存文档；`original_path` 仅作记录，不构成文件能力。恢复副本在新副本或用户保存成功之前保留；正常关闭/退出经保存或丢弃决策后清理，退出等待清理而不把长磁盘 IO 放进主线程。
 
 ## 可重现开发验收
 
@@ -54,6 +62,7 @@ M1b 首批新增 `file.place`：资源为已授权的图片，`x/y` 默认为 0�
 make commands
 cargo run --release -p strata-devtool -- demo build/m1a-demo-new
 cargo run --release -p strata-devtool -- capacity
+cargo run --release -p strata-devtool -- memory-stress build/new-memory-stress
 cargo run --release -p strata-devtool -- verify-exports build/example.strata build/example.png build/example.tiff
 ```
 

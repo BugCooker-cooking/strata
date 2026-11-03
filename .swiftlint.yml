@@ -1,0 +1,18 @@
+included:
+  - apps/macos/Strata
+  - apps/macos/StrataTests
+excluded:
+  - apps/macos/Generated
+# Existing compact AppKit code is intentional. Enforce correctness rules without
+# changing the project's formatting conventions or linting generated bindings.
+only_rules:
+  - force_cast
+  - force_try
+  - duplicate_imports
+  - unused_closure_parameter
+  - unused_optional_binding
+  - control_statement
+  - no_fallthrough_only
+  - unneeded_break_in_switch
+  - fatal_error_message
+  - discarded_notification_center_observer

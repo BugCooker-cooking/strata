@@ -30,6 +30,7 @@ lint:
 	cargo fmt --all --check
 	cargo clippy --workspace --all-targets --locked -- -D warnings
 	bash scripts/check-portability.sh
+	bash scripts/lint-swift.sh
 
 # Refuses existing fixture outputs; choose a new directory for a separate run.
 FIXTURE_OUTPUT ?= build/color-fixtures-v1
@@ -44,3 +45,4 @@ verify-clean:
 
 commands:
 	cargo run --locked -p strata-devtool -- examples
+	bash scripts/check-command-docs.sh

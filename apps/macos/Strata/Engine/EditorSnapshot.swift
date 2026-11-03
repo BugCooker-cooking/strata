@@ -7,9 +7,12 @@ struct EditorSnapshot: Decodable, Sendable {
     struct History: Decodable, Sendable { let command: String; let source: String }
     struct Execution: Decodable, Sendable { let command: String; let status: String }
     let revision: UInt64
+    let sessionId: String?
     let dirty: Bool
     let frame: Frame?
     let bitDepth: UInt8?
+    let resolutionDpi: UInt32?
+    let preset: String?
     let profileName: String?
     let profileFallback: Bool
     let layers: [Layer]
