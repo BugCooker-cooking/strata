@@ -22,7 +22,7 @@
 - 实机：原生标签创建/切换、⌘J、分隔线宽度、深浅主题、图层名称粘贴与提交、不透明度 55%、滤色、置入撤销/重做、保存、最近文件重开、重复打开复用标签、真实缩略图。
 - 实机工程 `build/workspace-ui-final-20261103.strata` 与 PNG 导出逐样本比较：尺寸/ICC/全部像素一致，重开保持两层、稳定 ID、名称、不透明度及混合模式；证据 [native-export](data/2026-11-03-workspace-native-export.json)。
 - 旧验收窗口发现的未保存修改已另存 `build/workspace-preflight-preserved-20261103-1740.strata`；本轮没有覆盖旧工程。
-- 当前提交的远程 Linux/macOS CI 状态在收尾记录中更新。
+- 实现提交 `e68affa98419a8b98f1e33e2a9a605260fb4531b` 的 [Linux/macOS CI](https://github.com/BugCooker-cooking/strata/actions/runs/41589591460) 全部成功，远程 Xcode 16.4 完成原生测试与 Release。该提交经 `make verify-clean` 从无 target/绑定/Xcode 工程的源码导出后构建并测试通过；日志位于 `build/clean-check.Ud2RAk/validation.log`。
 
 ## 最终原生性能
 

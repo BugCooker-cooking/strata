@@ -269,7 +269,7 @@ fn build_catalog() -> Vec<CommandSpec> {
         External,
         "导出图片",
         "Export image",
-        "Export PNG or TIFF from document samples/composition at the original bit depth, embedding the working ICC.",
+        "Export PNG/TIFF at document depth, JPEG (quality 1..100, default 90) or lossless WebP at 8-bit. Optional target_space is srgb/display_p3, otherwise keep working ICC. JPEG requires an explicit 8-bit RGB background in output space. 16-bit to JPEG/WebP requires allow_quantization=true. Export never changes document samples or dirty state.",
         json!({"resource":"fixture-export","format":"png"})
     );
     for item in &mut list {
@@ -292,6 +292,13 @@ fn build_catalog() -> Vec<CommandSpec> {
         if item.kind == CommandKind::External {
             item.effects = vec!["document.read", "file.write"];
             item.permissions.push("write_resource");
+        }
+        if item.id == "file.export" {
+            item.examples.extend([
+                json!({"resource":"fixture-export","format":"tiff","target_space":"display_p3"}),
+                json!({"resource":"fixture-export","format":"jpeg","quality":90,"background":[255,255,255],"target_space":"srgb","allow_quantization":true}),
+                json!({"resource":"fixture-export","format":"webp","allow_quantization":true}),
+            ]);
         }
         if item.id == "document.batch" || item.id == "file.place" {
             item.batchable = false;

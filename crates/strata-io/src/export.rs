@@ -7,6 +7,8 @@ use strata_pixels::PixelBuffer;
 pub enum ExportFormat {
     Png,
     Tiff,
+    Jpeg { quality: u8 },
+    WebP,
 }
 
 pub fn export_image(
@@ -23,6 +25,28 @@ pub fn export_image(
         .map_err(|e| StorageError::Invalid(e.to_string()))?;
     if pixels.byte_len() as u64 > crate::DEFAULT_DECODE_LIMIT || icc.len() > 4 * 1024 * 1024 {
         return Err(StorageError::Invalid("export resource limit".into()));
+    }
+    if matches!(
+        format,
+        ExportFormat::Jpeg {
+            quality: 0 | 101..=255
+        }
+    ) {
+        return Err(StorageError::Invalid("JPEG quality must be 1..100".into()));
+    }
+    if matches!(format, ExportFormat::Jpeg { .. } | ExportFormat::WebP)
+        && !matches!(pixels, PixelBuffer::Rgba8(_))
+    {
+        return Err(StorageError::Invalid(
+            "JPEG/WebP require explicitly quantized 8-bit input".into(),
+        ));
+    }
+    if matches!(format, ExportFormat::Jpeg { .. })
+        && matches!(pixels, PixelBuffer::Rgba8(v) if v.chunks_exact(4).any(|p| p[3] != 255))
+    {
+        return Err(StorageError::Invalid(
+            "JPEG input must already be flattened".into(),
+        ));
     }
     if path.exists() && !overwrite {
         return Err(StorageError::Exists);
@@ -63,11 +87,45 @@ pub fn export_image(
                 .write_image(data, width, height, color)
                 .map_err(error)?;
         }
+        ExportFormat::WebP => {
+            let mut encoder = image::codecs::webp::WebPEncoder::new_lossless(temp.as_file_mut());
+            encoder
+                .set_icc_profile(icc.to_vec())
+                .map_err(|e| StorageError::Invalid(e.to_string()))?;
+            encoder
+                .write_image(data, width, height, color)
+                .map_err(error)?;
+        }
+        ExportFormat::Jpeg { quality } => {
+            let rgb: Vec<u8> = data
+                .chunks_exact(4)
+                .flat_map(|p| p[..3].iter().copied())
+                .collect();
+            let mut encoder =
+                image::codecs::jpeg::JpegEncoder::new_with_quality(temp.as_file_mut(), quality);
+            encoder
+                .set_icc_profile(icc.to_vec())
+                .map_err(|e| StorageError::Invalid(e.to_string()))?;
+            encoder
+                .write_image(&rgb, width, height, ExtendedColorType::Rgb8)
+                .map_err(error)?;
+        }
     }
     temp.as_file().sync_all()?;
     let decoded =
         crate::decode_image(temp.path()).map_err(|e| StorageError::Invalid(e.to_string()))?;
-    if decoded.pixels != *pixels || decoded.icc_profile.as_deref() != Some(icc) {
+    // Lossless outputs must be sample-exact. JPEG is intentionally lossy, but
+    // dimensions, output depth/alpha and the embedded ICC are still verified.
+    let samples_valid = if matches!(format, ExportFormat::Jpeg { .. }) {
+        matches!(&decoded.pixels, PixelBuffer::Rgba8(v) if v.chunks_exact(4).all(|p| p[3] == 255))
+    } else {
+        decoded.pixels == *pixels
+    };
+    if !samples_valid
+        || decoded.width != width
+        || decoded.height != height
+        || decoded.icc_profile.as_deref() != Some(icc)
+    {
         return Err(StorageError::Invalid(format!(
             "export verification failed: format={format:?}, pixels_equal={}, profile_equal={}, decoded_profile_bytes={}",
             decoded.pixels == *pixels,

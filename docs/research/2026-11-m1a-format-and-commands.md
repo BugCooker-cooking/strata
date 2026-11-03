@@ -16,6 +16,8 @@
 
 PNG/TIFF 导出保持文档位深并嵌入工作 ICC；未编辑单层精确保留源样本（包括透明 RGB）。编辑导出使用线性 Display P3 浮点转换、f64 alpha/混合计算和原位深量化。无隐式 16→8 位降级。写出后重解码比较像素和 ICC，验证成功才发布。TIFF ICC 使用独立且有上限的元数据读取，避免 image 0.25.10 对小图片静默丢失 profile。
 
+M1b 导出扩展：`format` 还可选 `jpeg`、`webp`（无损）。`target_space` 可省略以保留工作 ICC，或为 `srgb` / `display_p3`。JPEG 的 `quality` 范围 1–100（默认 90），必须提供输出色域下 8 位 RGB `background`，透明区域在线性光下合成；非 JPEG 不接受这两个参数。16 位文档导出 JPEG/WebP 必须设置 `allow_quantization:true`，先转换色域再进行全量程量化。PNG/TIFF 不降位；所有导出不改变文档样本、工作色域、历史或脏状态。无损输出逐像素复核；JPEG 为有损，仅验证可重解码、尺寸、8 位不透明输出及 ICC，不声称样本无损。临时文件验证成功后仍使用原有同步/原子发布路径。尚无尺寸缩放或有损 WebP。
+
 ## 命令执行
 
 `cargo run -p strata-devtool -- catalog` 输出从类型生成的参数/结果 JSON Schema、双语标题、英文说明、权限、副作用和隔离示例；`make commands` 执行所有注册示例。目录是源码真值，文档不手工复制 schema。

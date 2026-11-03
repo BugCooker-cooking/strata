@@ -1,4 +1,5 @@
 mod executor;
+mod export;
 mod registry;
 pub use executor::{
     CommandError, Control, Editor, HistoryInfo, MoveInteraction, PreparedCommand, Request,
@@ -70,7 +71,15 @@ params!(PlaceFile {
 });
 params!(ExportFile {
     resource: String,
-    format: String
+    format: String,
+    #[serde(default)]
+    target_space: Option<String>,
+    #[serde(default)]
+    quality: Option<u8>,
+    #[serde(default)]
+    background: Option<[u8; 3]>,
+    #[serde(default)]
+    allow_quantization: bool
 });
 params!(NewDocument {
     width: u32,

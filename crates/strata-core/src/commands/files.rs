@@ -244,28 +244,22 @@ impl Editor {
         params: Value,
     ) -> Result<WriteCandidate, CommandError> {
         let doc = self.document.as_ref().ok_or(CommandError::NoDocument)?;
-        let (resource_id, format) = if id == "file.export" {
+        let (resource_id, export) = if id == "file.export" {
             let p: ExportFile = parse(params)?;
-            (
-                p.resource,
-                Some(match p.format.as_str() {
-                    "png" => ExportFormat::Png,
-                    "tiff" => ExportFormat::Tiff,
-                    _ => return Err(CommandError::Invalid("format must be png or tiff".into())),
-                }),
-            )
+            let plan = export::ExportPlan::new(doc, &p)?;
+            (p.resource, Some(plan))
         } else {
             let p: SaveFile = parse(params)?;
             (p.resource, None)
         };
         let resource = self.resource(&resource_id, request, true)?;
-        let data = if let Some(format) = format {
+        let data = if let Some(export) = export {
             WriteData::Image {
-                pixels: doc.export_pixels()?,
+                pixels: export.pixels(doc)?,
                 width: doc.frame.width,
                 height: doc.frame.height,
-                icc: doc.working_icc.clone(),
-                format,
+                icc: export.icc,
+                format: export.format,
             }
         } else {
             WriteData::Project {

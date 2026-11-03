@@ -78,13 +78,12 @@ extension MainWindowController {
     }
     @objc func exportDocument() {
         guard state?.frame != nil, !busy, let window else { return }; let panel = NSSavePanel(); panel.nameFieldStringValue = "导出.png"; panel.allowedContentTypes = [.png]
-        let format = NSPopUpButton(); format.addItems(withTitles: ["PNG", "TIFF"]); panel.accessoryView = format
-        let formatController = ExportFormatController(panel: panel)
-        format.target = formatController; format.action = #selector(ExportFormatController.changeFormat(_:))
+        let options = ExportOptionsController(panel: panel, bitDepth: state?.bitDepth ?? 8)
         panel.beginSheetModal(for: window) { [weak self] response in guard let self, response == .OK, let chosen = panel.url else { return }
-            _ = formatController
-            let kind = format.indexOfSelectedItem == 0 ? "png" : "tiff"
-            do { let resource = try self.engine.grantWrite(path: chosen.path, overwrite: FileManager.default.fileExists(atPath: chosen.path)); self.perform("file.export", ["resource": resource, "format": kind]) } catch { self.showError(error) }
+            do { var params = try options.parameters()
+                params["resource"] = try self.engine.grantWrite(path: chosen.path, overwrite: FileManager.default.fileExists(atPath: chosen.path))
+                self.perform("file.export", params)
+            } catch { self.showError(error) }
         }
     }
     @objc func createLayer() {
@@ -102,17 +101,5 @@ extension MainWindowController {
             if filled.state == .on { params["fill"] = channels.map(\.integerValue) }
             self.perform("layer.create", params)
         }
-    }
-}
-
-@MainActor
-private final class ExportFormatController: NSObject {
-    private weak var panel: NSSavePanel?
-    init(panel: NSSavePanel) { self.panel = panel }
-    @objc func changeFormat(_ sender: NSPopUpButton) {
-        guard let panel else { return }
-        let ext = sender.indexOfSelectedItem == 0 ? "png" : "tiff"
-        panel.allowedContentTypes = sender.indexOfSelectedItem == 0 ? [.png] : [.tiff]
-        panel.nameFieldStringValue = (panel.nameFieldStringValue as NSString).deletingPathExtension + "." + ext
     }
 }
