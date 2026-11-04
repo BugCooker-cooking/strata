@@ -4,6 +4,10 @@ use lcms2::{
     CIExyY, CIExyYTRIPLE, ColorSpaceSignature, Flags, InfoType, Intent, Locale, MLU, PixelFormat,
     Profile, Tag, TagSignature, ToneCurve, Transform,
 };
+use std::{
+    collections::VecDeque,
+    sync::{Arc, Mutex, OnceLock},
+};
 use strata_pixels::{PixelBuffer, PixelError};
 
 #[derive(Debug, thiserror::Error)]
@@ -84,16 +88,28 @@ pub fn to_linear_p3(
     icc: &[u8],
 ) -> Result<Vec<[f32; 4]>, ColorError> {
     pixels.validate(width, height)?;
-    let input = Profile::new_icc(icc).map_err(transform_error)?;
+    let table = if matches!(pixels, PixelBuffer::Rgba8(_)) {
+        linear_rgb8_table(icc)?
+    } else {
+        None
+    };
+    let input = Profile::new_icc(table.as_ref().map_or(icc, |t| t.linear_icc.as_slice()))
+        .map_err(transform_error)?;
     let output = linear_p3_profile()?;
     let source: Vec<[f32; 4]> = match pixels {
         PixelBuffer::Rgba8(v) => v
             .chunks_exact(4)
             .map(|p| {
                 [
-                    p[0] as f32 / 255.0,
-                    p[1] as f32 / 255.0,
-                    p[2] as f32 / 255.0,
+                    table
+                        .as_ref()
+                        .map_or(p[0] as f32 / 255.0, |t| t.curves[0][p[0] as usize]),
+                    table
+                        .as_ref()
+                        .map_or(p[1] as f32 / 255.0, |t| t.curves[1][p[1] as usize]),
+                    table
+                        .as_ref()
+                        .map_or(p[2] as f32 / 255.0, |t| t.curves[2][p[2] as usize]),
                     p[3] as f32 / 255.0,
                 ]
             })
@@ -125,6 +141,78 @@ pub fn to_linear_p3(
         dst[3] = src[3];
     }
     Ok(result)
+}
+
+struct LinearRgb8Table {
+    curves: [[f32; 256]; 3],
+    linear_icc: Vec<u8>,
+}
+
+type LinearRgb8Cache = VecDeque<(Vec<u8>, Arc<LinearRgb8Table>)>;
+fn linear_rgb8_table(icc: &[u8]) -> Result<Option<Arc<LinearRgb8Table>>, ColorError> {
+    // Evaluate each of the 256 integer codes through the original LCMS TRC
+    // exactly once, then let LCMS transform those floats using the same input
+    // matrix with identity TRCs. Keep matrix adaptation and output clipping in
+    // LCMS. No interpolation, quantization, CLUT or 16-bit shortcut is used.
+    // Bound shared profile metadata to four entries of at most 64 KiB each.
+    if icc.len() > 64 * 1024 {
+        return Ok(None);
+    }
+    static CACHE: OnceLock<Mutex<LinearRgb8Cache>> = OnceLock::new();
+    let cache = CACHE.get_or_init(|| Mutex::new(VecDeque::new()));
+    {
+        let mut entries = cache.lock().unwrap_or_else(|e| e.into_inner());
+        if let Some(index) = entries.iter().position(|(key, _)| key == icc) {
+            let entry = entries.remove(index).expect("cache index exists");
+            let table = entry.1.clone();
+            entries.push_back(entry);
+            return Ok(Some(table));
+        }
+    }
+    let mut input = Profile::new_icc(icc).map_err(transform_error)?;
+    let lut_tags = [
+        TagSignature::AToB0Tag,
+        TagSignature::AToB1Tag,
+        TagSignature::AToB2Tag,
+        TagSignature::DToB0Tag,
+        TagSignature::DToB1Tag,
+        TagSignature::DToB2Tag,
+        TagSignature::DToB3Tag,
+    ];
+    if !input.is_matrix_shaper() || lut_tags.iter().any(|tag| input.has_tag(*tag)) {
+        return Ok(None);
+    }
+    let mut table = LinearRgb8Table {
+        curves: [[0.0; 256]; 3],
+        linear_icc: Vec::new(),
+    };
+    let tags = [
+        TagSignature::RedTRCTag,
+        TagSignature::GreenTRCTag,
+        TagSignature::BlueTRCTag,
+    ];
+    for (channel, tag) in tags.iter().enumerate() {
+        let Tag::ToneCurve(curve) = input.read_tag(*tag) else {
+            return Ok(None);
+        };
+        for code in 0..256 {
+            table.curves[channel][code] = curve.eval(code as f32 / 255.0);
+        }
+    }
+    let identity = ToneCurve::new(1.0);
+    for tag in tags {
+        if !input.write_tag(tag, Tag::ToneCurve(&identity)) {
+            return Err(transform_error("cannot prepare linear input profile"));
+        }
+    }
+    table.linear_icc = input.icc().map_err(transform_error)?;
+    let table = Arc::new(table);
+    let mut entries = cache.lock().unwrap_or_else(|e| e.into_inner());
+    if entries.len() >= 4 {
+        entries.pop_front();
+    }
+    entries.push_back((icc.to_vec(), table.clone()));
+    Ok(Some(table))
 }
 
 /// Convert straight linear composition to the chosen output ICC at document depth.

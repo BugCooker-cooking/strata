@@ -143,3 +143,80 @@ fn rgba16_transform_matches_float_reference() {
     }
     assert_eq!(input, PixelBuffer::Rgba16(pixels));
 }
+
+#[test]
+fn rgb8_linear_tables_match_unoptimized_float_icc_for_mixed_channels() {
+    let mut custom = display_p3_profile().unwrap();
+    for (tag, gamma) in [
+        (TagSignature::RedTRCTag, 1.8),
+        (TagSignature::GreenTRCTag, 2.1),
+        (TagSignature::BlueTRCTag, 2.6),
+    ] {
+        assert!(custom.write_tag(tag, Tag::ToneCurve(&ToneCurve::new(gamma))));
+    }
+    let source: Vec<u8> = (0..8192u32)
+        .flat_map(|i| {
+            [
+                (i.wrapping_mul(37) >> 1) as u8,
+                (i.wrapping_mul(73) >> 3) as u8,
+                (i.wrapping_mul(19) >> 5) as u8,
+                i as u8,
+            ]
+        })
+        .collect();
+    let pixels = PixelBuffer::Rgba8(source.clone());
+    for profile in [Profile::new_srgb(), display_p3_profile().unwrap(), custom] {
+        let icc = profile.icc().unwrap();
+        assert!(linear_rgb8_table(&icc).unwrap().is_some());
+        let actual = to_linear_p3(&pixels, 8192, 1, &icc).unwrap();
+        // Compare the same serialized ICC. The in-memory profile's colorants
+        // have not undergone ICC s15Fixed16 serialization rounding yet.
+        let serialized_profile = Profile::new_icc(&icc).unwrap();
+        let reference = Transform::<[f32; 4], [f32; 4]>::new_flags(
+            &serialized_profile,
+            PixelFormat::RGBA_FLT,
+            &linear_p3_profile().unwrap(),
+            PixelFormat::RGBA_FLT,
+            Intent::RelativeColorimetric,
+            Flags::NO_OPTIMIZE | Flags::COPY_ALPHA,
+        )
+        .unwrap();
+        let input: Vec<[f32; 4]> = source
+            .chunks_exact(4)
+            .map(|p| {
+                [
+                    f32::from(p[0]) / 255.0,
+                    f32::from(p[1]) / 255.0,
+                    f32::from(p[2]) / 255.0,
+                    f32::from(p[3]) / 255.0,
+                ]
+            })
+            .collect();
+        let mut expected = vec![[0.0; 4]; input.len()];
+        reference.transform_pixels(&input, &mut expected);
+        for (actual, expected) in actual.iter().zip(expected) {
+            for channel in 0..3 {
+                assert!(
+                    (actual[channel] - expected[channel]).abs() < 1e-6,
+                    "{actual:?} != {expected:?}"
+                );
+            }
+            assert_eq!(actual[3], expected[3]);
+        }
+        assert_eq!(pixels, PixelBuffer::Rgba8(source.clone()));
+    }
+}
+
+#[test]
+fn rgb8_linear_tables_do_not_accept_profiles_with_a_to_b_pipelines() {
+    let mut profile = Profile::new_srgb();
+    let pipeline = lcms2::Pipeline::new(3, 3).unwrap();
+    assert!(profile.write_tag(TagSignature::AToB0Tag, Tag::Pipeline(&pipeline)));
+    let icc = profile.icc().unwrap();
+    assert!(
+        Profile::new_icc(&icc)
+            .unwrap()
+            .has_tag(TagSignature::AToB0Tag)
+    );
+    assert!(linear_rgb8_table(&icc).unwrap().is_none());
+}
