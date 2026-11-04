@@ -1,6 +1,8 @@
-# 完整界面框架与 M1b 后续
+# 原生工作区与 M1b（当前执行范围已闭环）
 
 2026-11-03：按用户要求，先将已确认的 v1 界面框架落实到原生应用，再继续功能计划。M1a 已完成，不改变其数据/权限边界。
+
+2026-11-04 收尾：实现、当前 Mac 验收、P3 用户实测、独立源码构建与 `29fc5ac` 的 [Linux/macOS CI](https://github.com/BugCooker-cooking/strata/actions/runs/41804367031) 均通过。详见 [闭环清单](2026-11-03-m1-closure.md)；外部设备门槛保留未验证。
 
 ## 界面框架
 
@@ -30,12 +32,12 @@
 - [x] 两份原生 24MP×20 文档的 GPU/缩略图压力、清理重建、样本不变和进程正常退出；GPU 峰值 480.17 MiB，画布释放后为 0。
 - [x] 收尾源码 `9b82a8a` 的独立归档构建和测试通过（146 Rust + 23 XCTest）。
 - [x] 当前 P3 同屏六色与照片对照由用户手工实测通过。
-- [ ] 本轮已授权的增量推送与 CI。标准 M1 Mac、macOS 14、跨屏和物理触控板继续明确为未验证设备门槛。
+- [x] 本轮已授权的私有增量推送与 `29fc5ac` 的 [Linux/macOS CI](https://github.com/BugCooker-cooking/strata/actions/runs/41804367031) 全绿。标准 M1 Mac、macOS 14、跨屏和物理触控板继续明确为未验证设备门槛。
 
-界面中的调整、选区、绘画、蒙版、文字及模型连接入口仍不可用，按后续里程碑实现。框架完成不代表完整 M1/M1b 完成。验证与限制见 [本轮实施记录](../research/2026-11-workspace-progress.md)。
+界面中的调整、选区、绘画、蒙版、文字及模型连接入口仍不可用，按后续里程碑实现。本轮实现与当前设备交付已闭环；完整硬件验收仍保留上面的外部依赖。验证与限制见 [本轮实施记录](../research/2026-11-workspace-progress.md)。
 
 依据：[界面规范](../design/ui-v1.md)、[总路线图](2026-11-02-strata-v1-roadmap.md)、[M1a 验收](../research/2026-11-m1a-progress.md)。
 
 第二批文件验收见 [导出选项记录](../research/2026-11-export-options-progress.md)。
 
-第三批实现、实测数值、格式限制与剩余项见 [尺寸/HEIC/恢复/内存记录](../research/2026-11-m1b-recovery-memory-progress.md)。本机无界面压力通过不关闭完整 M1b。
+第三批实现、实测数值、格式限制与剩余项见 [尺寸/HEIC/恢复/内存记录](../research/2026-11-m1b-recovery-memory-progress.md)。本轮结论同时依据原生验收、用户对色、干净源码构建和双平台 CI，不单凭无界面压力通过。

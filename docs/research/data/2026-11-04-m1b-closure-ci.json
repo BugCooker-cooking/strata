@@ -1,0 +1,112 @@
+{
+  "date": "2026-11-04",
+  "timezone": "Asia/Taipei",
+  "source_revision": "29fc5acc8714f10274c7283fd1271273c241183d",
+  "implementation_revision": "c55cab6db706f27fe321a4c94e726b9faabce844",
+  "workflow_run": 41804367031,
+  "url": "https://github.com/BugCooker-cooking/strata/actions/runs/41804367031",
+  "conclusion": "success",
+  "jobs": [
+    {
+      "name": "linux",
+      "conclusion": "success",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "conclusion": "success"
+        },
+        {
+          "name": "Install pinned Rust",
+          "conclusion": "success"
+        },
+        {
+          "name": "Lint",
+          "conclusion": "success"
+        },
+        {
+          "name": "Test",
+          "conclusion": "success"
+        },
+        {
+          "name": "Validate command documentation and examples",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Run actions/checkout@v4",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ],
+      "rust_passed": 141,
+      "rust_failed": 0,
+      "rust_ignored": 0,
+      "documented_command_examples_passed": 28
+    },
+    {
+      "name": "macos",
+      "conclusion": "success",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "conclusion": "success"
+        },
+        {
+          "name": "Install pinned Rust",
+          "conclusion": "success"
+        },
+        {
+          "name": "Install pinned XcodeGen 2.46.0",
+          "conclusion": "success"
+        },
+        {
+          "name": "Report native toolchain",
+          "conclusion": "success"
+        },
+        {
+          "name": "Lint",
+          "conclusion": "success"
+        },
+        {
+          "name": "Build and test from generated project",
+          "conclusion": "success"
+        },
+        {
+          "name": "Build Release for arm64",
+          "conclusion": "success"
+        },
+        {
+          "name": "Preserve XCTest results",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Run actions/checkout@v4",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ],
+      "rust_passed": 146,
+      "rust_failed": 0,
+      "rust_ignored": 0,
+      "xctest_passed": 23,
+      "xctest_failed": 0,
+      "release_build_passed": true
+    }
+  ],
+  "repository": "BugCooker-cooking/strata",
+  "visibility": "private, verified before authorized push",
+  "scope": "Remote Linux/macOS validation of the full final implementation. Local physical Metal, native performance, recovery/window actions and user P3 measurements have separate evidence; unavailable-device gates remain unverified."
+}

@@ -1,6 +1,6 @@
 # Contributing to Strata
 
-项目处于 M1b 内部开发阶段，完整检查点尚未关闭。开始前阅读[总体设计](docs/design/2026-11-02-strata-v1-design.md)、[当前计划](docs/plans/2026-11-03-workspace-and-m1b.md)、[工程与命令契约](docs/research/2026-11-m1a-format-and-commands.md)及[验收矩阵](docs/plans/2026-11-02-p0-acceptance-matrix.md)。
+M0/M1、原生工作区与 M1b 的当前执行范围已闭环，仍处于私有开发阶段；标准机、最低系统、跨屏与物理触控板验收保留为外部依赖。开始前阅读[总体设计](docs/design/2026-11-02-strata-v1-design.md)、[当前计划](docs/plans/2026-11-03-workspace-and-m1b.md)、[工程与命令契约](docs/research/2026-11-m1a-format-and-commands.md)及[验收矩阵](docs/plans/2026-11-02-p0-acceptance-matrix.md)。
 
 ## 开发约定
 

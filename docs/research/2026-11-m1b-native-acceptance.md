@@ -65,7 +65,10 @@ Release 可执行文件：`build/DerivedData/Build/Products/Release/Strata.app/C
 
 两应用的 P3 六色块与照片已打开，Strata 100% 与预览 50% 按实际屏幕像素匹配。透明红/白边缘在各自背景缩小显示均未见红晕；背景不同，不作混合后 RGB 对比，见 [背景记录](data/2026-11-04-m0-alpha-backgrounds.json)。2026-11-04 用户已在原生窗口手工取样并报告两应用六色均一致：红/绿/蓝各为对应通道 255、其余通道 0，白全 255、灰全 128、黑全 0，最大差 0；照片无明显差异。用户确认夜览/原彩关闭、显示模式稳定。[机器可读证据](data/2026-11-04-m0-p3-screen-comparison.json)明确标注读数由用户提供，未以截图或自动化指针采样替代。
 
-## 仍需完成
+## 私有交付与远程验证
 
-- 最终增量推送与 CI（用户已于 2026-11-04 明确授权）。
+用户已明确授权本轮增量及后续验收文档推送至私有 `origin/main`。`29fc5ac` 的 [Linux/macOS CI](https://github.com/BugCooker-cooking/strata/actions/runs/41804367031) 全绿，Linux 完成 141 项 Rust 与 28 个命令示例，macOS 完成 146 项 Rust、23 项 XCTest 和 Release。见 [完整步骤证据](data/2026-11-04-m1b-closure-ci.json)。本轮源码与已完成独立归档的实现一致，后续只整理验收记录。
+
+## 未验证的外部设备依赖
+
 - M1 MacBook Air、macOS 14、Retina/非 Retina 跨屏和真实触控板依旧未验证，按已确认的设备暂缺记录，不用当前主机或 CI 代替。
