@@ -89,6 +89,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                         let info = try result.get()
                         guard let controller else { throw BenchmarkFailure("Window closed during image load") }
                         benchmarkLog("STRATA_BENCHMARK_OPEN_DONE ms=\((CACurrentMediaTime() - start) * 1000) depth=\(info.bitDepth)")
+                        // File preparation is asynchronous and can outlast a
+                        // window activation/restoration transition. A view
+                        // display link will not run while its window is miniaturized.
+                        controller.window?.deminiaturize(nil)
+                        controller.window?.makeKeyAndOrderFront(nil)
+                        NSApp.activate(ignoringOtherApps: true)
+                        controller.window?.contentView?.layoutSubtreeIfNeeded()
                         controller.setBenchmarkRunning(true)
                         try controller.canvas.startBenchmark(options: options, info: info,
                             openMs: (CACurrentMediaTime() - start) * 1000) { result in
