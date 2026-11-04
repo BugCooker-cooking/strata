@@ -81,7 +81,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         do {
             if let options = try BenchmarkOptions.parse(ProcessInfo.processInfo.arguments) {
                 // Opt-in diagnostic mode: ordinary app windows keep their normal level.
-                if options.keepVisible { controller.window?.level = .floating }
+                if options.keepVisible {
+                    controller.window?.level = .floating
+                    controller.window?.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+                }
                 let start = CACurrentMediaTime()
                 benchmarkLog("STRATA_BENCHMARK_OPEN_BEGIN visible=\(controller.window?.isVisible ?? false) minimized=\(controller.window?.isMiniaturized ?? false)")
                 controller.open(options.input, recordRecent: false) { [weak controller] result in
