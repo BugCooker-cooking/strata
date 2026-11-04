@@ -177,10 +177,11 @@ impl Scene {
                     .into_iter()
                     .map(|c| self.compositor.tile(&self.document, c).map_err(err))
                     .collect::<Result<Vec<_>, _>>()?;
-                // Prepare the next sharper level while its source neighbors
-                // are resident. Crossing a zoom threshold then stays a cache
-                // lookup instead of recomposing the whole image mid-gesture.
-                let levels = if lod > 0 && self.last.is_none() {
+                // Prewarm the next sharper mip when one ordinary 1.25x zoom
+                // step can cross its threshold. Uploading full-resolution
+                // textures far below that threshold delays photo opening.
+                let near_sharper_level = lod > 0 && view.zoom * 1.25 >= 2.0f32.powi(1 - lod as i32);
+                let levels = if near_sharper_level && self.last.is_none() {
                     vec![lod - 1, lod]
                 } else {
                     vec![lod]
