@@ -2,6 +2,12 @@ import AppKit
 import Darwin
 import QuartzCore
 
+@MainActor
+func benchmarkLog(_ message: String) {
+    print(message)
+    fflush(nil)
+}
+
 struct BenchmarkOptions {
     let input: URL
     let output: URL
@@ -141,7 +147,7 @@ final class CanvasBenchmark {
         if trialStarted == nil {
             try engine.fitToScreen()
             trialStarted = now; previousX = 0; previousY = 0; previousZoom = 1
-            print("STRATA_BENCHMARK run=\(trials.count+1)/\(options.runs) warmup=2s measured=\(options.duration)s")
+            benchmarkLog("STRATA_BENCHMARK run=\(trials.count+1)/\(options.runs) warmup=2s measured=\(options.duration)s")
         }
         if nominalHz == 0, link.duration > 0 { nominalHz = 1 / link.duration }
         let t = now - (trialStarted ?? now)
@@ -166,7 +172,7 @@ final class CanvasBenchmark {
         if elapsed >= options.duration {
             let summary = FrameMeasurements.summarize(timestamps: timestamps, cpuMs: cpu, elapsed: elapsed, skipped: skipped)
             trials.append(BenchmarkRun(number: trials.count+1, summary: summary, timestampsSeconds: timestamps, cpuMs: cpu))
-            print(String(format: "STRATA_BENCHMARK fps=%.2f p50=%.2fms p95=%.2fms max=%.2fms skipped=%d",
+            benchmarkLog(String(format: "STRATA_BENCHMARK fps=%.2f p50=%.2fms p95=%.2fms max=%.2fms skipped=%d",
                          summary.fps, summary.intervalP50Ms ?? 0, summary.intervalP95Ms ?? 0,
                          summary.maxIntervalMs ?? 0, skipped))
             trialStarted = nil; measurementStarted = nil; timestamps = []; cpu = []; skipped = 0

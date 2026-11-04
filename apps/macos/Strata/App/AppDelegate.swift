@@ -83,30 +83,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 // Opt-in diagnostic mode: ordinary app windows keep their normal level.
                 if options.keepVisible { controller.window?.level = .floating }
                 let start = CACurrentMediaTime()
+                benchmarkLog("STRATA_BENCHMARK_OPEN_BEGIN visible=\(controller.window?.isVisible ?? false) minimized=\(controller.window?.isMiniaturized ?? false)")
                 controller.open(options.input, recordRecent: false) { [weak controller] result in
                     do {
                         let info = try result.get()
                         guard let controller else { throw BenchmarkFailure("Window closed during image load") }
+                        benchmarkLog("STRATA_BENCHMARK_OPEN_DONE ms=\((CACurrentMediaTime() - start) * 1000) depth=\(info.bitDepth)")
                         controller.setBenchmarkRunning(true)
                         try controller.canvas.startBenchmark(options: options, info: info,
                             openMs: (CACurrentMediaTime() - start) * 1000) { result in
                                 controller.setBenchmarkRunning(false)
                                 switch result {
-                                case .success(let url): print("STRATA_BENCHMARK_REPORT \(url.path)")
-                                case .failure(let error): print("STRATA_BENCHMARK_FAILED \(error.localizedDescription)")
+                                case .success(let url): benchmarkLog("STRATA_BENCHMARK_REPORT \(url.path)")
+                                case .failure(let error): benchmarkLog("STRATA_BENCHMARK_FAILED \(error.localizedDescription)")
                                 }
                                 NSApp.terminate(nil)
                             }
                     } catch {
                         controller?.setBenchmarkRunning(false)
-                        print("STRATA_BENCHMARK_FAILED \(error.localizedDescription)")
+                        benchmarkLog("STRATA_BENCHMARK_FAILED \(error.localizedDescription)")
                         NSApp.terminate(nil)
                     }
                 }
                 return
             }
         } catch {
-            print("STRATA_BENCHMARK_FAILED \(error.localizedDescription)")
+            benchmarkLog("STRATA_BENCHMARK_FAILED \(error.localizedDescription)")
             NSApp.terminate(nil)
             return
         }

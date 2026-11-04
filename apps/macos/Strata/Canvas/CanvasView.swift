@@ -147,6 +147,7 @@ final class CanvasView: NSView {
         frameLink?.preferredFrameRateRange = CAFrameRateRange(minimum: min(60, rate), maximum: rate, preferred: rate)
         benchmark = CanvasBenchmark(options: options, engine: engine, info: info, viewport: viewport,
                                     screen: screen, openMs: openMs, completion: completion)
+        benchmarkLog("STRATA_BENCHMARK_INSTALLED attached=\(attached) paused=\(frameLink?.isPaused ?? true) visible=\(window?.isVisible ?? false) minimized=\(window?.isMiniaturized ?? false) occlusion=\(window?.occlusionState.rawValue ?? 0)")
         markDirty()
     }
 
