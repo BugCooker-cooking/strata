@@ -57,6 +57,29 @@ final class AISettingsTests: XCTestCase {
         try store.save([], document: first); XCTAssertTrue(try store.load(document: first).isEmpty)
     }
 
+    func testNewConversationPreservesHistoryAndReadsLegacyRecords()throws{
+        let root=FileManager.default.temporaryDirectory.appendingPathComponent("Strata-conversations-\(UUID().uuidString)")
+        defer{try? FileManager.default.removeItem(at:root)}
+        let store=AIConversationStore(directory:root);let document=UUID().uuidString
+        XCTAssertTrue(try store.list(document:document).isEmpty)
+        let first=[AIChatMessage(role:"user",text:"第一段对话")]
+        try store.save(first,document:document)
+        let original=try XCTUnwrap(store.list(document:document).first)
+        try store.newConversation(document:document);XCTAssertTrue(try store.load(document:document).isEmpty)
+        try store.save([AIChatMessage(role:"user",text:"第二段对话")],document:document)
+        XCTAssertEqual(try store.list(document:document).count,2)
+        try store.activate(original.id,document:document)
+        XCTAssertEqual(try store.load(document:document).map(\.text),["第一段对话"])
+        let legacy=UUID().uuidString
+        let path=root.appendingPathComponent(UUID(uuidString:legacy)!.uuidString+".json")
+        try JSONEncoder().encode(first).write(to:path)
+        let old=try XCTUnwrap(store.list(document:legacy).first)
+        try store.newConversation(document:legacy);try store.activate(old.id,document:legacy)
+        XCTAssertEqual(try store.load(document:legacy).map(\.text),["第一段对话"])
+        XCTAssertThrowsError(try store.save(Array(repeating:AIChatMessage(role:"user",text:"x"),count:501),document:document))
+        XCTAssertEqual(try store.load(document:document).map(\.text),["第一段对话"])
+    }
+
     @MainActor
     func testNativeAssistantBindsDocumentWithoutNetworkingAndRestoresUserControlAfterStop() throws {
         let engine = StrataEngine(listener: EngineEvents { _ in })

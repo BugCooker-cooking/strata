@@ -505,7 +505,8 @@ impl Session {
                 || destructive)
         {
             self.wait(host, call.clone(), WaitReason::Edit { destructive },
-                if destructive { "允许这次删除、合并或替换内容的操作？".into() } else { "允许 AI 在本轮创建图层、调整属性与执行普通文档编辑？删除/合并内容及文件写入会另行确认。".into() },
+                if id=="select.subject" && params["accept_ambiguous"]==true { "模型对主体范围有疑问。允许按这次展示的区域与候选主体继续选择？你也可以拒绝，先在画布框出目标区域。".into() }
+                else if destructive { "允许这次删除、合并或替换内容的操作？".into() } else { "允许 AI 在本轮创建图层、调整属性与执行普通文档编辑？删除/合并内容及文件写入会另行确认。".into() },
                 vec!["允许".into(),"拒绝此操作".into()], Some(json!({"command":id,"params":params})))?;
             return Ok(None);
         }
@@ -858,6 +859,9 @@ fn invocation(call: &ToolCall) -> Result<(String, Value), AiError> {
     }
 }
 fn destructive(id: &str, params: &Value) -> bool {
+    if id == "select.subject" && params["accept_ambiguous"] == true {
+        return true;
+    }
     if id == "document.batch" {
         return params["steps"].as_array().is_none_or(|steps| {
             steps
@@ -868,6 +872,7 @@ fn destructive(id: &str, params: &Value) -> bool {
     matches!(
         id,
         "layer.delete"
+            | "layer.mask.remove"
             | "layer.merge_down"
             | "layer.merge_visible"
             | "layer.flatten"
@@ -899,7 +904,8 @@ pub fn inspect(snapshot: &Snapshot) -> Value {
         .active_layer
         .filter(|id| layers.iter().any(|l| l.id == *id));
     json!({"document_id":snapshot.document_id,"revision":snapshot.revision,"dirty":snapshot.dirty,"frame":snapshot.frame,
-        "bit_depth":snapshot.bit_depth,"profile":snapshot.profile_name,"layers":layers,"hidden_layer_count":hidden,"active_layer":active,
+        "bit_depth":snapshot.bit_depth,"profile":snapshot.profile_name,"layers":layers,"hidden_layer_count":hidden,"active_layer":active,"selection":snapshot.selection,
+        "selection_extent":snapshot.selection_extent,"selection_extent_conservative":snapshot.selection_extent_conservative,"selection_summary_available":snapshot.selection_summary_available,
         "history":snapshot.history.iter().rev().take(20).collect::<Vec<_>>(),"history_cursor":snapshot.history_cursor,"control":snapshot.control,
         "pause_events":snapshot.control_events.iter().rev().take(20).collect::<Vec<_>>()})
 }

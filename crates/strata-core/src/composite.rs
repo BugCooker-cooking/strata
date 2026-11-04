@@ -1,6 +1,6 @@
 //! Linear Display-P3 composition. Source samples stay untouched. The CPU path
 //! uses f64 blending; output quantization happens only at the export boundary.
-use crate::{BlendMode, Document, DocumentError};
+use crate::{BlendMode, Document, DocumentError, LayerKind};
 use std::{
     collections::HashMap,
     hash::{Hash, Hasher},
@@ -71,7 +71,10 @@ pub struct Compositor {
 }
 impl Compositor {
     pub fn signature(doc: &Document, coord: TileCoord) -> u64 {
-        fingerprint(doc, coord)
+        fingerprint(doc, coord, doc.layers().len())
+    }
+    pub fn signature_prefix(doc: &Document, coord: TileCoord, layers: usize) -> u64 {
+        fingerprint(doc, coord, layers)
     }
     pub fn new(capacity: usize) -> Self {
         Self {
@@ -85,8 +88,17 @@ impl Compositor {
         self.cache.clear();
     }
     pub fn tile(&mut self, doc: &Document, coord: TileCoord) -> Result<LinearTile, DocumentError> {
+        self.tile_prefix(doc, coord, doc.layers().len())
+    }
+    /// Display-only prefix composition; the immutable document stays complete.
+    pub fn tile_prefix(
+        &mut self,
+        doc: &Document,
+        coord: TileCoord,
+        layers: usize,
+    ) -> Result<LinearTile, DocumentError> {
         self.clock += 1;
-        let key = fingerprint(doc, coord);
+        let key = fingerprint(doc, coord, layers);
         if let Some((old, tile, used)) = self.cache.get_mut(&coord)
             && *old == key
             && let Some(tile) = tile.get()
@@ -97,7 +109,7 @@ impl Compositor {
         let pool = doc.memory_pool();
         let reservation = pool.reserve(MemoryKind::CpuCache, 256 * 256 * 16)?;
         let tile = Arc::new(LinearPixels {
-            pixels: compose_tile(doc, coord)?,
+            pixels: compose_tile(doc, coord, layers)?,
             _reservation: reservation,
         });
         // Pin before global registration: a pressure callback may trim caches
@@ -117,12 +129,12 @@ impl Compositor {
     }
 }
 
-fn fingerprint(doc: &Document, coord: TileCoord) -> u64 {
+fn fingerprint(doc: &Document, coord: TileCoord, layers: usize) -> u64 {
     let mut hash = std::collections::hash_map::DefaultHasher::new();
     doc.id().hash(&mut hash);
     doc.working_icc().hash(&mut hash);
     let [ox, oy] = coord.origin();
-    for layer in doc.layers() {
+    for layer in doc.layers().iter().take(layers) {
         if !layer.info.visible || layer.info.opacity == 0.0 {
             continue;
         }
@@ -134,7 +146,7 @@ fn fingerprint(doc: &Document, coord: TileCoord) -> u64 {
         };
         let (first, _) = TileCoord::locate(x, y);
         let (last, _) = TileCoord::locate(x.saturating_add(255), y.saturating_add(255));
-        let mut touched = false;
+        let mut touched = matches!(layer.info.kind, LayerKind::Exposure { .. });
         for tx in first.x()..=last.x() {
             for ty in first.y()..=last.y() {
                 if let Ok(c) = TileCoord::new(tx, ty)
@@ -152,26 +164,60 @@ fn fingerprint(doc: &Document, coord: TileCoord) -> u64 {
             layer.info.y.hash(&mut hash);
             layer.info.opacity.to_bits().hash(&mut hash);
             std::mem::discriminant(&layer.info.blend_mode).hash(&mut hash);
+            std::mem::discriminant(&layer.info.kind).hash(&mut hash);
+            if let LayerKind::Exposure { stops } = layer.info.kind {
+                stops.to_bits().hash(&mut hash);
+            }
+            if let Some(mask) = &layer.mask {
+                mask.layout().hash(&mut hash);
+                if let Some(meta) = &layer.info.mask {
+                    let mx = i128::from(ox) - i128::from(layer.info.x) + i128::from(meta.anchor_x);
+                    let my = i128::from(oy) - i128::from(layer.info.y) + i128::from(meta.anchor_y);
+                    for tx in mx.div_euclid(256)..=(mx + 255).div_euclid(256) {
+                        for ty in my.div_euclid(256)..=(my + 255).div_euclid(256) {
+                            if let (Ok(tx), Ok(ty)) = (i64::try_from(tx), i64::try_from(ty))
+                                && let Ok(c) = TileCoord::new(tx, ty)
+                            {
+                                mask.tile_version(c).hash(&mut hash);
+                                c.hash(&mut hash);
+                            }
+                        }
+                    }
+                }
+                layer
+                    .info
+                    .mask
+                    .as_ref()
+                    .map(|m| (m.enabled, m.anchor_x, m.anchor_y))
+                    .hash(&mut hash);
+            }
         }
     }
     hash.finish()
 }
 
-fn compose_tile(doc: &Document, coord: TileCoord) -> Result<Vec<[f32; 4]>, DocumentError> {
+fn compose_tile(
+    doc: &Document,
+    coord: TileCoord,
+    layers: usize,
+) -> Result<Vec<[f32; 4]>, DocumentError> {
     let _scratch = doc
         .memory_pool()
-        .reserve(MemoryKind::Transient, 256 * 256 * (32 + 16))?;
+        .reserve(MemoryKind::Transient, 256 * 256 * (32 + 16 + 2))?;
     let [ox, oy] = coord.origin();
     // The common imported-photo case has no layer mixing. Avoid a full f64
     // accumulator and per-pixel coordinate/blend work for aligned source tiles.
     let mut visible = doc
         .layers()
         .iter()
+        .take(layers)
         .filter(|layer| layer.info.visible && layer.info.opacity > 0.0);
     if let Some(layer) = visible.next()
         && visible.next().is_none()
         && layer.info.opacity == 1.0
         && layer.info.blend_mode == BlendMode::Normal
+        && matches!(layer.info.kind, LayerKind::Pixel)
+        && layer.mask.is_none()
         && let Some(sx) = ox.checked_sub(layer.info.x)
         && let Some(sy) = oy.checked_sub(layer.info.y)
         && sx.rem_euclid(256) == 0
@@ -190,8 +236,32 @@ fn compose_tile(doc: &Document, coord: TileCoord) -> Result<Vec<[f32; 4]>, Docum
         }
     }
     let mut out = vec![[0.0f64; 4]; 256 * 256];
-    for layer in doc.layers() {
+    for layer in doc.layers().iter().take(layers) {
         if !layer.info.visible || layer.info.opacity == 0.0 {
+            continue;
+        }
+        let mask = layer_mask_tile(layer, ox, oy)?;
+        if let LayerKind::Exposure { stops } = layer.info.kind {
+            let gain = 2f64.powf(stops);
+            for y in 0..256usize {
+                for x in 0..256usize {
+                    let index = y * 256 + x;
+                    let amount = f64::from(mask.as_ref().map_or(65535, |m| m[index])) / 65535.0
+                        * layer.info.opacity;
+                    for channel in &mut out[index][..3] {
+                        let back = *channel;
+                        let adjusted = back * gain;
+                        let mixed = match layer.info.blend_mode {
+                            BlendMode::Normal => adjusted,
+                            BlendMode::Multiply => back * adjusted,
+                            BlendMode::Screen => back + adjusted - back * adjusted,
+                            BlendMode::Overlay if back <= 0.5 => 2.0 * back * adjusted,
+                            BlendMode::Overlay => 1.0 - 2.0 * (1.0 - back) * (1.0 - adjusted),
+                        };
+                        *channel += (mixed - back) * amount;
+                    }
+                }
+            }
             continue;
         }
         let Some(sx) = ox.checked_sub(layer.info.x) else {
@@ -225,12 +295,10 @@ fn compose_tile(doc: &Document, coord: TileCoord) -> Result<Vec<[f32; 4]>, Docum
                             continue;
                         }
                         let index = y * 256 + x;
-                        out[index] = blend(
-                            out[index],
-                            linear[ly as usize * 256 + lx as usize].map(f64::from),
-                            layer.info.blend_mode,
-                            layer.info.opacity,
-                        );
+                        let mut front = linear[ly as usize * 256 + lx as usize].map(f64::from);
+                        front[3] *= f64::from(mask.as_ref().map_or(65535, |m| m[index])) / 65535.0;
+                        out[index] =
+                            blend(out[index], front, layer.info.blend_mode, layer.info.opacity);
                     }
                 }
             }
@@ -244,7 +312,105 @@ fn compose_tile(doc: &Document, coord: TileCoord) -> Result<Vec<[f32; 4]>, Docum
     Ok(result)
 }
 
+pub fn layer_mask_tile(
+    layer: &crate::Layer,
+    x: i64,
+    y: i64,
+) -> Result<Option<Vec<u16>>, DocumentError> {
+    let Some(mask) = &layer.mask else {
+        return Ok(None);
+    };
+    let Some(meta) = &layer.info.mask else {
+        return Ok(None);
+    };
+    if !meta.enabled {
+        return Ok(None);
+    }
+    let mx = i128::from(x) - i128::from(layer.info.x) + i128::from(meta.anchor_x);
+    let my = i128::from(y) - i128::from(layer.info.y) + i128::from(meta.anchor_y);
+    let bounds = mask.layout().bounds;
+    if mx + 256 <= i128::from(bounds.x)
+        || my + 256 <= i128::from(bounds.y)
+        || mx >= i128::from(bounds.x) + i128::from(bounds.width)
+        || my >= i128::from(bounds.y) + i128::from(bounds.height)
+    {
+        return Ok(Some(vec![0; 256 * 256]));
+    }
+    let (Ok(mx), Ok(my)) = (i64::try_from(mx), i64::try_from(my)) else {
+        return Ok(Some(vec![0; 256 * 256]));
+    };
+    Ok(Some(mask.region_tile(mx, my)?))
+}
+pub fn layer_mask_signature(layer: &crate::Layer, coord: TileCoord) -> u64 {
+    let mut hash = std::collections::hash_map::DefaultHasher::new();
+    layer.info.x.hash(&mut hash);
+    layer.info.y.hash(&mut hash);
+    if let (Some(mask), Some(meta)) = (&layer.mask, &layer.info.mask) {
+        meta.enabled.hash(&mut hash);
+        meta.anchor_x.hash(&mut hash);
+        meta.anchor_y.hash(&mut hash);
+        mask.layout().hash(&mut hash);
+        let [ox, oy] = coord.origin();
+        let mx = i128::from(ox) - i128::from(layer.info.x) + i128::from(meta.anchor_x);
+        let my = i128::from(oy) - i128::from(layer.info.y) + i128::from(meta.anchor_y);
+        for tx in mx.div_euclid(256)..=(mx + 255).div_euclid(256) {
+            for ty in my.div_euclid(256)..=(my + 255).div_euclid(256) {
+                if let (Ok(tx), Ok(ty)) = (i64::try_from(tx), i64::try_from(ty))
+                    && let Ok(c) = TileCoord::new(tx, ty)
+                {
+                    c.hash(&mut hash);
+                    mask.tile_version(c).hash(&mut hash);
+                }
+            }
+        }
+    }
+    hash.finish()
+}
+
 impl Document {
+    pub fn histogram(&self) -> Result<crate::commands::HistogramResult, DocumentError> {
+        let width = self.frame.width.min(256);
+        let height = self.frame.height.min(256);
+        let _scratch = self.pool.reserve(
+            MemoryKind::Transient,
+            u64::from(width) * u64::from(height) * 32,
+        )?;
+        let mut samples = Vec::with_capacity((width * height) as usize);
+        for y in 0..height {
+            for x in 0..width {
+                let sx = self.frame.x
+                    + (((u64::from(x) * 2 + 1) * u64::from(self.frame.width))
+                        / (u64::from(width) * 2)) as i64;
+                let sy = self.frame.y
+                    + (((u64::from(y) * 2 + 1) * u64::from(self.frame.height))
+                        / (u64::from(height) * 2)) as i64;
+                let (coord, [px, py]) = TileCoord::locate(sx, sy);
+                samples.push((coord, usize::from(py) * 256 + usize::from(px)));
+            }
+        }
+        samples.sort_unstable_by_key(|s| s.0);
+        let mut compositor = Compositor::new(1);
+        let mut last = None;
+        let mut luminance = vec![0; 256];
+        let mut nontransparent_pixels = 0;
+        for (coord, index) in samples {
+            if last.as_ref().is_none_or(|(c, _)| *c != coord) {
+                last = Some((coord, compositor.tile(self, coord)?));
+            }
+            let p = last.as_ref().expect("sample tile").1[index];
+            if p[3] > 0.0 {
+                let l = (p[0] * 0.2289746 + p[1] * 0.6917385 + p[2] * 0.0792869).clamp(0.0, 1.0);
+                luminance[(l * 255.0).round() as usize] += 1;
+                nontransparent_pixels += 1;
+            }
+        }
+        Ok(crate::commands::HistogramResult {
+            luminance,
+            sampled_pixels: (width * height) as usize,
+            nontransparent_pixels,
+            method: "bounded pixel-center samples; linear Display P3 luminance".into(),
+        })
+    }
     /// Export from source/CPU composition, never from an 8-bit display texture.
     pub fn export_pixels(&self) -> Result<PixelBuffer, DocumentError> {
         self.validate()?;
@@ -260,6 +426,8 @@ impl Document {
         if visible.len() == 1
             && visible[0].info.opacity == 1.0
             && visible[0].info.blend_mode == BlendMode::Normal
+            && matches!(visible[0].info.kind, LayerKind::Pixel)
+            && visible[0].mask.is_none()
         {
             let l = visible[0];
             let mut out = match self.format {

@@ -84,6 +84,15 @@ fn build_catalog() -> Vec<CommandSpec> {
         json!({})
     );
     command!(
+        "document.histogram",
+        Empty,
+        Query,
+        "亮度直方图",
+        "Luminance histogram",
+        "Read a bounded 256-bin linear luminance histogram of the visible composite, sampled at up to 256 by 256 pixel centers. It is a display statistic, not document samples.",
+        json!({})
+    );
+    command!(
         "layer.create",
         CreateLayer,
         Mutate,
@@ -172,6 +181,105 @@ fn build_catalog() -> Vec<CommandSpec> {
         "Select layer",
         "Select an existing layer for host interaction; this does not edit pixels or history.",
         json!({"layer":{"name":"Background"}})
+    );
+    command!(
+        "select.marquee",
+        Marquee,
+        Mutate,
+        "矩形选区",
+        "Rectangular marquee",
+        "Replace, add, subtract or intersect a bounded 16-bit coverage selection. Coordinates are canvas pixels and out-of-artboard area is clipped.",
+        json!({"x":0,"y":0,"width":100,"height":100,"mode":"replace"})
+    );
+    command!(
+        "select.subject",
+        crate::SubjectParams,
+        Mutate,
+        "选择主体",
+        "Select subject",
+        "Run the host's checksum-verified local ONNX subject model. Optional region must be inside the artboard; confidence/multiple-subject ambiguity requires asking the user before accept_ambiguous=true. This does not identify people. Missing assets require explicit host download approval; inference is cancellable and cannot be batched.",
+        json!({})
+    );
+    command!(
+        "select.all",
+        Empty,
+        Mutate,
+        "全选",
+        "Select all",
+        "Select the complete artboard coverage.",
+        json!({})
+    );
+    command!(
+        "select.none",
+        Empty,
+        Mutate,
+        "取消选择",
+        "Deselect",
+        "Remove the current selection.",
+        json!({})
+    );
+    command!(
+        "select.inverse",
+        Empty,
+        Mutate,
+        "反选",
+        "Inverse selection",
+        "Invert current selection coverage inside the artboard.",
+        json!({})
+    );
+    command!(
+        "layer.mask.add",
+        AddMask,
+        Mutate,
+        "添加图层蒙版",
+        "Add layer mask",
+        "Add a sparse 16-bit white, black or current-selection mask. The source pixels remain unchanged.",
+        json!({"layer":{"name":"Background"},"source":"white"})
+    );
+    command!(
+        "layer.mask.set_enabled",
+        EnableMask,
+        Mutate,
+        "停用蒙版",
+        "Enable layer mask",
+        "Enable or disable an existing mask without deleting it.",
+        json!({"layer":{"name":"Background"},"enabled":false})
+    );
+    command!(
+        "layer.mask.invert",
+        Target,
+        Mutate,
+        "反相蒙版",
+        "Invert layer mask",
+        "Invert an existing mask in place while preserving its exact 16-bit samples.",
+        json!({"layer":{"name":"Background"}})
+    );
+    command!(
+        "layer.mask.remove",
+        Target,
+        Mutate,
+        "移除蒙版",
+        "Remove layer mask",
+        "Remove the mask metadata and its coverage plane; source pixels remain unchanged.",
+        json!({"layer":{"name":"Background"}})
+    );
+    command!(
+        "layer.add_adjustment",
+        AddAdjustment,
+        Mutate,
+        "新建曝光调整层",
+        "Add exposure adjustment",
+        "Create a non-destructive exposure adjustment layer with stops in -20..20 and a white, black or selection mask.",
+        json!({"name":"人物提亮","type":"exposure","stops":0.5,"mask":"from_selection"})
+    );
+    command!(
+        "adjust.exposure.set",
+        SetExposure,
+        Mutate,
+        "设置曝光",
+        "Set exposure",
+        "Set exposure adjustment stops in -20..20; source pixels are not rewritten.",
+        json!({"layer":{"name":"人物提亮"},"stops":0.5})
     );
     command!(
         "edit.undo",
@@ -294,6 +402,11 @@ fn build_catalog() -> Vec<CommandSpec> {
         item.returns = match item.id {
             "document.inspect" => schemars::schema_for!(Snapshot),
             "layer.list" => schemars::schema_for!(LayerListResult),
+            "document.histogram" => schemars::schema_for!(HistogramResult),
+            "select.subject" => schemars::schema_for!(SubjectResult),
+            "select.marquee" | "select.all" | "select.none" | "select.inverse" => {
+                schemars::schema_for!(SelectionResult)
+            }
             "file.recent.list" => schemars::schema_for!(RecentListResult),
             "file.new" | "file.open" | "file.recover" => schemars::schema_for!(NewResult),
             "file.save" | "file.save_as" | "file.export" => schemars::schema_for!(ExternalResult),
@@ -328,6 +441,10 @@ fn build_catalog() -> Vec<CommandSpec> {
         }
         if item.id == "document.batch" || item.id == "file.place" {
             item.batchable = false;
+        }
+        if item.id == "select.subject" {
+            item.batchable = false;
+            item.permissions.push("verified_local_subject_model");
         }
         if item.id == "file.recent.list" {
             item.batchable = false;

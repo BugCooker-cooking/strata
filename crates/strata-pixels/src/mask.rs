@@ -10,7 +10,7 @@ use std::{
     collections::BTreeMap,
     ops::Deref,
     sync::{
-        Arc, Mutex,
+        Arc, Mutex, OnceLock,
         atomic::{AtomicU64, Ordering},
     },
 };
@@ -163,6 +163,7 @@ pub struct TiledMask {
     tiles: BTreeMap<TileCoord, Arc<Block>>,
     pool: MemoryPool,
     max_tiles: usize,
+    content_bounds: Arc<OnceLock<Option<CoverageRect>>>,
 }
 impl TiledMask {
     pub fn new(layout: MaskLayout, max_tiles: usize, pool: MemoryPool) -> Result<Self, TileError> {
@@ -172,6 +173,7 @@ impl TiledMask {
             tiles: BTreeMap::new(),
             pool,
             max_tiles,
+            content_bounds: Arc::new(OnceLock::new()),
         })
     }
     pub fn layout(&self) -> MaskLayout {
@@ -179,6 +181,46 @@ impl TiledMask {
     }
     pub fn invert(&mut self) {
         self.layout.inverted = !self.layout.inverted;
+        self.content_bounds = Arc::new(OnceLock::new());
+    }
+    /// Exact bounds for sparse zero-default planes. A nonzero implicit
+    /// background returns conservative full bounds without visiting every
+    /// implicit pixel; callers must expose that distinction in summaries.
+    pub fn content_bounds(&self) -> Result<Option<CoverageRect>, TileError> {
+        if self.decode(0) != 0 {
+            return Ok(Some(self.layout.bounds));
+        }
+        if let Some(bounds) = self.content_bounds.get() {
+            return Ok(*bounds);
+        }
+        let mut extent: Option<(i64, i64, i64, i64)> = None;
+        for (coord, tile) in self.tiles() {
+            let tile = tile?;
+            let [ox, oy] = coord.origin();
+            for y in 0..256usize {
+                for x in 0..256usize {
+                    if tile[y * 256 + x] == 0 {
+                        continue;
+                    }
+                    let (px, py) = (ox + x as i64, oy + y as i64);
+                    if !self.layout.bounds.contains(px, py) {
+                        continue;
+                    }
+                    extent = Some(match extent {
+                        Some((a, b, c, d)) => (a.min(px), b.min(py), c.max(px), d.max(py)),
+                        None => (px, py, px, py),
+                    });
+                }
+            }
+        }
+        let bounds = extent.map(|(x, y, right, bottom)| CoverageRect {
+            x,
+            y,
+            width: (right - x + 1) as u32,
+            height: (bottom - y + 1) as u32,
+        });
+        let _ = self.content_bounds.set(bounds);
+        Ok(bounds)
     }
     pub fn tile_count(&self) -> usize {
         self.tiles.len()
@@ -233,6 +275,7 @@ impl TiledMask {
         }
         if samples.iter().all(|v| *v == 0) {
             self.tiles.remove(&coord);
+            self.content_bounds = Arc::new(OnceLock::new());
             return Ok(());
         }
         if !self.tiles.contains_key(&coord) && self.tiles.len() >= self.max_tiles {
@@ -244,6 +287,7 @@ impl TiledMask {
         // cannot change this snapshot or any undo snapshot sharing its blocks.
         let block = Block::new(&self.pool, samples)?;
         self.tiles.insert(coord, block);
+        self.content_bounds = Arc::new(OnceLock::new());
         Ok(())
     }
     pub fn insert_tile(

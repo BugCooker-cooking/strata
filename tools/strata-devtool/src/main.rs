@@ -16,12 +16,45 @@ fn run(editor: &mut Editor, id: &str, args: Value) -> Result<Value, Box<dyn Erro
 }
 fn fresh() -> Result<Editor, Box<dyn Error>> {
     let mut e = native_editor();
+    // Deterministic command fixture; never substitute this for ML acceptance.
+    e.set_subject_selector(std::sync::Arc::new(ExampleSubject));
     run(
         &mut e,
         "file.new",
         json!({"width":16,"height":16,"bit_depth":16}),
     )?;
     Ok(e)
+}
+struct ExampleSubject;
+impl strata_core::SubjectSelector for ExampleSubject {
+    fn select(
+        &self,
+        doc: &strata_core::Document,
+        _: &strata_core::SubjectParams,
+        _: &(dyn Fn() -> bool + Sync),
+    ) -> Result<strata_core::SubjectSelection, String> {
+        let frame = doc.frame();
+        let mask = strata_pixels::TiledMask::new(
+            strata_pixels::MaskLayout {
+                bounds: strata_pixels::CoverageRect {
+                    x: frame.x,
+                    y: frame.y,
+                    width: frame.width,
+                    height: frame.height,
+                },
+                default_coverage: 65535,
+                inverted: false,
+            },
+            1,
+            doc.memory_pool(),
+        )
+        .map_err(|e| e.to_string())?;
+        Ok(strata_core::SubjectSelection {
+            mask,
+            diagnostics: json!({"fixture":"deterministic command example; not ML quality evidence"}),
+            needs_confirmation: false,
+        })
+    }
 }
 fn examples() -> Result<(), Box<dyn Error>> {
     let mut ids = std::collections::HashSet::new();
@@ -43,6 +76,27 @@ fn examples() -> Result<(), Box<dyn Error>> {
             };
             let mut args = example.clone();
             match spec.id {
+                "layer.mask.set_enabled" | "layer.mask.invert" | "layer.mask.remove" => {
+                    run(
+                        &mut editor,
+                        "layer.mask.add",
+                        json!({"layer":{"name":"Background"},"source":"white"}),
+                    )?;
+                }
+                "layer.add_adjustment" => {
+                    run(
+                        &mut editor,
+                        "select.marquee",
+                        json!({"x":2,"y":2,"width":8,"height":8}),
+                    )?;
+                }
+                "adjust.exposure.set" => {
+                    run(
+                        &mut editor,
+                        "layer.add_adjustment",
+                        json!({"name":"人物提亮","type":"exposure","mask":"white"}),
+                    )?;
+                }
                 "edit.undo" | "edit.redo" => {
                     run(&mut editor, "layer.create", json!({"name":"Undo fixture"}))?;
                     if spec.id == "edit.redo" {

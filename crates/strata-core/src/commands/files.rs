@@ -56,7 +56,7 @@ pub(super) struct WriteCandidate {
 }
 enum WriteData {
     Project {
-        document: Document,
+        document: Box<Document>,
         incremental: bool,
         _allocation: strata_pixels::memory::Reservation,
     },
@@ -283,7 +283,7 @@ impl Editor {
                 .format
                 .byte_count(256, 256)
                 .map_err(DocumentError::from)? as u64;
-        let existing: u64 = doc.layers.iter().map(|l| l.pixels.referenced_bytes()).sum();
+        let existing = doc.source_bytes();
         if existing + added > crate::MAX_DOCUMENT_BYTES {
             return Err(DocumentError::ResourceLimit.into());
         }
@@ -370,7 +370,7 @@ impl Editor {
             }
         } else {
             WriteData::Project {
-                document: doc.clone(),
+                document: Box::new(doc.clone()),
                 incremental: id == "file.save"
                     && self.project_path.as_ref() == Some(&resource.path),
                 _allocation: self
@@ -407,7 +407,7 @@ impl Editor {
                 document,
                 incremental,
                 _allocation,
-            } => write_project_source(&write.path, &document, write.overwrite, incremental),
+            } => write_project_source(&write.path, document.as_ref(), write.overwrite, incremental),
             WriteData::Image {
                 pixels,
                 width,

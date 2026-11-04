@@ -11,6 +11,15 @@ final class CanvasView: NSView {
     private let stats = FrameStatsHUD()
     private let artboardBorder = CAShapeLayer()
     private let artboardTitle = CATextLayer()
+    private let selectionBase = CAShapeLayer()
+    private let selectionAnts = CAShapeLayer()
+    private let marqueePreview = CAShapeLayer()
+    private var selectionEdges: [SelectionEdge] = []
+    private var marqueeDrag: (start: NSPoint, current: NSPoint, mode: String)?
+    var documentOrigin = NSPoint.zero
+    var marqueeTool = false
+    var isSelectionEnabled = true
+    var selectionMode = "replace"
     private var benchmark: CanvasBenchmark?
     var onError: ((Error) -> Void)?
     var onCommitted: (() -> Void)?
@@ -41,6 +50,12 @@ final class CanvasView: NSView {
         artboardTitle.foregroundColor = NSColor.secondaryLabelColor.cgColor
         layer?.addSublayer(artboardBorder)
         layer?.addSublayer(artboardTitle)
+        for overlay in [selectionBase, selectionAnts, marqueePreview] {
+            overlay.fillColor = nil; overlay.lineWidth = 1; layer?.addSublayer(overlay)
+        }
+        selectionBase.strokeColor = NSColor.white.cgColor
+        selectionAnts.strokeColor = NSColor.black.cgColor; selectionAnts.lineDashPattern = [4, 4]
+        marqueePreview.strokeColor = NSColor.white.cgColor; marqueePreview.lineDashPattern = [4, 4]
         setAccessibilityLabel("图像画布；滚动或拖动平移，捏合缩放")
         addSubview(stats)
         stats.translatesAutoresizingMaskIntoConstraints = false
@@ -84,6 +99,8 @@ final class CanvasView: NSView {
 
     /// Must run before the view/window releases its layer. Stops callbacks first.
     func shutdown() {
+        cancelMarquee()
+        selectionAnts.removeAllAnimations()
         benchmark?.cancel(BenchmarkFailure("Canvas detached before benchmark completed"))
         frameLink?.invalidate()
         frameLink = nil
@@ -181,7 +198,7 @@ final class CanvasView: NSView {
         let overlay = engine.artboardOverlay()
         onViewChanged?(overlay, Double(engine.canvasZoom()), scale)
         guard let frame = overlay else {
-            artboardBorder.isHidden = true; artboardTitle.isHidden = true; return
+            artboardBorder.isHidden = true; artboardTitle.isHidden = true; selectionBase.isHidden = true; selectionAnts.isHidden = true; return
         }
         artboardBorder.isHidden = false; artboardTitle.isHidden = false
         let rect = CGRect(x: CGFloat(frame.x) / scale, y: CGFloat(frame.y) / scale,
@@ -190,6 +207,45 @@ final class CanvasView: NSView {
         artboardTitle.string = frame.name
         artboardTitle.contentsScale = scale
         artboardTitle.frame = CGRect(x: rect.minX, y: rect.minY - 18, width: max(140, rect.width), height: 16)
+        let zoom = CGFloat(engine.canvasZoom()) / scale
+        let path = CGMutablePath()
+        for edge in selectionEdges {
+            path.move(to: CGPoint(x: rect.minX + CGFloat(edge.x1) * zoom, y: rect.minY + CGFloat(edge.y1) * zoom))
+            path.addLine(to: CGPoint(x: rect.minX + CGFloat(edge.x2) * zoom, y: rect.minY + CGFloat(edge.y2) * zoom))
+        }
+        selectionBase.path = path; selectionAnts.path = path
+        selectionBase.isHidden = selectionEdges.isEmpty; selectionAnts.isHidden = selectionEdges.isEmpty
+    }
+    func setSelectionOutline(_ edges: [SelectionEdge]) {
+        selectionEdges = edges
+        if !edges.isEmpty, !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
+            if selectionAnts.animation(forKey: "marching") == nil {
+                let animation = CABasicAnimation(keyPath: "lineDashPhase")
+                animation.fromValue = 0; animation.toValue = 8; animation.duration = 0.8; animation.repeatCount = .infinity
+                selectionAnts.add(animation, forKey: "marching")
+            }
+        } else { selectionAnts.removeAllAnimations() }
+        markDirty()
+    }
+    private func documentPoint(_ point: NSPoint) -> NSPoint? {
+        guard let frame = engine.artboardOverlay() else { return nil }
+        let zoom = CGFloat(engine.canvasZoom())
+        guard zoom > 0 else { return nil }
+        return NSPoint(x: documentOrigin.x + (point.x * scale - CGFloat(frame.x)) / zoom,
+                       y: documentOrigin.y + (point.y * scale - CGFloat(frame.y)) / zoom)
+    }
+    private func drawMarqueePreview() {
+        guard let drag = marqueeDrag, let frame = engine.artboardOverlay() else { marqueePreview.path = nil; return }
+        let zoom = CGFloat(engine.canvasZoom()) / scale
+        let origin = CGPoint(x: CGFloat(frame.x) / scale + (min(drag.start.x, drag.current.x) - documentOrigin.x) * zoom,
+                             y: CGFloat(frame.y) / scale + (min(drag.start.y, drag.current.y) - documentOrigin.y) * zoom)
+        let rect = CGRect(origin: origin, size: CGSize(width: abs(drag.start.x - drag.current.x) * zoom, height: abs(drag.start.y - drag.current.y) * zoom))
+        CATransaction.begin(); CATransaction.setDisableActions(true); marqueePreview.path = CGPath(rect: rect, transform: nil); CATransaction.commit()
+    }
+    private func cancelMarquee() {
+        guard marqueeDrag != nil else { return }
+        try? engine.endMarquee(paramsJson: "{}", cancel: true)
+        marqueeDrag = nil; marqueePreview.path = nil; lastDrag = nil
     }
 
     override func scrollWheel(with event: NSEvent) {
@@ -207,6 +263,16 @@ final class CanvasView: NSView {
     override func mouseDown(with event: NSEvent) {
         benchmark?.cancel(BenchmarkFailure("User input interrupted benchmark"))
         window?.makeFirstResponder(self)
+        if marqueeTool {
+            guard isSelectionEnabled, let point = documentPoint(convert(event.locationInWindow, from: nil)) else { return }
+            do {
+                try engine.beginMarquee()
+                let shift = event.modifierFlags.contains(.shift), option = event.modifierFlags.contains(.option)
+                let mode = shift && option ? "intersect" : shift ? "add" : option ? "subtract" : selectionMode
+                marqueeDrag = (point, point, mode)
+            } catch { onError?(error) }
+            return
+        }
         if zoomTool {
             zoom(at: convert(event.locationInWindow, from: nil), factor: event.modifierFlags.contains(.option) ? 0.8 : 1.25)
             return
@@ -220,6 +286,10 @@ final class CanvasView: NSView {
 
     override func mouseDragged(with event: NSEvent) {
         let point = convert(event.locationInWindow, from: nil)
+        if marqueeDrag != nil {
+            if let current = documentPoint(point) { marqueeDrag?.current = current; drawMarqueePreview() }
+            return
+        }
         if let drag = layerDrag {
             guard let dx = Int64(exactly: ((point.x - drag.point.x) * scale / drag.zoom).rounded()),
                   let dy = Int64(exactly: ((point.y - drag.point.y) * scale / drag.zoom).rounded()) else { cancelLayerDrag(); return }
@@ -235,13 +305,25 @@ final class CanvasView: NSView {
     }
 
     override func mouseUp(with event: NSEvent) {
+        if let drag = marqueeDrag {
+            defer { marqueeDrag = nil; marqueePreview.path = nil; lastDrag = nil }
+            guard let x = Int64(exactly: min(drag.start.x, drag.current.x).rounded(.down)),
+                  let y = Int64(exactly: min(drag.start.y, drag.current.y).rounded(.down)),
+                  let width = UInt32(exactly: abs(drag.current.x - drag.start.x).rounded(.up)),
+                  let height = UInt32(exactly: abs(drag.current.y - drag.start.y).rounded(.up)), width > 0, height > 0 else { try? engine.endMarquee(paramsJson: "{}", cancel: true); return }
+            do {
+                try engine.endMarquee(paramsJson: commandJSON(["x": x, "y": y, "width": width, "height": height, "mode": drag.mode]), cancel: false)
+                markDirty(); onCommitted?()
+            } catch { onError?(error) }
+            return
+        }
         defer { lastDrag = nil; layerDrag = nil; layerPosition = nil }
         guard layerDrag != nil, let position = layerPosition else { return }
         do { try engine.endLayerMove(x: position.x, y: position.y, cancel: false); markDirty(); onCommitted?() }
         catch { onError?(error) }
     }
     override func keyDown(with event: NSEvent) {
-        if event.keyCode == 53 { cancelLayerDrag() }
+        if event.keyCode == 53 { cancelLayerDrag(); cancelMarquee() }
         else if !event.modifierFlags.contains(.command), !event.modifierFlags.contains(.control),
                 let key = event.charactersIgnoringModifiers?.uppercased(), onToolKey?(key) == true { return }
         else { super.keyDown(with: event) }

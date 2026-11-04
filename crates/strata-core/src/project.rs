@@ -4,11 +4,13 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 use strata_io::project::{ProjectArchive, ProjectTile};
-use strata_pixels::{PixelBuffer, PixelFormat, TileCoord, TiledPixels};
+use strata_pixels::{MaskLayout, PixelBuffer, PixelFormat, TileCoord, TiledMask, TiledPixels};
 
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Manifest {
+    #[serde(default)]
+    selection: Option<MaskLayout>,
     #[serde(default = "crate::document::default_resolution_dpi")]
     resolution_dpi: u32,
     #[serde(default)]
@@ -29,9 +31,10 @@ impl Document {
     pub(crate) fn manifest(&self) -> Result<serde_json::Value, DocumentError> {
         self.validate()?;
         let metadata = serde_json::to_value(Manifest {
+            selection: self.selection.as_ref().map(TiledMask::layout),
             resolution_dpi: self.resolution_dpi,
             preset: self.preset.clone(),
-            version: 0,
+            version: 1,
             id: self.id,
             state: self.state,
             frame: self.frame.clone(),
@@ -47,13 +50,7 @@ impl Document {
         Ok(metadata)
     }
     pub fn to_archive(&self) -> Result<ProjectArchive, DocumentError> {
-        if self
-            .layers
-            .iter()
-            .map(|l| l.pixels.referenced_bytes())
-            .sum::<u64>()
-            > crate::MAX_FLAT_IMAGE_BYTES
-        {
+        if self.source_bytes() > crate::MAX_FLAT_IMAGE_BYTES {
             return Err(DocumentError::ResourceLimit);
         }
         use strata_io::project::ProjectSource;
@@ -89,16 +86,28 @@ impl Document {
     ) -> Result<Self, DocumentError> {
         let meta: Manifest =
             serde_json::from_value(metadata).map_err(|e| DocumentError::Invalid(e.to_string()))?;
-        if meta.version != 0
+        if !matches!(meta.version, 0 | 1)
             || meta.layers.len() > crate::MAX_LAYERS
             || meta.working_icc.len() > 4 * 1024 * 1024
             || meta
                 .source_icc
                 .as_ref()
                 .is_some_and(|v| v.len() > 4 * 1024 * 1024)
+            || meta.profile_name.len() > 1024
         {
             return Err(DocumentError::Invalid(
                 "project version or metadata size".into(),
+            ));
+        }
+        if meta.version == 0
+            && (meta.selection.is_some()
+                || meta
+                    .layers
+                    .iter()
+                    .any(|l| l.kind != crate::LayerKind::Pixel || l.mask.is_some()))
+        {
+            return Err(DocumentError::Invalid(
+                "v0 manifest contains newer feature metadata".into(),
             ));
         }
         let format = match meta.bit_depth {
@@ -113,12 +122,23 @@ impl Document {
         let layers: Vec<_> = meta
             .layers
             .into_iter()
-            .map(|info| Layer {
-                info,
-                pixels: TiledPixels::with_pool(format, tile_limit(format), pool.clone()),
+            .map(|info| {
+                Ok(Layer {
+                    mask: info
+                        .mask
+                        .as_ref()
+                        .map(|m| TiledMask::new(m.layout, mask_tile_limit(), pool.clone()))
+                        .transpose()?,
+                    info,
+                    pixels: TiledPixels::with_pool(format, tile_limit(format), pool.clone()),
+                })
             })
-            .collect();
+            .collect::<Result<Vec<_>, DocumentError>>()?;
         let doc = Self {
+            selection: meta
+                .selection
+                .map(|layout| TiledMask::new(layout, mask_tile_limit(), pool.clone()))
+                .transpose()?,
             resolution_dpi: meta.resolution_dpi,
             preset: meta.preset,
             pool,
@@ -130,13 +150,36 @@ impl Document {
             format,
             working_icc: meta.working_icc,
             source_icc: meta.source_icc,
-            profile_name: profile.name,
+            profile_name: meta.profile_name,
             profile_fallback: meta.profile_fallback,
         };
         doc.validate()?;
         Ok(doc)
     }
     fn insert_project_tile(&mut self, tile: ProjectTile) -> Result<(), DocumentError> {
+        if tile.channels == 1 {
+            if tile.bit_depth != 16 || tile.bytes.len() != 256 * 256 * 2 {
+                return Err(DocumentError::Invalid("coverage encoding".into()));
+            }
+            let mask = if tile.layer == "selection" {
+                self.selection.as_mut()
+            } else if let Some(id) = tile.layer.strip_prefix("mask:") {
+                self.layers
+                    .iter_mut()
+                    .find(|l| l.id().to_string() == id)
+                    .and_then(|l| l.mask.as_mut())
+            } else {
+                None
+            }
+            .ok_or_else(|| DocumentError::Invalid("orphan coverage plane".into()))?;
+            let samples = tile
+                .bytes
+                .chunks_exact(2)
+                .map(|v| u16::from_le_bytes([v[0], v[1]]))
+                .collect();
+            mask.insert_encoded_tile(TileCoord::new(tile.x, tile.y)?, samples)?;
+            return Ok(());
+        }
         if tile.bit_depth != self.bit_depth() || tile.channels != 4 {
             return Err(DocumentError::Invalid("duplicate tile or depth".into()));
         }
@@ -240,7 +283,39 @@ impl strata_io::project::ProjectSource for Document {
                     bytes,
                 })?;
             }
+            if let Some(mask) = &layer.mask {
+                write_mask(format!("mask:{}", layer.id()), mask, &self.pool, visit)?;
+            }
+        }
+        if let Some(selection) = &self.selection {
+            write_mask("selection".into(), selection, &self.pool, visit)?;
         }
         Ok(())
     }
+}
+
+pub(crate) fn mask_tile_limit() -> usize {
+    (crate::MAX_DOCUMENT_BYTES / (256 * 256 * 2)) as usize
+}
+fn write_mask(
+    name: String,
+    mask: &TiledMask,
+    pool: &strata_pixels::memory::MemoryPool,
+    visit: &mut dyn FnMut(ProjectTile) -> Result<(), strata_io::project::StorageError>,
+) -> Result<(), strata_io::project::StorageError> {
+    for (coord, tile) in mask.tiles() {
+        let tile = tile.map_err(|e| strata_io::project::StorageError::Invalid(e.to_string()))?;
+        let _scratch = pool
+            .reserve(strata_pixels::memory::MemoryKind::Transient, 256 * 256 * 2)
+            .map_err(|e| strata_io::project::StorageError::Invalid(e.to_string()))?;
+        visit(ProjectTile {
+            layer: name.clone(),
+            x: coord.x(),
+            y: coord.y(),
+            bit_depth: 16,
+            channels: 1,
+            bytes: tile.iter().flat_map(|v| v.to_le_bytes()).collect(),
+        })?;
+    }
+    Ok(())
 }

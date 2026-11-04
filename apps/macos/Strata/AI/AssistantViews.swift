@@ -9,6 +9,14 @@ struct ConnectedAssistantPanel: View {
                 Image(systemName: "sparkles").foregroundStyle(Color(nsColor: WorkspaceColors.ai)); Text("AI 助手").fontWeight(.semibold)
                 Spacer()
                 WorkspaceIconButton(title: "新对话", symbol: "square.and.pencil", enabled: !model.running) { model.newConversation() }
+                Menu {
+                    ForEach(model.conversations){conversation in
+                        Button{model.activateConversation(conversation.id)}label:{
+                            if conversation.current {Label(conversation.title,systemImage:"checkmark")}else{Text(conversation.title)}
+                        }
+                    }
+                }label:{Image(systemName:"clock.arrow.circlepath")}
+                    .menuStyle(.borderlessButton).fixedSize().disabled(model.running||model.conversations.isEmpty).help("文档对话记录")
                 WorkspaceIconButton(title: "模型设置", symbol: "slider.horizontal.3", enabled: !model.running) { model.settingsVisible = true }
                 WorkspaceIconButton(title: "收起 AI 助手 (⌘J)", symbol: "sidebar.right") { workspace.send(.assistant) }
             }.padding(.horizontal, 12).frame(height: 44)
@@ -26,6 +34,7 @@ struct ConnectedAssistantPanel: View {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 14) {
                         if !model.configured { onboarding }
+                        if let subject = workspace.subjectModel { SubjectModelCard(store: subject, model: workspace) }
                         ForEach(model.messages) { message in
                             VStack(alignment: message.role == "user" ? .trailing : .leading, spacing: 5) {
                                 Text(message.role == "user" ? "你" : message.role == "assistant" ? "AI" : "系统")
@@ -48,6 +57,7 @@ struct ConnectedAssistantPanel: View {
             Divider()
             VStack(alignment: .leading, spacing: 8) {
                 Label(workspace.selected?.name ?? "当前文档", systemImage: "square.3.layers.3d").font(.system(size: 10)).foregroundStyle(Color(nsColor: WorkspaceColors.secondary)).lineLimit(1)
+                if let selection=workspace.selectionSummary {Label(selection,systemImage:"rectangle.dashed").font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary)).lineLimit(1)}
                 TextField("描述你想要的效果…", text: $model.draft, axis: .vertical).lineLimit(2...5).textFieldStyle(.plain)
                     .disabled(model.running || !model.configured).accessibilityLabel("AI 消息")
                     .onSubmit { model.send() }

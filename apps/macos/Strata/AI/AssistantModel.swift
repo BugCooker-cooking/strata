@@ -16,6 +16,7 @@ struct AIExecution: Identifiable {
 @MainActor
 final class AssistantModel: ObservableObject {
     @Published var messages: [AIChatMessage] = []
+    @Published var conversations: [AIConversationSummary] = []
     @Published var executions: [AIExecution] = []
     @Published var draft = ""
     @Published var answer = ""
@@ -55,19 +56,30 @@ final class AssistantModel: ObservableObject {
         guard document != next else { return }
         if running, let turn, inheritedTurn == turn { document = next; contextApprovals = [:]; persist(); return }
         if running { stop() }
-        document = next; contextApprovals = [:]; executions = []; messages = []
+        document = next; contextApprovals = [:]; executions = []; messages = []; conversations=[]
         if let next {
-            do { messages = try AIConversationStore.applicationStore().load(document: next) }
+            do { let store=try AIConversationStore.applicationStore();messages=try store.load(document:next);conversations=try store.list(document:next) }
             catch { self.error = "对话记录读取失败：\(error.localizedDescription)" }
         }
     }
     private func persist() {
         guard let document else { return }
-        do { try AIConversationStore.applicationStore().save(messages, document: document) }
+        do { let store=try AIConversationStore.applicationStore();try store.save(messages,document:document);conversations=try store.list(document:document) }
         catch { self.error = "对话记录未保存：\(error.localizedDescription)" }
     }
     func newConversation() {
-        guard !running else { return }; messages = []; executions = []; error = ""; persist()
+        guard !running else { return }
+        do {
+            if let document {try AIConversationStore.applicationStore().newConversation(document:document)}
+            messages=[];executions=[];error="";persist()
+        }catch{self.error=error.localizedDescription}
+    }
+    func activateConversation(_ id:UUID) {
+        guard !running,let document else{return}
+        do {
+            let store=try AIConversationStore.applicationStore();try store.activate(id,document:document)
+            messages=try store.load(document:document);conversations=try store.list(document:document);executions=[]
+        }catch{self.error=error.localizedDescription}
     }
     func testAndSave(_ draft: AIConfiguration, key: String) async {
         guard !testing else { return }; testing = true; connectionStatus = "正在验证工具调用…"; error = ""

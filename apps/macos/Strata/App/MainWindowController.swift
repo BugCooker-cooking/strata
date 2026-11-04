@@ -12,13 +12,17 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
     private var assistantItem: NSSplitViewItem!
     private var allowClose = false
     private var thumbnailRevision: UInt64?
+    private var pendingExposure: Double?
+    private var exposureEnding: (Double, Bool)?
+    private var exposurePreviewTask: Task<Void, Never>?
+    private var exposureActive = false
     var recovery: RecoveryMonitor?
     var fileName = "未命名"
     var documentURL: URL?
     var state: EditorSnapshot? { workspace.snapshot }
     var selected: EditorSnapshot.Layer? { workspace.selected }
     var busy = false {
-        didSet { workspace.busy = busy; canvas.isEditingEnabled = workspace.permissions.edits; window?.toolbar?.validateVisibleItems() }
+        didSet { workspace.busy = busy; canvas.isEditingEnabled = workspace.permissions.edits; canvas.isSelectionEnabled = workspace.permissions.selectionEdits; window?.toolbar?.validateVisibleItems() }
     }
     var onNewTab: (() -> Void)?
     var onOpenURL: ((URL) -> Void)?
@@ -66,6 +70,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         ])
         workspace.action = { [weak self] action in self?.act(action) }
         workspace.assistant = assistant
+        workspace.subjectModel = .shared
+        do { try SubjectModelStore.shared.configure(engine) } catch { SubjectModelStore.shared.error = error.localizedDescription }
         assistant.window = { [weak self] in self?.window }
         assistant.onStateChanged = { [weak self] in self?.refresh() }
         assistant.onDocumentFile = { [weak self] url, command in
@@ -125,7 +131,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
     }
     func validateMenuItem(_ item: NSMenuItem) -> Bool {
         switch item.action {
-        case #selector(stopAI): assistant.running
+        case #selector(stopAI): assistant.running || busy
         case #selector(undo): canUndo
         case #selector(redo): canRedo
         case #selector(saveDocument), #selector(saveAs), #selector(exportDocument), #selector(placeImage), #selector(convertToSRGB), #selector(convertToP3): workspace.permissions.edits && workspace.hasDocument
@@ -135,6 +141,27 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
     }
     private func act(_ action: WorkspaceAction) {
         switch action {
+        case .cancelWork: try? engine.cancelPendingWork()
+        case .prepareSubjectModel:
+            guard let window else { return }; SubjectModelStore.shared.ensureInstalled(window: window, engine: engine) {}
+        case .selectSubject:
+            guard workspace.permissions.edits, let window else { return }
+            SubjectModelStore.shared.ensureInstalled(window: window, engine: engine) { [weak self] in
+                guard let self, self.workspace.permissions.edits else { return }
+                var params: [String: Any] = [:]
+                if let extent = self.state?.selectionExtent, let encoded = try? extent.encoded(),
+                   let region = try? JSONSerialization.jsonObject(with: Data(encoded.utf8)) { params["region"] = region }
+                self.perform("select.subject", params)
+            }
+        case .command(let id, let params): perform(id, params)
+        case .exposureBegin:
+            guard let selected else { return }
+            do { try engine.beginExposure(layerId: selected.id); exposureActive = true }
+            catch { showError(error) }
+        case .exposurePreview(let value):
+            guard exposureActive else { return }; pendingExposure = value; drainExposurePreview()
+        case .exposureEnd(let value, let cancel):
+            guard exposureActive else { return }; exposureEnding = (value, cancel); pendingExposure = nil; drainExposurePreview()
         case .new: newDocument()
         case .newTab: newTab()
         case .open: openImage()
@@ -156,7 +183,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         case .opacity(let value): layerCommand("layer.set_opacity", ["opacity": value])
         case .blend(let value): layerCommand("layer.set_blend_mode", ["blend_mode": value])
         case .position(let x, let y): layerCommand("layer.set_position", ["x": x, "y": y])
-        case .tool(let tool): canvas.movesLayer = tool == .move; canvas.zoomTool = tool == .zoom; window?.makeFirstResponder(canvas)
+        case .tool(let tool): canvas.movesLayer = tool == .move; canvas.zoomTool = tool == .zoom; canvas.marqueeTool = tool == .marquee; canvas.selectionMode = workspace.selectionMode; window?.makeFirstResponder(canvas)
         case .assistant: toggleAssistant()
         case .panels: togglePanels()
         case .theme(let theme): onTheme?(theme)
@@ -182,6 +209,9 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         assistant.bind(document: snapshot.documentId, inheritedTurn: snapshot.control?.turnId)
         let oldControl = state?.control?.kind
         workspace.snapshot = snapshot; window?.isDocumentEdited = snapshot.dirty
+        canvas.documentOrigin = NSPoint(x: CGFloat(snapshot.frame?.x ?? 0), y: CGFloat(snapshot.frame?.y ?? 0))
+        canvas.isSelectionEnabled = workspace.permissions.selectionEdits
+        canvas.selectionMode = workspace.selectionMode
         recovery?.observe(snapshot)
         if let path = engine.projectPath() { documentURL = URL(fileURLWithPath: path); fileName = documentURL!.lastPathComponent }
         workspace.fileName = fileName; window?.title = "\(fileName) — Strata"
@@ -190,6 +220,9 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
             let revision = snapshot.revision, engine = engine
             DispatchQueue.global(qos: .utility).async { [weak self] in
                 let previews = (try? engine.layerThumbnails(revision: revision)) ?? []
+                let outline = (try? engine.selectionOutline(revision: revision)) ?? []
+                let histogram = (try? engine.dispatch(command: "document.histogram", paramsJson: "{}"))
+                    .flatMap { try? AIJSON.decode($0) }?["luminance"].array.compactMap(\.number) ?? []
                 DispatchQueue.main.async {
                     guard let self, self.thumbnailRevision == revision else { return }
                     self.workspace.thumbnails = Dictionary(uniqueKeysWithValues: previews.compactMap { preview in
@@ -198,12 +231,39 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
                               let image = CGImage(width: Int(preview.width), height: Int(preview.height), bitsPerComponent: 8, bitsPerPixel: 32, bytesPerRow: Int(preview.width) * 4, space: space, bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.last.rawValue), provider: provider, decode: nil, shouldInterpolate: true, intent: .defaultIntent) else { return nil }
                         return (preview.layerId, NSImage(cgImage: image, size: NSSize(width: Int(preview.width), height: Int(preview.height))))
                     })
+                    self.canvas.setSelectionOutline(outline)
+                    self.workspace.histogram = histogram
                 }
             }
         }
         canvas.activeLayer = selected; canvas.isEditingEnabled = workspace.permissions.edits
         if snapshot.control?.kind != oldControl, snapshot.control?.kind != "user" { workspace.inspector = .history }
         window?.toolbar?.validateVisibleItems(); canvas.markDirty()
+    }
+    private func drainExposurePreview() {
+        guard exposurePreviewTask == nil else { return }
+        let engine = engine
+        exposurePreviewTask = Task { [weak self] in
+            guard let self else { return }
+            defer { self.exposurePreviewTask = nil }
+            do {
+                while self.exposureActive {
+                    if let ending = self.exposureEnding {
+                        self.exposureEnding = nil; self.exposureActive = false
+                        try await aiEngineWork { try engine.endExposure(stops: ending.0, cancel: ending.1) }
+                        self.canvas.markDirty(); self.refresh(); break
+                    }
+                    guard let value = self.pendingExposure else { break }
+                    self.pendingExposure = nil
+                    try await aiEngineWork { try engine.previewExposure(stops: value) }
+                    self.canvas.markDirty()
+                }
+            } catch {
+                self.exposureActive = false; self.pendingExposure = nil; self.exposureEnding = nil
+                try? await aiEngineWork { try engine.endExposure(stops: 0, cancel: true) }
+                self.canvas.markDirty(); self.showError(error)
+            }
+        }
     }
     func perform(_ command: String, _ params: [String: Any], completion: (@MainActor @Sendable (Bool) -> Void)? = nil) {
         guard !busy else { completion?(false); return }
@@ -242,7 +302,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         if busy { return false }; if allowClose || !hasUnsavedChanges { return true }
         confirmDiscard { [weak self] ok in if ok { self?.allowClose = true; self?.close() } }; return false
     }
-    @objc func stopAI() { assistant.stop() }
+    @objc func stopAI() { if assistant.running { assistant.stop() } else if busy { try? engine.cancelPendingWork() } }
     func requestTermination(_ completion: @escaping @MainActor @Sendable (Bool) -> Void) { if assistant.running { assistant.stop() }; if busy { completion(false) } else { confirmDiscard(completion) } }
     func windowWillClose(_ notification: Notification) { if assistant.running { assistant.stop() }; recovery?.stop(discard: true); canvas.shutdown(); onClosed?() }
     func windowDidBecomeMain(_ notification: Notification) { onBecameMain?() }

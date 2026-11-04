@@ -1,7 +1,7 @@
 use crate::{DocumentId, Layer, LayerId, LayerRef, StateId};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use strata_pixels::{PixelBuffer, PixelFormat, TiledPixels};
+use strata_pixels::{PixelBuffer, PixelFormat, TiledMask, TiledPixels};
 
 pub const MAX_DOCUMENT_BYTES: u64 = 16 * 1024 * 1024 * 1024;
 pub const MAX_FLAT_IMAGE_BYTES: u64 = 512 * 1024 * 1024;
@@ -46,6 +46,7 @@ pub struct Frame {
 /// ```
 #[derive(Clone, Debug)]
 pub struct Document {
+    pub(crate) selection: Option<TiledMask>,
     pub(crate) resolution_dpi: u32,
     pub(crate) preset: Option<String>,
     pub(crate) pool: strata_pixels::memory::MemoryPool,
@@ -81,6 +82,36 @@ impl Document {
     }
     pub fn layers(&self) -> &[Layer] {
         &self.layers
+    }
+    pub fn selection(&self) -> Option<&TiledMask> {
+        self.selection.as_ref()
+    }
+    pub fn source_bytes(&self) -> u64 {
+        self.source_blocks().map(|(_, bytes)| bytes).sum()
+    }
+    pub(crate) fn source_blocks(&self) -> impl Iterator<Item = (u64, u64)> + '_ {
+        let pixels = self.layers.iter().flat_map(|layer| {
+            layer.pixels.tile_coords().filter_map(move |coord| {
+                layer.pixels.tile_version(*coord).map(|version| {
+                    (
+                        version,
+                        256 * 256 * 4 * layer.pixels.format().bytes_per_sample() as u64,
+                    )
+                })
+            })
+        });
+        let masks = self
+            .layers
+            .iter()
+            .filter_map(|layer| layer.mask.as_ref())
+            .chain(self.selection.iter())
+            .flat_map(|mask| {
+                mask.tile_coords().filter_map(move |coord| {
+                    mask.tile_version(*coord)
+                        .map(|version| (version, 256 * 256 * 2))
+                })
+            });
+        pixels.chain(masks)
     }
     pub fn active_layer(&self) -> Option<LayerId> {
         self.active
@@ -157,6 +188,42 @@ impl Document {
             {
                 return Err(DocumentError::Invalid("layer metadata".into()));
             }
+            if let crate::LayerKind::Exposure { stops } = info.kind
+                && (!stops.is_finite()
+                    || !(-20.0..=20.0).contains(&stops)
+                    || layer.pixels.tile_count() != 0)
+            {
+                return Err(DocumentError::Invalid(
+                    "exposure layer parameters or pixel payload".into(),
+                ));
+            }
+            match (&info.mask, &layer.mask) {
+                (None, None) => {}
+                (Some(meta), Some(mask)) if meta.layout == mask.layout() => {
+                    let bounds = meta.layout.bounds;
+                    for (origin, anchor, position, length) in [
+                        (bounds.x, meta.anchor_x, info.x, bounds.width),
+                        (bounds.y, meta.anchor_y, info.y, bounds.height),
+                    ] {
+                        if origin
+                            .checked_sub(anchor)
+                            .and_then(|v| v.checked_add(position))
+                            .and_then(|v| v.checked_add(i64::from(length)))
+                            .is_none()
+                        {
+                            return Err(DocumentError::Invalid("mask position overflow".into()));
+                        }
+                    }
+                    bytes = bytes
+                        .checked_add(mask.referenced_bytes())
+                        .ok_or(DocumentError::ResourceLimit)?;
+                }
+                _ => {
+                    return Err(DocumentError::Invalid(
+                        "mask metadata/payload mismatch".into(),
+                    ));
+                }
+            }
             bytes = bytes
                 .checked_add(layer.pixels.referenced_bytes())
                 .ok_or(DocumentError::ResourceLimit)?;
@@ -169,6 +236,24 @@ impl Document {
                         .ok_or_else(|| DocumentError::Invalid("layer position overflow".into()))?;
                 }
             }
+        }
+        if let Some(selection) = &self.selection {
+            let bounds = selection.layout().bounds;
+            if (bounds.x, bounds.y, bounds.width, bounds.height)
+                != (
+                    self.frame.x,
+                    self.frame.y,
+                    self.frame.width,
+                    self.frame.height,
+                )
+            {
+                return Err(DocumentError::Invalid(
+                    "selection must be bounded to the artboard".into(),
+                ));
+            }
+            bytes = bytes
+                .checked_add(selection.referenced_bytes())
+                .ok_or(DocumentError::ResourceLimit)?;
         }
         if bytes > MAX_DOCUMENT_BYTES
             || self
@@ -231,6 +316,7 @@ impl DocumentCandidate {
         );
         let active = Some(layer.id());
         let doc = Document {
+            selection: None,
             resolution_dpi: default_resolution_dpi(),
             preset: None,
             pool,

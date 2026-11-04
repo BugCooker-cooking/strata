@@ -87,6 +87,125 @@ fn camera_fingerprint_cache_is_reset_for_metadata_edits_in_the_same_document() {
 }
 
 #[test]
+fn gpu_exposure_preview_matches_neutral_reference_and_refreshes_mask_and_opacity() {
+    let Some(mut renderer) = renderer() else {
+        return;
+    };
+    let mut editor = strata_core::Editor::new();
+    let mut command = |id: &str, params: serde_json::Value| {
+        let request = editor.request(strata_core::Source::Test);
+        editor.execute(request, id, params, |_| Ok(())).unwrap()
+    };
+    command(
+        "file.new",
+        serde_json::json!({"width":16,"height":16,"bit_depth":16,"background":[16384,16384,16384,65535]}),
+    );
+    command(
+        "select.marquee",
+        serde_json::json!({"x":0,"y":0,"width":8,"height":16}),
+    );
+    let layer=command("layer.add_adjustment",serde_json::json!({"name":"exposure","type":"exposure","stops":0.5,"mask":"from_selection"}))["layer_id"].clone();
+    for (id, params) in [
+        (
+            "adjust.exposure.set",
+            serde_json::json!({"layer":{"id":layer},"stops":0.5}),
+        ),
+        (
+            "adjust.exposure.set",
+            serde_json::json!({"layer":{"id":layer},"stops":1.0}),
+        ),
+        (
+            "layer.set_opacity",
+            serde_json::json!({"layer":{"id":layer},"opacity":0.5}),
+        ),
+        (
+            "layer.mask.invert",
+            serde_json::json!({"layer":{"id":layer}}),
+        ),
+        (
+            "layer.mask.set_enabled",
+            serde_json::json!({"layer":{"id":layer},"enabled":false}),
+        ),
+        (
+            "layer.set_blend_mode",
+            serde_json::json!({"layer":{"id":layer},"blend_mode":"multiply"}),
+        ),
+    ] {
+        let request = editor.request(strata_core::Source::Test);
+        editor.execute(request, id, params, |_| Ok(())).unwrap();
+        let scene = renderer
+            .prepare_document(editor.document().unwrap(), true)
+            .unwrap();
+        renderer.commit_document(scene).unwrap();
+        renderer
+            .set_view(ViewTransform {
+                zoom: 4.0,
+                center_x: 8.0,
+                center_y: 8.0,
+            })
+            .unwrap();
+        renderer.render().unwrap();
+        let actual = renderer.read_offscreen_rgba().unwrap();
+        let PixelBuffer::Rgba16(expected) = editor.document().unwrap().export_pixels().unwrap()
+        else {
+            panic!()
+        };
+        for (screen_x, image_x) in [(16usize, 4usize), (48, 12)] {
+            let offset = (8 * 16 + image_x) * 4;
+            let observed = pixel(&actual, screen_x, 32);
+            for channel in 0..3 {
+                let target = ((u32::from(expected[offset + channel]) + 128) / 257) as i32;
+                assert!(
+                    (i32::from(observed[channel]) - target).abs() <= 2,
+                    "{id}: channel {channel} {} vs {target}",
+                    observed[channel]
+                );
+            }
+            assert_eq!(observed[3], 255);
+        }
+    }
+}
+
+#[test]
+fn exposure_mask_display_resources_release_the_document_gpu_budget() {
+    use strata_pixels::memory::{MemoryLimits, MemoryPool};
+    let Some(mut renderer) = renderer() else {
+        return;
+    };
+    let pool = MemoryPool::new(MemoryLimits {
+        cpu_bytes: 64 * 1024 * 1024,
+        gpu_bytes: 64 * 1024 * 1024,
+        disk_bytes: 64 * 1024 * 1024,
+    });
+    let mut editor = strata_core::Editor::with_memory_pool(pool.clone());
+    for (id, params) in [
+        (
+            "file.new",
+            serde_json::json!({"width":16,"height":16,"bit_depth":16,"background":[16384,16384,16384,65535]}),
+        ),
+        (
+            "select.marquee",
+            serde_json::json!({"x":2,"y":2,"width":8,"height":8}),
+        ),
+        (
+            "layer.add_adjustment",
+            serde_json::json!({"name":"exposure","type":"exposure","stops":0.5,"mask":"from_selection"}),
+        ),
+    ] {
+        let request = editor.request(strata_core::Source::Test);
+        editor.execute(request, id, params, |_| Ok(())).unwrap();
+    }
+    let scene = renderer
+        .prepare_document(editor.document().unwrap(), true)
+        .unwrap();
+    renderer.commit_document(scene).unwrap();
+    renderer.render().unwrap();
+    assert!(pool.stats().gpu_bytes > 0);
+    drop(renderer);
+    assert_eq!(pool.stats().gpu_bytes, 0);
+}
+
+#[test]
 fn tiled_scene_preserves_source_and_has_no_mip_seam() {
     let Some(mut r) = renderer() else {
         return;

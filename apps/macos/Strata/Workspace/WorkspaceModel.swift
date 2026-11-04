@@ -38,7 +38,7 @@ enum EditorTool: String, CaseIterable, Identifiable {
     var title: String { Self.info[self]!.0 }
     var symbol: String { Self.info[self]!.1 }
     var key: String { Self.info[self]!.2 }
-    var available: Bool { [.move, .hand, .zoom].contains(self) }
+    var available: Bool { [.move, .marquee, .subject, .hand, .zoom].contains(self) }
     static let groups: [[EditorTool]] = [[.move], [.marquee, .lasso, .selection, .subject], [.crop, .eyedropper], [.heal, .clone, .brush, .eraser, .gradient, .dodge], [.text, .pen, .shape], [.hand, .zoom]]
     private static let info: [EditorTool: (String, String, String)] = [
         .move: ("移动", "cursorarrow", "V"), .marquee: ("矩形选框", "rectangle.dashed", "M"),
@@ -62,6 +62,7 @@ struct WorkspacePermissions {
     var history: Bool { !busy && ["user", "paused"].contains(control) }
     var visibility: Bool { history }
     var selection: Bool { !busy && ["user", "running", "paused"].contains(control) }
+    var selectionEdits: Bool { !busy && ["user", "paused"].contains(control) }
     var status: String {
         switch control {
         case "running": "AI 执行中 · 编辑已锁定"
@@ -75,6 +76,7 @@ struct WorkspacePermissions {
 @MainActor
 final class WorkspaceModel: ObservableObject {
     @Published var assistant: AssistantModel?
+    @Published var subjectModel: SubjectModelStore?
     @Published var snapshot: EditorSnapshot?
     @Published var thumbnails: [String: NSImage] = [:]
     @Published var fileName = "未命名"
@@ -82,6 +84,8 @@ final class WorkspaceModel: ObservableObject {
     @Published var recoveryStatus = ""
     @Published var recoveryError = ""
     @Published var tool = EditorTool.hand
+    @Published var selectionMode = "replace"
+    @Published var histogram: [Double] = []
     @Published var inspector = InspectorTab.properties
     @Published var assistantVisible = true
     @Published var inspectorVisible = true
@@ -90,16 +94,29 @@ final class WorkspaceModel: ObservableObject {
     var permissions: WorkspacePermissions { WorkspacePermissions(busy: busy, control: snapshot?.control?.kind ?? "user") }
     var selected: EditorSnapshot.Layer? { snapshot?.layers.first { $0.id == snapshot?.activeLayer } }
     var hasDocument: Bool { snapshot?.frame != nil }
+    var selectionSummary: String? {
+        guard snapshot?.selection != nil else { return nil }
+        guard let extent=snapshot?.selectionExtent else { return "空选区" }
+        let x=Int64(extent["x"].number ?? 0),y=Int64(extent["y"].number ?? 0)
+        let width=Int64(extent["width"].number ?? 0),height=Int64(extent["height"].number ?? 0)
+        return "选区 \(x), \(y) · \(width)×\(height)"
+    }
     var canUndo: Bool { permissions.history && (snapshot?.historyCursor ?? 0) > 0 }
     var canRedo: Bool { permissions.history && (snapshot?.historyCursor ?? 0) < (snapshot?.history.count ?? 0) }
     func send(_ action: WorkspaceAction) { self.action?(action) }
     func selectTool(_ tool: EditorTool) {
-        guard tool.available, tool != .move || permissions.edits else { return }
+        guard tool.available, tool != .move || permissions.edits, tool != .marquee || permissions.selectionEdits else { return }
+        if tool == .subject { if permissions.edits { send(.selectSubject) }; return }
         self.tool = tool; send(.tool(tool))
     }
 }
 
 enum WorkspaceAction {
+    case cancelWork
+    case selectSubject
+    case prepareSubjectModel
+    case command(String, [String: Any])
+    case exposureBegin, exposurePreview(Double), exposureEnd(Double, Bool)
     case new, open, place, save, export, undo, redo, fit, zoom(Double), actualSize
     case newLayer, duplicateLayer, deleteLayer, reorder(Int), selectLayer(String), rename(String)
     case visibility(String, Bool), opacity(Double), blend(String), position(Int64, Int64)
@@ -120,6 +137,10 @@ func commandTitle(_ command: String) -> String {
     ["layer.create": "新建图层", "layer.duplicate": "复制图层", "layer.delete": "删除图层", "layer.rename": "重命名图层",
      "layer.set_position": "移动图层", "layer.set_visibility": "图层显隐", "layer.set_opacity": "调整不透明度",
      "layer.set_blend_mode": "混合模式", "layer.move_order": "调整顺序", "color.convert": "转换色彩空间",
-     "batch": "批量编辑", "file.save": "保存工程", "file.save_as": "另存工程", "file.export": "导出图片",
-     "file.place": "置入图片"] [command] ?? command
+     "batch": "批量编辑", "document.batch": "批量编辑", "file.save": "保存工程", "file.save_as": "另存工程", "file.export": "导出图片",
+     "file.place": "置入图片", "select.subject": "选择主体", "select.marquee": "矩形选区",
+     "select.all": "全选", "select.none": "取消选择", "select.inverse": "反选",
+     "layer.add_adjustment": "新建曝光调整层", "adjust.exposure.set": "调整曝光",
+     "layer.mask.add": "添加蒙版", "layer.mask.invert": "反相蒙版",
+     "layer.mask.set_enabled": "切换蒙版", "layer.mask.remove": "移除蒙版"] [command] ?? command
 }

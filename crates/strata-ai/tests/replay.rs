@@ -355,6 +355,44 @@ fn destructive_edit_requires_exact_approval_even_in_direct_mode() {
 }
 
 #[test]
+fn ambiguous_subject_flag_always_requests_exact_host_confirmation() {
+    let host = Host::new();
+    let mut session = host.session(ExecutionMode::Direct);
+    reply(
+        &mut session,
+        &host,
+        vec![invoke(
+            "ambiguous",
+            "select.subject",
+            json!({"accept_ambiguous":true}),
+        )],
+    );
+    let Step::Paused {
+        reason,
+        question,
+        question_id,
+        ..
+    } = session.poll(&host).unwrap()
+    else {
+        panic!()
+    };
+    assert_eq!(reason, "edit_approval");
+    assert!(question.contains("主体"));
+    session
+        .respond(
+            &host,
+            HostAnswer {
+                question_id,
+                answer: String::new(),
+                approved: false,
+                resource: None,
+            },
+        )
+        .unwrap();
+    assert!(host.snapshot().unwrap().selection.is_none());
+}
+
+#[test]
 fn stop_discards_pending_delete_and_late_responses_and_releases_lock() {
     let host = Host::new();
     let mut session = host.session(ExecutionMode::Direct);

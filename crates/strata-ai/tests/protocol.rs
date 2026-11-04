@@ -171,7 +171,7 @@ fn catalog_is_lazy_bilingual_bounded_and_has_no_unimplemented_commands() {
             .as_array()
             .unwrap()
             .iter()
-            .any(|v| v["path"] == "select")
+            .any(|v| v["path"] == "filter")
     );
     assert!(
         catalog::search("图层", 3).unwrap()["matches"]
@@ -184,7 +184,20 @@ fn catalog_is_lazy_bilingual_bounded_and_has_no_unimplemented_commands() {
     assert!(catalog::search("layer", 100).is_err());
     assert!(catalog::describe(&[]).is_err());
     assert!(catalog::browse(Some("unknown")).is_err());
-    assert!(catalog::describe(&["select.subject".into()]).is_err());
+    assert!(catalog::describe(&["type.create".into()]).is_err());
+    let export = catalog::describe(&["file.export".into()]).unwrap();
+    assert!(
+        export["commands"][0]["host_resource_workflow"]
+            .as_str()
+            .unwrap()
+            .contains("omit params.resource")
+    );
+    assert!(
+        !export["commands"][0]["params"]["required"]
+            .as_array()
+            .unwrap()
+            .contains(&json!("resource"))
+    );
 }
 
 #[test]

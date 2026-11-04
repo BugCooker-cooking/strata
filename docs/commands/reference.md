@@ -284,12 +284,40 @@ Permissions: `bound_document`
       "format": "uint64",
       "minimum": 0
     },
+    "selection": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/MaskLayout"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "selection_extent": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CoverageRect"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "selection_extent_conservative": {
+      "type": "boolean"
+    },
+    "selection_summary_available": {
+      "type": "boolean"
+    },
     "session_id": {
       "type": "string",
       "format": "uuid"
     }
   },
   "required": [
+    "selection_extent_conservative",
+    "selection_summary_available",
     "session_id",
     "revision",
     "dirty",
@@ -361,6 +389,36 @@ Permissions: `bound_document`
         }
       ]
     },
+    "CoverageRect": {
+      "type": "object",
+      "properties": {
+        "height": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "width": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "x": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "y": {
+          "type": "integer",
+          "format": "int64"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "x",
+        "y",
+        "width",
+        "height"
+      ]
+    },
     "Frame": {
       "type": "object",
       "properties": {
@@ -427,6 +485,23 @@ Permissions: `bound_document`
           "type": "string",
           "format": "uuid"
         },
+        "kind": {
+          "$ref": "#/$defs/LayerKind",
+          "default": {
+            "kind": "pixel"
+          }
+        },
+        "mask": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LayerMaskInfo"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "name": {
           "type": "string"
         },
@@ -455,6 +530,91 @@ Permissions: `bound_document`
         "blend_mode",
         "x",
         "y"
+      ]
+    },
+    "LayerKind": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "pixel"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "exposure"
+            },
+            "stops": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "stops"
+          ]
+        }
+      ]
+    },
+    "LayerMaskInfo": {
+      "type": "object",
+      "properties": {
+        "anchor_x": {
+          "description": "Canvas anchor when this mask was attached. Layer movement remains linked.",
+          "type": "integer",
+          "format": "int64"
+        },
+        "anchor_y": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "layout": {
+          "$ref": "#/$defs/MaskLayout"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "enabled",
+        "layout",
+        "anchor_x",
+        "anchor_y"
+      ]
+    },
+    "MaskLayout": {
+      "type": "object",
+      "properties": {
+        "bounds": {
+          "$ref": "#/$defs/CoverageRect"
+        },
+        "default_coverage": {
+          "type": "integer",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0
+        },
+        "inverted": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "bounds",
+        "default_coverage",
+        "inverted"
       ]
     },
     "SourceInfo": {
@@ -613,6 +773,36 @@ Permissions: `bound_document`
         "overlay"
       ]
     },
+    "CoverageRect": {
+      "type": "object",
+      "properties": {
+        "height": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "width": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "x": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "y": {
+          "type": "integer",
+          "format": "int64"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "x",
+        "y",
+        "width",
+        "height"
+      ]
+    },
     "LayerInfo": {
       "type": "object",
       "properties": {
@@ -622,6 +812,23 @@ Permissions: `bound_document`
         "id": {
           "type": "string",
           "format": "uuid"
+        },
+        "kind": {
+          "$ref": "#/$defs/LayerKind",
+          "default": {
+            "kind": "pixel"
+          }
+        },
+        "mask": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LayerMaskInfo"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "name": {
           "type": "string"
@@ -652,8 +859,161 @@ Permissions: `bound_document`
         "x",
         "y"
       ]
+    },
+    "LayerKind": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "pixel"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "exposure"
+            },
+            "stops": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "stops"
+          ]
+        }
+      ]
+    },
+    "LayerMaskInfo": {
+      "type": "object",
+      "properties": {
+        "anchor_x": {
+          "description": "Canvas anchor when this mask was attached. Layer movement remains linked.",
+          "type": "integer",
+          "format": "int64"
+        },
+        "anchor_y": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "layout": {
+          "$ref": "#/$defs/MaskLayout"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "enabled",
+        "layout",
+        "anchor_x",
+        "anchor_y"
+      ]
+    },
+    "MaskLayout": {
+      "type": "object",
+      "properties": {
+        "bounds": {
+          "$ref": "#/$defs/CoverageRect"
+        },
+        "default_coverage": {
+          "type": "integer",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0
+        },
+        "inverted": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "bounds",
+        "default_coverage",
+        "inverted"
+      ]
     }
   }
+}
+```
+
+### Examples
+
+```json
+{}
+```
+
+## `document.histogram` — 亮度直方图
+
+Read a bounded 256-bin linear luminance histogram of the visible composite, sampled at up to 256 by 256 pixel centers. It is a display statistic, not document samples.
+
+Kind: `Query` · Undoable: `false` · Batchable: `true`
+
+Effects: `document.read`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Empty",
+  "type": "object",
+  "additionalProperties": false
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "HistogramResult",
+  "type": "object",
+  "properties": {
+    "luminance": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "format": "uint64",
+        "minimum": 0
+      }
+    },
+    "method": {
+      "type": "string"
+    },
+    "nontransparent_pixels": {
+      "type": "integer",
+      "format": "uint",
+      "minimum": 0
+    },
+    "sampled_pixels": {
+      "type": "integer",
+      "format": "uint",
+      "minimum": 0
+    }
+  },
+  "required": [
+    "luminance",
+    "sampled_pixels",
+    "nontransparent_pixels",
+    "method"
+  ]
 }
 ```
 
@@ -1611,6 +1971,1223 @@ Permissions: `bound_document`
   "layer": {
     "name": "Background"
   }
+}
+```
+
+## `select.marquee` — 矩形选区
+
+Replace, add, subtract or intersect a bounded 16-bit coverage selection. Coordinates are canvas pixels and out-of-artboard area is clipped.
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `true`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Marquee",
+  "type": "object",
+  "properties": {
+    "height": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0
+    },
+    "mode": {
+      "$ref": "#/$defs/SelectionMode",
+      "default": "replace"
+    },
+    "width": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0
+    },
+    "x": {
+      "type": "integer",
+      "format": "int64"
+    },
+    "y": {
+      "type": "integer",
+      "format": "int64"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "x",
+    "y",
+    "width",
+    "height"
+  ],
+  "$defs": {
+    "SelectionMode": {
+      "type": "string",
+      "enum": [
+        "replace",
+        "add",
+        "subtract",
+        "intersect"
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SelectionResult",
+  "type": "object",
+  "properties": {
+    "selection": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/MaskLayout"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "CoverageRect": {
+      "type": "object",
+      "properties": {
+        "height": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "width": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "x": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "y": {
+          "type": "integer",
+          "format": "int64"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "x",
+        "y",
+        "width",
+        "height"
+      ]
+    },
+    "MaskLayout": {
+      "type": "object",
+      "properties": {
+        "bounds": {
+          "$ref": "#/$defs/CoverageRect"
+        },
+        "default_coverage": {
+          "type": "integer",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0
+        },
+        "inverted": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "bounds",
+        "default_coverage",
+        "inverted"
+      ]
+    }
+  }
+}
+```
+
+### Examples
+
+```json
+{
+  "height": 100,
+  "mode": "replace",
+  "width": 100,
+  "x": 0,
+  "y": 0
+}
+```
+
+## `select.subject` — 选择主体
+
+Run the host's checksum-verified local ONNX subject model. Optional region must be inside the artboard; confidence/multiple-subject ambiguity requires asking the user before accept_ambiguous=true. This does not identify people. Missing assets require explicit host download approval; inference is cancellable and cannot be batched.
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `false`
+
+Effects: `document.write`
+
+Permissions: `bound_document, verified_local_subject_model`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SubjectParams",
+  "type": "object",
+  "properties": {
+    "accept_ambiguous": {
+      "type": "boolean",
+      "default": false
+    },
+    "mode": {
+      "$ref": "#/$defs/SelectionMode",
+      "default": "replace"
+    },
+    "region": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CoverageRect"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "CoverageRect": {
+      "type": "object",
+      "properties": {
+        "height": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "width": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "x": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "y": {
+          "type": "integer",
+          "format": "int64"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "x",
+        "y",
+        "width",
+        "height"
+      ]
+    },
+    "SelectionMode": {
+      "type": "string",
+      "enum": [
+        "replace",
+        "add",
+        "subtract",
+        "intersect"
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SubjectResult",
+  "type": "object",
+  "properties": {
+    "diagnostics": true,
+    "selection": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/MaskLayout"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "diagnostics"
+  ],
+  "$defs": {
+    "CoverageRect": {
+      "type": "object",
+      "properties": {
+        "height": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "width": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "x": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "y": {
+          "type": "integer",
+          "format": "int64"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "x",
+        "y",
+        "width",
+        "height"
+      ]
+    },
+    "MaskLayout": {
+      "type": "object",
+      "properties": {
+        "bounds": {
+          "$ref": "#/$defs/CoverageRect"
+        },
+        "default_coverage": {
+          "type": "integer",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0
+        },
+        "inverted": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "bounds",
+        "default_coverage",
+        "inverted"
+      ]
+    }
+  }
+}
+```
+
+### Examples
+
+```json
+{}
+```
+
+## `select.all` — 全选
+
+Select the complete artboard coverage.
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `true`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Empty",
+  "type": "object",
+  "additionalProperties": false
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SelectionResult",
+  "type": "object",
+  "properties": {
+    "selection": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/MaskLayout"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "CoverageRect": {
+      "type": "object",
+      "properties": {
+        "height": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "width": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "x": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "y": {
+          "type": "integer",
+          "format": "int64"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "x",
+        "y",
+        "width",
+        "height"
+      ]
+    },
+    "MaskLayout": {
+      "type": "object",
+      "properties": {
+        "bounds": {
+          "$ref": "#/$defs/CoverageRect"
+        },
+        "default_coverage": {
+          "type": "integer",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0
+        },
+        "inverted": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "bounds",
+        "default_coverage",
+        "inverted"
+      ]
+    }
+  }
+}
+```
+
+### Examples
+
+```json
+{}
+```
+
+## `select.none` — 取消选择
+
+Remove the current selection.
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `true`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Empty",
+  "type": "object",
+  "additionalProperties": false
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SelectionResult",
+  "type": "object",
+  "properties": {
+    "selection": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/MaskLayout"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "CoverageRect": {
+      "type": "object",
+      "properties": {
+        "height": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "width": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "x": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "y": {
+          "type": "integer",
+          "format": "int64"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "x",
+        "y",
+        "width",
+        "height"
+      ]
+    },
+    "MaskLayout": {
+      "type": "object",
+      "properties": {
+        "bounds": {
+          "$ref": "#/$defs/CoverageRect"
+        },
+        "default_coverage": {
+          "type": "integer",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0
+        },
+        "inverted": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "bounds",
+        "default_coverage",
+        "inverted"
+      ]
+    }
+  }
+}
+```
+
+### Examples
+
+```json
+{}
+```
+
+## `select.inverse` — 反选
+
+Invert current selection coverage inside the artboard.
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `true`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Empty",
+  "type": "object",
+  "additionalProperties": false
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SelectionResult",
+  "type": "object",
+  "properties": {
+    "selection": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/MaskLayout"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "CoverageRect": {
+      "type": "object",
+      "properties": {
+        "height": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "width": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "x": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "y": {
+          "type": "integer",
+          "format": "int64"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "x",
+        "y",
+        "width",
+        "height"
+      ]
+    },
+    "MaskLayout": {
+      "type": "object",
+      "properties": {
+        "bounds": {
+          "$ref": "#/$defs/CoverageRect"
+        },
+        "default_coverage": {
+          "type": "integer",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0
+        },
+        "inverted": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "bounds",
+        "default_coverage",
+        "inverted"
+      ]
+    }
+  }
+}
+```
+
+### Examples
+
+```json
+{}
+```
+
+## `layer.mask.add` — 添加图层蒙版
+
+Add a sparse 16-bit white, black or current-selection mask. The source pixels remain unchanged.
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `true`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AddMask",
+  "type": "object",
+  "properties": {
+    "layer": {
+      "$ref": "#/$defs/LayerRef"
+    },
+    "source": {
+      "$ref": "#/$defs/MaskPreset",
+      "default": "white"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "layer"
+  ],
+  "$defs": {
+    "LayerRef": {
+      "description": "Stable ID preferred. Duplicate names return candidates instead of guessing.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ]
+        }
+      ]
+    },
+    "MaskPreset": {
+      "type": "string",
+      "enum": [
+        "white",
+        "black",
+        "from_selection"
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LayerResult",
+  "type": "object",
+  "properties": {
+    "layer_id": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "required": [
+    "layer_id"
+  ]
+}
+```
+
+### Examples
+
+```json
+{
+  "layer": {
+    "name": "Background"
+  },
+  "source": "white"
+}
+```
+
+## `layer.mask.set_enabled` — 停用蒙版
+
+Enable or disable an existing mask without deleting it.
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `true`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "EnableMask",
+  "type": "object",
+  "properties": {
+    "enabled": {
+      "type": "boolean"
+    },
+    "layer": {
+      "$ref": "#/$defs/LayerRef"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "layer",
+    "enabled"
+  ],
+  "$defs": {
+    "LayerRef": {
+      "description": "Stable ID preferred. Duplicate names return candidates instead of guessing.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LayerResult",
+  "type": "object",
+  "properties": {
+    "layer_id": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "required": [
+    "layer_id"
+  ]
+}
+```
+
+### Examples
+
+```json
+{
+  "enabled": false,
+  "layer": {
+    "name": "Background"
+  }
+}
+```
+
+## `layer.mask.invert` — 反相蒙版
+
+Invert an existing mask in place while preserving its exact 16-bit samples.
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `true`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Target",
+  "type": "object",
+  "properties": {
+    "layer": {
+      "$ref": "#/$defs/LayerRef"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "layer"
+  ],
+  "$defs": {
+    "LayerRef": {
+      "description": "Stable ID preferred. Duplicate names return candidates instead of guessing.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LayerResult",
+  "type": "object",
+  "properties": {
+    "layer_id": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "required": [
+    "layer_id"
+  ]
+}
+```
+
+### Examples
+
+```json
+{
+  "layer": {
+    "name": "Background"
+  }
+}
+```
+
+## `layer.mask.remove` — 移除蒙版
+
+Remove the mask metadata and its coverage plane; source pixels remain unchanged.
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `true`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Target",
+  "type": "object",
+  "properties": {
+    "layer": {
+      "$ref": "#/$defs/LayerRef"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "layer"
+  ],
+  "$defs": {
+    "LayerRef": {
+      "description": "Stable ID preferred. Duplicate names return candidates instead of guessing.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LayerResult",
+  "type": "object",
+  "properties": {
+    "layer_id": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "required": [
+    "layer_id"
+  ]
+}
+```
+
+### Examples
+
+```json
+{
+  "layer": {
+    "name": "Background"
+  }
+}
+```
+
+## `layer.add_adjustment` — 新建曝光调整层
+
+Create a non-destructive exposure adjustment layer with stops in -20..20 and a white, black or selection mask.
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `true`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AddAdjustment",
+  "type": "object",
+  "properties": {
+    "mask": {
+      "$ref": "#/$defs/MaskPreset",
+      "default": "white"
+    },
+    "name": {
+      "type": "string"
+    },
+    "stops": {
+      "type": "number",
+      "format": "double",
+      "default": 0.0
+    },
+    "type": {
+      "$ref": "#/$defs/AdjustmentType"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "name",
+    "type"
+  ],
+  "$defs": {
+    "AdjustmentType": {
+      "type": "string",
+      "enum": [
+        "exposure"
+      ]
+    },
+    "MaskPreset": {
+      "type": "string",
+      "enum": [
+        "white",
+        "black",
+        "from_selection"
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LayerResult",
+  "type": "object",
+  "properties": {
+    "layer_id": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "required": [
+    "layer_id"
+  ]
+}
+```
+
+### Examples
+
+```json
+{
+  "mask": "from_selection",
+  "name": "人物提亮",
+  "stops": 0.5,
+  "type": "exposure"
+}
+```
+
+## `adjust.exposure.set` — 设置曝光
+
+Set exposure adjustment stops in -20..20; source pixels are not rewritten.
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `true`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SetExposure",
+  "type": "object",
+  "properties": {
+    "layer": {
+      "$ref": "#/$defs/LayerRef"
+    },
+    "stops": {
+      "type": "number",
+      "format": "double"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "layer",
+    "stops"
+  ],
+  "$defs": {
+    "LayerRef": {
+      "description": "Stable ID preferred. Duplicate names return candidates instead of guessing.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LayerResult",
+  "type": "object",
+  "properties": {
+    "layer_id": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "required": [
+    "layer_id"
+  ]
+}
+```
+
+### Examples
+
+```json
+{
+  "layer": {
+    "name": "人物提亮"
+  },
+  "stops": 0.5
 }
 ```
 

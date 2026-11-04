@@ -1,11 +1,12 @@
 mod executor;
 mod export;
+mod local;
 mod new;
 mod registry;
 mod resample;
 pub use executor::{
-    CommandError, Control, Editor, HistoryInfo, MoveInteraction, PreparedCommand, Request,
-    Snapshot, Source,
+    CommandError, Control, Editor, ExposureInteraction, HistoryInfo, MarqueeInteraction,
+    MoveInteraction, PreparedCommand, Request, Snapshot, Source,
 };
 pub use registry::{CommandKind, CommandSpec, catalog};
 
@@ -34,6 +35,22 @@ pub struct LayerResult {
 #[derive(Serialize, JsonSchema)]
 pub struct LayerListResult {
     pub layers: Vec<crate::LayerInfo>,
+}
+#[derive(Serialize, JsonSchema)]
+pub struct SelectionResult {
+    pub selection: Option<strata_pixels::MaskLayout>,
+}
+#[derive(Serialize, JsonSchema)]
+pub struct SubjectResult {
+    pub selection: Option<strata_pixels::MaskLayout>,
+    pub diagnostics: Value,
+}
+#[derive(Serialize, JsonSchema)]
+pub struct HistogramResult {
+    pub luminance: Vec<u64>,
+    pub sampled_pixels: usize,
+    pub nontransparent_pixels: usize,
+    pub method: String,
 }
 #[derive(Serialize, JsonSchema)]
 pub struct HistoryResult {
@@ -159,6 +176,59 @@ params!(Zoom {
 });
 params!(UndoTurn {
     turn_id: uuid::Uuid
+});
+
+#[derive(Clone, Copy, Debug, Default, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum SelectionMode {
+    #[default]
+    Replace,
+    Add,
+    Subtract,
+    Intersect,
+}
+#[derive(Clone, Copy, Debug, Default, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum MaskPreset {
+    #[default]
+    White,
+    Black,
+    FromSelection,
+}
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum AdjustmentType {
+    Exposure,
+}
+params!(Marquee {
+    x: i64,
+    y: i64,
+    width: u32,
+    height: u32,
+    #[serde(default)]
+    mode: SelectionMode
+});
+params!(AddMask {
+    layer: LayerRef,
+    #[serde(default)]
+    source: MaskPreset
+});
+params!(EnableMask {
+    layer: LayerRef,
+    enabled: bool
+});
+params!(AddAdjustment {
+    name: String,
+    #[serde(rename = "type")]
+    adjustment_type: AdjustmentType,
+    #[serde(default)]
+    stops: f64,
+    #[serde(default)]
+    mask: MaskPreset
+});
+params!(SetExposure {
+    layer: LayerRef,
+    stops: f64
 });
 
 fn parse<T: serde::de::DeserializeOwned>(params: Value) -> Result<T, CommandError> {

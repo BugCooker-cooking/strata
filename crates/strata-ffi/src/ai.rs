@@ -61,7 +61,13 @@ pub fn ai_probe_request(config_json: String, vision: bool) -> Result<String, Str
         });
     }
     let mut request = provider::encode(&config, &[message]).map_err(ai_error)?;
-    if !vision {
+    if vision {
+        request
+            .body
+            .as_object_mut()
+            .expect("request object")
+            .remove("tools");
+    } else {
         request.body["tool_choice"] = if config.kind == provider::ProviderKind::Anthropic {
             json!({"type":"tool","name":"inspect_document"})
         } else {
@@ -145,6 +151,20 @@ impl StrataEngine {
             session.poll(self)
         })
         .and_then(|step| serde_json::to_string(&step).map_err(ai_error))
+    }
+    /// Local diagnostic evidence contains no credential or image payload.
+    pub fn ai_transcript_json(&self, turn_id: String) -> Result<String, StrataError> {
+        let turn = parse_id(&turn_id)?;
+        let slot = self.ai.lock().map_err(ai_error)?;
+        let session = slot
+            .as_ref()
+            .filter(|s| s.turn_id() == turn)
+            .ok_or_else(|| ai_error("AI turn no longer available"))?;
+        let mut messages = session.transcript().to_vec();
+        for message in &mut messages {
+            message.images.clear();
+        }
+        serde_json::to_string(&messages).map_err(ai_error)
     }
     pub fn ai_feed(&self, request_id: String, bytes: Vec<u8>) -> Result<String, StrataError> {
         let request = parse_id(&request_id)?;

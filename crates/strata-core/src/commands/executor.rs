@@ -4,6 +4,10 @@ use crate::{
     document::tile_limit,
 };
 use serde_json::json;
+use std::sync::{
+    Arc,
+    atomic::{AtomicBool, Ordering},
+};
 use std::{
     collections::{HashMap, HashSet},
     time::{Duration, Instant},
@@ -40,6 +44,7 @@ pub struct Request {
     revision: u64,
     issued: Instant,
     deadline: Instant,
+    cancellation: Arc<AtomicBool>,
 }
 
 impl Request {
@@ -52,13 +57,22 @@ impl Request {
         self
     }
     fn expired(&self) -> bool {
-        Instant::now() >= self.deadline
+        Instant::now() >= self.deadline || self.cancellation.load(Ordering::Acquire)
     }
 }
 
 /// A cancellable preview anchored to one document revision and control epoch.
 /// Dropping this value cancels the gesture without touching content/history.
 pub struct MoveInteraction {
+    request: Request,
+    epoch: u64,
+    layer: LayerId,
+}
+pub struct MarqueeInteraction {
+    request: Request,
+    epoch: u64,
+}
+pub struct ExposureInteraction {
     request: Request,
     epoch: u64,
     layer: LayerId,
@@ -115,6 +129,10 @@ struct HistoryEntry {
 
 #[derive(Serialize, JsonSchema)]
 pub struct Snapshot {
+    pub selection: Option<strata_pixels::MaskLayout>,
+    pub selection_extent: Option<strata_pixels::CoverageRect>,
+    pub selection_extent_conservative: bool,
+    pub selection_summary_available: bool,
     pub resolution_dpi: Option<u32>,
     pub preset: Option<String>,
     pub session_id: Uuid,
@@ -177,6 +195,7 @@ impl PreparedCommand {
                 | Action::Place(_)
                 | Action::History(_)
         ) && !self.replay
+            && !self.command.starts_with("select.")
     }
     pub fn replaces_document(&self) -> bool {
         matches!(self.action, Action::New | Action::Open(_) | Action::Recover)
@@ -213,6 +232,8 @@ pub struct Editor {
     executions: Vec<Value>,
     control_events: Vec<Value>,
     decoder: Option<std::sync::Arc<dyn strata_io::PlatformDecoder>>,
+    selector: Option<Arc<dyn crate::SubjectSelector>>,
+    cancellation: Arc<AtomicBool>,
 }
 impl Default for Editor {
     fn default() -> Self {
@@ -239,6 +260,8 @@ impl Editor {
             executions: Vec::new(),
             control_events: Vec::new(),
             decoder: None,
+            selector: None,
+            cancellation: Arc::new(AtomicBool::new(false)),
         }
     }
     pub fn with_decoder(decoder: std::sync::Arc<dyn strata_io::PlatformDecoder>) -> Self {
@@ -246,6 +269,9 @@ impl Editor {
             decoder: Some(decoder),
             ..Self::new()
         }
+    }
+    pub fn set_subject_selector(&mut self, selector: Arc<dyn crate::SubjectSelector>) {
+        self.selector = Some(selector);
     }
     pub fn with_memory_pool(pool: strata_pixels::memory::MemoryPool) -> Self {
         Self {
@@ -300,6 +326,7 @@ impl Editor {
             revision: self.revision,
             issued: Instant::now(),
             deadline: Instant::now() + Duration::from_secs(3600),
+            cancellation: self.cancellation.clone(),
         }
     }
     pub fn begin_move(&self, layer: LayerRef) -> Result<MoveInteraction, CommandError> {
@@ -330,8 +357,81 @@ impl Editor {
             json!({"layer":{"id":interaction.layer},"x":x,"y":y}),
         )
     }
+    pub fn begin_marquee(&self) -> Result<MarqueeInteraction, CommandError> {
+        self.authorize(&Source::User, "select.marquee", CommandKind::Mutate)?;
+        self.document.as_ref().ok_or(CommandError::NoDocument)?;
+        Ok(MarqueeInteraction {
+            request: self.request(Source::User),
+            epoch: self.epoch,
+        })
+    }
+    pub fn prepare_marquee(
+        &self,
+        interaction: &MarqueeInteraction,
+        params: Value,
+    ) -> Result<PreparedCommand, CommandError> {
+        if interaction.epoch != self.epoch {
+            return Err(CommandError::Stale);
+        }
+        self.prepare(interaction.request.clone(), "select.marquee", params)
+    }
+    pub fn begin_exposure(&self, layer: LayerRef) -> Result<ExposureInteraction, CommandError> {
+        self.authorize(&Source::User, "adjust.exposure.set", CommandKind::Mutate)?;
+        let doc = self.document.as_ref().ok_or(CommandError::NoDocument)?;
+        let layer = doc.resolve(&layer)?;
+        if !doc
+            .layers()
+            .iter()
+            .any(|l| l.id() == layer && matches!(l.info().kind, crate::LayerKind::Exposure { .. }))
+        {
+            return Err(CommandError::Invalid(
+                "target must be an exposure layer".into(),
+            ));
+        }
+        Ok(ExposureInteraction {
+            request: self.request(Source::User),
+            epoch: self.epoch,
+            layer,
+        })
+    }
+    pub fn preview_exposure(
+        &self,
+        interaction: &ExposureInteraction,
+        stops: f64,
+    ) -> Result<PreparedCommand, CommandError> {
+        if interaction.epoch != self.epoch {
+            return Err(CommandError::Stale);
+        }
+        self.prepare(
+            interaction.request.clone(),
+            "adjust.exposure.set",
+            json!({"layer":{"id":interaction.layer},"stops":stops}),
+        )
+    }
     pub fn snapshot(&self) -> Snapshot {
         Snapshot {
+            selection_extent: self
+                .document
+                .as_ref()
+                .and_then(|doc| doc.selection())
+                .and_then(|mask| mask.content_bounds().ok().flatten()),
+            selection_summary_available: self
+                .document
+                .as_ref()
+                .and_then(|doc| doc.selection())
+                .is_none_or(|mask| mask.content_bounds().is_ok()),
+            selection_extent_conservative: self
+                .document
+                .as_ref()
+                .and_then(|doc| doc.selection())
+                .is_some_and(|mask| {
+                    let layout = mask.layout();
+                    (layout.default_coverage ^ if layout.inverted { 65535 } else { 0 }) != 0
+                }),
+            selection: self
+                .document
+                .as_ref()
+                .and_then(|doc| doc.selection().map(strata_pixels::TiledMask::layout)),
             resolution_dpi: self.document.as_ref().map(Document::resolution_dpi),
             preset: self
                 .document
@@ -366,6 +466,7 @@ impl Editor {
             return Err(CommandError::ControlLocked);
         }
         let turn_id = Uuid::new_v4();
+        self.cancellation = Arc::new(AtomicBool::new(false));
         self.control = Control::Running { turn_id };
         self.epoch += 1;
         Ok(turn_id)
@@ -387,7 +488,14 @@ impl Editor {
         Ok(())
     }
     pub fn stop_turn(&mut self) {
+        self.cancellation.store(true, Ordering::Release);
+        self.cancellation = Arc::new(AtomicBool::new(false));
         self.control = Control::User;
+        self.epoch += 1;
+    }
+    pub fn cancel_pending_work(&mut self) {
+        self.cancellation.store(true, Ordering::Release);
+        self.cancellation = Arc::new(AtomicBool::new(false));
         self.epoch += 1;
     }
     fn authorize(&self, source: &Source, id: &str, kind: CommandKind) -> Result<(), CommandError> {
@@ -400,7 +508,14 @@ impl Editor {
                 matches!(kind, CommandKind::Query | CommandKind::View)
                     || matches!(
                         id,
-                        "layer.set_visibility" | "edit.undo" | "edit.redo" | "edit.undo_turn"
+                        "layer.set_visibility"
+                            | "edit.undo"
+                            | "edit.redo"
+                            | "edit.undo_turn"
+                            | "select.marquee"
+                            | "select.all"
+                            | "select.none"
+                            | "select.inverse"
                     )
             }
             (Source::Ai { turn_id: a }, Control::Running { turn_id: b }) => a == b,
@@ -494,6 +609,13 @@ impl Editor {
                     Action::Query,
                     if id == "file.recent.list" {
                         self.recent_result(&request)
+                    } else if id == "document.histogram" {
+                        json!(
+                            self.document
+                                .as_ref()
+                                .ok_or(CommandError::NoDocument)?
+                                .histogram()?
+                        )
                     } else if id == "layer.list" {
                         json!({"layers":self.snapshot().layers})
                     } else {
@@ -530,7 +652,32 @@ impl Editor {
             }
             CommandKind::Mutate => {
                 let doc = candidate.as_mut().ok_or(CommandError::NoDocument)?;
-                let (action, result) = if id == "file.place" {
+                let (action, result) = if id == "select.subject" {
+                    let p: crate::SubjectParams = parse(params.clone())?;
+                    let service=self.selector.as_ref().ok_or_else(||CommandError::Invalid("Subject model is not configured. Open the subject model panel and approve the verified model download.".into()))?;
+                    let result = service
+                        .select(doc, &p, &|| request.expired())
+                        .map_err(CommandError::Preparation)?;
+                    if request.expired() {
+                        return Err(CommandError::Expired);
+                    }
+                    if result.needs_confirmation && !p.accept_ambiguous {
+                        return Err(CommandError::Invalid(format!(
+                            "Subject selection is ambiguous; no selection committed. Ask the user to identify a rectangle or explicitly confirm all detected subjects before retrying with accept_ambiguous=true. Diagnostics: {}",
+                            result.diagnostics
+                        )));
+                    }
+                    doc.selection = Some(super::local::combine(
+                        doc,
+                        doc.selection.as_ref(),
+                        result.mask,
+                        p.mode,
+                    )?);
+                    (
+                        Action::Edit,
+                        json!({"selection":doc.selection().map(strata_pixels::TiledMask::layout),"diagnostics":result.diagnostics}),
+                    )
+                } else if id == "file.place" {
                     let (resource, result) = self.prepare_place(&request, doc, params.clone())?;
                     (Action::Place(resource), result)
                 } else if id == "document.batch" {
@@ -735,13 +882,9 @@ impl Editor {
                     .flat_map(|h| [&h.before, &h.after])
                     .chain([&before, &after])
                 {
-                    for layer in d.layers() {
-                        for coord in layer.pixels().tile_coords() {
-                            if unique.insert(layer.pixels().tile_version(*coord)) {
-                                bytes +=
-                                    (256 * 256 * 4 * layer.pixels().format().bytes_per_sample())
-                                        as u64;
-                            }
+                    for (version, block_bytes) in d.source_blocks() {
+                        if unique.insert(version) {
+                            bytes += block_bytes;
                         }
                     }
                 }
@@ -775,6 +918,14 @@ impl Editor {
                 self.cursor = self.history.len();
                 self.document = prepared.candidate;
                 self.revision += 1;
+                if let Control::Paused { turn_id } = self.control {
+                    let state = self.snapshot();
+                    self.control_events.push(json!({"turn_id":turn_id,"command":prepared.command,"revision":self.revision,
+                        "selection":state.selection,"selection_extent":state.selection_extent,"selection_extent_conservative":state.selection_extent_conservative}));
+                    if self.control_events.len() > 256 {
+                        self.control_events.remove(0);
+                    }
+                }
             }
             Action::New => {
                 self.document = prepared.candidate;
@@ -824,6 +975,9 @@ impl Editor {
 }
 
 pub(super) fn mutate(doc: &mut Document, id: &str, params: Value) -> Result<Value, CommandError> {
+    if let Some(result) = super::local::mutate(doc, id, params.clone())? {
+        return Ok(result);
+    }
     if id == "color.convert" {
         let p: ConvertColor = parse(params)?;
         let icc = strata_color::working_profile(&p.space).map_err(DocumentError::from)?;
@@ -1006,10 +1160,23 @@ fn batch(doc: &mut Document, params: Value, mut context: Snapshot) -> Result<Val
         let result = if registry::kind(&step.command)? == CommandKind::Query {
             let _: Empty = parse(params)?;
             let layers: Vec<_> = doc.layers().iter().map(|l| l.info().clone()).collect();
-            if step.command == "layer.list" {
+            if step.command == "document.histogram" {
+                json!(doc.histogram()?)
+            } else if step.command == "layer.list" {
                 json!({"layers": layers})
             } else {
                 context.frame = Some(doc.frame().clone());
+                context.selection = doc.selection().map(strata_pixels::TiledMask::layout);
+                context.selection_extent = doc
+                    .selection()
+                    .and_then(|mask| mask.content_bounds().ok().flatten());
+                context.selection_summary_available = doc
+                    .selection()
+                    .is_none_or(|mask| mask.content_bounds().is_ok());
+                context.selection_extent_conservative = doc.selection().is_some_and(|mask| {
+                    let layout = mask.layout();
+                    (layout.default_coverage ^ if layout.inverted { 65535 } else { 0 }) != 0
+                });
                 context.layers = layers;
                 context.bit_depth = Some(doc.bit_depth());
                 context.profile_name = Some(doc.profile_name().into());

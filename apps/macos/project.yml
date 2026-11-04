@@ -60,6 +60,10 @@ targets:
       - name: Build Rust and Swift bindings
         script: 'bash "$SRCROOT/../../scripts/build-rust.sh" "$CONFIGURATION"'
         basedOnDependencyAnalysis: false
+    postBuildScripts:
+      - name: Embed verified subject runtime
+        script: 'bash "$SRCROOT/../../scripts/embed-ml-runtime.sh"'
+        basedOnDependencyAnalysis: false
   StrataTests:
     type: bundle.unit-test
     platform: macOS

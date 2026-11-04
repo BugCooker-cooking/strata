@@ -2,6 +2,7 @@ import AppKit
 import CryptoKit
 import Foundation
 import Security
+import LocalAuthentication
 
 enum AIProvider: String, Codable, CaseIterable, Sendable {
     case anthropic, openAi = "open_ai", local
@@ -35,12 +36,14 @@ protocol AISecretStore: Sendable {
 }
 
 struct KeychainAISecrets: AISecretStore {
+    var allowInteraction = true
     private let service = "dev.strata-editor.ai"
     private func query(_ account: String) -> [String: Any] {
         [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service, kSecAttrAccount as String: account]
     }
     func read(account: String) throws -> String? {
         var request = query(account); request[kSecReturnData as String] = true; request[kSecMatchLimit as String] = kSecMatchLimitOne
+        if !allowInteraction { let context=LAContext();context.interactionNotAllowed=true;request[kSecUseAuthenticationContext as String]=context }
         var result: CFTypeRef?
         let status = SecItemCopyMatching(request as CFDictionary, &result)
         if status == errSecItemNotFound { return nil }

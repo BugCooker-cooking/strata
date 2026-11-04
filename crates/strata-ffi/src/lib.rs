@@ -12,6 +12,9 @@ use strata_core::{
 use strata_render::{Renderer, Viewport};
 uniffi::setup_scaffolding!();
 mod ai;
+mod local;
+mod subject;
+pub use local::SelectionEdge;
 mod thumbnails;
 pub use thumbnails::LayerThumbnail;
 
@@ -137,6 +140,8 @@ struct Inner {
     delivering: bool,
     open_generation: u64,
     interaction: Option<MoveInteraction>,
+    marquee: Option<strata_core::commands::MarqueeInteraction>,
+    exposure: Option<strata_core::commands::ExposureInteraction>,
 }
 impl Default for Inner {
     fn default() -> Self {
@@ -147,6 +152,8 @@ impl Default for Inner {
             delivering: false,
             open_generation: 0,
             interaction: None,
+            marquee: None,
+            exposure: None,
         }
     }
 }
@@ -431,6 +438,8 @@ impl StrataEngine {
     pub fn detach_canvas(&self) -> Result<(), StrataError> {
         let mut inner = self.lock()?;
         inner.interaction = None;
+        inner.marquee = None;
+        inner.exposure = None;
         inner.renderer = None;
         Ok(())
     }

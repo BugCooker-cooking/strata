@@ -5,8 +5,8 @@ use std::{
     sync::Arc,
 };
 use strata_core::{
-    Document,
-    composite::{Compositor, LinearTile},
+    BlendMode, Document, Layer, LayerKind,
+    composite::{Compositor, LinearTile, layer_mask_signature, layer_mask_tile},
 };
 use strata_pixels::TileCoord;
 use strata_pixels::memory::{CacheSlot, MemoryKind, Reservation};
@@ -21,6 +21,8 @@ pub(crate) struct Scene {
     pub document: Document,
     compositor: Compositor,
     cache: HashMap<(TileCoord, u32), Arc<CacheSlot<GpuTile>>>,
+    mask_cache: HashMap<(TileCoord, u32), Arc<CacheSlot<GpuMask>>>,
+    white_mask: Option<Arc<GpuMask>>,
     fingerprints: HashMap<TileCoord, u64>,
     visible: Vec<DrawTile>,
     last: Option<(ViewTransform, Viewport)>,
@@ -32,8 +34,15 @@ struct GpuTile {
     signatures: Vec<u64>,
     _reservation: Reservation,
 }
+struct GpuMask {
+    _texture: wgpu::Texture,
+    view: wgpu::TextureView,
+    signatures: Vec<u64>,
+    _reservation: Reservation,
+}
 struct DrawTile {
     _tile: Arc<GpuTile>,
+    _mask: Arc<GpuMask>,
     _uniform: wgpu::Buffer,
     bind: wgpu::BindGroup,
     coord: TileCoord,
@@ -83,6 +92,8 @@ impl Scene {
                 .map(|s| s.compositor.clone())
                 .unwrap_or_else(|| Compositor::new(128)),
             cache: old.map(|s| s.cache.clone()).unwrap_or_default(),
+            mask_cache: old.map(|s| s.mask_cache.clone()).unwrap_or_default(),
+            white_mask: old.and_then(|s| s.white_mask.clone()),
             fingerprints: HashMap::new(),
             visible: Vec::new(),
             last: None,
@@ -138,6 +149,31 @@ impl Scene {
             ]),
         );
         let lod = (-view.zoom.log2()).floor().clamp(0.0, 8.0) as u32;
+        // A trailing normal exposure is evaluated on the display GPU. Its base
+        // and mask textures remain reusable while the slider changes. Other
+        // layer stacks retain the full compositor path.
+        let tail = self
+            .document
+            .layers()
+            .last()
+            .filter(|layer| {
+                layer.info().visible
+                    && layer.info().opacity > 0.0
+                    && layer.info().blend_mode == BlendMode::Normal
+                    && matches!(layer.info().kind, LayerKind::Exposure { .. })
+            })
+            .cloned();
+        let prefix = self.document.layers().len() - usize::from(tail.is_some());
+        let delta = tail
+            .as_ref()
+            .and_then(|layer| {
+                if let LayerKind::Exposure { stops } = layer.info().kind {
+                    Some(((2f64.powf(stops) - 1.0) * layer.info().opacity) as f32)
+                } else {
+                    None
+                }
+            })
+            .unwrap_or(0.0);
         let coords = visible_coords(&self.document, view, vp)?;
         let current: Vec<_> = self.visible.iter().map(|t| (t.coord, t.lod)).collect();
         let next: Vec<_> = coords.iter().map(|c| (*c, lod)).collect();
@@ -160,7 +196,7 @@ impl Scene {
                     let signature = *self
                         .fingerprints
                         .entry(c)
-                        .or_insert_with(|| Compositor::signature(&self.document, c));
+                        .or_insert_with(|| Compositor::signature_prefix(&self.document, c, prefix));
                     signatures.push(signature);
                     neighbor_coords.push(c);
                 }
@@ -175,7 +211,11 @@ impl Scene {
             } else {
                 let neighbors = neighbor_coords
                     .into_iter()
-                    .map(|c| self.compositor.tile(&self.document, c).map_err(err))
+                    .map(|c| {
+                        self.compositor
+                            .tile_prefix(&self.document, c, prefix)
+                            .map_err(err)
+                    })
                     .collect::<Result<Vec<_>, _>>()?;
                 // Prewarm the next sharper mip when one ordinary 1.25x zoom
                 // step can cross its threshold. Uploading full-resolution
@@ -258,13 +298,14 @@ impl Scene {
                 }
                 selected.unwrap()
             };
+            let mask = self.mask_for(device, queue, coord, lod, tail.as_ref())?;
             let uniform = device.create_buffer(&wgpu::BufferDescriptor {
                 label: Some("Tile placement"),
-                size: 32,
+                size: 48,
                 usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
                 mapped_at_creation: false,
             });
-            update_uniform(queue, &uniform, coord, lod);
+            update_uniform(queue, &uniform, coord, lod, delta);
             let bind = device.create_bind_group(&wgpu::BindGroupDescriptor {
                 label: Some("Tile display"),
                 layout: &pipeline.get_bind_group_layout(0),
@@ -281,6 +322,10 @@ impl Scene {
                         binding: 2,
                         resource: wgpu::BindingResource::Sampler(sampler),
                     },
+                    wgpu::BindGroupEntry {
+                        binding: 3,
+                        resource: wgpu::BindingResource::TextureView(&mask.view),
+                    },
                 ],
             });
             visible.push(DrawTile {
@@ -290,6 +335,7 @@ impl Scene {
                     .reserve(MemoryKind::Gpu, 256)
                     .map_err(err)?,
                 _tile: tile,
+                _mask: mask,
                 _uniform: uniform,
                 bind,
                 coord,
@@ -299,6 +345,71 @@ impl Scene {
         self.visible = visible;
         self.last = Some((view, vp));
         Ok(())
+    }
+    fn mask_for(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        coord: TileCoord,
+        lod: u32,
+        tail: Option<&Layer>,
+    ) -> Result<Arc<GpuMask>, RenderError> {
+        let active = tail.filter(|layer| layer.info().mask.as_ref().is_some_and(|m| m.enabled));
+        let Some(layer) = active else {
+            if let Some(mask) = &self.white_mask {
+                return Ok(mask.clone());
+            }
+            let mask = make_gpu_mask(
+                device,
+                queue,
+                1,
+                &[f16::ONE],
+                vec![],
+                &self.document.memory_pool(),
+            )?;
+            self.white_mask = Some(mask.clone());
+            return Ok(mask);
+        };
+        let mut signatures = Vec::new();
+        let mut coords = Vec::new();
+        for y in -1..=1 {
+            for x in -1..=1 {
+                let c = TileCoord::new(coord.x() + x, coord.y() + y).map_err(err)?;
+                signatures.push(layer_mask_signature(layer, c));
+                coords.push(c);
+            }
+        }
+        if let Some(mask) = self
+            .mask_cache
+            .get(&(coord, lod))
+            .and_then(|m| m.get())
+            .filter(|m| m.signatures == signatures)
+        {
+            return Ok(mask);
+        }
+        let pool = self.document.memory_pool();
+        let _scratch = pool
+            .reserve(MemoryKind::Transient, 9 * 256 * 256 * 2 + (258 * 258 * 2))
+            .map_err(err)?;
+        let neighbors = coords
+            .into_iter()
+            .map(|coord| {
+                let [x, y] = coord.origin();
+                layer_mask_tile(layer, x, y)
+                    .map_err(err)
+                    .map(|tile| tile.unwrap_or_else(|| vec![65535; 256 * 256]))
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        let (size, data) = mask_mip_with_gutter(&neighbors, lod);
+        let mask = make_gpu_mask(device, queue, size, &data, signatures, &pool)?;
+        if self.mask_cache.len() >= MAX_GPU_TILES {
+            self.mask_cache.clear();
+        }
+        self.mask_cache.insert(
+            (coord, lod),
+            CacheSlot::with_kind(&pool, mask.clone(), MemoryKind::Gpu),
+        );
+        Ok(mask)
     }
     pub fn draw<'a>(&'a self, pass: &mut wgpu::RenderPass<'a>, pipeline: &'a wgpu::RenderPipeline) {
         pass.set_pipeline(pipeline);
@@ -311,7 +422,13 @@ impl Scene {
         }
     }
 }
-fn update_uniform(queue: &wgpu::Queue, buffer: &wgpu::Buffer, coord: TileCoord, lod: u32) {
+fn update_uniform(
+    queue: &wgpu::Queue,
+    buffer: &wgpu::Buffer,
+    coord: TileCoord,
+    lod: u32,
+    delta: f32,
+) {
     let [x, y] = coord.origin();
     let n = (256 >> lod) as f32;
     let size = n + 2.0;
@@ -324,6 +441,10 @@ fn update_uniform(queue: &wgpu::Queue, buffer: &wgpu::Buffer, coord: TileCoord, 
         1.0 / size,
         n / size,
         n / size,
+        delta,
+        0.0,
+        0.0,
+        0.0,
     ];
     queue.write_buffer(buffer, 0, bytemuck::cast_slice(&data));
 }
@@ -367,6 +488,92 @@ fn visible_coords(
         }
     }
     Ok(out)
+}
+fn make_gpu_mask(
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    size: u32,
+    data: &[f16],
+    signatures: Vec<u64>,
+    pool: &strata_pixels::memory::MemoryPool,
+) -> Result<Arc<GpuMask>, RenderError> {
+    let reservation = pool
+        .reserve(
+            MemoryKind::Gpu,
+            (u64::from(size) * u64::from(size) * 2).max(256),
+        )
+        .map_err(err)?;
+    let allocation = device.push_error_scope(wgpu::ErrorFilter::OutOfMemory);
+    let validation = device.push_error_scope(wgpu::ErrorFilter::Validation);
+    let texture = device.create_texture(&wgpu::TextureDescriptor {
+        label: Some("Display exposure coverage"),
+        size: wgpu::Extent3d {
+            width: size,
+            height: size,
+            depth_or_array_layers: 1,
+        },
+        mip_level_count: 1,
+        sample_count: 1,
+        dimension: wgpu::TextureDimension::D2,
+        format: wgpu::TextureFormat::R16Float,
+        usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+        view_formats: &[],
+    });
+    queue.write_texture(
+        wgpu::TexelCopyTextureInfo {
+            texture: &texture,
+            mip_level: 0,
+            origin: wgpu::Origin3d::ZERO,
+            aspect: wgpu::TextureAspect::All,
+        },
+        bytemuck::cast_slice(data),
+        wgpu::TexelCopyBufferLayout {
+            offset: 0,
+            bytes_per_row: Some(size * 2),
+            rows_per_image: Some(size),
+        },
+        wgpu::Extent3d {
+            width: size,
+            height: size,
+            depth_or_array_layers: 1,
+        },
+    );
+    if let Some(error) =
+        pollster::block_on(validation.pop()).or(pollster::block_on(allocation.pop()))
+    {
+        return Err(err(error));
+    }
+    let view = texture.create_view(&Default::default());
+    Ok(Arc::new(GpuMask {
+        _texture: texture,
+        view,
+        signatures,
+        _reservation: reservation,
+    }))
+}
+fn mask_mip_with_gutter(neighbors: &[Vec<u16>], lod: u32) -> (u32, Vec<f16>) {
+    let step = 1i32 << lod;
+    let n = 256 / step;
+    let size = n + 2;
+    let scale = 1.0 / (f64::from(step * step) * 65535.0);
+    let mut data = Vec::with_capacity((size * size) as usize);
+    for y in -1..=n {
+        for x in -1..=n {
+            let mut sum = 0u64;
+            for dy in 0..step {
+                for dx in 0..step {
+                    let px = x * step + dx;
+                    let py = y * step + dy;
+                    let tile = ((py.div_euclid(256) + 1) * 3 + px.div_euclid(256) + 1) as usize;
+                    sum += u64::from(
+                        neighbors[tile][(py.rem_euclid(256) * 256 + px.rem_euclid(256)) as usize],
+                    );
+                }
+            }
+            data.push(f16::from_f64(sum as f64 * scale));
+        }
+    }
+    (size as u32, data)
 }
 fn mip_with_gutter(neighbors: &[LinearTile], lod: u32) -> (u32, Vec<f16>) {
     let step = 1i32 << lod;

@@ -1,0 +1,91 @@
+{
+  "cpu_preparation_target_met": true,
+  "frames": [
+    {
+      "prepare_ms": 0.516416,
+      "step": 0,
+      "submission_cpu_ms": 0.20525000989437103,
+      "total_ms": 0.7295
+    },
+    {
+      "prepare_ms": 0.427041,
+      "step": 1,
+      "submission_cpu_ms": 0.16641700267791748,
+      "total_ms": 0.597458
+    },
+    {
+      "prepare_ms": 0.45025000000000004,
+      "step": 2,
+      "submission_cpu_ms": 0.16120798885822296,
+      "total_ms": 0.615209
+    },
+    {
+      "prepare_ms": 0.6742090000000001,
+      "step": 3,
+      "submission_cpu_ms": 0.16099999845027924,
+      "total_ms": 0.839625
+    },
+    {
+      "prepare_ms": 0.41133400000000003,
+      "step": 4,
+      "submission_cpu_ms": 0.1392499953508377,
+      "total_ms": 0.554375
+    },
+    {
+      "prepare_ms": 0.454125,
+      "step": 5,
+      "submission_cpu_ms": 0.134333997964859,
+      "total_ms": 0.5916250000000001
+    },
+    {
+      "prepare_ms": 0.433375,
+      "step": 6,
+      "submission_cpu_ms": 0.1737080067396164,
+      "total_ms": 0.61025
+    },
+    {
+      "prepare_ms": 0.5362910000000001,
+      "step": 7,
+      "submission_cpu_ms": 1.623540997505188,
+      "total_ms": 2.1632499999999997
+    },
+    {
+      "prepare_ms": 2.484792,
+      "step": 8,
+      "submission_cpu_ms": 2.0237081050872803,
+      "total_ms": 4.513667
+    },
+    {
+      "prepare_ms": 0.7873749999999999,
+      "step": 9,
+      "submission_cpu_ms": 0.3153340220451355,
+      "total_ms": 1.1065420000000001
+    },
+    {
+      "prepare_ms": 0.394042,
+      "step": 10,
+      "submission_cpu_ms": 0.23999999463558197,
+      "total_ms": 0.638125
+    },
+    {
+      "prepare_ms": 0.391542,
+      "step": 11,
+      "submission_cpu_ms": 0.5885000228881836,
+      "total_ms": 0.9840000000000001
+    }
+  ],
+  "limitation": "Offscreen preparation/submission reference. Native frame pacing is a separate gate.",
+  "p95_ms": 4.513667,
+  "scene": {
+    "bit_depth": 16,
+    "height": 1365,
+    "masked_exposure": true,
+    "viewport": [
+      1280,
+      800
+    ],
+    "width": 2048
+  },
+  "source_history_unchanged": true,
+  "target_ms": 33.333333333333336
+}

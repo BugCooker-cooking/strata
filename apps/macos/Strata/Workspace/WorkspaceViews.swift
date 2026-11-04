@@ -37,7 +37,7 @@ struct ToolRail: View {
                         if index > 0 { Rectangle().fill(Color(nsColor: WorkspaceColors.border)).frame(height: 1).padding(.horizontal, 10) }
                         ForEach(group) { tool in
                             WorkspaceIconButton(title: "\(tool.title)\(tool.key.isEmpty ? "" : " (\(tool.key))")", symbol: tool.symbol,
-                                enabled: tool.available && (tool != .move || model.permissions.edits), selected: model.tool == tool) { model.selectTool(tool) }
+                                enabled: tool.available && (![EditorTool.move, .subject].contains(tool) || model.permissions.edits) && (tool != .marquee || model.permissions.selectionEdits), selected: model.tool == tool) { model.selectTool(tool) }
                         }
                     }
                 }.padding(.top, 8)
@@ -58,6 +58,14 @@ struct ToolOptionsBar: View {
             Label(model.tool.title, systemImage: model.tool.symbol).fontWeight(.medium).frame(width: 100, alignment: .leading)
             Divider().frame(height: 16)
             switch model.tool {
+            case .marquee:
+                Picker("选区运算", selection: Binding(get: { model.selectionMode }, set: { model.selectionMode = $0; model.send(.tool(.marquee)) })) {
+                    Text("新建").tag("replace"); Text("相加").tag("add"); Text("相减").tag("subtract"); Text("交叉").tag("intersect")
+                }.labelsHidden().frame(width: 100).disabled(!model.permissions.selectionEdits)
+                Button("全选") { model.send(.command("select.all", [:])) }.disabled(!model.permissions.selectionEdits)
+                Button("取消") { model.send(.command("select.none", [:])) }.disabled(!model.permissions.selectionEdits)
+                Button("反选") { model.send(.command("select.inverse", [:])) }.disabled(!model.permissions.selectionEdits)
+                Text("⇧ 相加 · ⌥ 相减 · Esc 取消拖动").foregroundStyle(Color(nsColor: WorkspaceColors.secondary))
             case .move:
                 Text("当前图层").foregroundStyle(Color(nsColor: WorkspaceColors.secondary))
                 Text(model.selected?.name ?? "未选择").lineLimit(1).frame(maxWidth: 180, alignment: .leading)
@@ -70,7 +78,7 @@ struct ToolOptionsBar: View {
                 Text("拖动画布 · 滚动平移 · 捏合缩放").foregroundStyle(Color(nsColor: WorkspaceColors.secondary))
             }
             Spacer()
-            if model.busy { ProgressView().controlSize(.small); Text("正在处理…") }
+            if model.busy { ProgressView().controlSize(.small); Text("正在处理…"); Button("取消") { model.send(.cancelWork) } }
             Menu {
                 ForEach(WorkspaceTheme.allCases, id: \.self) { theme in
                     Button { model.send(.theme(theme)) } label: {
@@ -107,7 +115,7 @@ struct WorkspaceInspector: View {
                     }.pickerStyle(.segmented).labelsHidden().padding(10)
                     switch model.inspector {
                     case .properties: LayerProperties(model: model)
-                    case .adjustments: AdjustmentPanel()
+                    case .adjustments: AdjustmentPanel(model: model)
                     case .history: HistoryPanel(model: model)
                     }
                 }.frame(height: max(210, geometry.size.height * 0.47))
@@ -127,7 +135,7 @@ private struct LayerProperties: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                Label(model.selected == nil ? "文档" : "像素图层", systemImage: "square.3.layers.3d").fontWeight(.medium)
+                Label(model.selected?.title ?? "文档", systemImage: "square.3.layers.3d").fontWeight(.medium)
                 if let layer = model.selected {
                     TextField("图层名称", text: $name).textFieldStyle(.roundedBorder).onSubmit { model.send(.rename(name)) }
                         .disabled(!model.permissions.edits).accessibilityLabel("图层名称")
@@ -137,6 +145,15 @@ private struct LayerProperties: View {
                     }
                     caption("外观")
                     BlendOpacityControls(model: model)
+                    if layer.exposure != nil { ExposureControls(model: model) }
+                    if let mask = layer.mask {
+                        Divider(); caption("像素蒙版")
+                        Toggle("启用蒙版", isOn: Binding(get: { mask.enabled }, set: { model.send(.command("layer.mask.set_enabled", ["layer": ["id": layer.id], "enabled": $0])) })).disabled(!model.permissions.edits)
+                        HStack {
+                            Button("反相") { model.send(.command("layer.mask.invert", ["layer": ["id": layer.id]])) }
+                            Button("移除") { model.send(.command("layer.mask.remove", ["layer": ["id": layer.id]])) }
+                        }.disabled(!model.permissions.edits)
+                    }
                     Toggle("显示图层", isOn: Binding(get: { layer.visible }, set: { model.send(.visibility(layer.id, $0)) }))
                         .disabled(!model.permissions.visibility)
                 } else { Text("选择一个图层，查看并修改属性。").foregroundStyle(Color(nsColor: WorkspaceColors.secondary)) }
@@ -145,6 +162,7 @@ private struct LayerProperties: View {
                     HStack { Text(frame.name).lineLimit(1); Spacer(); Text("\(frame.width) × \(frame.height) px").monospacedDigit() }
                     Text("\(model.snapshot?.profileName ?? "RGB") · \(model.snapshot?.bitDepth ?? 8) 位 · \(model.snapshot?.resolutionDpi ?? 72) dpi").font(.system(size: 11)).foregroundStyle(Color(nsColor: WorkspaceColors.secondary))
                 }
+                LuminanceHistogram(values: model.histogram)
                 Spacer(minLength: 0)
             }.padding(12)
         }.onChange(of: model.snapshot?.revision) { _, _ in sync() }
@@ -187,6 +205,7 @@ private struct BlendOpacityControls: View {
 }
 
 private struct AdjustmentPanel: View {
+    @ObservedObject var model: WorkspaceModel
     private let entries = [("曝光", "plusminus"), ("亮度 / 对比度", "sun.max"), ("色阶", "chart.bar"), ("曲线", "point.topleft.down.to.point.bottomright.curvepath"), ("色相 / 饱和度", "slider.horizontal.3"), ("色彩平衡", "circle.lefthalf.filled"), ("黑白", "circle.righthalf.filled"), ("自然饱和度", "drop"), ("渐变映射", "rectangle.lefthalf.filled"), ("反相", "circle.dotted")]
     var body: some View {
         ScrollView {
@@ -194,11 +213,18 @@ private struct AdjustmentPanel: View {
                 Text("调整图层").fontWeight(.medium)
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 14) {
                     ForEach(entries, id: \.0) { item in
-                        VStack(spacing: 7) { WorkspaceIconButton(title: item.0, symbol: item.1, enabled: false); Text(item.0).font(.system(size: 10)).lineLimit(2).multilineTextAlignment(.center) }
+                        VStack(spacing: 7) {
+                            WorkspaceIconButton(title: item.0, symbol: item.1, enabled: item.0 == "曝光" && model.hasDocument && model.permissions.edits) {
+                                model.send(.command("layer.add_adjustment", ["name": "曝光", "type": "exposure", "stops": 0.5, "mask": model.snapshot?.selection == nil ? "white" : "from_selection"]))
+                                model.inspector = .properties
+                            }
+                            Text(item.0).font(.system(size: 10)).lineLimit(2).multilineTextAlignment(.center)
+                        }
                     }
                 }
-                Text("调整图层将在后续版本提供。当前可在图层属性中修改位置、不透明度和混合模式。")
+                Text("曝光调整使用当前选区作为蒙版；没有选区时作用于整张画板。其余调整继续开发中。")
                     .font(.system(size: 11)).foregroundStyle(Color(nsColor: WorkspaceColors.secondary)).fixedSize(horizontal: false, vertical: true)
+                if let subject = model.subjectModel { SubjectModelCard(store: subject, model: model) }
             }.padding(12)
         }
     }
@@ -264,7 +290,7 @@ private struct LayerPanel: View {
                                         if let image = model.thumbnails[layer.id] { Image(nsImage: image).resizable().scaledToFit() }
                                         else { Image(systemName: "photo").foregroundStyle(Color(nsColor: WorkspaceColors.muted)) }
                                     }.frame(width: 30, height: 30).background(Color(nsColor: WorkspaceColors.raised)).clipShape(RoundedRectangle(cornerRadius: 4))
-                                    VStack(alignment: .leading, spacing: 3) { Text(layer.name).lineLimit(1); Text("像素图层").font(.system(size: 10)).foregroundStyle(Color(nsColor: WorkspaceColors.muted)) }
+                                    VStack(alignment: .leading, spacing: 3) { Text(layer.name).lineLimit(1); Text(layer.title + (layer.mask != nil ? " · 蒙版" : "")).font(.system(size: 10)).foregroundStyle(Color(nsColor: WorkspaceColors.muted)) }
                                     Spacer(minLength: 0)
                                     if model.snapshot?.control?.kind == "running", model.snapshot?.activeLayer == layer.id { Image(systemName: "sparkles").foregroundStyle(Color(nsColor: WorkspaceColors.ai)).accessibilityLabel("AI 当前图层") }
                                 }.contentShape(Rectangle())
@@ -283,7 +309,13 @@ private struct LayerPanel: View {
                 WorkspaceIconButton(title: "上移", symbol: "arrow.up", enabled: model.permissions.edits && model.selected != nil) { model.send(.reorder(1)) }
                 WorkspaceIconButton(title: "下移", symbol: "arrow.down", enabled: model.permissions.edits && model.selected != nil) { model.send(.reorder(-1)) }
                 Spacer(minLength: 0)
-                WorkspaceIconButton(title: "添加蒙版", symbol: "rectangle.inset.filled", enabled: false)
+                Menu {
+                    ForEach([("白色蒙版", "white"), ("黑色蒙版", "black"), ("来自选区", "from_selection")], id: \.1) { title, source in
+                        Button(title) { if let selected = model.selected { model.send(.command("layer.mask.add", ["layer": ["id": selected.id], "source": source])) } }
+                            .disabled(source == "from_selection" && model.snapshot?.selection == nil)
+                    }
+                } label: { Image(systemName: "rectangle.inset.filled") }
+                    .menuStyle(.borderlessButton).fixedSize().disabled(!model.permissions.edits || model.selected == nil || model.selected?.mask != nil).help("添加像素蒙版")
                 WorkspaceIconButton(title: "新建组", symbol: "folder.badge.plus", enabled: false)
                 WorkspaceIconButton(title: "复制图层", symbol: "square.on.square", enabled: model.permissions.edits && model.selected != nil) { model.send(.duplicateLayer) }
                 WorkspaceIconButton(title: "新建图层", symbol: "plus.square", enabled: model.permissions.edits && model.hasDocument) { model.send(.newLayer) }
@@ -316,7 +348,7 @@ struct WorkspaceStatusBar: View {
             if !model.recoveryStatus.isEmpty { Text(model.recoveryStatus).help(model.recoveryError).lineLimit(1) }
             if model.snapshot?.profileFallback == true { Label("ICC 无效，按 sRGB 处理", systemImage: "exclamationmark.triangle").foregroundStyle(Color(nsColor: WorkspaceColors.warning)) }
             Text(model.busy ? "正在处理…" : model.snapshot?.dirty == true ? "有未保存修改" : "无未保存修改")
-            Circle().fill(Color(nsColor: WorkspaceColors.muted)).frame(width: 5, height: 5)
+            Circle().fill(Color(nsColor: model.snapshot?.control?.kind == "paused" ? WorkspaceColors.warning : model.snapshot?.control?.kind == "running" ? WorkspaceColors.ai : model.assistant?.configured == true ? .systemGreen : WorkspaceColors.muted)).frame(width: 5, height: 5)
             Text(model.snapshot?.control?.kind == "user" ? (model.assistant?.status ?? model.permissions.status) : model.permissions.status)
         }.font(.system(size: 10)).foregroundStyle(Color(nsColor: WorkspaceColors.secondary))
             .padding(.horizontal, 12).frame(height: 24).background(Color(nsColor: WorkspaceColors.panel))
