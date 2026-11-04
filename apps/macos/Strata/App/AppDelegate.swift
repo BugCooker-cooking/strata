@@ -89,7 +89,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 Task {
                     do { try await WorkspacePressureCheck.run(options, controllers: checks) }
                     catch { benchmarkLog("STRATA_WORKSPACE_PRESSURE_FAILED \(error.localizedDescription)") }
-                    NSApp.terminate(nil)
+                    // Leave the MainActor task before AppKit enters its nested
+                    // termination loop, so recovery cleanup can reenter main.
+                    RunLoop.main.perform(inModes: [.common]) {
+                        MainActor.assumeIsolated { NSApp.terminate(nil) }
+                    }
                 }
                 return
             }

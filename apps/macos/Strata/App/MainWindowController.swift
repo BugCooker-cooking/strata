@@ -226,7 +226,18 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
     func requestTermination(_ completion: @escaping @MainActor @Sendable (Bool) -> Void) { if busy { completion(false) } else { confirmDiscard(completion) } }
     func windowWillClose(_ notification: Notification) { recovery?.stop(discard: true); canvas.shutdown(); onClosed?() }
     func windowDidBecomeMain(_ notification: Notification) { onBecameMain?() }
-    func windowDidDeminiaturize(_ notification: Notification) { canvas.markDirty() }
+    func windowDidMiniaturize(_ notification: Notification) {
+        if ProcessInfo.processInfo.arguments.contains("--window-lifecycle-log") {
+            benchmarkLog("STRATA_WINDOW minimized=\(window?.isMiniaturized ?? false)")
+        }
+    }
+    func windowDidDeminiaturize(_ notification: Notification) {
+        canvas.markDirty()
+        if ProcessInfo.processInfo.arguments.contains("--window-lifecycle-log") {
+            benchmarkLog("STRATA_WINDOW restored=\(window?.isMiniaturized == false)")
+            canvas.reportNextRestoredFrame = true
+        }
+    }
     func windowDidChangeOcclusionState(_ notification: Notification) { canvas.visibilityChanged() }
     func showError(_ error: Error) {
         guard let window, window.attachedSheet == nil else { return }; let alert = NSAlert(); alert.messageText = "操作未完成"

@@ -21,6 +21,7 @@ final class CanvasView: NSView {
     private var pointerTracking: NSTrackingArea?
     var movesLayer = false
     var isEditingEnabled = true
+    var reportNextRestoredFrame = false
     var activeLayer: EditorSnapshot.Layer?
     private var layerDrag: (point: NSPoint, x: Int64, y: Int64, zoom: CGFloat)?
     private var layerPosition: (x: Int64, y: Int64)?
@@ -160,6 +161,10 @@ final class CanvasView: NSView {
             if benchmarking { benchmark?.afterFrame(frame) }
             if !frame.skipped {
                 updateArtboardOverlay()
+                if reportNextRestoredFrame {
+                    reportNextRestoredFrame = false
+                    benchmarkLog("STRATA_WINDOW restored_frame=true minimized=\(window?.isMiniaturized ?? true) zoom=\(engine.canvasZoom())")
+                }
                 dirty = false
                 stats.record(timestamp: link.timestamp, cpuMs: frame.cpuMs)
             }

@@ -41,6 +41,52 @@ fn identity_export_preserves_hidden_16bit_rgb() {
 }
 
 #[test]
+fn single_photo_tiles_match_analytic_transfer_and_preserve_all_source_samples() {
+    for depth in [8, 16] {
+        let maximum = if depth == 8 { 255u16 } else { 65535u16 };
+        let samples: Vec<u16> = (0..256u16)
+            .flat_map(|i| {
+                let code = if depth == 8 { i } else { i.saturating_mul(257) };
+                [
+                    code,
+                    code,
+                    code,
+                    [0, 1, maximum / 2, maximum][i as usize % 4],
+                ]
+            })
+            .collect();
+        let source = if depth == 8 {
+            PixelBuffer::Rgba8(samples.iter().map(|v| *v as u8).collect())
+        } else {
+            PixelBuffer::Rgba16(samples.clone())
+        };
+        let doc = DocumentCandidate::from_image(256, 1, source.clone(), None, "photo".into())
+            .unwrap()
+            .into_document();
+        let mut compositor = Compositor::new(2);
+        let tile = compositor
+            .tile(&doc, TileCoord::new(0, 0).unwrap())
+            .unwrap();
+        for (pixel, code) in tile.iter().take(256).zip(samples.chunks_exact(4)) {
+            let encoded = f64::from(code[0]) / f64::from(maximum);
+            let expected = if code[3] == 0 {
+                0.0
+            } else if encoded <= 0.04045 {
+                encoded / 12.92
+            } else {
+                ((encoded + 0.055) / 1.055).powf(2.4)
+            };
+            for channel in &pixel[..3] {
+                assert!((f64::from(*channel) - expected).abs() < 0.0002);
+            }
+            assert!((f64::from(pixel[3]) - f64::from(code[3]) / f64::from(maximum)).abs() < 1e-7);
+        }
+        assert!(tile[256..].iter().all(|p| *p == [0.0; 4]));
+        assert_eq!(doc.export_pixels().unwrap(), source);
+    }
+}
+
+#[test]
 fn edited_exports_match_independent_f64_srgb_reference() {
     // Neutral RGB is invariant under the sRGB/P3 primary matrices. This oracle
     // uses analytic transfer functions and the W3C alpha equation, without any

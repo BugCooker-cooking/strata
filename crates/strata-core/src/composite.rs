@@ -161,8 +161,35 @@ fn compose_tile(doc: &Document, coord: TileCoord) -> Result<Vec<[f32; 4]>, Docum
     let _scratch = doc
         .memory_pool()
         .reserve(MemoryKind::Transient, 256 * 256 * (32 + 16))?;
-    let mut out = vec![[0.0f64; 4]; 256 * 256];
     let [ox, oy] = coord.origin();
+    // The common imported-photo case has no layer mixing. Avoid a full f64
+    // accumulator and per-pixel coordinate/blend work for aligned source tiles.
+    let mut visible = doc
+        .layers()
+        .iter()
+        .filter(|layer| layer.info.visible && layer.info.opacity > 0.0);
+    if let Some(layer) = visible.next()
+        && visible.next().is_none()
+        && layer.info.opacity == 1.0
+        && layer.info.blend_mode == BlendMode::Normal
+        && let Some(sx) = ox.checked_sub(layer.info.x)
+        && let Some(sy) = oy.checked_sub(layer.info.y)
+        && sx.rem_euclid(256) == 0
+        && sy.rem_euclid(256) == 0
+    {
+        let (source_coord, _) = TileCoord::locate(sx, sy);
+        if let Some(source) = layer.pixels.tile(source_coord)? {
+            let mut linear =
+                strata_color::to_linear_p3(&source, TILE_EDGE, TILE_EDGE, doc.working_icc())?;
+            for pixel in &mut linear {
+                if pixel[3] == 0.0 {
+                    *pixel = [0.0; 4];
+                }
+            }
+            return Ok(linear);
+        }
+    }
+    let mut out = vec![[0.0f64; 4]; 256 * 256];
     for layer in doc.layers() {
         if !layer.info.visible || layer.info.opacity == 0.0 {
             continue;
