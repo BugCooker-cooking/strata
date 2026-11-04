@@ -61,6 +61,10 @@ Release 可执行文件：`build/DerivedData/Build/Products/Release/Strata.app/C
 
 `STRATA_REQUIRE_GPU=1 make verify-clean` 已从 `9b82a8a` 的全新归档重新生成绑定/Xcode 工程并完成 146 项 Rust 与 23 项 XCTest，无失败或跳过；未复用 target、生成绑定、工程或 DerivedData。[独立证据](data/2026-11-04-m1b-closure-clean-build.json)。随后仅记录验收元数据。
 
+## 屏幕对照准备
+
+两应用的 P3 六色块与照片已打开，Strata 100% 与预览 50% 按实际屏幕像素匹配。透明红/白边缘在各自背景缩小显示均未见红晕；背景不同，不作混合后 RGB 对比，见 [背景记录](data/2026-11-04-m0-alpha-backgrounds.json)。真实系统指针的六色数码测色计读数仍待手工提供，未以截图代替物理显示验收。
+
 ## 仍需完成
 
 - P3 同屏数码测色计读数与照片对照，以及最终增量 CI。

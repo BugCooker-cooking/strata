@@ -1,0 +1,14 @@
+{
+  "date": "2026-11-04",
+  "implementation_revision": "c55cab6",
+  "fixture": "p3-alpha-edge.png",
+  "strata_zoom_label": "51%",
+  "preview_reduced_below_source_pixel_size": true,
+  "strata_background": "product dark canvas",
+  "preview_background": "Preview dark blue-gray window background",
+  "backgrounds_equal": false,
+  "visible_red_fringe_in_strata": false,
+  "visible_red_fringe_in_preview": false,
+  "numeric_composited_rgb_compared": false,
+  "scope": "Native visual smoke check of hidden transparent red next to opaque white at reduced scale. Backgrounds differ; no claim of physical display color agreement or 16-bit source precision."
+}
