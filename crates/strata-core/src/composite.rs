@@ -19,7 +19,7 @@ impl LinearPixels {
         pixels: Vec<[f32; 4]>,
         pool: &strata_pixels::memory::MemoryPool,
     ) -> Result<Self, strata_pixels::memory::MemoryError> {
-        let reservation = pool.reserve(MemoryKind::CpuCache, (pixels.len() * 16) as u64)?;
+        let reservation = pool.reserve(MemoryKind::CpuCache, (pixels.capacity() * 16) as u64)?;
         Ok(Self {
             pixels,
             _reservation: reservation,
@@ -96,14 +96,13 @@ impl Compositor {
         }
         let pool = doc.memory_pool();
         let reservation = pool.reserve(MemoryKind::CpuCache, 256 * 256 * 16)?;
-        let slot = CacheSlot::new(
-            &pool,
-            LinearPixels {
-                pixels: compose_tile(doc, coord)?,
-                _reservation: reservation,
-            },
-        );
-        let tile = slot.get().expect("new cache entry is resident");
+        let tile = Arc::new(LinearPixels {
+            pixels: compose_tile(doc, coord)?,
+            _reservation: reservation,
+        });
+        // Pin before global registration: a pressure callback may trim caches
+        // concurrently, including a just-created slot.
+        let slot = CacheSlot::from_arc(&pool, tile.clone());
         self.recomputed += 1;
         if self.cache.len() >= self.capacity
             && let Some(victim) = self.cache.iter().min_by_key(|(_, v)| v.2).map(|(k, _)| *k)
@@ -210,7 +209,12 @@ fn compose_tile(doc: &Document, coord: TileCoord) -> Result<Vec<[f32; 4]>, Docum
             }
         }
     }
-    Ok(out.into_iter().map(|p| p.map(|v| v as f32)).collect())
+    // Avoid retaining the larger f64 allocation through an in-place collect.
+    let mut result = Vec::with_capacity(out.len());
+    for pixel in out {
+        result.push(pixel.map(|v| v as f32));
+    }
+    Ok(result)
 }
 
 impl Document {

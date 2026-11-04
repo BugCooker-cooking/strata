@@ -131,3 +131,48 @@ fn concurrent_documents_reload_and_evict_without_exceeding_the_shared_pool() {
     assert_eq!(pool.stats().cpu_bytes, 0);
     assert_eq!(pool.stats().disk_bytes, 0);
 }
+
+#[test]
+fn recently_used_composite_cache_survives_cold_source_admission() {
+    let pool = pool(TILE * 4, TILE * 16);
+    let mut pixels = TiledPixels::with_pool(PixelFormat::Rgba16, 8, pool.clone());
+    for x in 0..3 {
+        pixels
+            .insert_tile(
+                TileCoord::new(x, 0).unwrap(),
+                PixelBuffer::Rgba16(vec![x as u16 + 1; 256 * 256 * 4]),
+            )
+            .unwrap();
+    }
+    let reservation = pool.reserve(MemoryKind::CpuCache, TILE).unwrap();
+    let cache =
+        strata_pixels::memory::CacheSlot::new(&pool, (vec![77u8; TILE as usize], reservation));
+    assert!(cache.get().is_some());
+    pixels
+        .insert_tile(
+            TileCoord::new(3, 0).unwrap(),
+            PixelBuffer::Rgba16(vec![4; 256 * 256 * 4]),
+        )
+        .unwrap();
+    let hot = cache
+        .get()
+        .expect("new cold source must not evict a more recently used composite");
+    assert_eq!(hot.0[0], 77);
+    assert!(pool.stats().disk_bytes >= TILE);
+    assert!(pool.stats().peak_cpu_bytes <= TILE * 4);
+}
+
+#[test]
+fn cache_registration_keeps_an_existing_reader_pinned_through_pressure() {
+    let pool = pool(TILE * 2, TILE * 4);
+    let reservation = pool.reserve(MemoryKind::CpuCache, TILE).unwrap();
+    let reader = std::sync::Arc::new((vec![19u8; TILE as usize], reservation));
+    let slot = strata_pixels::memory::CacheSlot::from_arc(&pool, reader.clone());
+    pool.trim().unwrap();
+    assert_eq!(slot.get().unwrap().0[0], 19);
+    assert_eq!(pool.stats().cpu_cache_bytes, TILE);
+    drop(reader);
+    pool.trim().unwrap();
+    assert!(slot.get().is_none());
+    assert_eq!(pool.stats().cpu_cache_bytes, 0);
+}

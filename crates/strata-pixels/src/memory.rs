@@ -332,7 +332,10 @@ impl MemoryPool {
                     e.kind() != MemoryKind::Gpu
                 }
             });
-            entries.sort_by_key(|(_, _, e)| (e.kind() == MemoryKind::Source, e.used()));
+            // Source admission must not destroy a newer composite merely
+            // because it is rebuildable. Cache the atomic timestamp once:
+            // concurrent readers may update it while sorting.
+            entries.sort_by_cached_key(|(_, _, e)| e.used());
             let mut failure = None;
             for (key, generation, entry) in entries {
                 match entry.evict() {
