@@ -14,6 +14,14 @@ uniffi::setup_scaffolding!();
 mod thumbnails;
 pub use thumbnails::LayerThumbnail;
 
+/// Process resource maintenance must not keep any document engine alive.
+#[uniffi::export]
+pub fn trim_global_source_memory() -> Result<(), StrataError> {
+    strata_pixels::memory::MemoryPool::global()
+        .trim_sources()
+        .map_err(render_error)
+}
+
 #[derive(Debug, Clone, PartialEq, uniffi::Record)]
 pub struct ImageInfo {
     pub width: u32,
@@ -263,9 +271,7 @@ impl StrataEngine {
             .map_err(render_error)
     }
     pub fn trim_source_memory(&self) -> Result<(), StrataError> {
-        strata_pixels::memory::MemoryPool::global()
-            .trim_sources()
-            .map_err(render_error)
+        trim_global_source_memory()
     }
     pub fn core_version(&self) -> String {
         strata_core::version().into()

@@ -21,8 +21,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     // DispatchSource invokes this on its utility queue. Creating the callback
     // outside MainActor prevents Swift 6 from asserting main-queue isolation.
-    nonisolated static func makeMemoryPressureHandler(engine: StrataEngine) -> @Sendable () -> Void {
-        { @Sendable [engine] in try? engine.trimSourceMemory() }
+    // A global callback must not retain the first tab's document after close.
+    nonisolated static func makeMemoryPressureHandler() -> @Sendable () -> Void {
+        { @Sendable in try? trimGlobalSourceMemory() }
     }
 
     private func makeController() -> MainWindowController {
@@ -75,9 +76,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         installMenu(controller)
         controller.showWindow(nil)
         NSApp.activate(ignoringOtherApps: true)
-        let engine = controller.engine
         let pressure = DispatchSource.makeMemoryPressureSource(eventMask: [.warning, .critical], queue: .global(qos: .utility))
-        pressure.setEventHandler(handler: Self.makeMemoryPressureHandler(engine: engine)); pressure.resume(); memoryPressure = pressure
+        pressure.setEventHandler(handler: Self.makeMemoryPressureHandler()); pressure.resume(); memoryPressure = pressure
         do {
             if let options = try WorkspacePressureCheck.Options.parse(ProcessInfo.processInfo.arguments) {
                 var checks = [controller]

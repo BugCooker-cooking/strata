@@ -192,7 +192,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             println!("{}",json!({"path":path,"width":width,"height":height,"layers":layers,"bit_depth":depth,"seed":dataset::SEED}));
         }
         Some("verify-exports") => println!("{}", serde_json::to_string_pretty(&validation::verify_exports(Path::new(args.get(2).ok_or("missing project")?), &args[3..])?)?),
-        _ => return Err("usage: strata-devtool catalog | examples | run SCRIPT.json | demo NEW_DIRECTORY | capacity | memory-stress NEW_DIRECTORY [WIDTH HEIGHT LAYERS] | verify-exports PROJECT IMAGE...".into()),
+        _ => return Err("usage: strata-devtool catalog | examples | docs NEW_MARKDOWN | run SCRIPT.json | demo NEW_DIRECTORY | capacity | fixture-project NEW_PROJECT WIDTH HEIGHT LAYERS DEPTH | memory-stress NEW_DIRECTORY [WIDTH HEIGHT LAYERS] | verify-exports PROJECT IMAGE...".into()),
     }
     Ok(())
 }
