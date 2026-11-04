@@ -169,6 +169,7 @@ fn rgb8_linear_tables_match_unoptimized_float_icc_for_mixed_channels() {
         let icc = profile.icc().unwrap();
         assert!(linear_rgb8_table(&icc).unwrap().is_some());
         let actual = to_linear_p3(&pixels, 8192, 1, &icc).unwrap();
+        assert_eq!(to_linear_p3(&pixels, 8192, 1, &icc).unwrap(), actual);
         // Compare the same serialized ICC. The in-memory profile's colorants
         // have not undergone ICC s15Fixed16 serialization rounding yet.
         let serialized_profile = Profile::new_icc(&icc).unwrap();

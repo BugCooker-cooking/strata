@@ -5,6 +5,7 @@ use lcms2::{
     Profile, Tag, TagSignature, ToneCurve, Transform,
 };
 use std::{
+    cell::RefCell,
     collections::VecDeque,
     sync::{Arc, Mutex, OnceLock},
 };
@@ -97,23 +98,6 @@ pub fn to_linear_p3(
     } else {
         None
     };
-    let mut input = Profile::new_icc(icc).map_err(transform_error)?;
-    if table.is_some() {
-        // Keep the identity as a two-point float table in memory. Serializing
-        // it would turn it back into a parametric gamma=1 curve and retain a
-        // per-sample pow() call in LCMS's unoptimized float pipeline.
-        let identity = ToneCurve::new_tabulated_float(&[0.0, 1.0]);
-        for tag in [
-            TagSignature::RedTRCTag,
-            TagSignature::GreenTRCTag,
-            TagSignature::BlueTRCTag,
-        ] {
-            if !input.write_tag(tag, Tag::ToneCurve(&identity)) {
-                return Err(transform_error("cannot prepare linear input profile"));
-            }
-        }
-    }
-    let output = linear_p3_profile()?;
     let source: Vec<[f32; 4]> = match pixels {
         PixelBuffer::Rgba8(v) => {
             if let Some(table) = &table {
@@ -152,21 +136,58 @@ pub fn to_linear_p3(
             })
             .collect(),
     };
-    let transform = Transform::<[f32; 4], [f32; 4]>::new_flags(
-        &input,
-        PixelFormat::RGBA_FLT,
-        &output,
-        PixelFormat::RGBA_FLT,
-        Intent::RelativeColorimetric,
-        Flags::NO_OPTIMIZE | Flags::COPY_ALPHA,
-    )
-    .map_err(transform_error)?;
     let mut result = vec![[0.0; 4]; source.len()];
-    transform.transform_pixels(&source, &mut result);
+    if table.is_some() {
+        // LCMS transforms are confined to their worker thread. Retain only
+        // one small matrix/TRC transform per thread, keyed by exact ICC bytes.
+        thread_local! { static TRANSFORM: RefCell<Option<(Vec<u8>, LinearTransform)>> = const { RefCell::new(None) }; }
+        TRANSFORM.with(|cached| -> Result<(), ColorError> {
+            let mut cached = cached.borrow_mut();
+            if cached.as_ref().is_none_or(|(key, _)| key != icc) {
+                *cached = Some((icc.to_vec(), make_linear_transform(icc, true)?));
+            }
+            cached
+                .as_ref()
+                .expect("transform initialized")
+                .1
+                .transform_pixels(&source, &mut result);
+            Ok(())
+        })?;
+    } else {
+        make_linear_transform(icc, false)?.transform_pixels(&source, &mut result);
+    }
     for (dst, src) in result.iter_mut().zip(source) {
         dst[3] = src[3];
     }
     Ok(result)
+}
+
+type LinearTransform = Transform<[f32; 4], [f32; 4]>;
+fn make_linear_transform(icc: &[u8], prelinearized: bool) -> Result<LinearTransform, ColorError> {
+    let mut input = Profile::new_icc(icc).map_err(transform_error)?;
+    if prelinearized {
+        // Serializing this identity would turn it back into a parametric
+        // gamma=1 curve and retain per-sample pow() calls in LCMS.
+        let identity = ToneCurve::new_tabulated_float(&[0.0, 1.0]);
+        for tag in [
+            TagSignature::RedTRCTag,
+            TagSignature::GreenTRCTag,
+            TagSignature::BlueTRCTag,
+        ] {
+            if !input.write_tag(tag, Tag::ToneCurve(&identity)) {
+                return Err(transform_error("cannot prepare linear input profile"));
+            }
+        }
+    }
+    Transform::new_flags(
+        &input,
+        PixelFormat::RGBA_FLT,
+        &linear_p3_profile()?,
+        PixelFormat::RGBA_FLT,
+        Intent::RelativeColorimetric,
+        Flags::NO_OPTIMIZE | Flags::COPY_ALPHA,
+    )
+    .map_err(transform_error)
 }
 
 struct LinearRgb8Table {
