@@ -1,0 +1,26 @@
+{
+  "date": "2026-11-04",
+  "source_revision": "c55cab6db706f27fe321a4c94e726b9faabce844",
+  "passed": true,
+  "active_document": {
+    "width": 4000,
+    "height": 6000,
+    "bit_depth": 8
+  },
+  "native_tab_group_size": 2,
+  "minimized_callbacks": 6,
+  "restored_callbacks": 6,
+  "successful_active_canvas_restore_frames": 3,
+  "restored_zooms": [
+    0.25439999,
+    0.20351999,
+    0.25439999
+  ],
+  "post_restore_zoom_controls_work": true,
+  "visual_canvas_complete": true,
+  "error_dialog_observed": false,
+  "document_dirty": false,
+  "method": "Three native minimize-button actions through CUA; accessibility observation returns the window to visibility. NSWindow delegate logs prove both transitions (one callback per tab). Successful restored frames and screenshots verify the active 24MP canvas. This is not physical trackpad or cross-display validation.",
+  "native_minimize_restore_cycles": 3,
+  "normal_quit_exit_code": 0
+}

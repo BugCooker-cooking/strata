@@ -16,9 +16,11 @@ M1a 已接入单画板与像素图层：新建/打开、增删复制/排序/移�
 
 M1b 第二批已支持 JPEG（有损、质量与背景选择）及 WebP（无损/有损、质量、透明度与 DPI）导出，所有输出可保留工作 ICC 或转换为 sRGB/P3；16 位转 JPEG/WebP 必须显式允许量化。导出不修改原文档。第二批验收见 [导出验收](docs/research/2026-11-export-options-progress.md)。
 
-M1b 第三批已接入导出尺寸、macOS HEIC、30 秒空闲恢复检查点与启动恢复入口、跨标签的像素/显示资源预算及磁盘后备；50MP × 30 独立随机 16 位图层完成像素转换、撤销、恢复及逐样本保存重开压力验证。完整 M1b 仍未关闭，剩余设备与显示性能门槛见 [第三批记录](docs/research/2026-11-m1b-recovery-memory-progress.md)。
+M1b 第三批已接入导出尺寸、macOS HEIC、30 秒空闲恢复检查点与启动恢复入口、跨标签的像素/显示资源预算及磁盘后备；50MP × 30 独立随机 16 位图层完成像素转换、撤销、恢复及逐样本保存重开压力验证。完整 M1b 仍未关闭，剩余设备、M0 人工对色与最终交付门槛见 [第三批记录](docs/research/2026-11-m1b-recovery-memory-progress.md)。
 
 实现 `8835925` 已通过精确源码 clean-build；`6e57d3a` 的 [Linux/macOS CI](https://github.com/BugCooker-cooking/strata/actions/runs/41711000823) 全绿。
+
+当前 Mac 已通过 8/16 位 24MP×20 的三轮原生帧率（约 60fps、p95≤18.50ms）、JPEG 1.5 秒打开参考目标、恢复另存及多文档缓存压力；完整条件见 [原生验收](docs/research/2026-11-m1b-native-acceptance.md)。
 
 M0 额外设备与人工显示/输入验收继续追踪；当前 Mac 的 M1a 验收证据、容量限制与 M1b 边界见 [M1a 实施记录](docs/research/2026-11-m1a-progress.md)。
 

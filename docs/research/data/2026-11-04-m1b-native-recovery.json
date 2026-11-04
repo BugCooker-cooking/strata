@@ -1,0 +1,15 @@
+{
+  "passed": true,
+  "date": "2026-11-04",
+  "source_document_id": "f85bf0c3-a838-4f8f-8dae-ea515adb690b",
+  "width": 2480,
+  "height": 3508,
+  "bit_depth": 16,
+  "resolution_dpi": 300,
+  "metadata_exact": true,
+  "tiles_exact": 140,
+  "source_sample_bytes_exact": 73400320,
+  "recovery_copies_remaining": 0,
+  "ui_state_after_save": "clean",
+  "method": "Native startup recovery prompt -> restore -> native Save panel to a new project; read-only full metadata/tile/hash comparison against pre-crash task checkpoint."
+}

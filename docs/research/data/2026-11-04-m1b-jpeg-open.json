@@ -1,0 +1,26 @@
+{
+  "source_revision": "8a2abbd504f16db76d4589315468d1aa1b444ee0",
+  "runs": [
+    {
+      "run": 1,
+      "exit_code": 0,
+      "open_ms": 1424.0588749526069
+    },
+    {
+      "run": 2,
+      "exit_code": 0,
+      "open_ms": 1390.4144583502784
+    },
+    {
+      "run": 3,
+      "exit_code": 0,
+      "open_ms": 1298.4761249972507
+    }
+  ],
+  "passes_1500ms_host_target": true,
+  "scope": "Three fresh app opens on current M4 host; no profiler or concurrent build; OS file cache not controlled. Short measurement is not a 3x30s FPS qualification.",
+  "baseline_ms": 3252.205124939792,
+  "baseline_source": "30af38f",
+  "final_source": "8a2abbd",
+  "intermediate_nonqualifying_runs_preserved_in_build": true
+}

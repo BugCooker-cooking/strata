@@ -780,7 +780,7 @@ git commit -m "feat(macos): app shell with UniFFI bridge and main-thread event d
     - 没有画布时以上四个方法都是空操作
   - Swift：`final class CanvasView: NSView`，`init(engine: StrataEngine)`，`func markDirty()`
 
-- [ ] **Step 1: 写 ffi 的失败测试**
+- [x] **Step 1: 画布失败与生命周期回归**（见 `strata-ffi/src/tests.rs` 与 `BridgeTests.swift`；M1 的 view 命令契约以后续命令说明为准）
 
 ```rust
 #[test] fn resize_canvas_to_zero_is_safe()
@@ -793,7 +793,7 @@ git commit -m "feat(macos): app shell with UniFFI bridge and main-thread event d
 // attach → detach 两次 → render_frame 返回 NoCanvas，文档像素不变；重连可恢复
 ```
 
-- [ ] **Step 2: 运行测试确认失败**
+**Step 2: 原计划的初始红阶段**（历史日志未保留，不追认执行；当前交付以 Step 4 的通过回归及原生生命周期证据验收）
 
 Run: `cargo test -p strata-ffi`
 Expected: FAIL，`no method named 'resize_canvas'`
@@ -820,7 +820,7 @@ Expected: 全部 PASS
 - `FrameStatsHUD`：Debug 默认显示，Release 通过 `--frame-stats` 开启。显示 fps、cpu_ms 与帧间隔 p50/p95；fps 取最近 1 秒实际渲染数，静止时 dirty 帧数低不是性能下降。记录器与渲染循环分离；CPU 提交耗时不等于 GPU 完成时间。
 - 启动后如果没有打开任何文档，就打开应用包里的 `sample.jpg`；`documentOpened` 事件调用 `showDocumentInfo` 并 `markDirty()`。
 
-- [ ] **Step 6: 构建并手动验证**
+- [ ] **Step 6: 构建并手动验证**（当前设备窗口/打开失败/位深项已验证；物理触控板及跨屏仍缺设备。2026-11-04 已补齐三轮最小化/恢复，见 [记录](../research/data/2026-11-04-m0-window-lifecycle.json)）
 
 Run: `make run`
 Expected（逐项确认）：

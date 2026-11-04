@@ -1,0 +1,43 @@
+{
+  "date": "2026-11-04",
+  "failed_source_revision": "11865ad",
+  "scenario": "24MP x 20 independent RGBA16 layers; OS memory-pressure callback during opening",
+  "exception": "EXC_BREAKPOINT / SIGTRAP",
+  "faulting_queue": "com.apple.root.utility-qos",
+  "faulting_symbols": [
+    "_dispatch_assert_queue_fail",
+    "_swift_task_checkIsolatedSwift",
+    "closure in AppDelegate.applicationDidFinishLaunching"
+  ],
+  "cause": "Callback created in MainActor inherited actor isolation but DispatchSource invoked it on a utility queue.",
+  "fix_revision": "15debcf",
+  "fix": "Nonisolated callback factory returns an explicitly Sendable closure capturing only the Sendable engine.",
+  "targeted_native_regression": "testMemoryPressureCallbackRunsOnUtilityQueueAndPreservesDocument",
+  "targeted_regression_passed": true,
+  "source_state_and_thumbnail_bytes_preserved": true,
+  "full_workload_rerun": "passed: 8/16-bit 24MP x 20 independent layers, three 30-second native rounds each",
+  "performance_fix_revision": "8f8465d",
+  "regressions": {
+    "memory_tests": 7,
+    "metal_render_tests": 13,
+    "native_pressure_callback": true,
+    "real_idle_checkpoint_save_cleanup": true
+  },
+  "retired_document_engine_retained_by_listener": {
+    "found": true,
+    "fixed_source_revision": "c55cab6",
+    "fix": "Process-global FFI maintenance entry; the utility callback captures no document engine.",
+    "native_regression_passed": true,
+    "retired_engine_released_and_other_engine_survives_pressure": true
+  },
+  "full_workspace_regression": {
+    "rust_passed": 146,
+    "rust_failed": 0,
+    "rust_ignored": 0,
+    "xctest_passed": 23,
+    "xctest_failed": 0,
+    "lint": true,
+    "command_examples": 28,
+    "release": true
+  }
+}

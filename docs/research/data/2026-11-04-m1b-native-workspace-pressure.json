@@ -1,0 +1,158 @@
+{
+  "after_canvas_detach": {
+    "limits": {
+      "cpu_bytes": 2147483648,
+      "disk_bytes": 34359738368,
+      "gpu_bytes": 536870912
+    },
+    "usage": {
+      "backing_read_bytes": 22797352960,
+      "backing_write_bytes": 6039797760,
+      "cpu_bytes": 2147483648,
+      "cpu_cache_bytes": 0,
+      "cpu_cache_evictions": 768,
+      "disk_bytes": 6039797760,
+      "evictions": 64847,
+      "gpu_bytes": 0,
+      "gpu_evictions": 1464,
+      "peak_cpu_bytes": 2147483648,
+      "peak_disk_bytes": 6039797760,
+      "peak_gpu_bytes": 503495680,
+      "reloads": 51351,
+      "source_bytes": 2147483648,
+      "source_evictions": 62615,
+      "transient_bytes": 0
+    }
+  },
+  "before": {
+    "limits": {
+      "cpu_bytes": 2147483648,
+      "disk_bytes": 34359738368,
+      "gpu_bytes": 536870912
+    },
+    "usage": {
+      "backing_read_bytes": 6958088192,
+      "backing_write_bytes": 6039797760,
+      "cpu_bytes": 2147483648,
+      "cpu_cache_bytes": 0,
+      "cpu_cache_evictions": 256,
+      "disk_bytes": 6039797760,
+      "evictions": 24972,
+      "gpu_bytes": 94692352,
+      "gpu_evictions": 0,
+      "peak_cpu_bytes": 2147483648,
+      "peak_disk_bytes": 6039797760,
+      "peak_gpu_bytes": 104473344,
+      "reloads": 13452,
+      "source_bytes": 2147483648,
+      "source_evictions": 24716,
+      "transient_bytes": 0
+    }
+  },
+  "date": "2026-11-04T07:13:50Z",
+  "documents": [
+    {
+      "history_entries": 0,
+      "layer_count": 20,
+      "referenced_source_bytes": 2013265920,
+      "source_tile_count": 7680,
+      "unique_source_blocks": 7680
+    },
+    {
+      "history_entries": 0,
+      "layer_count": 20,
+      "referenced_source_bytes": 4026531840,
+      "source_tile_count": 7680,
+      "unique_source_blocks": 7680
+    }
+  ],
+  "explicit_native_frames_per_document": 16,
+  "limitations": [
+    "Native resource pressure check, not a frame-rate measurement.",
+    "Thumbnail samples compared exactly; full source sample preservation is covered separately by the 50MP stress check."
+  ],
+  "native_renderers": 2,
+  "passed": true,
+  "populated": {
+    "limits": {
+      "cpu_bytes": 2147483648,
+      "disk_bytes": 34359738368,
+      "gpu_bytes": 536870912
+    },
+    "usage": {
+      "backing_read_bytes": 13333430272,
+      "backing_write_bytes": 6039797760,
+      "cpu_bytes": 2143289344,
+      "cpu_cache_bytes": 134217728,
+      "cpu_cache_evictions": 384,
+      "disk_bytes": 6039797760,
+      "evictions": 41364,
+      "gpu_bytes": 503483392,
+      "gpu_evictions": 0,
+      "peak_cpu_bytes": 2147483648,
+      "peak_disk_bytes": 6039797760,
+      "peak_gpu_bytes": 503495680,
+      "reloads": 29452,
+      "source_bytes": 2009071616,
+      "source_evictions": 40980,
+      "transient_bytes": 0
+    }
+  },
+  "revisited": {
+    "limits": {
+      "cpu_bytes": 2147483648,
+      "disk_bytes": 34359738368,
+      "gpu_bytes": 536870912
+    },
+    "usage": {
+      "backing_read_bytes": 22797352960,
+      "backing_write_bytes": 6039797760,
+      "cpu_bytes": 2147483648,
+      "cpu_cache_bytes": 0,
+      "cpu_cache_evictions": 768,
+      "disk_bytes": 6039797760,
+      "evictions": 64847,
+      "gpu_bytes": 133033216,
+      "gpu_evictions": 1464,
+      "peak_cpu_bytes": 2147483648,
+      "peak_disk_bytes": 6039797760,
+      "peak_gpu_bytes": 503495680,
+      "reloads": 51351,
+      "source_bytes": 2147483648,
+      "source_evictions": 62615,
+      "transient_bytes": 0
+    }
+  },
+  "source_revision": "8a2abbd504f16db76d4589315468d1aa1b444ee0",
+  "state_exact": true,
+  "thumbnail_sample_bytes_exact": [
+    122880,
+    122880
+  ],
+  "trimmed": {
+    "limits": {
+      "cpu_bytes": 2147483648,
+      "disk_bytes": 34359738368,
+      "gpu_bytes": 536870912
+    },
+    "usage": {
+      "backing_read_bytes": 13333430272,
+      "backing_write_bytes": 6039797760,
+      "cpu_bytes": 0,
+      "cpu_cache_bytes": 0,
+      "cpu_cache_evictions": 512,
+      "disk_bytes": 6039797760,
+      "evictions": 46788,
+      "gpu_bytes": 106091776,
+      "gpu_evictions": 1464,
+      "peak_cpu_bytes": 2147483648,
+      "peak_disk_bytes": 6039797760,
+      "peak_gpu_bytes": 503495680,
+      "reloads": 29452,
+      "source_bytes": 0,
+      "source_evictions": 44812,
+      "transient_bytes": 0
+    }
+  },
+  "process_exit_code": 0
+}
