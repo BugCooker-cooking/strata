@@ -4,6 +4,24 @@ import XCTest
 
 final class WorkspaceTests: XCTestCase {
     @MainActor
+    func testMemoryPressureCallbackRunsOnUtilityQueueAndPreservesDocument() async throws {
+        let engine = StrataEngine(listener: EngineEvents { _ in })
+        _ = try engine.dispatch(command: "file.new", paramsJson: commandJSON(["width": 2, "height": 2, "bit_depth": 16]))
+        _ = try engine.dispatch(command: "layer.create", paramsJson: commandJSON(["name": "pressure", "fill": [32768,32769,50001,12345]]))
+        let state = try engine.snapshotJson()
+        let revision = try EditorSnapshot.decode(state).revision
+        let previews = try engine.layerThumbnails(revision: revision).map(\.rgba)
+        let handler = AppDelegate.makeMemoryPressureHandler(engine: engine)
+        await withCheckedContinuation { continuation in
+            DispatchQueue.global(qos: .utility).async {
+                handler()
+                continuation.resume()
+            }
+        }
+        XCTAssertEqual(try engine.snapshotJson(), state)
+        XCTAssertEqual(try engine.layerThumbnails(revision: revision).map(\.rgba), previews)
+    }
+    @MainActor
     func testMinimumWorkspaceKeepsAllThreePanelsInsideContentBounds() throws {
         let engine = StrataEngine(listener: EngineEvents { _ in })
         _ = try engine.dispatch(command: "file.new", paramsJson: commandJSON(["width": 16, "height": 16, "bit_depth": 8]))

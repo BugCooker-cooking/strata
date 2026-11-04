@@ -19,6 +19,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var recoveryDirectory: URL?
     private var memoryPressure: DispatchSourceMemoryPressure?
 
+    // DispatchSource invokes this on its utility queue. Creating the callback
+    // outside MainActor prevents Swift 6 from asserting main-queue isolation.
+    nonisolated static func makeMemoryPressureHandler(engine: StrataEngine) -> @Sendable () -> Void {
+        { @Sendable [engine] in try? engine.trimMemory() }
+    }
+
     private func makeController() -> MainWindowController {
         let reference = WindowReference()
         let events = EngineEvents { event in reference.controller?.handle(event) }
@@ -71,7 +77,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         NSApp.activate(ignoringOtherApps: true)
         let engine = controller.engine
         let pressure = DispatchSource.makeMemoryPressureSource(eventMask: [.warning, .critical], queue: .global(qos: .utility))
-        pressure.setEventHandler { try? engine.trimMemory() }; pressure.resume(); memoryPressure = pressure
+        pressure.setEventHandler(handler: Self.makeMemoryPressureHandler(engine: engine)); pressure.resume(); memoryPressure = pressure
         do {
             if let options = try BenchmarkOptions.parse(ProcessInfo.processInfo.arguments) {
                 // Opt-in diagnostic mode: ordinary app windows keep their normal level.
