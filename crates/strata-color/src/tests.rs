@@ -220,3 +220,17 @@ fn rgb8_linear_tables_do_not_accept_profiles_with_a_to_b_pipelines() {
     );
     assert!(linear_rgb8_table(&icc).unwrap().is_none());
 }
+
+#[test]
+fn linear_profile_identity_preserves_negative_and_extended_float_values() {
+    let profile = linear_p3_profile().unwrap();
+    let Tag::ToneCurve(curve) = profile.read_tag(TagSignature::RedTRCTag) else {
+        panic!("missing linear curve")
+    };
+    let inverse = curve.reversed();
+    let reference = ToneCurve::new(1.0);
+    for value in [-10.0f32, -0.1, 0.0, 0.00001, 0.1, 0.5, 1.0, 1.5, 2.0, 10.0] {
+        assert_eq!(curve.eval(value), reference.eval(value));
+        assert_eq!(inverse.eval(value), reference.eval(value));
+    }
+}

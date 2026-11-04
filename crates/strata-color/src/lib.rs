@@ -67,7 +67,11 @@ pub fn resolve_profile(bytes: Option<&[u8]>) -> Result<ResolvedProfile, ColorErr
 
 fn linear_p3_profile() -> Result<Profile, ColorError> {
     let point = |x, y| CIExyY { x, y, Y: 1.0 };
-    let gamma = ToneCurve::new(1.0);
+    // Both branches are exactly y=x, including negative/extended RGB. LCMS's
+    // type-1 gamma=1 evaluator still calls pow() for every positive sample;
+    // type 5 takes its linear branch throughout the ordinary working range.
+    let gamma = ToneCurve::new_parametric(5, &[1.0, 1.0, 0.0, 1.0, 2.0, 0.0, 0.0])
+        .map_err(transform_error)?;
     Profile::new_rgb(
         &point(0.3127, 0.3290),
         &CIExyYTRIPLE {
@@ -93,8 +97,22 @@ pub fn to_linear_p3(
     } else {
         None
     };
-    let input = Profile::new_icc(table.as_ref().map_or(icc, |t| t.linear_icc.as_slice()))
-        .map_err(transform_error)?;
+    let mut input = Profile::new_icc(icc).map_err(transform_error)?;
+    if table.is_some() {
+        // Keep the identity as a two-point float table in memory. Serializing
+        // it would turn it back into a parametric gamma=1 curve and retain a
+        // per-sample pow() call in LCMS's unoptimized float pipeline.
+        let identity = ToneCurve::new_tabulated_float(&[0.0, 1.0]);
+        for tag in [
+            TagSignature::RedTRCTag,
+            TagSignature::GreenTRCTag,
+            TagSignature::BlueTRCTag,
+        ] {
+            if !input.write_tag(tag, Tag::ToneCurve(&identity)) {
+                return Err(transform_error("cannot prepare linear input profile"));
+            }
+        }
+    }
     let output = linear_p3_profile()?;
     let source: Vec<[f32; 4]> = match pixels {
         PixelBuffer::Rgba8(v) => v
@@ -145,7 +163,6 @@ pub fn to_linear_p3(
 
 struct LinearRgb8Table {
     curves: [[f32; 256]; 3],
-    linear_icc: Vec<u8>,
 }
 
 type LinearRgb8Cache = VecDeque<(Vec<u8>, Arc<LinearRgb8Table>)>;
@@ -169,7 +186,7 @@ fn linear_rgb8_table(icc: &[u8]) -> Result<Option<Arc<LinearRgb8Table>>, ColorEr
             return Ok(Some(table));
         }
     }
-    let mut input = Profile::new_icc(icc).map_err(transform_error)?;
+    let input = Profile::new_icc(icc).map_err(transform_error)?;
     let lut_tags = [
         TagSignature::AToB0Tag,
         TagSignature::AToB1Tag,
@@ -184,7 +201,6 @@ fn linear_rgb8_table(icc: &[u8]) -> Result<Option<Arc<LinearRgb8Table>>, ColorEr
     }
     let mut table = LinearRgb8Table {
         curves: [[0.0; 256]; 3],
-        linear_icc: Vec::new(),
     };
     let tags = [
         TagSignature::RedTRCTag,
@@ -199,13 +215,16 @@ fn linear_rgb8_table(icc: &[u8]) -> Result<Option<Arc<LinearRgb8Table>>, ColorEr
             table.curves[channel][code] = curve.eval(code as f32 / 255.0);
         }
     }
-    let identity = ToneCurve::new(1.0);
-    for tag in tags {
-        if !input.write_tag(tag, Tag::ToneCurve(&identity)) {
-            return Err(transform_error("cannot prepare linear input profile"));
-        }
+    // A two-point identity table is exact inside [0,1]. Keep the original
+    // LCMS path for unusual curves with negative, extended or nonfinite values.
+    if table
+        .curves
+        .iter()
+        .flatten()
+        .any(|v| !v.is_finite() || !(0.0..=1.0).contains(v))
+    {
+        return Ok(None);
     }
-    table.linear_icc = input.icc().map_err(transform_error)?;
     let table = Arc::new(table);
     let mut entries = cache.lock().unwrap_or_else(|e| e.into_inner());
     if entries.len() >= 4 {
