@@ -372,6 +372,9 @@ fn mip_with_gutter(neighbors: &[LinearTile], lod: u32) -> (u32, Vec<f16>) {
     let step = 1i32 << lod;
     let n = 256 / step;
     let size = n + 2;
+    // step is a power of two: multiplying by its squared reciprocal is exact
+    // and avoids four dynamic divisions per output texel.
+    let scale = 1.0 / f64::from(step * step);
     let mut data = Vec::with_capacity((size * size * 4) as usize);
     for y in -1..=n {
         for x in -1..=n {
@@ -390,7 +393,7 @@ fn mip_with_gutter(neighbors: &[LinearTile], lod: u32) -> (u32, Vec<f16>) {
                 }
             }
             for value in sum {
-                data.push(f16::from_f64(value / f64::from(step * step)));
+                data.push(f16::from_f64(value * scale));
             }
         }
     }

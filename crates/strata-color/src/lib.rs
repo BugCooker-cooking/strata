@@ -115,23 +115,31 @@ pub fn to_linear_p3(
     }
     let output = linear_p3_profile()?;
     let source: Vec<[f32; 4]> = match pixels {
-        PixelBuffer::Rgba8(v) => v
-            .chunks_exact(4)
-            .map(|p| {
-                [
-                    table
-                        .as_ref()
-                        .map_or(p[0] as f32 / 255.0, |t| t.curves[0][p[0] as usize]),
-                    table
-                        .as_ref()
-                        .map_or(p[1] as f32 / 255.0, |t| t.curves[1][p[1] as usize]),
-                    table
-                        .as_ref()
-                        .map_or(p[2] as f32 / 255.0, |t| t.curves[2][p[2] as usize]),
-                    p[3] as f32 / 255.0,
-                ]
-            })
-            .collect(),
+        PixelBuffer::Rgba8(v) => {
+            if let Some(table) = &table {
+                v.chunks_exact(4)
+                    .map(|p| {
+                        [
+                            table.curves[0][p[0] as usize],
+                            table.curves[1][p[1] as usize],
+                            table.curves[2][p[2] as usize],
+                            table.alpha[p[3] as usize],
+                        ]
+                    })
+                    .collect()
+            } else {
+                v.chunks_exact(4)
+                    .map(|p| {
+                        [
+                            p[0] as f32 / 255.0,
+                            p[1] as f32 / 255.0,
+                            p[2] as f32 / 255.0,
+                            p[3] as f32 / 255.0,
+                        ]
+                    })
+                    .collect()
+            }
+        }
         PixelBuffer::Rgba16(v) => v
             .chunks_exact(4)
             .map(|p| {
@@ -163,6 +171,7 @@ pub fn to_linear_p3(
 
 struct LinearRgb8Table {
     curves: [[f32; 256]; 3],
+    alpha: [f32; 256],
 }
 
 type LinearRgb8Cache = VecDeque<(Vec<u8>, Arc<LinearRgb8Table>)>;
@@ -201,6 +210,7 @@ fn linear_rgb8_table(icc: &[u8]) -> Result<Option<Arc<LinearRgb8Table>>, ColorEr
     }
     let mut table = LinearRgb8Table {
         curves: [[0.0; 256]; 3],
+        alpha: std::array::from_fn(|code| code as f32 / 255.0),
     };
     let tags = [
         TagSignature::RedTRCTag,
