@@ -50,6 +50,9 @@ pub struct MemoryStats {
     pub peak_gpu_bytes: u64,
     pub peak_disk_bytes: u64,
     pub evictions: u64,
+    pub source_evictions: u64,
+    pub cpu_cache_evictions: u64,
+    pub gpu_evictions: u64,
     pub reloads: u64,
 }
 #[derive(Debug, thiserror::Error)]
@@ -179,7 +182,7 @@ impl MemoryPool {
             .entries
             .insert(key, (Arc::downgrade(&entry), self.tick()));
     }
-    fn evicted(&self, key: usize, generation: u64) {
+    fn evicted(&self, key: usize, generation: u64, kind: MemoryKind) {
         let mut state = self.0.state.lock().unwrap_or_else(|e| e.into_inner());
         // A simultaneous reload may already have registered a new generation.
         if state
@@ -190,6 +193,12 @@ impl MemoryPool {
             state.entries.remove(&key);
         }
         state.stats.evictions += 1;
+        match kind {
+            MemoryKind::Source => state.stats.source_evictions += 1,
+            MemoryKind::CpuCache => state.stats.cpu_cache_evictions += 1,
+            MemoryKind::Gpu => state.stats.gpu_evictions += 1,
+            _ => {}
+        }
     }
     pub(crate) fn reloaded(&self) {
         self.0
@@ -340,7 +349,7 @@ impl MemoryPool {
             for (key, generation, entry) in entries {
                 match entry.evict() {
                     Ok(true) => {
-                        self.evicted(key, generation);
+                        self.evicted(key, generation, entry.kind());
                     }
                     Ok(false) => {}
                     Err(e) => failure = Some(e),
@@ -382,7 +391,7 @@ impl MemoryPool {
                 continue;
             }
             if entry.evict()? {
-                self.evicted(key, generation);
+                self.evicted(key, generation, entry.kind());
             }
         }
         Ok(())

@@ -79,6 +79,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let pressure = DispatchSource.makeMemoryPressureSource(eventMask: [.warning, .critical], queue: .global(qos: .utility))
         pressure.setEventHandler(handler: Self.makeMemoryPressureHandler(engine: engine)); pressure.resume(); memoryPressure = pressure
         do {
+            if let options = try WorkspacePressureCheck.Options.parse(ProcessInfo.processInfo.arguments) {
+                var checks = [controller]
+                for _ in options.inputs.dropFirst() {
+                    let next = makeController()
+                    if let window = next.window { controller.window?.addTabbedWindow(window, ordered: .above) }
+                    checks.append(next)
+                }
+                Task {
+                    do { try await WorkspacePressureCheck.run(options, controllers: checks) }
+                    catch { benchmarkLog("STRATA_WORKSPACE_PRESSURE_FAILED \(error.localizedDescription)") }
+                    NSApp.terminate(nil)
+                }
+                return
+            }
             if let options = try BenchmarkOptions.parse(ProcessInfo.processInfo.arguments) {
                 // Opt-in diagnostic mode: ordinary app windows keep their normal level.
                 if options.keepVisible {

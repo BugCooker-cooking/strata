@@ -175,6 +175,7 @@ fn cache_registration_keeps_an_existing_reader_pinned_through_pressure() {
     pool.trim().unwrap();
     assert!(slot.get().is_none());
     assert_eq!(pool.stats().cpu_cache_bytes, 0);
+    assert_eq!(pool.stats().cpu_cache_evictions, 1);
 }
 
 #[test]
@@ -202,6 +203,9 @@ fn source_pressure_trim_preserves_bounded_cpu_and_gpu_display_caches() {
     pool.trim_sources().unwrap();
     assert_eq!(pool.stats().source_bytes, 0);
     assert_eq!(pool.stats().disk_bytes, TILE);
+    assert_eq!(pool.stats().source_evictions, 1);
+    assert_eq!(pool.stats().cpu_cache_evictions, 0);
+    assert_eq!(pool.stats().gpu_evictions, 0);
     assert!(cpu.get().is_some());
     assert!(gpu.get().is_some());
     assert_eq!(pixels.pixel(0, 0).unwrap(), PixelValue::Rgba16([23; 4]));
