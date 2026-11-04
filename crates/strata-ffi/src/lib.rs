@@ -262,6 +262,11 @@ impl StrataEngine {
             .trim()
             .map_err(render_error)
     }
+    pub fn trim_source_memory(&self) -> Result<(), StrataError> {
+        strata_pixels::memory::MemoryPool::global()
+            .trim_sources()
+            .map_err(render_error)
+    }
     pub fn core_version(&self) -> String {
         strata_core::version().into()
     }

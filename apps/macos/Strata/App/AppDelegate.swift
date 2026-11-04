@@ -22,7 +22,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     // DispatchSource invokes this on its utility queue. Creating the callback
     // outside MainActor prevents Swift 6 from asserting main-queue isolation.
     nonisolated static func makeMemoryPressureHandler(engine: StrataEngine) -> @Sendable () -> Void {
-        { @Sendable [engine] in try? engine.trimMemory() }
+        { @Sendable [engine] in try? engine.trimSourceMemory() }
     }
 
     private func makeController() -> MainWindowController {

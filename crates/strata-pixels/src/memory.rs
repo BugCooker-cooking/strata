@@ -357,6 +357,15 @@ impl MemoryPool {
     }
     /// Release idle caches and spill unpinned source blocks under system pressure.
     pub fn trim(&self) -> Result<(), MemoryError> {
+        self.trim_entries(false)
+    }
+    /// Reclaim the large source/history working set under OS pressure while
+    /// retaining budgeted display caches needed for smooth panning. Those
+    /// caches remain globally evictable when their own allocations need room.
+    pub fn trim_sources(&self) -> Result<(), MemoryError> {
+        self.trim_entries(true)
+    }
+    fn trim_entries(&self, sources_only: bool) -> Result<(), MemoryError> {
         let entries: Vec<_> = self
             .0
             .state
@@ -369,6 +378,9 @@ impl MemoryPool {
             })
             .collect();
         for (key, generation, entry) in entries {
+            if sources_only && entry.kind() != MemoryKind::Source {
+                continue;
+            }
             if entry.evict()? {
                 self.evicted(key, generation);
             }

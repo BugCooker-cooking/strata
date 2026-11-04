@@ -9,20 +9,31 @@ final class RecoveryTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: directory) }
         let engine = StrataEngine(listener: EngineEvents { _ in })
         let controller = MainWindowController(engine: engine)
+        defer { controller.canvas.shutdown() }
         controller.startRecovery(directory: directory.appendingPathComponent("recovery"))
         defer { controller.recovery?.stop(discard: false) }
         _ = try engine.dispatch(command: "file.new", paramsJson: commandJSON(["width": 2, "height": 2, "bit_depth": 16]))
         controller.refresh()
         XCTAssertTrue(try RecoveryEntry.decode(engine.recoveryEntriesJson()).isEmpty)
-        try await Task.sleep(for: .seconds(32))
+        // The file becomes readable before the utility-queue completion is
+        // delivered to MainActor. Wait for both observable outcomes, including
+        // that delivery, rather than racing it at a fixed 32-second instant.
+        let checkpointDeadline = ProcessInfo.processInfo.systemUptime + 60
+        while ProcessInfo.processInfo.systemUptime < checkpointDeadline {
+            if try RecoveryEntry.decode(engine.recoveryEntriesJson()).count == 1,
+               controller.workspace.recoveryStatus.hasPrefix("恢复副本 ") { break }
+            try await Task.sleep(for: .milliseconds(100))
+        }
         let entries = try RecoveryEntry.decode(engine.recoveryEntriesJson())
         XCTAssertEqual(entries.count, 1)
         XCTAssertTrue(try EditorSnapshot.decode(engine.snapshotJson()).dirty)
-        XCTAssertTrue(controller.workspace.recoveryStatus.hasPrefix("恢复副本"))
+        XCTAssertTrue(controller.workspace.recoveryStatus.hasPrefix("恢复副本 "),
+                      "status=\(controller.workspace.recoveryStatus), error=\(controller.workspace.recoveryError)")
         let target = try engine.grantWrite(path: directory.appendingPathComponent("saved.strata").path, overwrite: false)
         _ = try engine.dispatch(command: "file.save_as", paramsJson: commandJSON(["resource": target]))
         controller.refresh()
-        for _ in 0..<20 {
+        let cleanupDeadline = ProcessInfo.processInfo.systemUptime + 10
+        while ProcessInfo.processInfo.systemUptime < cleanupDeadline {
             if try RecoveryEntry.decode(engine.recoveryEntriesJson()).isEmpty { break }
             try await Task.sleep(for: .milliseconds(50))
         }

@@ -176,3 +176,35 @@ fn cache_registration_keeps_an_existing_reader_pinned_through_pressure() {
     assert!(slot.get().is_none());
     assert_eq!(pool.stats().cpu_cache_bytes, 0);
 }
+
+#[test]
+fn source_pressure_trim_preserves_bounded_cpu_and_gpu_display_caches() {
+    let pool = pool(TILE * 3, TILE * 8);
+    let mut pixels = TiledPixels::with_pool(PixelFormat::Rgba16, 2, pool.clone());
+    pixels
+        .insert_tile(
+            TileCoord::new(0, 0).unwrap(),
+            PixelBuffer::Rgba16(vec![23; 256 * 256 * 4]),
+        )
+        .unwrap();
+    let cpu = strata_pixels::memory::CacheSlot::new(
+        &pool,
+        (
+            vec![3u8; TILE as usize],
+            pool.reserve(MemoryKind::CpuCache, TILE).unwrap(),
+        ),
+    );
+    let gpu = strata_pixels::memory::CacheSlot::with_kind(
+        &pool,
+        std::sync::Arc::new(pool.reserve(MemoryKind::Gpu, TILE).unwrap()),
+        MemoryKind::Gpu,
+    );
+    pool.trim_sources().unwrap();
+    assert_eq!(pool.stats().source_bytes, 0);
+    assert_eq!(pool.stats().disk_bytes, TILE);
+    assert!(cpu.get().is_some());
+    assert!(gpu.get().is_some());
+    assert_eq!(pixels.pixel(0, 0).unwrap(), PixelValue::Rgba16([23; 4]));
+    assert!(pool.stats().peak_cpu_bytes <= TILE * 3);
+    assert!(pool.stats().peak_gpu_bytes <= TILE);
+}

@@ -21,6 +21,7 @@ pub(crate) struct Scene {
     pub document: Document,
     compositor: Compositor,
     cache: HashMap<(TileCoord, u32), Arc<CacheSlot<GpuTile>>>,
+    fingerprints: HashMap<TileCoord, u64>,
     visible: Vec<DrawTile>,
     last: Option<(ViewTransform, Viewport)>,
     camera: Option<(wgpu::Buffer, wgpu::BindGroup, Reservation)>,
@@ -82,6 +83,7 @@ impl Scene {
                 .map(|s| s.compositor.clone())
                 .unwrap_or_else(|| Compositor::new(128)),
             cache: old.map(|s| s.cache.clone()).unwrap_or_default(),
+            fingerprints: HashMap::new(),
             visible: Vec::new(),
             last: None,
             camera: None,
@@ -144,13 +146,22 @@ impl Scene {
             return Ok(());
         }
         let mut visible = Vec::new();
+        if self.fingerprints.len() >= 4096 {
+            self.fingerprints.clear();
+        }
         for coord in coords {
             let mut signatures = Vec::new();
             let mut neighbor_coords = Vec::new();
             for y in -1..=1 {
                 for x in -1..=1 {
                     let c = TileCoord::new(coord.x() + x, coord.y() + y).map_err(err)?;
-                    signatures.push(Compositor::signature(&self.document, c));
+                    // A Scene owns an immutable document snapshot. Rehash only
+                    // when a new scene is created, not on every camera change.
+                    let signature = *self
+                        .fingerprints
+                        .entry(c)
+                        .or_insert_with(|| Compositor::signature(&self.document, c));
+                    signatures.push(signature);
                     neighbor_coords.push(c);
                 }
             }

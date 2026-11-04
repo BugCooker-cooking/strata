@@ -21,6 +21,72 @@ fn renderer() -> Option<Renderer> {
 }
 
 #[test]
+fn camera_fingerprint_cache_is_reset_for_metadata_edits_in_the_same_document() {
+    let Some(mut r) = renderer() else {
+        return;
+    };
+    let mut editor = strata_core::Editor::new();
+    for (id, args) in [
+        (
+            "file.new",
+            serde_json::json!({"width":16,"height":16,"bit_depth":8}),
+        ),
+        (
+            "layer.create",
+            serde_json::json!({"name":"red","fill":[255,0,0,255]}),
+        ),
+    ] {
+        let req = editor.request(strata_core::Source::Test);
+        editor.execute(req, id, args, |_| Ok(())).unwrap();
+    }
+    let document_id = editor.document().unwrap().id();
+    let version = editor.document().unwrap().layers()[1]
+        .pixels()
+        .tile_version(strata_pixels::TileCoord::new(0, 0).unwrap());
+    let scene = r
+        .prepare_document(editor.document().unwrap(), true)
+        .unwrap();
+    r.commit_document(scene).unwrap();
+    r.render().unwrap();
+    r.set_view(ViewTransform {
+        zoom: 2.0,
+        center_x: 8.0,
+        center_y: 8.0,
+    })
+    .unwrap();
+    r.render().unwrap();
+    let before_pixels = r.read_offscreen_rgba().unwrap();
+    let before = pixel(&before_pixels, 32, 32);
+    let req = editor.request(strata_core::Source::Test);
+    editor
+        .execute(
+            req,
+            "layer.set_opacity",
+            serde_json::json!({"layer":{"name":"red"},"opacity":0.25}),
+            |_| Ok(()),
+        )
+        .unwrap();
+    assert_eq!(editor.document().unwrap().id(), document_id);
+    assert_eq!(
+        editor.document().unwrap().layers()[1]
+            .pixels()
+            .tile_version(strata_pixels::TileCoord::new(0, 0).unwrap()),
+        version
+    );
+    let scene = r
+        .prepare_document(editor.document().unwrap(), false)
+        .unwrap();
+    r.commit_document(scene).unwrap();
+    r.render().unwrap();
+    let after_pixels = r.read_offscreen_rgba().unwrap();
+    let after = pixel(&after_pixels, 32, 32);
+    assert!(
+        after[0] + 40 < before[0],
+        "stale cached color: before={before:?}, after={after:?}"
+    );
+}
+
+#[test]
 fn tiled_scene_preserves_source_and_has_no_mip_seam() {
     let Some(mut r) = renderer() else {
         return;
