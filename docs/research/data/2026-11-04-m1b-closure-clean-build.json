@@ -1,0 +1,15 @@
+{
+  "source_revision": "9b82a8a3c3e17d09c69cc83d25aa29ff7737e9f5",
+  "implementation_revision": "c55cab6",
+  "date": "2026-11-04",
+  "rust_passed": 146,
+  "rust_failed": 0,
+  "rust_ignored": 0,
+  "xctest_passed": 23,
+  "xctest_failed": 0,
+  "source_directory": "build/clean-check.0XmvqA",
+  "command": "STRATA_REQUIRE_GPU=1 make verify-clean",
+  "physical_gpu_required": true,
+  "no_build_artifacts_reused": true,
+  "scope": "Exact committed archive, no target/generated bindings/Xcode project/DerivedData reused. Downloaded registry sources and installed toolchains are reused. Display measurement and unavailable devices remain separate gates."
+}

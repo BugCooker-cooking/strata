@@ -57,7 +57,11 @@ make build CONFIGURATION=Release
 
 Release 可执行文件：`build/DerivedData/Build/Products/Release/Strata.app/Contents/MacOS/Strata`。每个位深分别传入 `--benchmark-input`、新的 `--benchmark-output`、`--benchmark-seconds 30 --benchmark-runs 3 --benchmark-keep-visible`，用 `STRATA_SOURCE_REVISION` 记录精确提交。两文档压力使用两次 `--workspace-pressure-input` 和新的 `--workspace-pressure-output`；原生窗口回调日志用 `--window-lifecycle-log`。这些是可信宿主诊断入口，不注册为 AI 文档命令。
 
+## 精确源码归档
+
+`STRATA_REQUIRE_GPU=1 make verify-clean` 已从 `9b82a8a` 的全新归档重新生成绑定/Xcode 工程并完成 146 项 Rust 与 23 项 XCTest，无失败或跳过；未复用 target、生成绑定、工程或 DerivedData。[独立证据](data/2026-11-04-m1b-closure-clean-build.json)。随后仅记录验收元数据。
+
 ## 仍需完成
 
-- P3 同屏数码测色计读数与照片对照，以及最终源码归档/CI。
+- P3 同屏数码测色计读数与照片对照，以及最终增量 CI。
 - M1 MacBook Air、macOS 14、Retina/非 Retina 跨屏和真实触控板依旧未验证，按已确认的设备暂缺记录，不用当前主机或 CI 代替。

@@ -80,7 +80,7 @@ cargo build --release --locked -p strata-devtool
 
 最终当前主机 8/16 位、24MP×20 各三轮均约 60.02–60.03fps，p95 18.20–18.50ms；三次新进程 24MP JPEG 打开为 1.424 / 1.390 / 1.298 秒。两份原生文档的 GPU 峰值 480.17 MiB，清理后回访状态/缩略图一致，画布释放后 GPU 为 0，正常退出。三轮最小化/恢复亦已完成。实时测色计开启时的失败帧率报告继续保留，关闭后的同源码对照全部通过。
 
-完整本机验证更新为 146 项 Rust、23 项 XCTest、SwiftLint/可移植性/28 个命令示例与 Release。独立归档和新提交 CI 仍待最终交付检查。详细条件与原始数据见 [原生验收](2026-11-m1b-native-acceptance.md)。
+完整本机验证更新为 146 项 Rust、23 项 XCTest、SwiftLint/可移植性/28 个命令示例与 Release。`9b82a8a` 的独立归档构建已通过同样的 146 Rust + 23 XCTest；新提交 CI 仍待推送后核对。详细条件与原始数据见 [原生验收](2026-11-m1b-native-acceptance.md)。
 
 ## 后续，完整里程碑仍有外部门槛
 
