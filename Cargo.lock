@@ -1754,6 +1754,7 @@ name = "strata-pixels"
 version = "0.0.1"
 dependencies = [
  "bytemuck",
+ "schemars",
  "serde",
  "sha2",
  "tempfile",

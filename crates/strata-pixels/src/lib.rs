@@ -2,8 +2,10 @@
 
 use std::fmt;
 
+mod mask;
 pub mod memory;
 mod tiles;
+pub use mask::{CoverageRect, MaskLayout, MaskTile, TiledMask};
 pub use tiles::{PixelValue, TILE_EDGE, TileBuffer, TileCoord, TileError, TiledPixels};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

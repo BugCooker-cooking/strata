@@ -137,7 +137,7 @@ impl Document {
         Ok(doc)
     }
     fn insert_project_tile(&mut self, tile: ProjectTile) -> Result<(), DocumentError> {
-        if tile.bit_depth != self.bit_depth() {
+        if tile.bit_depth != self.bit_depth() || tile.channels != 4 {
             return Err(DocumentError::Invalid("duplicate tile or depth".into()));
         }
         let layer = self
@@ -236,6 +236,7 @@ impl strata_io::project::ProjectSource for Document {
                     x: coord.x(),
                     y: coord.y(),
                     bit_depth: self.bit_depth(),
+                    channels: 4,
                     bytes,
                 })?;
             }

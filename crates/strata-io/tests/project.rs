@@ -7,6 +7,7 @@ fn archive(value: u16) -> ProjectArchive {
     ProjectArchive {
         metadata: json!({"id":"fixture","name":"test"}),
         tiles: vec![ProjectTile {
+            channels: 4,
             layer: "layer".into(),
             x: -1,
             y: 2,
@@ -31,6 +32,104 @@ fn sqlite_roundtrip_incremental_and_no_sidecars() {
     write_project(&path, &second, true, true).unwrap();
     assert_eq!(read_project(&path).unwrap(), second);
     assert_eq!(std::fs::read_dir(dir.path()).unwrap().count(), 1);
+}
+
+#[test]
+fn mono_coverage_planes_preserve_adjacent_16_bit_codes_and_validate_channels() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("mask.strata");
+    let mut source = archive(1);
+    let bytes: Vec<u8> = (0..=u16::MAX).flat_map(u16::to_le_bytes).collect();
+    source.tiles.push(ProjectTile {
+        layer: "mask:fixture-layer".into(),
+        x: 0,
+        y: -1,
+        bit_depth: 16,
+        channels: 1,
+        bytes: bytes.clone(),
+    });
+    write_project(&path, &source, false, false).unwrap();
+    assert_eq!(read_project(&path).unwrap(), source);
+    let connection = rusqlite::Connection::open(&path).unwrap();
+    assert_eq!(
+        connection
+            .query_row("PRAGMA user_version", [], |r| r.get::<_, i64>(0))
+            .unwrap(),
+        1
+    );
+    let (channels, size): (i64, i64) = connection
+        .query_row(
+            "SELECT channels,length(data) FROM tiles WHERE layer='mask:fixture-layer'",
+            [],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        )
+        .unwrap();
+    assert_eq!((channels, size), (1, 256 * 256 * 2));
+    drop(connection);
+    let mut invalid = source.clone();
+    invalid.tiles[1].channels = 2;
+    assert!(write_project(&path, &invalid, true, true).is_err());
+    assert_eq!(read_project(&path).unwrap(), source);
+    let connection = rusqlite::Connection::open(&path).unwrap();
+    connection
+        .execute(
+            "UPDATE tiles SET channels=4 WHERE layer='mask:fixture-layer'",
+            [],
+        )
+        .unwrap();
+    assert!(read_project(&path).is_err());
+}
+
+#[test]
+fn v0_rgba_reader_and_transactional_migration_keep_old_file_on_failure() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("legacy.strata");
+    let old = archive(32768);
+    write_project(&path, &old, false, false).unwrap();
+    {
+        let connection = rusqlite::Connection::open(&path).unwrap();
+        connection
+            .execute_batch("ALTER TABLE tiles DROP COLUMN channels; PRAGMA user_version=0;")
+            .unwrap();
+    }
+    assert_eq!(read_project(&path).unwrap(), old);
+    assert_eq!(read_project_metadata(&path).unwrap(), old.metadata);
+    assert!(
+        write_project_with_hook(&path, &archive(32769), true, true, |stage| {
+            if stage == SaveStage::BeforeCommit {
+                Err(StorageError::Io(std::io::Error::new(
+                    std::io::ErrorKind::StorageFull,
+                    "migration failure",
+                )))
+            } else {
+                Ok(())
+            }
+        })
+        .is_err()
+    );
+    assert_eq!(read_project(&path).unwrap(), old);
+    {
+        let connection = rusqlite::Connection::open(&path).unwrap();
+        assert_eq!(
+            connection
+                .query_row("PRAGMA user_version", [], |r| r.get::<_, i64>(0))
+                .unwrap(),
+            0
+        );
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT count(*) FROM pragma_table_info('tiles') WHERE name='channels'",
+                    [],
+                    |r| r.get::<_, i64>(0)
+                )
+                .unwrap(),
+            0
+        );
+    }
+    let new = archive(32769);
+    write_project(&path, &new, true, true).unwrap();
+    assert_eq!(read_project(&path).unwrap(), new);
 }
 #[test]
 fn precommit_faults_keep_previous_file() {

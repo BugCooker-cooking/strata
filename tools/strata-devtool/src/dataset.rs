@@ -129,6 +129,7 @@ impl ProjectSource for Dataset {
                         }
                     }
                     visit(ProjectTile {
+                        channels: 4,
                         layer: id.clone(),
                         x: i64::from(tx),
                         y: i64::from(ty),

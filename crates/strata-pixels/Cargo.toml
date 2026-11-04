@@ -11,3 +11,4 @@ sha2.workspace = true
 bytemuck.workspace = true
 serde.workspace = true
 thiserror.workspace = true
+schemars.workspace = true

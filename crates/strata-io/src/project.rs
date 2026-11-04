@@ -25,6 +25,8 @@ pub struct ProjectTile {
     pub x: i64,
     pub y: i64,
     pub bit_depth: u8,
+    /// v0 implicitly had four channels. v1 can also store compact coverage planes.
+    pub channels: u8,
     pub bytes: Vec<u8>,
 }
 
@@ -84,11 +86,7 @@ fn validate(archive: &ProjectArchive) -> Result<Vec<u8>, StorageError> {
     let mut unique = std::collections::HashSet::new();
     let mut total = 0u64;
     for t in &archive.tiles {
-        let expected = match t.bit_depth {
-            8 => 256 * 256 * 4,
-            16 => 256 * 256 * 8,
-            _ => return Err(StorageError::Invalid("tile depth".into())),
-        };
+        let expected = tile_bytes(t.bit_depth, t.channels)?;
         if t.bytes.len() != expected || t.layer.len() > 128 || !unique.insert((&t.layer, t.x, t.y))
         {
             return Err(StorageError::Invalid(
@@ -113,7 +111,7 @@ pub fn read_project_metadata(path: &Path) -> Result<Value, StorageError> {
     let conn = connection(path, true)?;
     let app: i64 = conn.query_row("PRAGMA application_id", [], |r| r.get(0))?;
     let version: i64 = conn.query_row("PRAGMA user_version", [], |r| r.get(0))?;
-    if app != APP_ID || version != 0 {
+    if app != APP_ID || !matches!(version, 0 | 1) {
         return Err(StorageError::Invalid("signature or version".into()));
     }
     let size: i64 = conn.query_row("SELECT length(data) FROM metadata WHERE id=1", [], |r| {
@@ -186,7 +184,7 @@ fn read_project_inner(
     let conn = connection(path, true)?;
     let app: i64 = conn.query_row("PRAGMA application_id", [], |r| r.get(0))?;
     let version: i64 = conn.query_row("PRAGMA user_version", [], |r| r.get(0))?;
-    if app != APP_ID || version != 0 {
+    if app != APP_ID || !matches!(version, 0 | 1) {
         return Err(StorageError::Invalid("signature or version".into()));
     }
     let integrity: String = conn.query_row("PRAGMA quick_check(1)", [], |r| r.get(0))?;
@@ -215,12 +213,14 @@ fn read_project_inner(
         return Err(StorageError::Invalid("tile budget".into()));
     }
     // Read only validated fixed-size blobs; a corrupted row cannot allocate an arbitrary payload.
-    let bad:i64=conn.query_row("SELECT count(*) FROM tiles WHERE depth NOT IN (8,16) OR length(data) != 256*256*4*(depth/8) OR length(layer)>128 OR length(hash)!=32",[],|r|r.get(0))?;
+    let channels = if version == 0 { "4" } else { "channels" };
+    let bad:i64=conn.query_row(&format!("SELECT count(*) FROM tiles WHERE depth NOT IN (8,16) OR {channels} NOT IN (1,4) OR length(data) != 256*256*{channels}*(depth/8) OR length(layer)>128 OR length(hash)!=32"),[],|r|r.get(0))?;
     if bad != 0 {
         return Err(StorageError::Invalid("tile encoding".into()));
     }
-    let mut statement =
-        conn.prepare("SELECT layer,x,y,depth,data,hash FROM tiles ORDER BY layer,x,y")?;
+    let mut statement = conn.prepare(&format!(
+        "SELECT layer,x,y,depth,data,hash,{channels} FROM tiles ORDER BY layer,x,y"
+    ))?;
     let mut rows = statement.query([])?;
     let metadata = serde_json::from_slice(&bytes)?;
     visit(&metadata, None)?;
@@ -237,6 +237,7 @@ fn read_project_inner(
                 x: row.get(1)?,
                 y: row.get(2)?,
                 bit_depth: row.get(3)?,
+                channels: row.get(6)?,
                 bytes,
             }),
         )?;
@@ -276,22 +277,31 @@ fn write_transaction(
     hook(SaveStage::BeforeWrite)?;
     let mut conn = connection(path, false)?;
     let tx = conn.transaction()?;
-    tx.execute_batch("PRAGMA application_id=1398035009; PRAGMA user_version=0;
+    tx.execute_batch("PRAGMA application_id=1398035009;
       CREATE TABLE IF NOT EXISTS metadata(id INTEGER PRIMARY KEY CHECK(id=1),data BLOB NOT NULL,hash BLOB NOT NULL);
-      CREATE TABLE IF NOT EXISTS tiles(layer TEXT NOT NULL,x INTEGER NOT NULL,y INTEGER NOT NULL,depth INTEGER NOT NULL,data BLOB NOT NULL,hash BLOB NOT NULL,PRIMARY KEY(layer,x,y));
+      CREATE TABLE IF NOT EXISTS tiles(layer TEXT NOT NULL,x INTEGER NOT NULL,y INTEGER NOT NULL,depth INTEGER NOT NULL,data BLOB NOT NULL,hash BLOB NOT NULL,channels INTEGER NOT NULL DEFAULT 4,PRIMARY KEY(layer,x,y));
       CREATE TEMP TABLE wanted(layer TEXT,x INTEGER,y INTEGER,PRIMARY KEY(layer,x,y));")?;
+    let has_channels: i64 = tx.query_row(
+        "SELECT count(*) FROM pragma_table_info('tiles') WHERE name='channels'",
+        [],
+        |r| r.get(0),
+    )?;
+    if has_channels == 0 {
+        tx.execute_batch("ALTER TABLE tiles ADD COLUMN channels INTEGER NOT NULL DEFAULT 4;")?;
+    }
+    tx.execute_batch("PRAGMA user_version=1;")?;
     tx.execute("INSERT INTO metadata VALUES(1,?1,?2) ON CONFLICT(id) DO UPDATE SET data=excluded.data,hash=excluded.hash",params![data,Sha256::digest(data).as_slice()])?;
     let mut total = 0u64;
     let mut count = 0usize;
     source.visit_tiles(&mut |t| {
-        let expected = match t.bit_depth { 8 => 256 * 256 * 4, 16 => 256 * 256 * 8, _ => return Err(StorageError::Invalid("tile depth".into())) };
+        let expected = tile_bytes(t.bit_depth,t.channels)?;
         total += t.bytes.len() as u64; count += 1;
         if t.bytes.len() != expected || total > MAX_BYTES || count > MAX_TILES || t.layer.len() > 128 { return Err(StorageError::Invalid("tile budget or encoding".into())); }
         tx.execute(
             "INSERT INTO wanted VALUES(?1,?2,?3)",
             params![t.layer, t.x, t.y],
         )?;
-        tx.execute("INSERT INTO tiles VALUES(?1,?2,?3,?4,?5,?6) ON CONFLICT(layer,x,y) DO UPDATE SET depth=excluded.depth,data=excluded.data,hash=excluded.hash WHERE tiles.hash!=excluded.hash OR tiles.depth!=excluded.depth",params![t.layer,t.x,t.y,t.bit_depth,t.bytes,Sha256::digest(&t.bytes).as_slice()])?;
+        tx.execute("INSERT INTO tiles(layer,x,y,depth,data,hash,channels) VALUES(?1,?2,?3,?4,?5,?6,?7) ON CONFLICT(layer,x,y) DO UPDATE SET depth=excluded.depth,data=excluded.data,hash=excluded.hash,channels=excluded.channels WHERE tiles.hash!=excluded.hash OR tiles.depth!=excluded.depth OR tiles.channels!=excluded.channels",params![t.layer,t.x,t.y,t.bit_depth,t.bytes,Sha256::digest(&t.bytes).as_slice(),t.channels])?;
         Ok(())
     })?;
     tx.execute("DELETE FROM tiles WHERE NOT EXISTS(SELECT 1 FROM wanted WHERE wanted.layer=tiles.layer AND wanted.x=tiles.x AND wanted.y=tiles.y)",[])?;
@@ -309,6 +319,13 @@ fn write_transaction(
     conn.close()
         .map_err(|(_, e)| after_commit(StorageError::Sql(e)))?;
     Ok(())
+}
+
+fn tile_bytes(depth: u8, channels: u8) -> Result<usize, StorageError> {
+    if !matches!(depth, 8 | 16) || !matches!(channels, 1 | 4) {
+        return Err(StorageError::Invalid("tile depth or channels".into()));
+    }
+    Ok(256 * 256 * usize::from(channels) * usize::from(depth / 8))
 }
 
 /// Save existing matching projects incrementally, or publish a new standalone

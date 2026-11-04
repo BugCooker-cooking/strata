@@ -16,7 +16,7 @@ use std::{
 pub const TILE_EDGE: u32 = 256;
 const TILE_SAMPLES: usize = TILE_EDGE as usize * TILE_EDGE as usize * 4;
 static NEXT_BLOCK_VERSION: AtomicU64 = AtomicU64::new(1);
-fn block_version() -> u64 {
+pub(crate) fn block_version() -> u64 {
     NEXT_BLOCK_VERSION.fetch_add(1, Ordering::Relaxed)
 }
 #[derive(Debug)]
