@@ -38,6 +38,10 @@ targets:
       path: Generated/Info.plist
       properties:
         NSPrincipalClass: NSApplication
+        # User-configured HTTP endpoints require an explicit per-provider opt-in
+        # in the Rust URL validator and native model settings.
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: true
         UTExportedTypeDeclarations:
           - UTTypeIdentifier: dev.strata-editor.project
             UTTypeDescription: Strata Project

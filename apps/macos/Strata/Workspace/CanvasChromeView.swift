@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import Combine
 
 @MainActor
 final class CanvasChromeView: NSView {
@@ -9,6 +10,7 @@ final class CanvasChromeView: NSView {
     private let vertical = CanvasRuler(vertical: true)
     private let map = CanvasNavigator()
     private var frameOverlay: ArtboardOverlay?
+    private var controlSubscription: AnyCancellable?
     override var isFlipped: Bool { true }
 
     init(canvas: CanvasView, model: WorkspaceModel) {
@@ -16,7 +18,9 @@ final class CanvasChromeView: NSView {
         super.init(frame: .zero)
         let zoom = NSHostingView(rootView: CanvasZoomBar(model: model, readout: readout))
         let empty = NSHostingView(rootView: CanvasEmptyState(model: model))
-        for view in [canvas, horizontal, vertical, zoom, map, empty] { addSubview(view); view.translatesAutoresizingMaskIntoConstraints = false }
+        let banner = NSHostingView(rootView: CanvasControlBanner(model: model)); banner.isHidden = true
+        wantsLayer = true
+        for view in [canvas, horizontal, vertical, zoom, map, empty, banner] { addSubview(view); view.translatesAutoresizingMaskIntoConstraints = false }
         NSLayoutConstraint.activate([
             empty.centerXAnchor.constraint(equalTo: canvas.centerXAnchor), empty.centerYAnchor.constraint(equalTo: canvas.centerYAnchor),
             canvas.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 18), canvas.topAnchor.constraint(equalTo: topAnchor, constant: 18),
@@ -25,7 +29,14 @@ final class CanvasChromeView: NSView {
             vertical.leadingAnchor.constraint(equalTo: leadingAnchor), vertical.topAnchor.constraint(equalTo: canvas.topAnchor), vertical.bottomAnchor.constraint(equalTo: bottomAnchor), vertical.widthAnchor.constraint(equalToConstant: 18),
             zoom.leadingAnchor.constraint(equalTo: canvas.leadingAnchor, constant: 12), zoom.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -12),
             map.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -12), map.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -12), map.widthAnchor.constraint(equalToConstant: 132), map.heightAnchor.constraint(equalToConstant: 88)
+            , banner.topAnchor.constraint(equalTo: canvas.topAnchor, constant: 5), banner.leadingAnchor.constraint(equalTo: canvas.leadingAnchor, constant: 5), banner.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -5), banner.heightAnchor.constraint(equalToConstant: 36)
         ])
+        controlSubscription = model.$snapshot.sink { [weak self, weak banner] snapshot in
+            let control = snapshot?.control?.kind ?? "user"
+            banner?.isHidden = control == "user"
+            self?.layer?.borderWidth = control == "user" ? 0 : 2
+            self?.layer?.borderColor = (control == "paused" ? WorkspaceColors.warning : WorkspaceColors.ai).cgColor
+        }
         canvas.onViewChanged = { [weak self] frame, zoom, scale in
             guard let self else { return }
             self.frameOverlay = frame
@@ -48,6 +59,20 @@ final class CanvasChromeView: NSView {
     }
     required init?(coder: NSCoder) { nil }
     override func draw(_ dirtyRect: NSRect) { WorkspaceColors.panel.setFill(); dirtyRect.fill() }
+}
+
+private struct CanvasControlBanner: View {
+    @ObservedObject var model: WorkspaceModel
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: model.snapshot?.control?.kind == "paused" ? "pause.circle" : "sparkles")
+            Text(model.snapshot?.control?.kind == "paused" ? "AI 等你决定 · 可撤销与切换显隐" : "AI 执行中 · 可缩放平移查看").lineLimit(1)
+            Spacer(minLength: 0)
+            Button("停止 ⌘.") { model.assistant?.stop() }.buttonStyle(.borderless)
+        }.font(.system(size: 11)).padding(.horizontal, 10).frame(maxWidth: .infinity, maxHeight: .infinity)
+            .foregroundStyle(Color(nsColor: model.snapshot?.control?.kind == "paused" ? WorkspaceColors.warning : WorkspaceColors.ai))
+            .background(RoundedRectangle(cornerRadius: 6).fill(Color(nsColor: WorkspaceColors.panel).opacity(0.95)))
+    }
 }
 
 private struct CanvasEmptyState: View {

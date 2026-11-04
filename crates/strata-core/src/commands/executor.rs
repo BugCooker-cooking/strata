@@ -39,6 +39,21 @@ pub struct Request {
     document: Option<DocumentId>,
     revision: u64,
     issued: Instant,
+    deadline: Instant,
+}
+
+impl Request {
+    /// Trusted callers may shorten a request's commit deadline. Model parameters
+    /// cannot construct or extend it. Checked again after fallible preparation.
+    pub fn with_timeout(mut self, timeout: Duration) -> Self {
+        self.deadline = self
+            .deadline
+            .min(Instant::now() + timeout.min(Duration::from_secs(3600)));
+        self
+    }
+    fn expired(&self) -> bool {
+        Instant::now() >= self.deadline
+    }
 }
 
 /// A cancellable preview anchored to one document revision and control epoch.
@@ -284,6 +299,7 @@ impl Editor {
             document: self.document.as_ref().map(Document::id),
             revision: self.revision,
             issued: Instant::now(),
+            deadline: Instant::now() + Duration::from_secs(3600),
         }
     }
     pub fn begin_move(&self, layer: LayerRef) -> Result<MoveInteraction, CommandError> {
@@ -400,7 +416,7 @@ impl Editor {
         }
     }
     fn check_request(&self, r: &Request) -> Result<(), CommandError> {
-        if r.issued.elapsed() > Duration::from_secs(3600) {
+        if r.expired() {
             return Err(CommandError::Expired);
         }
         if r.session != self.session
@@ -434,7 +450,7 @@ impl Editor {
         if kind == CommandKind::View && request.issued.elapsed() > Duration::from_secs(30) {
             return Err(CommandError::Expired);
         }
-        if request.session != self.session || request.issued.elapsed() > Duration::from_secs(3600) {
+        if request.session != self.session || request.expired() {
             return Err(CommandError::Expired);
         }
         // Retries return the original result without reapplying an effect, even
@@ -626,7 +642,7 @@ impl Editor {
         // Two workers may prepare the same call before either commits. Recheck
         // its receipt under the host's commit lock, before checking revision.
         if prepared.request.session != self.session
-            || prepared.request.issued.elapsed() > Duration::from_secs(3600)
+            || prepared.request.expired()
             || (registry::kind(&prepared.command)? == CommandKind::View
                 && prepared.request.issued.elapsed() > Duration::from_secs(30))
         {
@@ -648,7 +664,7 @@ impl Editor {
         if matches!(prepared.action, Action::External(_)) {
             if prepared.request.session != self.session
                 || prepared.request.document != self.document.as_ref().map(Document::id)
-                || prepared.request.issued.elapsed() > Duration::from_secs(3600)
+                || prepared.request.expired()
             {
                 return Err(CommandError::Stale);
             }

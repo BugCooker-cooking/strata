@@ -11,6 +11,7 @@ use strata_core::{
 };
 use strata_render::{Renderer, Viewport};
 uniffi::setup_scaffolding!();
+mod ai;
 mod thumbnails;
 pub use thumbnails::LayerThumbnail;
 
@@ -154,6 +155,7 @@ pub struct StrataEngine {
     inner: Mutex<Inner>,
     listener: Arc<dyn EngineListener>,
     recovery: Mutex<Option<strata_io::recovery::RecoveryStore>>,
+    ai: Mutex<Option<strata_ai::Session>>,
 }
 
 #[uniffi::export]
@@ -192,6 +194,7 @@ impl StrataEngine {
             inner: Mutex::new(Inner::default()),
             listener,
             recovery: Mutex::new(None),
+            ai: Mutex::new(None),
         })
     }
     pub fn configure_recovery(&self, directory: String) -> Result<(), StrataError> {

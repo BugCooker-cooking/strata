@@ -1,13 +1,14 @@
 import Foundation
 
 struct EditorSnapshot: Decodable, Sendable {
-    struct Control: Decodable, Sendable { let kind: String }
+    struct Control: Decodable, Sendable { let kind: String; let turnId: String? }
     struct Frame: Decodable, Sendable { let name: String; let width: UInt32; let height: UInt32 }
     struct Layer: Decodable, Sendable { let id: String; let name: String; let visible: Bool; let opacity: Double; let blendMode: String; let x: Int64; let y: Int64 }
-    struct History: Decodable, Sendable { let command: String; let source: String }
+    struct History: Decodable, Sendable { let command: String; let source: String; let turnId: String? }
     struct Execution: Decodable, Sendable { let command: String; let status: String }
     let revision: UInt64
     let sessionId: String?
+    let documentId: String?
     let dirty: Bool
     let frame: Frame?
     let bitDepth: UInt8?

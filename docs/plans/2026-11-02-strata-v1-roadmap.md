@@ -2,7 +2,7 @@
 
 | 项目 | 内容 |
 |---|---|
-| 状态 | M0/M1、工作区与 M1b 的当前执行范围已闭环；标准机、最低系统、跨屏与物理触控板保留外部验收 |
+| 状态 | M0/M1 当前执行范围已闭环；M2a 实现进入验收，接续 M2b–M8；外部设备门槛继续保留 |
 | 日期 | 2026-11-02 |
 | 依据 | [总体设计](../design/2026-11-02-strata-v1-design.md) · [界面关键点](../design/ui-v1.md) · [功能清单与优先级](../research/photoshop-feature-inventory.md) |
 
@@ -142,6 +142,8 @@
 第三批已补导出尺寸、macOS HEIC、空闲恢复和全局像素/显示资源预算；本机 50MP×30 独立 16 位块在 256 MiB 预算下完成保存重开。当前 M4 的 24MP×20、8/16 位原生三轮均已通过；标准机与最低系统仍未验证，见 [第三批证据](../research/2026-11-m1b-recovery-memory-progress.md)。
 
 **2026-11-04 闭环**：本轮实现、当前 Mac 验收、P3 用户实测、独立源码构建与 `29fc5ac` 的 [Linux/macOS CI](https://github.com/BugCooker-cooking/strata/actions/runs/41804367031) 已通过，详见 [闭环清单](2026-11-03-m1-closure.md)。仍缺设备的验收保持未验证；M2–M8 未启动。
+
+**2026-11-04 接续**：发起人已要求推进全部剩余开发；[M2a–M8 执行计划](2026-11-04-v1-remaining.md)已开始，M2a 独立接口与原生模型面板进入验收，见 [进展记录](../research/2026-11-m2a-ai-progress.md)。
 
 ### 交付内容
 

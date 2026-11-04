@@ -15,11 +15,13 @@ strata-pixels.workspace = true
 strata-color.workspace = true
 strata-io.workspace = true
 strata-render.workspace = true
+strata-ai.workspace = true
 uniffi.workspace = true
 thiserror.workspace = true
 serde_json.workspace = true
 uuid.workspace = true
+image.workspace = true
+base64.workspace = true
 
 [dev-dependencies]
-image.workspace = true
 tempfile.workspace = true

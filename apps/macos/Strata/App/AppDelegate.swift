@@ -250,6 +250,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             let item = edit.addItem(withTitle: title, action: action, keyEquivalent: key); item.target = controller
         }
         edit.addItem(.separator())
+        let stopAI = edit.addItem(withTitle: "停止 AI 本轮操作", action: #selector(MainWindowController.stopAI), keyEquivalent: "."); stopAI.target = controller
+        edit.addItem(.separator())
         for (title, action, key) in [("剪切", #selector(NSText.cut(_:)), "x"), ("复制", #selector(NSText.copy(_:)), "c"), ("粘贴", #selector(NSText.paste(_:)), "v"), ("全选", #selector(NSText.selectAll(_:)), "a")] {
             edit.addItem(withTitle: title, action: action, keyEquivalent: key)
         }

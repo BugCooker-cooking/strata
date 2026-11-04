@@ -74,6 +74,7 @@ struct WorkspacePermissions {
 
 @MainActor
 final class WorkspaceModel: ObservableObject {
+    @Published var assistant: AssistantModel?
     @Published var snapshot: EditorSnapshot?
     @Published var thumbnails: [String: NSImage] = [:]
     @Published var fileName = "未命名"

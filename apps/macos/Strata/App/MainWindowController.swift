@@ -5,6 +5,7 @@ import SwiftUI
 final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolbarDelegate, NSToolbarItemValidation, NSMenuItemValidation {
     let engine: StrataEngine
     let canvas: CanvasView
+    let assistant: AssistantModel
     let workspace = WorkspaceModel()
     private let split = NSSplitViewController()
     private var inspectorItem: NSSplitViewItem!
@@ -33,7 +34,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
     }
 
     init(engine: StrataEngine) {
-        self.engine = engine; canvas = CanvasView(engine: engine)
+        self.engine = engine; canvas = CanvasView(engine: engine); assistant = AssistantModel(engine: engine)
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1512, height: 930), styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
         super.init(window: window)
         window.title = "Strata"; window.titleVisibility = .hidden
@@ -64,6 +65,21 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
             status.leadingAnchor.constraint(equalTo: content.leadingAnchor), status.trailingAnchor.constraint(equalTo: content.trailingAnchor), status.bottomAnchor.constraint(equalTo: content.bottomAnchor), status.heightAnchor.constraint(equalToConstant: 24)
         ])
         workspace.action = { [weak self] action in self?.act(action) }
+        workspace.assistant = assistant
+        assistant.window = { [weak self] in self?.window }
+        assistant.onStateChanged = { [weak self] in self?.refresh() }
+        assistant.onDocumentFile = { [weak self] url, command in
+            guard let self else { return }
+            self.documentURL = ["file.open", "file.save", "file.save_as"].contains(command) ? url : nil
+            self.fileName = self.documentURL?.lastPathComponent ?? "未命名"
+            if let url, ["file.open", "file.save", "file.save_as"].contains(command) { RecentFileStore().record(url); self.syncRecentFiles() }
+            self.refresh(); self.canvas.fit()
+        }
+        assistant.onUndo = { [weak self] turn in self?.perform("edit.undo_turn", ["turn_id": turn]) }
+        assistant.canUndoTurn = { [weak self] turn in
+            guard let self, let state = self.state, state.historyCursor > 0 else { return false }
+            return self.workspace.permissions.history && state.history[state.historyCursor - 1].turnId == turn
+        }
         canvas.onError = { [weak self] error in self?.showError(error) }
         canvas.onCommitted = { [weak self] in self?.refresh() }
         canvas.onToolKey = { [weak self] key in
@@ -109,6 +125,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
     }
     func validateMenuItem(_ item: NSMenuItem) -> Bool {
         switch item.action {
+        case #selector(stopAI): assistant.running
         case #selector(undo): canUndo
         case #selector(redo): canRedo
         case #selector(saveDocument), #selector(saveAs), #selector(exportDocument), #selector(placeImage), #selector(convertToSRGB), #selector(convertToP3): workspace.permissions.edits && workspace.hasDocument
@@ -162,6 +179,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
     }
     func refresh() { do { apply(try EditorSnapshot.decode(engine.snapshotJson())) } catch { showError(error) } }
     private func apply(_ snapshot: EditorSnapshot) {
+        assistant.bind(document: snapshot.documentId, inheritedTurn: snapshot.control?.turnId)
         let oldControl = state?.control?.kind
         workspace.snapshot = snapshot; window?.isDocumentEdited = snapshot.dirty
         recovery?.observe(snapshot)
@@ -220,11 +238,13 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
     @objc func zoomOut() { canvas.zoomBy(0.8) }
     @objc func actualSize() { canvas.actualSize() }
     func windowShouldClose(_ sender: NSWindow) -> Bool {
+        if assistant.running { assistant.stop() }
         if busy { return false }; if allowClose || !hasUnsavedChanges { return true }
         confirmDiscard { [weak self] ok in if ok { self?.allowClose = true; self?.close() } }; return false
     }
-    func requestTermination(_ completion: @escaping @MainActor @Sendable (Bool) -> Void) { if busy { completion(false) } else { confirmDiscard(completion) } }
-    func windowWillClose(_ notification: Notification) { recovery?.stop(discard: true); canvas.shutdown(); onClosed?() }
+    @objc func stopAI() { assistant.stop() }
+    func requestTermination(_ completion: @escaping @MainActor @Sendable (Bool) -> Void) { if assistant.running { assistant.stop() }; if busy { completion(false) } else { confirmDiscard(completion) } }
+    func windowWillClose(_ notification: Notification) { if assistant.running { assistant.stop() }; recovery?.stop(discard: true); canvas.shutdown(); onClosed?() }
     func windowDidBecomeMain(_ notification: Notification) { onBecameMain?() }
     func windowDidMiniaturize(_ notification: Notification) {
         if ProcessInfo.processInfo.arguments.contains("--window-lifecycle-log") {

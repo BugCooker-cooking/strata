@@ -213,6 +213,15 @@ private struct HistoryPanel: View {
                     Label("暂无编辑记录", systemImage: "clock.arrow.circlepath").foregroundStyle(Color(nsColor: WorkspaceColors.secondary)).padding(16)
                 }
                 ForEach(Array((model.snapshot?.history ?? []).enumerated()), id: \.offset) { index, item in
+                    if let turn = item.turnId, index == 0 || model.snapshot?.history[index - 1].turnId != turn {
+                        HStack {
+                            Label("AI 回合 · \(String(turn.prefix(8)))", systemImage: "sparkles").font(.system(size: 10, weight: .semibold))
+                            Spacer()
+                            if let assistant = model.assistant, assistant.canUndoTurn?(turn) == true {
+                                Button("整组撤销") { assistant.onUndo?(turn) }.font(.system(size: 10))
+                            }
+                        }.padding(10).foregroundStyle(Color(nsColor: WorkspaceColors.ai))
+                    }
                     HStack(spacing: 9) {
                         Image(systemName: index < (model.snapshot?.historyCursor ?? 0) ? "checkmark.circle" : "arrow.uturn.forward.circle")
                         VStack(alignment: .leading, spacing: 3) { Text(item.title); Text(item.source == "ai" ? "AI" : "你").font(.system(size: 10)).foregroundStyle(Color(nsColor: WorkspaceColors.secondary)) }
@@ -257,6 +266,7 @@ private struct LayerPanel: View {
                                     }.frame(width: 30, height: 30).background(Color(nsColor: WorkspaceColors.raised)).clipShape(RoundedRectangle(cornerRadius: 4))
                                     VStack(alignment: .leading, spacing: 3) { Text(layer.name).lineLimit(1); Text("像素图层").font(.system(size: 10)).foregroundStyle(Color(nsColor: WorkspaceColors.muted)) }
                                     Spacer(minLength: 0)
+                                    if model.snapshot?.control?.kind == "running", model.snapshot?.activeLayer == layer.id { Image(systemName: "sparkles").foregroundStyle(Color(nsColor: WorkspaceColors.ai)).accessibilityLabel("AI 当前图层") }
                                 }.contentShape(Rectangle())
                             }.buttonStyle(.plain).disabled(!model.permissions.selection)
                         }.padding(.horizontal, 4).padding(.vertical, 4)
@@ -286,64 +296,9 @@ private struct LayerPanel: View {
 
 struct AssistantPanel: View {
     @ObservedObject var model: WorkspaceModel
-    @State private var provider = "Anthropic"
     var body: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 8) {
-                Image(systemName: "sparkles").foregroundStyle(Color(nsColor: WorkspaceColors.ai)); Text("AI 助手").fontWeight(.semibold)
-                Spacer(); Text(model.snapshot?.control?.kind == "running" ? "执行中" : model.snapshot?.control?.kind == "paused" ? "已暂停" : "未接入").font(.system(size: 10)).foregroundStyle(Color(nsColor: WorkspaceColors.muted))
-                WorkspaceIconButton(title: "收起 AI 助手 (⌘J)", symbol: "sidebar.right") { model.send(.assistant) }
-            }.padding(.horizontal, 14).frame(height: 44)
-            Divider()
-            if let control = model.snapshot?.control?.kind, control != "user" {
-                VStack(alignment: .leading, spacing: 8) {
-                    Label(model.permissions.status, systemImage: control == "running" ? "lock" : "pause.circle")
-                    Text("当前操作记录见历史面板；画布浏览保持可用。").font(.system(size: 10))
-                }.frame(maxWidth: .infinity, alignment: .leading).padding(14)
-                    .foregroundStyle(Color(nsColor: WorkspaceColors.ai))
-                HistoryPanel(model: model)
-            } else {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    VStack(spacing: 12) {
-                        Image(systemName: "sparkles").font(.system(size: 24)).foregroundStyle(Color(nsColor: WorkspaceColors.ai)).padding(12).background(RoundedRectangle(cornerRadius: 12).fill(Color(nsColor: WorkspaceColors.ai).opacity(0.12)))
-                        Text("你的创作，AI 来协助").font(.system(size: 16, weight: .semibold))
-                        Text("模型接入将在后续阶段提供。现在可以使用全部已实现的手动编辑功能。")
-                            .foregroundStyle(Color(nsColor: WorkspaceColors.secondary)).multilineTextAlignment(.center).lineSpacing(4)
-                    }.frame(maxWidth: .infinity).padding(.vertical, 20)
-                    ForEach([("Anthropic", "Claude 系列模型", "sparkles"), ("OpenAI 兼容接口", "自定义服务地址与模型", "network"), ("本地模型", "本机运行的模型服务", "desktopcomputer")], id: \.0) { item in
-                        Button { provider = item.0 } label: {
-                            HStack(spacing: 12) {
-                                Image(systemName: item.2).frame(width: 20)
-                                VStack(alignment: .leading, spacing: 4) { Text(item.0).fontWeight(.medium); Text(item.1).font(.system(size: 10)).foregroundStyle(Color(nsColor: WorkspaceColors.secondary)) }
-                                Spacer(); Image(systemName: provider == item.0 ? "largecircle.fill.circle" : "circle").foregroundStyle(Color(nsColor: provider == item.0 ? WorkspaceColors.ai : WorkspaceColors.muted))
-                            }.padding(12).background(RoundedRectangle(cornerRadius: 8).fill(Color(nsColor: WorkspaceColors.raised)))
-                                .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color(nsColor: provider == item.0 ? WorkspaceColors.ai : WorkspaceColors.border)))
-                        }.buttonStyle(.plain)
-                    }
-                    Label("暂未开放连接", systemImage: "lock").frame(maxWidth: .infinity).padding(10).background(RoundedRectangle(cornerRadius: 6).fill(Color(nsColor: WorkspaceColors.ai).opacity(0.12))).foregroundStyle(Color(nsColor: WorkspaceColors.ai))
-                    VStack(alignment: .leading, spacing: 10) {
-                        Label("当前不会读取密钥或发送图片", systemImage: "lock.shield")
-                        Label("模型接入后，操作沿用同一命令与历史", systemImage: "square.stack.3d.up")
-                        Label("可随时收起面板，专注手动编辑", systemImage: "sidebar.right")
-                    }.font(.system(size: 10)).foregroundStyle(Color(nsColor: WorkspaceColors.secondary))
-                }.padding(16)
-            }
-            }
-            Divider()
-            VStack(alignment: .leading, spacing: 9) {
-                HStack { Label(model.selected?.name ?? "未选择图层", systemImage: "square.3.layers.3d").lineLimit(1); Spacer(); Text("画布 + 图层") }.font(.system(size: 10)).foregroundStyle(Color(nsColor: WorkspaceColors.secondary))
-                Text("接入模型后，在这里描述你想要的效果…").foregroundStyle(Color(nsColor: WorkspaceColors.muted)).frame(maxWidth: .infinity, minHeight: 42, alignment: .topLeading)
-                HStack {
-                    WorkspaceIconButton(title: "附加参考图", symbol: "paperclip", enabled: false)
-                    WorkspaceIconButton(title: "引用图层", symbol: "at", enabled: false)
-                    Spacer(); Text("先问我").font(.system(size: 10)).foregroundStyle(Color(nsColor: WorkspaceColors.secondary))
-                    WorkspaceIconButton(title: "发送", symbol: "arrow.up.circle.fill", enabled: false)
-                }
-                Text("文档编辑可撤销；已写入的文件不随撤销恢复。")
-                    .font(.system(size: 9)).foregroundStyle(Color(nsColor: WorkspaceColors.muted))
-            }.padding(12).background(Color(nsColor: WorkspaceColors.input).opacity(0.5))
-        }.font(.system(size: 12)).foregroundStyle(Color(nsColor: WorkspaceColors.text)).background(Color(nsColor: WorkspaceColors.panel))
+        if let assistant = model.assistant { ConnectedAssistantPanel(model: assistant, workspace: model) }
+        else { ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity) }
     }
 }
 
@@ -362,7 +317,7 @@ struct WorkspaceStatusBar: View {
             if model.snapshot?.profileFallback == true { Label("ICC 无效，按 sRGB 处理", systemImage: "exclamationmark.triangle").foregroundStyle(Color(nsColor: WorkspaceColors.warning)) }
             Text(model.busy ? "正在处理…" : model.snapshot?.dirty == true ? "有未保存修改" : "无未保存修改")
             Circle().fill(Color(nsColor: WorkspaceColors.muted)).frame(width: 5, height: 5)
-            Text(model.permissions.status)
+            Text(model.snapshot?.control?.kind == "user" ? (model.assistant?.status ?? model.permissions.status) : model.permissions.status)
         }.font(.system(size: 10)).foregroundStyle(Color(nsColor: WorkspaceColors.secondary))
             .padding(.horizontal, 12).frame(height: 24).background(Color(nsColor: WorkspaceColors.panel))
     }

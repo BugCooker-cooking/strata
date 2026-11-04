@@ -20,6 +20,32 @@ fn run(e: &mut Editor, id: &str, args: serde_json::Value) -> serde_json::Value {
 }
 
 #[test]
+fn trusted_deadline_is_rechecked_after_preparation_without_committing() {
+    use std::time::Duration;
+    let mut editor = editor();
+    let revision = editor.revision();
+    let request = editor
+        .request(Source::User)
+        .with_timeout(Duration::from_millis(5));
+    let result = editor.execute(request, "layer.create", json!({"name":"expired"}), |_| {
+        std::thread::sleep(Duration::from_millis(15));
+        Ok(())
+    });
+    assert!(matches!(
+        result,
+        Err(strata_core::commands::CommandError::Expired)
+    ));
+    assert_eq!(editor.revision(), revision);
+    assert_eq!(editor.document().unwrap().layers().len(), 1);
+    let expired = editor.request(Source::User).with_timeout(Duration::ZERO);
+    assert!(
+        editor
+            .prepare(expired, "layer.create", json!({"name":"never prepared"}))
+            .is_err()
+    );
+}
+
+#[test]
 fn mutation_history_and_ids_survive_undo() {
     let mut e = editor();
     let first = run(&mut e, "layer.create", json!({"name":"A"}));
