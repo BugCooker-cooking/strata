@@ -95,6 +95,13 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         canvas.onCommitted = { [weak self] in self?.refresh() }
         canvas.onSelectionRunning = { [weak self] running in self?.busy = running }
         canvas.onBrushRunning = { [weak self] running in self?.busy = running }
+        canvas.onColorSample = {[weak self] values,background,profile in
+            guard let self,values.count==4 else{return};var components=values.map{CGFloat($0)}
+            let color=NSColor(colorSpace:self.workspace.workingColorSpace,components:&components,count:4)
+            if background{self.workspace.backgroundColor=color}else{self.workspace.foregroundColor=color}
+            self.workspace.sampledColorSummary=String(format:"RGB %.4f / %.4f / %.4f · %@",values[0],values[1],values[2],profile)
+            self.canvas.configurePaint(self.workspace)
+        }
         canvas.onToolKey = { [weak self] key in
             if key == "X", let self { self.workspace.swapPaintColors(); return true }
             if key == "D", let self { self.workspace.foregroundColor = .black; self.workspace.backgroundColor = .white; self.workspace.send(.tool(self.workspace.tool)); return true }
@@ -210,7 +217,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         case .opacity(let value): layerCommand("layer.set_opacity", ["opacity": value])
         case .blend(let value): layerCommand("layer.set_blend_mode", ["blend_mode": value])
         case .position(let x, let y): layerCommand("layer.set_position", ["x": x, "y": y])
-        case .tool(let tool): workspace.tonalPreview?.cancel(); canvas.movesLayer = tool == .move; canvas.zoomTool = tool == .zoom; canvas.configureSelection(workspace); canvas.configureBrush(workspace); window?.makeFirstResponder(canvas)
+        case .tool(let tool): workspace.tonalPreview?.cancel(); canvas.movesLayer = tool == .move; canvas.zoomTool = tool == .zoom; canvas.configureSelection(workspace); canvas.configureBrush(workspace); canvas.configurePaint(workspace); window?.makeFirstResponder(canvas)
         case .assistant: toggleAssistant()
         case .panels: togglePanels()
         case .theme(let theme): onTheme?(theme)
@@ -242,6 +249,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         canvas.documentOrigin = NSPoint(x: CGFloat(snapshot.frame?.x ?? 0), y: CGFloat(snapshot.frame?.y ?? 0))
         canvas.isSelectionEnabled = workspace.permissions.selectionEdits
         canvas.configureBrush(workspace)
+        canvas.configurePaint(workspace)
         recovery?.observe(snapshot)
         if let path = engine.projectPath() { documentURL = URL(fileURLWithPath: path); fileName = documentURL!.lastPathComponent }
         workspace.fileName = fileName; window?.title = "\(fileName) — Strata"

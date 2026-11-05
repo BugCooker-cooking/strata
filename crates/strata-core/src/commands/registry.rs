@@ -854,8 +854,46 @@ fn build_catalog() -> Vec<CommandSpec> {
         "Erase one arc-length round brush stroke with the same strict geometry/pressure/coverage parameters as paint.stroke. Pixel target changes alpha only and keeps hidden RGB codes exactly; transparency lock rejects erasing. Mask target paints toward normalized value (default white=1); the native eraser uses background-color luminance. Color is ignored. Current selection, linked mask bounds, pixel/ancestor locks, cancellation, shared memory and work limits apply. Atomic one history entry; not batchable. 中文：橡皮擦、擦除、蒙版绘制。",
         json!({"layer":{"name":"Background"},"points":[{"x":4.5,"y":4.5},{"x":11.5,"y":8.5}],"size":4,"opacity":0.5})
     );
+    command!(
+        "paint.sample_color",
+        SampleColor,
+        Query,
+        "吸取颜色",
+        "Sample color",
+        "Read encoded working RGBA at an artboard canvas point; sample merged visible composite or visible active raw pixel layer. Radius 0..31; larger neighborhoods are alpha-weighted in linear P3, then converted through the actual working ICC; output alpha is mean alpha. Raw current-layer radius zero preserves exact source-depth values including hidden RGB. Query does not edit document/history/clipboard. 中文：吸管、取色、颜色取样。",
+        json!({"x":4,"y":4,"radius":0,"sample":"merged"})
+    );
+    command!(
+        "paint.fill",
+        FillPixels,
+        Mutate,
+        "填充像素",
+        "Fill pixels",
+        "Fill an explicit unlocked pixel layer inside the artboard and current u16 selection, normalized working RGBA and opacity 0..1. Straight colors convert through actual working ICC and composite in linear P3; source samples at zero selection coverage remain exact. Transparency lock preserves alpha/excludes transparent pixels; ancestor locks, cancellation, shared tile budgets and one atomic history apply. Not batchable. 中文：填充、前景色、背景色。",
+        json!({"layer":{"name":"Background"},"color":[0.2,0.4,0.8,1],"opacity":0.5})
+    );
+    command!(
+        "paint.bucket",
+        BucketPixels,
+        Mutate,
+        "油漆桶",
+        "Paint bucket",
+        "Compute wand-style tolerance 0..255 and four-connected/global matches from merged or current-layer working samples, then fill the explicit pixel target through that region and current selection. Sample/seed and transparency semantics match select.wand; fill/locks/budget/history match paint.fill. Sampling leaves the current selection unchanged. Cancellable and not batchable. 中文：油漆桶、连续、容差。",
+        json!({"layer":{"name":"Background"},"x":4,"y":4,"color":[1,0.2,0,1],"tolerance":32,"contiguous":true})
+    );
+    command!(
+        "paint.gradient",
+        GradientPixels,
+        Mutate,
+        "渐变像素",
+        "Paint gradient",
+        "Paint linear/radial/angle/reflected/diamond gradient on an explicit pixel layer, artboard and current selection. Start/end are bounded canvas positions and must differ. At most 64 strictly increasing stops spanning at=0..1; normalized working RGBA. Colors interpolate in premultiplied encoded working RGB to avoid transparent hidden-color halos, then composite in linear P3 with opacity 0..1; reverse optional. Shape coordinates use pixel centers: linear projection, radial distance, signed angle modulo one turn, reflected absolute projection, diamond L1 distance. Fill locks/cancellation/shared budgets/atomic history apply. 中文：线性、径向、角度、对称、菱形渐变。",
+        json!({"layer":{"name":"Background"},"start":[2.5,8.5],"end":[12.5,8.5],"stops":[{"at":0,"color":[0,0,0,1]},{"at":1,"color":[1,1,1,1]}],"shape":"linear"})
+    );
     for item in &mut list {
         item.returns = match item.id {
+            "paint.sample_color" => schemars::schema_for!(SampleColorResult),
+            "paint.fill" | "paint.bucket" | "paint.gradient" => schemars::schema_for!(BrushResult),
             "paint.stroke" | "paint.erase" => schemars::schema_for!(BrushResult),
             "document.inspect" => schemars::schema_for!(Snapshot),
             "layer.list" => schemars::schema_for!(LayerListResult),
@@ -960,6 +998,17 @@ fn build_catalog() -> Vec<CommandSpec> {
         if matches!(item.id, "paint.stroke" | "paint.erase") {
             item.batchable = false;
             item.examples.push(json!({"layer":{"name":"Background"},"target":"mask","points":[{"x":8.5,"y":8.5,"pressure":0.5}],"size":4,"value":if item.id=="paint.erase"{1.0}else{0.25},"opacity":0.5,"pressure_size":false}));
+        }
+        if matches!(
+            item.id,
+            "paint.sample_color" | "paint.fill" | "paint.bucket" | "paint.gradient"
+        ) {
+            item.batchable = false;
+        }
+        if item.id == "paint.gradient" {
+            for shape in ["radial", "angle", "reflected", "diamond"] {
+                item.examples.push(json!({"layer":{"name":"Background"},"start":[8.5,8.5],"end":[14.5,8.5],"stops":[{"at":0,"color":[0,0,0,1]},{"at":1,"color":[1,1,1,1]}],"shape":shape}));
+            }
         }
         if item.id == "select.subject" {
             item.batchable = false;

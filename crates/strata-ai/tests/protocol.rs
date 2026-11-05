@@ -182,6 +182,21 @@ fn catalog_is_lazy_bilingual_bounded_and_has_no_unimplemented_commands() {
     );
     assert!(catalog::search("", 1).is_err());
     assert!(catalog::search("layer", 100).is_err());
+    for (query, command) in [
+        ("吸管", "paint.sample_color"),
+        ("油漆桶", "paint.bucket"),
+        ("菱形", "paint.gradient"),
+        ("蒙版绘制", "paint.stroke"),
+    ] {
+        assert!(
+            catalog::search(query, 32).unwrap()["matches"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|v| v["id"] == command),
+            "missing paint search {query}"
+        );
+    }
     for query in [
         "色阶",
         "曲线",

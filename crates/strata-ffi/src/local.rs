@@ -19,6 +19,62 @@ pub fn tonal_curve_preview(points_json: String) -> Result<Vec<f32>, StrataError>
 
 #[uniffi::export]
 impl StrataEngine {
+    pub fn begin_paint(&self, layer_id: String, command: String) -> Result<(), StrataError> {
+        let layer = serde_json::from_value(json!({"id":layer_id})).map_err(render_error)?;
+        self.issue_tonal_preview()?;
+        let mut inner = self.lock()?;
+        crate::tonal_preview::restore(&mut inner)?;
+        inner.paint = Some(
+            inner
+                .editor
+                .begin_paint(layer, &command)
+                .map_err(command_error)?,
+        );
+        Ok(())
+    }
+    pub fn end_paint(&self, params_json: String, cancel: bool) -> Result<(), StrataError> {
+        let (editor, interaction) = {
+            let mut inner = self.lock()?;
+            let interaction = inner
+                .paint
+                .take()
+                .ok_or_else(|| render_error("no paint gesture"))?;
+            (inner.editor.clone(), interaction)
+        };
+        if !cancel {
+            if params_json.len() > 64 * 1024 {
+                return Err(render_error("paint parameters exceed limit"));
+            }
+            let params = serde_json::from_str(&params_json).map_err(render_error)?;
+            let prepared = editor
+                .prepare_paint(&interaction, params)
+                .map_err(command_error)?;
+            let mut inner = self.lock()?;
+            apply(&mut inner, prepared, interaction.command(), &json!({}))?;
+        }
+        self.deliver_events()
+    }
+    pub fn sample_color(&self, params_json: String, revision: u64) -> Result<String, StrataError> {
+        if params_json.len() > 4096 {
+            return Err(render_error("sample parameters exceed limit"));
+        }
+        let params = serde_json::from_str(&params_json).map_err(render_error)?;
+        let (editor, request) = {
+            let inner = self.lock()?;
+            if inner.editor.revision() != revision {
+                return Err(command_error(CommandError::Stale));
+            }
+            (inner.editor.clone(), inner.editor.request(Source::User))
+        };
+        let prepared = editor
+            .prepare(request, "paint.sample_color", params)
+            .map_err(command_error)?;
+        self.lock()?
+            .editor
+            .commit(prepared)
+            .map(|value| value.to_string())
+            .map_err(command_error)
+    }
     pub fn begin_brush(
         &self,
         layer_id: String,
@@ -265,6 +321,51 @@ mod tests {
     struct Listener;
     impl EngineListener for Listener {
         fn on_event(&self, _: EngineEventDto) {}
+    }
+    #[test]
+    fn fill_gesture_and_sampler_are_revision_bound_and_sampler_never_edits_history() {
+        let engine = StrataEngine::new(Arc::new(Listener));
+        engine.dispatch("file.new".into(),json!({"width":16,"height":16,"bit_depth":16,"background":[32768,32769,50001,65535]}).to_string()).unwrap();
+        let state = engine.lock().unwrap().editor.snapshot();
+        let id = state.active_layer.unwrap().to_string();
+        let color: Value = serde_json::from_str(
+            &engine
+                .sample_color(
+                    json!({"x":1,"y":1,"sample":"current_layer"}).to_string(),
+                    state.revision,
+                )
+                .unwrap(),
+        )
+        .unwrap();
+        assert_eq!(color["color"][1], json!(32769.0 / 65535.0));
+        assert_eq!(engine.lock().unwrap().editor.snapshot().history.len(), 0);
+        engine.begin_paint(id.clone(), "paint.fill".into()).unwrap();
+        engine
+            .end_paint(json!({"color":[1,0,0,1]}).to_string(), false)
+            .unwrap();
+        assert_eq!(engine.lock().unwrap().editor.snapshot().history.len(), 1);
+        assert!(
+            engine
+                .sample_color(json!({"x":1,"y":1}).to_string(), state.revision)
+                .is_err()
+        );
+        engine
+            .begin_paint(id.clone(), "paint.gradient".into())
+            .unwrap();
+        engine.end_paint("{}".into(), true).unwrap();
+        assert_eq!(engine.lock().unwrap().editor.snapshot().history.len(), 1);
+        engine.begin_paint(id, "paint.bucket".into()).unwrap();
+        engine.dispatch("select.all".into(), "{}".into()).unwrap();
+        let history = engine.lock().unwrap().editor.snapshot().history.len();
+        assert!(
+            engine
+                .end_paint(json!({"x":1,"y":1,"color":[0,1,0,1]}).to_string(), false)
+                .is_err()
+        );
+        assert_eq!(
+            engine.lock().unwrap().editor.snapshot().history.len(),
+            history
+        );
     }
     #[test]
     fn brush_gestures_anchor_target_and_reject_late_or_retargeted_commits() {

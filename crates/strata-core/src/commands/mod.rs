@@ -6,6 +6,7 @@ mod export;
 mod generated;
 mod local;
 mod new;
+mod paint;
 mod raster;
 mod registry;
 mod resample;
@@ -16,8 +17,8 @@ mod tree;
 pub use cancellation::WorkCancellation;
 pub use executor::{
     BrushInteraction, ClipboardImage, CommandError, Control, Editor, ExposureInteraction,
-    HistoryInfo, MarqueeInteraction, MoveInteraction, PreparedCommand, Request, Snapshot, Source,
-    TonalInteraction,
+    HistoryInfo, MarqueeInteraction, MoveInteraction, PaintInteraction, PreparedCommand, Request,
+    Snapshot, Source, TonalInteraction,
 };
 pub use registry::{CommandKind, CommandSpec, catalog};
 
@@ -278,6 +279,56 @@ pub struct BrushResult {
     pub target: BrushTarget,
     pub touched_tiles: usize,
 }
+params!(SampleColor {
+    x: i64,
+    y: i64,
+    #[serde(default)]
+    radius: u32,
+    #[serde(default)]
+    sample: SelectionSample
+});
+#[derive(Serialize, JsonSchema)]
+pub struct SampleColorResult {
+    pub color: [f64; 4],
+    pub bit_depth: u8,
+    pub profile: String,
+    pub sampled_pixels: usize,
+}
+params!(FillPixels {
+    layer: LayerRef,
+    color: [f64; 4],
+    #[serde(default = "brush_full")]
+    opacity: f64
+});
+params!(BucketPixels {
+    layer: LayerRef,
+    x: i64,
+    y: i64,
+    color: [f64; 4],
+    #[serde(default = "brush_full")]
+    opacity: f64,
+    #[serde(default = "wand_tolerance")]
+    tolerance: u8,
+    #[serde(default = "enabled")]
+    contiguous: bool,
+    #[serde(default)]
+    sample: SelectionSample
+});
+#[derive(Clone, Copy, Debug, Default, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum PaintGradientShape {
+    #[default]
+    Linear,
+    Radial,
+    Angle,
+    Reflected,
+    Diamond,
+}
+params!(PaintGradientStop {
+    at: f64,
+    color: [f64; 4]
+});
+params!(GradientPixels{layer:LayerRef,start:[f64;2],end:[f64;2],stops:Vec<PaintGradientStop>,#[serde(default)]shape:PaintGradientShape,#[serde(default)]reverse:bool,#[serde(default="brush_full")]opacity:f64});
 #[derive(Clone, Copy, Debug, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum SelectionSample {

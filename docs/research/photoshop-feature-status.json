@@ -560,5 +560,35 @@
         "path": "../research/2026-11-m6-paint-retouch-progress.md"
       }
     ]
+  },
+  "PS-08-af9951e405": {
+    "implementation": "已实现",
+    "acceptance": "本机核心/原生/Metal/单窗口证据；大图连续性能另记",
+    "evidence": [
+      {
+        "label": "M6 第二批",
+        "path": "../research/2026-11-m6-paint-retouch-progress.md"
+      }
+    ]
+  },
+  "PS-08-739094bd86": {
+    "implementation": "已实现",
+    "acceptance": "本机核心/原生/Metal/单窗口证据；大图连续性能另记",
+    "evidence": [
+      {
+        "label": "M6 第二批",
+        "path": "../research/2026-11-m6-paint-retouch-progress.md"
+      }
+    ]
+  },
+  "PS-08-6f11ed20eb": {
+    "implementation": "已实现",
+    "acceptance": "本机核心/原生/Metal/单窗口证据；大图连续性能另记",
+    "evidence": [
+      {
+        "label": "M6 第二批",
+        "path": "../research/2026-11-m6-paint-retouch-progress.md"
+      }
+    ]
   }
 }

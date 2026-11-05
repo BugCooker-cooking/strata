@@ -14230,6 +14230,776 @@ Permissions: `bound_document`
 }
 ```
 
+## `paint.sample_color` — 吸取颜色
+
+Read encoded working RGBA at an artboard canvas point; sample merged visible composite or visible active raw pixel layer. Radius 0..31; larger neighborhoods are alpha-weighted in linear P3, then converted through the actual working ICC; output alpha is mean alpha. Raw current-layer radius zero preserves exact source-depth values including hidden RGB. Query does not edit document/history/clipboard. 中文：吸管、取色、颜色取样。
+
+Kind: `Query` · Undoable: `false` · Batchable: `false`
+
+Effects: `document.read`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SampleColor",
+  "type": "object",
+  "properties": {
+    "radius": {
+      "type": "integer",
+      "format": "uint32",
+      "default": 0,
+      "minimum": 0
+    },
+    "sample": {
+      "$ref": "#/$defs/SelectionSample",
+      "default": "merged"
+    },
+    "x": {
+      "type": "integer",
+      "format": "int64"
+    },
+    "y": {
+      "type": "integer",
+      "format": "int64"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "x",
+    "y"
+  ],
+  "$defs": {
+    "SelectionSample": {
+      "type": "string",
+      "enum": [
+        "merged",
+        "current_layer"
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SampleColorResult",
+  "type": "object",
+  "properties": {
+    "bit_depth": {
+      "type": "integer",
+      "format": "uint8",
+      "maximum": 255,
+      "minimum": 0
+    },
+    "color": {
+      "type": "array",
+      "items": {
+        "type": "number",
+        "format": "double"
+      },
+      "maxItems": 4,
+      "minItems": 4
+    },
+    "profile": {
+      "type": "string"
+    },
+    "sampled_pixels": {
+      "type": "integer",
+      "format": "uint",
+      "minimum": 0
+    }
+  },
+  "required": [
+    "color",
+    "bit_depth",
+    "profile",
+    "sampled_pixels"
+  ]
+}
+```
+
+### Examples
+
+```json
+{
+  "radius": 0,
+  "sample": "merged",
+  "x": 4,
+  "y": 4
+}
+```
+
+## `paint.fill` — 填充像素
+
+Fill an explicit unlocked pixel layer inside the artboard and current u16 selection, normalized working RGBA and opacity 0..1. Straight colors convert through actual working ICC and composite in linear P3; source samples at zero selection coverage remain exact. Transparency lock preserves alpha/excludes transparent pixels; ancestor locks, cancellation, shared tile budgets and one atomic history apply. Not batchable. 中文：填充、前景色、背景色。
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `false`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "FillPixels",
+  "type": "object",
+  "properties": {
+    "color": {
+      "type": "array",
+      "items": {
+        "type": "number",
+        "format": "double"
+      },
+      "maxItems": 4,
+      "minItems": 4
+    },
+    "layer": {
+      "$ref": "#/$defs/LayerRef"
+    },
+    "opacity": {
+      "type": "number",
+      "format": "double",
+      "default": 1.0
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "layer",
+    "color"
+  ],
+  "$defs": {
+    "LayerRef": {
+      "description": "Stable ID preferred. Duplicate names return candidates instead of guessing.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BrushResult",
+  "type": "object",
+  "properties": {
+    "layer_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "target": {
+      "$ref": "#/$defs/BrushTarget"
+    },
+    "touched_tiles": {
+      "type": "integer",
+      "format": "uint",
+      "minimum": 0
+    }
+  },
+  "required": [
+    "layer_id",
+    "target",
+    "touched_tiles"
+  ],
+  "$defs": {
+    "BrushTarget": {
+      "type": "string",
+      "enum": [
+        "pixels",
+        "mask"
+      ]
+    }
+  }
+}
+```
+
+### Examples
+
+```json
+{
+  "color": [
+    0.2,
+    0.4,
+    0.8,
+    1
+  ],
+  "layer": {
+    "name": "Background"
+  },
+  "opacity": 0.5
+}
+```
+
+## `paint.bucket` — 油漆桶
+
+Compute wand-style tolerance 0..255 and four-connected/global matches from merged or current-layer working samples, then fill the explicit pixel target through that region and current selection. Sample/seed and transparency semantics match select.wand; fill/locks/budget/history match paint.fill. Sampling leaves the current selection unchanged. Cancellable and not batchable. 中文：油漆桶、连续、容差。
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `false`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BucketPixels",
+  "type": "object",
+  "properties": {
+    "color": {
+      "type": "array",
+      "items": {
+        "type": "number",
+        "format": "double"
+      },
+      "maxItems": 4,
+      "minItems": 4
+    },
+    "contiguous": {
+      "type": "boolean",
+      "default": true
+    },
+    "layer": {
+      "$ref": "#/$defs/LayerRef"
+    },
+    "opacity": {
+      "type": "number",
+      "format": "double",
+      "default": 1.0
+    },
+    "sample": {
+      "$ref": "#/$defs/SelectionSample",
+      "default": "merged"
+    },
+    "tolerance": {
+      "type": "integer",
+      "format": "uint8",
+      "default": 32,
+      "maximum": 255,
+      "minimum": 0
+    },
+    "x": {
+      "type": "integer",
+      "format": "int64"
+    },
+    "y": {
+      "type": "integer",
+      "format": "int64"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "layer",
+    "x",
+    "y",
+    "color"
+  ],
+  "$defs": {
+    "LayerRef": {
+      "description": "Stable ID preferred. Duplicate names return candidates instead of guessing.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ]
+        }
+      ]
+    },
+    "SelectionSample": {
+      "type": "string",
+      "enum": [
+        "merged",
+        "current_layer"
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BrushResult",
+  "type": "object",
+  "properties": {
+    "layer_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "target": {
+      "$ref": "#/$defs/BrushTarget"
+    },
+    "touched_tiles": {
+      "type": "integer",
+      "format": "uint",
+      "minimum": 0
+    }
+  },
+  "required": [
+    "layer_id",
+    "target",
+    "touched_tiles"
+  ],
+  "$defs": {
+    "BrushTarget": {
+      "type": "string",
+      "enum": [
+        "pixels",
+        "mask"
+      ]
+    }
+  }
+}
+```
+
+### Examples
+
+```json
+{
+  "color": [
+    1,
+    0.2,
+    0,
+    1
+  ],
+  "contiguous": true,
+  "layer": {
+    "name": "Background"
+  },
+  "tolerance": 32,
+  "x": 4,
+  "y": 4
+}
+```
+
+## `paint.gradient` — 渐变像素
+
+Paint linear/radial/angle/reflected/diamond gradient on an explicit pixel layer, artboard and current selection. Start/end are bounded canvas positions and must differ. At most 64 strictly increasing stops spanning at=0..1; normalized working RGBA. Colors interpolate in premultiplied encoded working RGB to avoid transparent hidden-color halos, then composite in linear P3 with opacity 0..1; reverse optional. Shape coordinates use pixel centers: linear projection, radial distance, signed angle modulo one turn, reflected absolute projection, diamond L1 distance. Fill locks/cancellation/shared budgets/atomic history apply. 中文：线性、径向、角度、对称、菱形渐变。
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `false`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GradientPixels",
+  "type": "object",
+  "properties": {
+    "end": {
+      "type": "array",
+      "items": {
+        "type": "number",
+        "format": "double"
+      },
+      "maxItems": 2,
+      "minItems": 2
+    },
+    "layer": {
+      "$ref": "#/$defs/LayerRef"
+    },
+    "opacity": {
+      "type": "number",
+      "format": "double",
+      "default": 1.0
+    },
+    "reverse": {
+      "type": "boolean",
+      "default": false
+    },
+    "shape": {
+      "$ref": "#/$defs/PaintGradientShape",
+      "default": "linear"
+    },
+    "start": {
+      "type": "array",
+      "items": {
+        "type": "number",
+        "format": "double"
+      },
+      "maxItems": 2,
+      "minItems": 2
+    },
+    "stops": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/PaintGradientStop"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "layer",
+    "start",
+    "end",
+    "stops"
+  ],
+  "$defs": {
+    "LayerRef": {
+      "description": "Stable ID preferred. Duplicate names return candidates instead of guessing.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ]
+        }
+      ]
+    },
+    "PaintGradientShape": {
+      "type": "string",
+      "enum": [
+        "linear",
+        "radial",
+        "angle",
+        "reflected",
+        "diamond"
+      ]
+    },
+    "PaintGradientStop": {
+      "type": "object",
+      "properties": {
+        "at": {
+          "type": "number",
+          "format": "double"
+        },
+        "color": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 4,
+          "minItems": 4
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "at",
+        "color"
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BrushResult",
+  "type": "object",
+  "properties": {
+    "layer_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "target": {
+      "$ref": "#/$defs/BrushTarget"
+    },
+    "touched_tiles": {
+      "type": "integer",
+      "format": "uint",
+      "minimum": 0
+    }
+  },
+  "required": [
+    "layer_id",
+    "target",
+    "touched_tiles"
+  ],
+  "$defs": {
+    "BrushTarget": {
+      "type": "string",
+      "enum": [
+        "pixels",
+        "mask"
+      ]
+    }
+  }
+}
+```
+
+### Examples
+
+```json
+{
+  "end": [
+    12.5,
+    8.5
+  ],
+  "layer": {
+    "name": "Background"
+  },
+  "shape": "linear",
+  "start": [
+    2.5,
+    8.5
+  ],
+  "stops": [
+    {
+      "at": 0,
+      "color": [
+        0,
+        0,
+        0,
+        1
+      ]
+    },
+    {
+      "at": 1,
+      "color": [
+        1,
+        1,
+        1,
+        1
+      ]
+    }
+  ]
+}
+```
+
+```json
+{
+  "end": [
+    14.5,
+    8.5
+  ],
+  "layer": {
+    "name": "Background"
+  },
+  "shape": "radial",
+  "start": [
+    8.5,
+    8.5
+  ],
+  "stops": [
+    {
+      "at": 0,
+      "color": [
+        0,
+        0,
+        0,
+        1
+      ]
+    },
+    {
+      "at": 1,
+      "color": [
+        1,
+        1,
+        1,
+        1
+      ]
+    }
+  ]
+}
+```
+
+```json
+{
+  "end": [
+    14.5,
+    8.5
+  ],
+  "layer": {
+    "name": "Background"
+  },
+  "shape": "angle",
+  "start": [
+    8.5,
+    8.5
+  ],
+  "stops": [
+    {
+      "at": 0,
+      "color": [
+        0,
+        0,
+        0,
+        1
+      ]
+    },
+    {
+      "at": 1,
+      "color": [
+        1,
+        1,
+        1,
+        1
+      ]
+    }
+  ]
+}
+```
+
+```json
+{
+  "end": [
+    14.5,
+    8.5
+  ],
+  "layer": {
+    "name": "Background"
+  },
+  "shape": "reflected",
+  "start": [
+    8.5,
+    8.5
+  ],
+  "stops": [
+    {
+      "at": 0,
+      "color": [
+        0,
+        0,
+        0,
+        1
+      ]
+    },
+    {
+      "at": 1,
+      "color": [
+        1,
+        1,
+        1,
+        1
+      ]
+    }
+  ]
+}
+```
+
+```json
+{
+  "end": [
+    14.5,
+    8.5
+  ],
+  "layer": {
+    "name": "Background"
+  },
+  "shape": "diamond",
+  "start": [
+    8.5,
+    8.5
+  ],
+  "stops": [
+    {
+      "at": 0,
+      "color": [
+        0,
+        0,
+        0,
+        1
+      ]
+    },
+    {
+      "at": 1,
+      "color": [
+        1,
+        1,
+        1,
+        1
+      ]
+    }
+  ]
+}
+```
+
 ## `color.convert` — 转换工作空间
 
 Convert source tiles at their original bit depth to srgb or display_p3. Alpha is preserved; undo restores exact original samples and ICC.

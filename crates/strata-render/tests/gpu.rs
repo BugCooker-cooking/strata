@@ -572,6 +572,71 @@ fn brush_eraser_and_mask_strokes_match_linear_cpu_composite_over_canvas() {
 }
 
 #[test]
+fn all_pixel_gradient_shapes_and_fill_update_display_tiles_against_cpu() {
+    let Some(mut renderer) = renderer() else {
+        return;
+    };
+    for shape in ["linear", "radial", "angle", "reflected", "diamond"] {
+        let mut editor = strata_core::Editor::new();
+        for (id, args) in [
+            (
+                "file.new",
+                serde_json::json!({"width":16,"height":16,"bit_depth":16,"working_space":"display_p3","background":[12000,22000,32000,65535]}),
+            ),
+            (
+                "paint.gradient",
+                serde_json::json!({"layer":{"name":"Background"},"start":[8.5,8.5],"end":[14.5,8.5],"shape":shape,"opacity":0.8,"stops":[{"at":0,"color":[1,0.1,0.2,0]},{"at":1,"color":[0.2,0.6,1,1]}]}),
+            ),
+        ] {
+            editor
+                .execute(editor.request(strata_core::Source::Test), id, args, |_| {
+                    Ok(())
+                })
+                .unwrap();
+        }
+        for pass in 0..2 {
+            if pass == 1 {
+                editor.execute(editor.request(strata_core::Source::Test),"paint.fill",serde_json::json!({"layer":{"name":"Background"},"color":[0.8,0.4,0.2,1],"opacity":0.3}),|_|Ok(())).unwrap();
+            }
+            let doc = editor.document().unwrap();
+            let scene = renderer.prepare_document(doc, false).unwrap();
+            renderer.commit_document(scene).unwrap();
+            renderer
+                .set_view(ViewTransform {
+                    zoom: 3.0,
+                    center_x: 8.0,
+                    center_y: 8.0,
+                })
+                .unwrap();
+            renderer.render().unwrap();
+            let actual = renderer.read_offscreen_rgba().unwrap();
+            let expected = strata_color::to_display_p3(
+                &doc.export_pixels().unwrap(),
+                16,
+                16,
+                Some(doc.working_icc()),
+            )
+            .unwrap()
+            .pixels;
+            let PixelBuffer::Rgba16(expected) = expected else {
+                panic!()
+            };
+            for (x, y) in [(2usize, 6usize), (6, 6), (10, 10), (14, 12)] {
+                let shown = pixel(&actual, x * 3 + 9, y * 3 + 9);
+                let i = (y * 16 + x) * 4;
+                for c in 0..3 {
+                    let target = ((u32::from(expected[i + c]) + 128) / 257) as i32;
+                    assert!(
+                        (i32::from(shown[c]) - target).abs() <= 4,
+                        "{shape} pass {pass} {x},{y},{c}: {shown:?} expected {target}"
+                    );
+                }
+            }
+        }
+    }
+}
+
+#[test]
 fn tiled_scene_preserves_source_and_has_no_mip_seam() {
     let Some(mut r) = renderer() else {
         return;

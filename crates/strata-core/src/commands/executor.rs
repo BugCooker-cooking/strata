@@ -104,6 +104,18 @@ impl BrushInteraction {
         &self.command
     }
 }
+#[derive(Clone)]
+pub struct PaintInteraction {
+    request: Request,
+    epoch: u64,
+    layer: LayerId,
+    command: String,
+}
+impl PaintInteraction {
+    pub fn command(&self) -> &str {
+        &self.command
+    }
+}
 
 #[derive(Debug, thiserror::Error)]
 pub enum CommandError {
@@ -494,6 +506,57 @@ impl Editor {
             layer,
         })
     }
+    pub fn begin_paint(
+        &self,
+        layer: LayerRef,
+        command: &str,
+    ) -> Result<PaintInteraction, CommandError> {
+        if !matches!(command, "paint.fill" | "paint.bucket" | "paint.gradient") {
+            return Err(CommandError::Invalid("unsupported paint gesture".into()));
+        }
+        self.authorize(&Source::User, command, CommandKind::Mutate)?;
+        let doc = self.document().ok_or(CommandError::NoDocument)?;
+        let layer = doc.resolve(&layer)?;
+        if !doc
+            .layers()
+            .iter()
+            .any(|l| l.id() == layer && matches!(l.info().kind, crate::LayerKind::Pixel))
+            || doc.layers().iter().any(|l| {
+                (l.id() == layer || doc.is_descendant(layer, l.id()))
+                    && (l.info().locks.all || l.info().locks.pixels)
+            })
+        {
+            return Err(CommandError::Invalid(
+                "paint target requires an unlocked pixel layer and ancestors".into(),
+            ));
+        }
+        Ok(PaintInteraction {
+            request: self.request(Source::User),
+            epoch: self.epoch,
+            layer,
+            command: command.into(),
+        })
+    }
+    pub fn prepare_paint(
+        &self,
+        interaction: &PaintInteraction,
+        mut params: Value,
+    ) -> Result<PreparedCommand, CommandError> {
+        if self.epoch != interaction.epoch {
+            return Err(CommandError::Stale);
+        }
+        let fields = params
+            .as_object_mut()
+            .ok_or_else(|| CommandError::Invalid("paint params must be an object".into()))?;
+        let layer = json!({"id":interaction.layer});
+        if fields.get("layer").is_some_and(|value| *value != layer) {
+            return Err(CommandError::Invalid(
+                "paint gesture target cannot change after first input".into(),
+            ));
+        }
+        fields.insert("layer".into(), layer);
+        self.prepare(interaction.request.clone(), &interaction.command, params)
+    }
     pub fn begin_brush(
         &self,
         layer: LayerRef,
@@ -785,12 +848,17 @@ impl Editor {
                     if !self.clipboard_write_confirmed(&request, &p.resource)? {
                         return Err(CommandError::Permission);
                     }
-                } else {
+                } else if id != "paint.sample_color" {
                     let _: Empty = parse(params.clone())?;
                 }
                 (
                     Action::Query,
-                    if id == "edit.clipboard.write_status" {
+                    if id == "paint.sample_color" {
+                        super::paint::sample(
+                            self.document().ok_or(CommandError::NoDocument)?,
+                            params.clone(),
+                        )?
+                    } else if id == "edit.clipboard.write_status" {
                         json!({"status":"completed","undoable":false})
                     } else if id == "file.recent.list" {
                         self.recent_result(&request)
@@ -881,6 +949,10 @@ impl Editor {
                     super::brush::mutate_cancellable(doc, id, params.clone(), &|| {
                         request.expired()
                     })?
+                {
+                    (Action::Edit, result)
+                } else if let Some(result) =
+                    super::paint::mutate(doc, id, params.clone(), &|| request.expired())?
                 {
                     (Action::Edit, result)
                 } else if id == "file.place" {

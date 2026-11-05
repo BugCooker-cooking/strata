@@ -139,7 +139,7 @@ fn set_alpha(pixels: &mut PixelBuffer, index: usize, alpha: f64) {
         }
     }
 }
-fn copy_color(target: &mut PixelBuffer, source: &PixelBuffer, index: usize) {
+pub(super) fn copy_color(target: &mut PixelBuffer, source: &PixelBuffer, index: usize) {
     match (target, source) {
         (PixelBuffer::Rgba8(a), PixelBuffer::Rgba8(b)) => {
             a[index * 4..index * 4 + 3].copy_from_slice(&b[index * 4..index * 4 + 3])

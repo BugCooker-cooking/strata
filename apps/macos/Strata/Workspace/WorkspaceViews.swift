@@ -37,7 +37,7 @@ struct ToolRail: View {
                         if index > 0 { Rectangle().fill(Color(nsColor: WorkspaceColors.border)).frame(height: 1).padding(.horizontal, 10) }
                         ForEach(group) { tool in
                             WorkspaceIconButton(title: "\(tool.title)\(tool.key.isEmpty ? "" : " (\(tool.key))")", symbol: tool.symbol,
-                                enabled: !model.busy && tool.available && (![EditorTool.move, .subject].contains(tool) || model.permissions.edits) && (!tool.isBrush || model.permissions.edits) && (!tool.isSelection || model.permissions.selectionEdits), selected: model.tool == tool) { model.selectTool(tool) }
+                                enabled: !model.busy && tool.available && (![EditorTool.move, .subject].contains(tool) || model.permissions.edits) && (!tool.isPaint || model.permissions.edits) && (!tool.isSelection || model.permissions.selectionEdits), selected: model.tool == tool) { model.selectTool(tool) }
                         }
                     }
                 }.padding(.top, 8)
@@ -57,6 +57,8 @@ struct ToolOptionsBar: View {
             switch model.tool {
             case .brush,.eraser:
                 BrushToolOptions(model:model)
+            case .bucket,.gradient,.eyedropper:
+                PaintFillOptions(model:model)
             case .marquee, .lasso, .selection:
                 SelectionToolOptions(model: model)
             case .move:

@@ -33,22 +33,23 @@ enum WorkspaceColors {
 }
 
 enum EditorTool: String, CaseIterable, Identifiable {
-    case move, marquee, lasso, selection, subject, crop, eyedropper, heal, clone, brush, eraser, gradient, dodge, text, pen, shape, hand, zoom
+    case move, marquee, lasso, selection, subject, crop, eyedropper, heal, clone, brush, eraser, bucket, gradient, dodge, text, pen, shape, hand, zoom
     var id: String { rawValue }
     var title: String { Self.info[self]!.0 }
     var symbol: String { Self.info[self]!.1 }
     var key: String { Self.info[self]!.2 }
-    var available: Bool { [.move, .marquee, .lasso, .selection, .subject, .brush, .eraser, .hand, .zoom].contains(self) }
+    var available: Bool { [.move, .marquee, .lasso, .selection, .subject, .brush, .eraser, .bucket, .gradient, .eyedropper, .hand, .zoom].contains(self) }
+    var isPaint: Bool { isBrush || [.bucket,.gradient].contains(self) }
     var isBrush: Bool { [.brush,.eraser].contains(self) }
     var isSelection: Bool { [.marquee, .lasso, .selection].contains(self) }
-    static let groups: [[EditorTool]] = [[.move], [.marquee, .lasso, .selection, .subject], [.crop, .eyedropper], [.heal, .clone, .brush, .eraser, .gradient, .dodge], [.text, .pen, .shape], [.hand, .zoom]]
+    static let groups: [[EditorTool]] = [[.move], [.marquee, .lasso, .selection, .subject], [.crop, .eyedropper], [.heal, .clone, .brush, .eraser, .bucket, .gradient, .dodge], [.text, .pen, .shape], [.hand, .zoom]]
     private static let info: [EditorTool: (String, String, String)] = [
         .move: ("移动", "cursorarrow", "V"), .marquee: ("矩形选框", "rectangle.dashed", "M"),
         .lasso: ("套索", "lasso", "L"), .selection: ("快速选择", "wand.and.rays", "W"),
         .subject: ("选择主体", "person.crop.rectangle", ""), .crop: ("裁剪", "crop", "C"),
         .eyedropper: ("吸管", "eyedropper", "I"), .heal: ("修复画笔", "bandage", "J"),
         .clone: ("仿制图章", "seal", "S"), .brush: ("画笔", "paintbrush.pointed", "B"),
-        .eraser: ("橡皮擦", "eraser", "E"), .gradient: ("渐变", "square.lefthalf.filled", "G"),
+        .eraser: ("橡皮擦", "eraser", "E"), .bucket: ("油漆桶", "paintbucket", "K"), .gradient: ("渐变", "square.lefthalf.filled", "G"),
         .dodge: ("减淡 / 加深", "sun.max", "O"), .text: ("文字", "textformat", "T"),
         .pen: ("钢笔", "pencil.tip.crop.circle", "P"), .shape: ("形状", "square.on.circle", "U"),
         .hand: ("抓手", "hand.draw", "H"), .zoom: ("缩放", "magnifyingglass", "Z")]
@@ -107,6 +108,14 @@ final class WorkspaceModel: ObservableObject {
     @Published var brushPressureOpacity = true
     @Published var foregroundColor = NSColor.black
     @Published var backgroundColor = NSColor.white
+    @Published var paintSample = "merged"
+    @Published var sampleRadius = 0.0
+    @Published var sampledColorSummary = ""
+    @Published var bucketTolerance = 32.0
+    @Published var bucketContiguous = true
+    @Published var paintOpacity = 100.0
+    @Published var gradientShape = "linear"
+    @Published var gradientReverse = false
     @Published var histogram: [Double] = []
     @Published var workingColorSpace=NSColorSpace.sRGB
     @Published var collapsedGroups:Set<String>=[]
@@ -145,7 +154,7 @@ final class WorkspaceModel: ObservableObject {
     var canRedo: Bool { permissions.history && (snapshot?.historyCursor ?? 0) < (snapshot?.history.count ?? 0) }
     func send(_ action: WorkspaceAction) { self.action?(action) }
     func selectTool(_ tool: EditorTool) {
-        guard !busy, tool.available, tool != .move || permissions.edits, !tool.isBrush || permissions.edits, !tool.isSelection || permissions.selectionEdits else { return }
+        guard !busy, tool.available, tool != .move || permissions.edits, !tool.isPaint || permissions.edits, !tool.isSelection || permissions.selectionEdits else { return }
         if tool == .subject { if permissions.edits { send(.selectSubject) }; return }
         self.tool = tool; send(.tool(tool))
     }
@@ -193,6 +202,7 @@ private let commandTitles: [String: String] = [
      "select.smooth": "平滑选区", "select.border": "选区边界", "select.transform": "变换选区",
      "layer.add_tonal_adjustment":"新建调色调整层", "adjust.tonal.set":"修改调色参数",
      "paint.stroke":"画笔笔触", "paint.erase":"橡皮擦笔触",
+     "paint.fill":"填充像素", "paint.bucket":"油漆桶", "paint.gradient":"渐变像素", "paint.sample_color":"吸取颜色",
      "layer.add_adjustment": "新建曝光调整层", "adjust.exposure.set": "调整曝光",
      "layer.mask.add": "添加蒙版", "layer.mask.invert": "反相蒙版",
      "layer.mask.set_enabled": "切换蒙版", "layer.mask.remove": "移除蒙版",
