@@ -6,7 +6,7 @@ use strata_pixels::{
     memory::{MemoryKind, MemoryLimits, MemoryPool},
 };
 
-pub fn run(path: &Path) -> Result<(), Box<dyn Error>> {
+pub fn run(path: &Path, local: bool) -> Result<(), Box<dyn Error>> {
     if cfg!(debug_assertions) {
         return Err("tonal benchmark requires --release".into());
     }
@@ -33,12 +33,20 @@ pub fn run(path: &Path) -> Result<(), Box<dyn Error>> {
         .map(|l| l.info().clone())
         .collect::<Vec<_>>();
     let mut cases = Vec::new();
-    for settings in [
-        None,
-        Some(json!({"type":"brightness_contrast","brightness":5,"contrast":10})),
-        Some(json!({"type":"levels","master":{"gamma":1.2}})),
-        Some(json!({"type":"curves","master":[[0,0],[0.5,0.65],[1,1]]})),
-    ] {
+    let sequence = if local {
+        vec![
+            None,
+            Some(json!({"type":"shadows_highlights","shadows":35,"highlights":25,"radius":30})),
+        ]
+    } else {
+        vec![
+            None,
+            Some(json!({"type":"brightness_contrast","brightness":5,"contrast":10})),
+            Some(json!({"type":"levels","master":{"gamma":1.2}})),
+            Some(json!({"type":"curves","master":[[0,0],[0.5,0.65],[1,1]]})),
+        ]
+    };
+    for settings in sequence {
         let name = settings
             .as_ref()
             .and_then(|v| v["type"].as_str())

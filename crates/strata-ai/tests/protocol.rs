@@ -185,6 +185,8 @@ fn catalog_is_lazy_bilingual_bounded_and_has_no_unimplemented_commands() {
     for query in [
         "色阶",
         "曲线",
+        "阴影",
+        "高光",
         "自然饱和度",
         "色温",
         "色彩平衡",

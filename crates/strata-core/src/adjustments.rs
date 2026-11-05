@@ -4,6 +4,7 @@ use crate::DocumentError;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 mod point_color;
+pub(crate) mod spatial;
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(default, deny_unknown_fields)]
@@ -39,6 +40,9 @@ fn density() -> f64 {
 }
 fn half() -> f64 {
     0.5
+}
+fn local_radius() -> f64 {
+    30.0
 }
 fn poster_levels() -> u32 {
     6
@@ -112,6 +116,18 @@ pub enum TonalAdjustment {
         #[serde(default = "yes")]
         preserve_luminance: bool,
     },
+    ShadowsHighlights {
+        #[serde(default)]
+        shadows: f64,
+        #[serde(default)]
+        highlights: f64,
+        #[serde(default = "half")]
+        shadows_width: f64,
+        #[serde(default = "half")]
+        highlights_width: f64,
+        #[serde(default = "local_radius")]
+        radius: f64,
+    },
     ColorBalance {
         #[serde(default)]
         shadows: [f64; 3],
@@ -175,6 +191,11 @@ impl TonalAdjustment {
         source: &[[f32; 4]],
         icc: &[u8],
     ) -> Result<Vec<[f32; 4]>, strata_color::ColorError> {
+        if matches!(self, Self::ShadowsHighlights { .. }) {
+            return Err(strata_color::ColorError::Transform(
+                "local tone needs the neighboring composition input".into(),
+            ));
+        }
         if let Self::WhiteBalance {
             temperature,
             tint,
@@ -217,6 +238,27 @@ impl TonalAdjustment {
     pub fn validate(&self) -> Result<(), DocumentError> {
         let invalid = |message: &str| Err(DocumentError::Invalid(message.into()));
         match self {
+            Self::ShadowsHighlights {
+                shadows,
+                highlights,
+                shadows_width,
+                highlights_width,
+                radius,
+            } => {
+                if [shadows, highlights]
+                    .iter()
+                    .any(|v| !v.is_finite() || !(0.0..=100.0).contains(*v))
+                    || [shadows_width, highlights_width]
+                        .iter()
+                        .any(|v| !v.is_finite() || !(0.01..=1.0).contains(*v))
+                    || !radius.is_finite()
+                    || !(0.0..=256.0).contains(radius)
+                {
+                    return invalid(
+                        "local tone needs strengths 0..100, widths 0.01..1 and radius 0..256",
+                    );
+                }
+            }
             Self::BrightnessContrast {
                 brightness,
                 contrast,
@@ -266,6 +308,11 @@ impl TonalAdjustment {
     }
     pub fn is_identity(&self) -> bool {
         match self {
+            Self::ShadowsHighlights {
+                shadows,
+                highlights,
+                ..
+            } => *shadows == 0.0 && *highlights == 0.0,
             Self::BrightnessContrast {
                 brightness,
                 contrast,

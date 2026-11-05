@@ -211,7 +211,7 @@ private struct AdjustmentPanel: View {
     private let entries = [
         ("exposure","曝光","plusminus"),("brightness_contrast","亮度 / 对比度","sun.max"),("levels","色阶","chart.bar"),
         ("curves","曲线","point.topleft.down.to.point.bottomright.curvepath"),("hue_saturation","色相 / 饱和度","slider.horizontal.3"),
-        ("vibrance","自然饱和度","drop"),("white_balance","色温 / 色调","thermometer.medium"),("color_balance","色彩平衡","circle.lefthalf.filled"),("black_white","黑白","circle.righthalf.filled"),
+        ("vibrance","自然饱和度","drop"),("white_balance","色温 / 色调","thermometer.medium"),("shadows_highlights","阴影 / 高光","sun.haze"),("color_balance","色彩平衡","circle.lefthalf.filled"),("black_white","黑白","circle.righthalf.filled"),
         ("photo_filter","照片滤镜","camera.filters"),("channel_mixer","通道混合器","slider.horizontal.3"),
         ("invert","反相","circle.dotted"),("posterize","色调分离","square.stack.3d.up"),("threshold","阈值","circle.lefthalf.filled"),
         ("gradient_map","渐变映射","rectangle.lefthalf.filled"),("selective_color","可选颜色","paintpalette"),("desaturate","去色","drop.halffull")]

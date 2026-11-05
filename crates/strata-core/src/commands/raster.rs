@@ -111,14 +111,15 @@ fn raster(doc: &Document) -> Result<Raster, CommandError> {
         .memory_pool()
         .reserve(MemoryKind::Transient, bytes)
         .map_err(DocumentError::from)?;
-    let mut snapshot = doc.clone();
-    snapshot.frame.x = x;
-    snapshot.frame.y = y;
-    snapshot.frame.width = width;
-    snapshot.frame.height = height;
-    snapshot.selection = None;
-    snapshot.previous_selection = None;
-    let pixels = snapshot.export_pixels()?;
+    let pixels = doc.export_region_pixels(
+        strata_pixels::CoverageRect {
+            x,
+            y,
+            width,
+            height,
+        },
+        &|| false,
+    )?;
     Ok(Raster {
         pixels,
         x,

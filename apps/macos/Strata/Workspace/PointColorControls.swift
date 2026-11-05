@@ -8,6 +8,7 @@ struct PointColorDraft: Equatable {
     var type = "invert"
     var vibrance = 0.0, saturation = 0.0
     var temperature = 0.0, tintShift = 0.0
+    var shadowsAmount = 0.0, highlightsAmount = 0.0, shadowsWidth = 0.5, highlightsWidth = 0.5, localRadius = 30.0
     var balance = Array(repeating: [0.0,0.0,0.0],count:3)
     var preserveLuminance = true
     var weights = [40.0,60,40,60,20,80]
@@ -25,6 +26,8 @@ struct PointColorDraft: Equatable {
         func vector(_ value:AIJSON,_ fallback:[Double])->[Double]{let values=value.array.compactMap(\.number);return values.count==fallback.count ? values : fallback}
         vibrance=json["vibrance"].number ?? 0;saturation=json["saturation"].number ?? 0
         temperature=json["temperature"].number ?? 0;tintShift=json["tint"].number ?? 0
+        shadowsAmount=json["shadows"].number ?? 0;highlightsAmount=json["highlights"].number ?? 0
+        shadowsWidth=json["shadows_width"].number ?? 0.5;highlightsWidth=json["highlights_width"].number ?? 0.5;localRadius=json["radius"].number ?? 30
         for (i,key) in ["shadows","midtones","highlights"].enumerated(){balance[i]=vector(json[key],balance[i])}
         preserveLuminance=json["preserve_luminance"].bool ?? true
         weights=vector(json["weights"],weights);tint=vector(json["tint"],tint);tinted=json["tint"].array.count==3;tintAmount=json["tint_amount"].number ?? 25
@@ -44,6 +47,7 @@ struct PointColorDraft: Equatable {
         switch type{
         case "vibrance":return ["type":type,"vibrance":vibrance,"saturation":saturation]
         case "white_balance":return ["type":type,"temperature":temperature,"tint":tintShift,"preserve_luminance":preserveLuminance]
+        case "shadows_highlights":return ["type":type,"shadows":shadowsAmount,"highlights":highlightsAmount,"shadows_width":shadowsWidth,"highlights_width":highlightsWidth,"radius":localRadius]
         case "color_balance":return ["type":type,"shadows":balance[0],"midtones":balance[1],"highlights":balance[2],"preserve_luminance":preserveLuminance]
         case "black_white":var p:[String:Any]=["type":type,"weights":weights,"tint_amount":tintAmount];p["tint"]=tinted ? tint as Any : NSNull();return p
         case "photo_filter":return ["type":type,"color":color,"density":density,"preserve_luminance":preserveLuminance]
@@ -84,6 +88,10 @@ struct PointColorControls:View {
         case "white_balance":
             row("色温偏移",$draft.temperature);row("色调偏移",$draft.tintShift);Toggle("保持亮度",isOn:$draft.preserveLuminance)
             note("−100…100 · 色温正值偏暖，负值偏冷；色调正值偏洋红，负值偏绿。")
+        case "shadows_highlights":
+            row("提亮阴影 %",$draft.shadowsAmount);row("压低高光 %",$draft.highlightsAmount)
+            row("阴影范围",$draft.shadowsWidth);row("高光范围",$draft.highlightsWidth);row("局部半径 px",$draft.localRadius)
+            note("强度 0…100 · 范围 0.01…1 · 半径 0…256。调整局部明暗；原始图层保持可编辑。")
         case "color_balance":
             Picker("色调范围",selection:$rangeIndex){Text("阴影").tag(0);Text("中间调").tag(1);Text("高光").tag(2)}.pickerStyle(.segmented)
             vector($draft.balance[rangeIndex],labels:["青色 ↔ 红色","洋红 ↔ 绿色","黄色 ↔ 蓝色"])

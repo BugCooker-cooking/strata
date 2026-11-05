@@ -278,10 +278,6 @@ fn copy(doc: &Document, target: Option<LayerId>) -> Result<ClipboardImage, Comma
             height: doc.frame.height,
         }
     };
-    snapshot.frame.x = bounds.x;
-    snapshot.frame.y = bounds.y;
-    snapshot.frame.width = bounds.width;
-    snapshot.frame.height = bounds.height;
     snapshot.selection = None;
     snapshot.previous_selection = None;
     let bytes = doc
@@ -292,7 +288,7 @@ fn copy(doc: &Document, target: Option<LayerId>) -> Result<ClipboardImage, Comma
         .memory_pool()
         .reserve(MemoryKind::Transient, bytes)
         .map_err(DocumentError::from)?;
-    let mut pixels = snapshot.export_pixels()?;
+    let mut pixels = snapshot.export_region_pixels(bounds, &|| false)?;
     if let Some(selection) = &doc.selection {
         let _mask_scratch = doc
             .memory_pool()

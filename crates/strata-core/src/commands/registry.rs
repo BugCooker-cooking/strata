@@ -820,7 +820,7 @@ fn build_catalog() -> Vec<CommandSpec> {
         "Add tonal adjustment",
         concat!(
             "Create a typed adjustment with the current selection as mask (white if none). Floating encoded document working RGB, source samples and alpha preserved. brightness_contrast: -100..100, additive brightness /100 then contrast about 0.5 (negative gain 1+c; positive 1/(1-c); +100 threshold). levels: master then RGB, normalized black/white and gamma 0.1..10. curves: master then RGB PCHIP, 2..64 points, x strictly increasing from 0 to 1, y 0..1. vibrance: vibrance/saturation -100..100, prioritize low saturation and reduce enhancement near skin hue. color_balance: shadows/midtones/highlights RGB axes -100..100, Rec.709 encoded-luma range weights; preserve_luminance gamut-clips while retaining luma. black_white: six hue sensitivities R/Y/G/C/B/M -200..300, optional normalized tint and tint_amount 0..100. photo_filter: normalized RGB transmittance color, density 0..100 and optional luma preservation. channel_mixer: 3x4 normalized coefficients -2..2 with constants, optional monochrome gray row. invert: 1-RGB. posterize: 2..65536 levels/channel. threshold: encoded Rec.709-weighted level 0..1, equality maps white. gradient_map: 2..64 strictly ordered normalized stops spanning 0..1, encoded RGB interpolation and optional reverse. selective_color: nine CMYK percentage rows R/Y/G/C/B/M/white/neutral/black, -100..100; relative scales by channel/headroom and absolute uses direct offsets. desaturate: HSL lightness (min+max)/2. Neutral settings of brightness/levels/curves/vibrance/balance/mixer/selective color are exact identity in normal mode. One undoable edit; manifest v4.",
-            " white_balance: temperature/tint -100..100; positive temperature warms using reciprocal-Kelvin shift relative to D65 (6504K) and Bradford adaptation in linear Display P3, positive tint reduces the M cone response toward magenta; optional physical Y preservation. This is the exception to encoded working RGB operations. 中文检索：亮度、对比度、色阶、曲线、自然饱和度、色温、色调、色彩平衡、黑白、照片滤镜、通道混合器、反相、色调分离、阈值、渐变映射、可选颜色、去色。"
+            " white_balance: temperature/tint -100..100; positive temperature warms using reciprocal-Kelvin shift relative to D65 (6504K) and Bradford adaptation in linear Display P3, positive tint reduces the M cone response toward magenta; optional physical Y preservation. White balance and local tone are exceptions to encoded working RGB operations. shadows_highlights: shadow/highlight amounts 0..100, widths 0.01..1, radius 0..256 (sigma=radius/3). Physical linear P3 Y and alpha-normalized three-box smoothing estimate local tone on the actual lower input stack. The finite kernel support defines the cross-tile halo; artboard edges clamp to the nearest valid sample. Linear gain is up to two stops in shadows/highlights, then mask/opacity/blend apply. Both strengths zero is exact identity; cancellation and shared temporary budgets apply. 中文检索：亮度、对比度、色阶、曲线、自然饱和度、色温、色调、色彩平衡、黑白、照片滤镜、通道混合器、反相、色调分离、阈值、渐变映射、可选颜色、去色、阴影、高光。"
         ),
         json!({"name":"Levels","adjustment":{"type":"levels","master":{"gamma":1.2}}})
     );
@@ -832,7 +832,7 @@ fn build_catalog() -> Vec<CommandSpec> {
         "Set tonal adjustment",
         concat!(
             "Replace complete tonal settings of an existing adjustment layer without changing its type. Same strict normalized parameters as layer.add_tonal_adjustment. Omitted fields reset to that type's defaults; specify the complete intended settings. Masks, alpha and original source samples are preserved; lock and ancestor checks apply.",
-            " 中文检索：亮度、对比度、色阶、曲线、自然饱和度、色温、色调、色彩平衡、黑白、照片滤镜、通道混合器、反相、色调分离、阈值、渐变映射、可选颜色、去色。"
+            " 中文检索：亮度、对比度、色阶、曲线、自然饱和度、色温、色调、色彩平衡、黑白、照片滤镜、通道混合器、反相、色调分离、阈值、渐变映射、可选颜色、去色、阴影、高光。"
         ),
         json!({"layer":{"name":"Levels"},"adjustment":{"type":"levels","master":{"input_black":0.1,"input_white":0.9,"gamma":1.1}}})
     );
@@ -914,6 +914,7 @@ fn build_catalog() -> Vec<CommandSpec> {
             for settings in [
                 json!({"type":"vibrance","vibrance":25,"saturation":5}),
                 json!({"type":"white_balance","temperature":20,"tint":-10,"preserve_luminance":true}),
+                json!({"type":"shadows_highlights","shadows":35,"highlights":25,"shadows_width":0.5,"highlights_width":0.5,"radius":30}),
                 json!({"type":"color_balance","midtones":[15,0,-10]}),
                 json!({"type":"black_white","weights":[40,60,40,60,20,80],"tint":[0.8,0.6,0.4],"tint_amount":20}),
                 json!({"type":"photo_filter","color":[1,0.65,0.3],"density":25}),

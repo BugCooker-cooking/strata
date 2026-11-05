@@ -338,7 +338,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         Some("demo") => println!("{}", serde_json::to_string_pretty(&validation::demo(Path::new(args.get(2).ok_or("missing new output directory")?))?)?),
         Some("capacity") => println!("{}", serde_json::to_string_pretty(&validation::capacity()?)?),
         Some("selection-benchmark") => selection_benchmark::run(Path::new(args.get(2).ok_or("missing new report path")?))?,
-        Some("tonal-benchmark") => tonal_benchmark::run(Path::new(args.get(2).ok_or("missing new report path")?))?,
+        Some("tonal-benchmark") => tonal_benchmark::run(Path::new(args.get(2).ok_or("missing new report path")?),args.get(3).is_some_and(|mode|mode=="local"))?,
         Some("memory-stress") => {
             let width = args.get(3).map(|s| s.parse()).transpose()?.unwrap_or(8000);
             let height = args.get(4).map(|s| s.parse()).transpose()?.unwrap_or(6250);

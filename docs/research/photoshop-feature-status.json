@@ -512,5 +512,19 @@
         "path": "../research/2026-11-m5-adjustments-progress.md"
       }
     ]
+  },
+  "PS-06-ef2316cc3c": {
+    "implementation": "已实现",
+    "acceptance": "本机核心跨块/组/剪贴/Metal 回归；质量集与性能门槛另记",
+    "evidence": [
+      {
+        "label": "M5 局部阴影高光",
+        "path": "../plans/2026-11-05-m5-local-tone.md"
+      },
+      {
+        "label": "M5 调色进展",
+        "path": "../research/2026-11-m5-adjustments-progress.md"
+      }
+    ]
   }
 }

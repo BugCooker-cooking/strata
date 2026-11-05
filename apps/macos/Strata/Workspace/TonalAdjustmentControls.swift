@@ -3,7 +3,7 @@ import SwiftUI
 func tonalTitle(_ type: String) -> String {
     switch type {
     case "levels": "色阶"; case "curves": "曲线"; case "brightness_contrast": "亮度 / 对比度"
-    case "vibrance": "自然饱和度"; case "white_balance": "色温 / 色调"; case "color_balance": "色彩平衡"; case "black_white": "黑白"; case "photo_filter": "照片滤镜"
+    case "vibrance": "自然饱和度"; case "white_balance": "色温 / 色调"; case "shadows_highlights": "阴影 / 高光"; case "color_balance": "色彩平衡"; case "black_white": "黑白"; case "photo_filter": "照片滤镜"
     case "channel_mixer": "通道混合器"; case "invert": "反相"; case "posterize": "色调分离"; case "threshold": "阈值"
     case "gradient_map": "渐变映射"; case "selective_color": "可选颜色"; case "desaturate": "去色"
     default: "调色调整层"

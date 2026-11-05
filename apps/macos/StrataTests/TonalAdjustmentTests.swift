@@ -6,7 +6,7 @@ final class TonalAdjustmentTests: XCTestCase {
     @MainActor
     func testEveryPointColorDraftKeepsStrictCompleteSettingsThroughNativeDispatch() throws {
         let engine=StrataEngine(listener:EngineEvents{_ in})
-        for type in ["vibrance","white_balance","color_balance","black_white","photo_filter","channel_mixer","invert","posterize","threshold","gradient_map","selective_color","desaturate"]{
+        for type in ["vibrance","white_balance","shadows_highlights","color_balance","black_white","photo_filter","channel_mixer","invert","posterize","threshold","gradient_map","selective_color","desaturate"]{
             _ = try engine.dispatch(command:"file.new",paramsJson:commandJSON(["width":4,"height":4,"bit_depth":16,"discard_changes":true]))
             _ = try engine.dispatch(command:"layer.add_tonal_adjustment",paramsJson:commandJSON(["name":type,"adjustment":["type":type]]))
             let initial=try EditorSnapshot.decode(engine.snapshotJson()),layer=try XCTUnwrap(initial.layers.last)
@@ -15,6 +15,7 @@ final class TonalAdjustmentTests: XCTestCase {
             switch type{
             case "vibrance":draft.vibrance=25;draft.saturation = -5
             case "white_balance":draft.temperature=20;draft.tintShift = -10;draft.preserveLuminance=false
+            case "shadows_highlights":draft.shadowsAmount=35;draft.highlightsAmount=25;draft.shadowsWidth=0.5;draft.highlightsWidth=0.5;draft.localRadius=18
             case "color_balance":draft.balance[2]=[5,-5,10];draft.preserveLuminance=false
             case "black_white":draft.weights[5]=50;draft.tinted=true;draft.tint=[0.8,0.6,0.4];draft.tintAmount=30
             case "photo_filter":draft.color=[0.3,0.6,1];draft.density=45;draft.preserveLuminance=false

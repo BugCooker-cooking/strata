@@ -7,7 +7,7 @@ use std::{
     sync::Arc,
 };
 use strata_pixels::memory::{CacheSlot, MemoryKind, Reservation};
-use strata_pixels::{PixelBuffer, PixelFormat, TILE_EDGE, TileCoord};
+use strata_pixels::{CoverageRect, PixelBuffer, PixelFormat, TILE_EDGE, TileCoord};
 
 pub type LinearTile = Arc<LinearPixels>; // straight linear P3, row-major
 pub struct LinearPixels {
@@ -206,6 +206,30 @@ fn fingerprint(doc: &Document, coord: TileCoord, layers: usize) -> u64 {
                     serde_json::to_vec(adjustment)
                         .expect("validated tonal parameters")
                         .hash(&mut hash);
+                    if matches!(adjustment, crate::TonalAdjustment::ShadowsHighlights { .. }) {
+                        // Neighborhood inputs include earlier blocks beyond this
+                        // tile. Hash their immutable versions without recursively
+                        // hashing other spatial layers or later exposure edits.
+                        serde_json::to_vec(doc.frame())
+                            .expect("frame metadata")
+                            .hash(&mut hash);
+                        for candidate in doc.layers().iter().take_while(|l| l.id() != layer.id()) {
+                            serde_json::to_vec(candidate.info())
+                                .expect("layer metadata")
+                                .hash(&mut hash);
+                            for c in candidate.pixels.tile_coords() {
+                                c.hash(&mut hash);
+                                candidate.pixels.tile_version(*c).hash(&mut hash);
+                            }
+                            if let Some(mask) = &candidate.mask {
+                                mask.layout().hash(&mut hash);
+                                for c in mask.tile_coords() {
+                                    c.hash(&mut hash);
+                                    mask.tile_version(*c).hash(&mut hash);
+                                }
+                            }
+                        }
+                    }
                 }
                 LayerKind::Solid { color } => color.hash(&mut hash),
                 LayerKind::Gradient {
@@ -336,6 +360,80 @@ fn check_cancel(cancel: &dyn Fn() -> bool) -> Result<(), DocumentError> {
     } else {
         Ok(())
     }
+}
+/// Reconstruct the surface this layer actually sees, before its own mask,
+/// opacity and parent-group interpolation. Clipped chains start independently.
+fn input_before_layer(
+    doc: &Document,
+    coord: TileCoord,
+    target: crate::LayerId,
+    cancel: &dyn Fn() -> bool,
+) -> Result<Vec<[f64; 4]>, DocumentError> {
+    check_cancel(cancel)?;
+    let index = doc
+        .layers()
+        .iter()
+        .position(|l| l.id() == target)
+        .ok_or(DocumentError::LayerNotFound)?;
+    let layer = &doc.layers()[index];
+    let parent = layer.info.parent;
+    if layer.info.clipped {
+        let siblings = doc
+            .layers()
+            .iter()
+            .take(index)
+            .filter(|l| l.info.parent == parent)
+            .collect::<Vec<_>>();
+        let base = siblings
+            .iter()
+            .rposition(|l| !l.info.clipped)
+            .ok_or_else(|| DocumentError::Invalid("missing clipping base".into()))?;
+        return compose_sequence(
+            doc,
+            coord,
+            index,
+            &siblings[base..],
+            vec![[0.0; 4]; 256 * 256],
+            true,
+            cancel,
+        );
+    }
+    let backdrop = if let Some(parent) = parent {
+        let group = doc
+            .layers()
+            .iter()
+            .find(|l| l.id() == parent)
+            .ok_or(DocumentError::LayerNotFound)?;
+        if group.info.pass_through
+            && group.info.blend_mode == BlendMode::Normal
+            && !group.info.clipped
+            && group.info.styles.is_empty()
+        {
+            // A pass-through group used as a clipping-chain base is still
+            // evaluated on that chain's independent transparent surface.
+            let group_index = doc
+                .layers()
+                .iter()
+                .position(|l| l.id() == parent)
+                .expect("resolved group");
+            let chain_base = doc
+                .layers()
+                .iter()
+                .skip(group_index + 1)
+                .find(|l| l.info.parent == group.info.parent)
+                .is_some_and(|next| next.info.clipped);
+            if chain_base {
+                vec![[0.0; 4]; 256 * 256]
+            } else {
+                input_before_layer(doc, coord, parent, cancel)?
+            }
+        } else {
+            vec![[0.0; 4]; 256 * 256]
+        }
+    } else {
+        vec![[0.0; 4]; 256 * 256]
+    };
+    compose_with_backdrop(doc, coord, index, parent, backdrop, cancel)
 }
 fn compose_with_backdrop(
     doc: &Document,
@@ -496,11 +594,28 @@ fn compose_sequence(
             if adjustment.is_identity() && layer.info.blend_mode == BlendMode::Normal {
                 continue;
             }
+            if mask
+                .as_ref()
+                .is_some_and(|values| values.iter().all(|v| *v == 0))
+            {
+                continue;
+            }
             let _scratch = doc
                 .memory_pool()
                 .reserve(MemoryKind::Transient, 256 * 256 * 64)?;
-            let source = out.iter().map(|v| v.map(|c| c as f32)).collect::<Vec<_>>();
-            let result = adjustment.transform(&source, doc.working_icc())?;
+            let result = if matches!(adjustment, crate::TonalAdjustment::ShadowsHighlights { .. }) {
+                crate::adjustments::spatial::render(
+                    doc,
+                    coord,
+                    &out,
+                    adjustment,
+                    |c| input_before_layer(doc, c, layer.id(), cancel),
+                    cancel,
+                )?
+            } else {
+                let source = out.iter().map(|v| v.map(|c| c as f32)).collect::<Vec<_>>();
+                adjustment.transform(&source, doc.working_icc())?
+            };
             for (index, pixel) in out.iter_mut().enumerate() {
                 let back = [pixel[0], pixel[1], pixel[2]];
                 let front = [
@@ -789,11 +904,31 @@ impl Document {
         &self,
         cancel: &dyn Fn() -> bool,
     ) -> Result<PixelBuffer, DocumentError> {
+        self.export_region_pixels(
+            CoverageRect {
+                x: self.frame.x,
+                y: self.frame.y,
+                width: self.frame.width,
+                height: self.frame.height,
+            },
+            cancel,
+        )
+    }
+    /// Render a requested window without changing the canonical artboard used
+    /// for spatial filters, linked masks or legacy generated-layer geometry.
+    pub(crate) fn export_region_pixels(
+        &self,
+        region: CoverageRect,
+        cancel: &dyn Fn() -> bool,
+    ) -> Result<PixelBuffer, DocumentError> {
         check_cancel(cancel)?;
         self.validate()?;
-        let count = self
-            .format
-            .sample_count(self.frame.width, self.frame.height)?;
+        region.validate()?;
+        if self.format.byte_count(region.width, region.height)? as u64 > crate::MAX_FLAT_IMAGE_BYTES
+        {
+            return Err(DocumentError::ResourceLimit);
+        }
+        let count = self.format.sample_count(region.width, region.height)?;
         // Exact identity path, including hidden RGB at alpha=0.
         let visible: Vec<_> = self
             .layers
@@ -823,25 +958,25 @@ impl Document {
                     let Some(dy) = oy
                         .checked_add(y)
                         .and_then(|v| v.checked_add(l.info.y))
-                        .and_then(|v| v.checked_sub(self.frame.y))
+                        .and_then(|v| v.checked_sub(region.y))
                     else {
                         continue;
                     };
-                    if !(0..i64::from(self.frame.height)).contains(&dy) {
+                    if !(0..i64::from(region.height)).contains(&dy) {
                         continue;
                     }
                     for x in 0..256i64 {
                         let Some(dx) = ox
                             .checked_add(x)
                             .and_then(|v| v.checked_add(l.info.x))
-                            .and_then(|v| v.checked_sub(self.frame.x))
+                            .and_then(|v| v.checked_sub(region.x))
                         else {
                             continue;
                         };
-                        if !(0..i64::from(self.frame.width)).contains(&dx) {
+                        if !(0..i64::from(region.width)).contains(&dx) {
                             continue;
                         }
-                        let i = (dy as usize * self.frame.width as usize + dx as usize) * 4;
+                        let i = (dy as usize * region.width as usize + dx as usize) * 4;
                         let src = (y as usize * 256 + x as usize) * 4;
                         match (&mut out, &*tile) {
                             (PixelBuffer::Rgba8(v), PixelBuffer::Rgba8(p)) => {
@@ -862,10 +997,10 @@ impl Document {
             PixelFormat::Rgba16 => PixelBuffer::Rgba16(vec![0; count]),
         };
         let mut compositor = Compositor::new(1);
-        let (first, _) = TileCoord::locate(self.frame.x, self.frame.y);
+        let (first, _) = TileCoord::locate(region.x, region.y);
         let (last, _) = TileCoord::locate(
-            self.frame.x + i64::from(self.frame.width) - 1,
-            self.frame.y + i64::from(self.frame.height) - 1,
+            region.x + i64::from(region.width) - 1,
+            region.y + i64::from(region.height) - 1,
         );
         for tx in first.x()..=last.x() {
             for ty in first.y()..=last.y() {
@@ -877,16 +1012,16 @@ impl Document {
                 let [ox, oy] = coord.origin();
                 for y in 0..256i64 {
                     for x in 0..256i64 {
-                        let dx = ox + x - self.frame.x;
-                        let dy = oy + y - self.frame.y;
+                        let dx = ox + x - region.x;
+                        let dy = oy + y - region.y;
                         if dx < 0
                             || dy < 0
-                            || dx >= i64::from(self.frame.width)
-                            || dy >= i64::from(self.frame.height)
+                            || dx >= i64::from(region.width)
+                            || dy >= i64::from(region.height)
                         {
                             continue;
                         }
-                        let dest = (dy as usize * self.frame.width as usize + dx as usize) * 4;
+                        let dest = (dy as usize * region.width as usize + dx as usize) * 4;
                         let src = (y as usize * 256 + x as usize) * 4;
                         match (&mut out, &converted) {
                             (PixelBuffer::Rgba8(v), PixelBuffer::Rgba8(p)) => {

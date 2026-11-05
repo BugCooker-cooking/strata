@@ -1,0 +1,74 @@
+{
+  "cases": [
+    {
+      "added_type": "baseline",
+      "all_alpha_unchanged": true,
+      "budget": {
+        "backing_read_bytes": 0,
+        "backing_write_bytes": 0,
+        "cpu_bytes": 192000000,
+        "cpu_cache_bytes": 0,
+        "cpu_cache_evictions": 0,
+        "disk_bytes": 0,
+        "evictions": 0,
+        "gpu_bytes": 0,
+        "gpu_evictions": 0,
+        "peak_cpu_bytes": 199471104,
+        "peak_disk_bytes": 0,
+        "peak_gpu_bytes": 0,
+        "reloads": 0,
+        "source_bytes": 0,
+        "source_evictions": 0,
+        "transient_bytes": 192000000
+      },
+      "center_rgba16": [
+        36978,
+        36978,
+        36978,
+        65535
+      ],
+      "full_cpu_export_ms": 1905.509458,
+      "stack_depth": 0
+    },
+    {
+      "added_type": "shadows_highlights",
+      "all_alpha_unchanged": true,
+      "budget": {
+        "backing_read_bytes": 0,
+        "backing_write_bytes": 0,
+        "cpu_bytes": 192000000,
+        "cpu_cache_bytes": 0,
+        "cpu_cache_evictions": 0,
+        "disk_bytes": 0,
+        "evictions": 0,
+        "gpu_bytes": 0,
+        "gpu_evictions": 0,
+        "peak_cpu_bytes": 213079384,
+        "peak_disk_bytes": 0,
+        "peak_gpu_bytes": 0,
+        "reloads": 0,
+        "source_bytes": 0,
+        "source_evictions": 0,
+        "transient_bytes": 192000000
+      },
+      "center_rgba16": [
+        36232,
+        36232,
+        36232,
+        65535
+      ],
+      "full_cpu_export_ms": 4608.551542,
+      "stack_depth": 1
+    }
+  ],
+  "date": "2026-11-05",
+  "fixture": "24 MP RGBA16 generated gray gradient; 6000x4000; sRGB",
+  "limits": {
+    "cpu_bytes": 2147483648,
+    "disk_bytes": 34359738368,
+    "gpu_bytes": 536870912
+  },
+  "method": "single sequential complete CPU export after each new adjustment; not display frame rate or interactive preview latency",
+  "profile": "release",
+  "source_layers_unchanged": true
+}

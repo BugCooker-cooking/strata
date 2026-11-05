@@ -446,6 +446,70 @@ fn point_color_and_white_balance_display_match_color_managed_cpu_reference() {
 }
 
 #[test]
+fn spatial_shadows_highlights_display_matches_cpu_and_cross_tile_reference() {
+    let Some(mut renderer) = renderer() else {
+        return;
+    };
+    let mut editor = strata_core::Editor::new();
+    for (id, args) in [
+        (
+            "file.new",
+            serde_json::json!({"width":520,"height":32,"bit_depth":16,"working_space":"display_p3"}),
+        ),
+        (
+            "layer.fill.gradient",
+            serde_json::json!({"name":"ramp","start":[8000,8000,8000,65535],"end":[50000,50000,50000,65535]}),
+        ),
+        (
+            "layer.add_tonal_adjustment",
+            serde_json::json!({"name":"local","adjustment":{"type":"shadows_highlights","shadows":70,"highlights":30,"shadows_width":0.5,"highlights_width":0.5,"radius":18}}),
+        ),
+    ] {
+        editor
+            .execute(editor.request(strata_core::Source::Test), id, args, |_| {
+                Ok(())
+            })
+            .unwrap();
+    }
+    let doc = editor.document().unwrap();
+    let scene = renderer.prepare_document(doc, false).unwrap();
+    renderer.commit_document(scene).unwrap();
+    renderer
+        .set_view(ViewTransform {
+            zoom: 3.0,
+            center_x: 260.0,
+            center_y: 16.0,
+        })
+        .unwrap();
+    renderer.render().unwrap();
+    let actual = renderer.read_offscreen_rgba().unwrap();
+    let expected = strata_color::to_display_p3(
+        &doc.export_pixels().unwrap(),
+        520,
+        32,
+        Some(doc.working_icc()),
+    )
+    .unwrap()
+    .pixels;
+    let PixelBuffer::Rgba16(expected) = expected else {
+        panic!()
+    };
+    for x in [250usize, 255, 256, 261] {
+        let y = 16;
+        let screen_x = ((x as f32 - 260.0) * 3.0 + 32.0).round() as usize;
+        let shown = pixel(&actual, screen_x, 32);
+        let offset = (y * 520 + x) * 4;
+        for c in 0..3 {
+            let target = ((u32::from(expected[offset + c]) + 128) / 257) as i32;
+            assert!(
+                (i32::from(shown[c]) - target).abs() <= 4,
+                "x={x} channel {c}: {shown:?} target {target}"
+            );
+        }
+    }
+}
+
+#[test]
 fn tiled_scene_preserves_source_and_has_no_mip_seam() {
     let Some(mut r) = renderer() else {
         return;
