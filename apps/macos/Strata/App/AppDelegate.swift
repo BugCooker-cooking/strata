@@ -252,8 +252,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         edit.addItem(.separator())
         let stopAI = edit.addItem(withTitle: "停止当前操作", action: #selector(MainWindowController.stopAI), keyEquivalent: "."); stopAI.target = controller
         edit.addItem(.separator())
-        for (title, action, key) in [("剪切", #selector(NSText.cut(_:)), "x"), ("复制", #selector(NSText.copy(_:)), "c"), ("粘贴", #selector(NSText.paste(_:)), "v"), ("全选", #selector(NSText.selectAll(_:)), "a")] {
-            edit.addItem(withTitle: title, action: action, keyEquivalent: key)
+        for (title, action, key) in [("剪切", #selector(MainWindowController.cutPixels(_:)), "x"), ("复制", #selector(MainWindowController.copyPixels(_:)), "c"), ("粘贴", #selector(MainWindowController.pastePixels(_:)), "v"), ("全选", #selector(MainWindowController.selectAllPixels(_:)), "a"),("合并拷贝",#selector(MainWindowController.copyMergedPixels(_:)),"C"),("原位粘贴",#selector(MainWindowController.pasteInPlace(_:)),"V"),("清除",#selector(MainWindowController.clearPixels(_:)),"")] {
+            let item=edit.addItem(withTitle: title, action: action, keyEquivalent: key);item.target=controller
         }
         let editItem = NSMenuItem(title: "编辑", action: nil, keyEquivalent: ""); editItem.submenu = edit; bar.addItem(editItem)
         for (title, action, key) in [

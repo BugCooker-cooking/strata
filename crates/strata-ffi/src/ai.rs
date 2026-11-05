@@ -248,7 +248,7 @@ fn queue_state(inner: &mut Inner) {
         snapshot_json: json!(inner.editor.snapshot()).to_string(),
     });
 }
-fn require_turn(engine: &StrataEngine, turn: Uuid, paused: bool) -> Result<(), AiError> {
+pub(super) fn require_turn(engine: &StrataEngine, turn: Uuid, paused: bool) -> Result<(), AiError> {
     let inner = engine.lock().map_err(|e| AiError::Host(e.to_string()))?;
     let valid = match inner.editor.control() {
         Control::Running { turn_id } => *turn_id == turn,

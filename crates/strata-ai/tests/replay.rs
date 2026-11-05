@@ -257,6 +257,172 @@ fn inspect_and_direct_queries_and_batches_never_expose_hidden_layers_or_paths() 
 }
 
 #[test]
+fn hidden_groups_do_not_disclose_descendant_names_in_any_inspect_entry() {
+    let host = Host::new();
+    host.user("layer.create", json!({"name":"PRIVATE child"}));
+    let group = host.user(
+        "layer.group",
+        json!({"layers":[{"name":"PRIVATE child"}],"name":"PRIVATE group"}),
+    )["layer_id"]
+        .clone();
+    host.user(
+        "layer.set_visibility",
+        json!({"layer":{"id":group},"visible":false}),
+    );
+    let mut session = host.session(ExecutionMode::Direct);
+    reply(
+        &mut session,
+        &host,
+        vec![
+            call("inspect", "inspect_document", json!({})),
+            invoke("query", "layer.list", json!({})),
+        ],
+    );
+    for _ in 0..2 {
+        assert!(
+            !result(session.poll(&host).unwrap())
+                .to_string()
+                .contains("PRIVATE")
+        );
+    }
+}
+
+#[test]
+fn clipboard_cut_pauses_for_host_write_and_never_clears_before_acknowledgement() {
+    let host = Host::new();
+    host.user(
+        "layer.create",
+        json!({"name":"filled","fill":[32768,32769,50001,65535]}),
+    );
+    let before = host
+        .editor
+        .lock()
+        .unwrap()
+        .document()
+        .unwrap()
+        .export_pixels()
+        .unwrap();
+    let revision = host.snapshot().unwrap().revision;
+    let mut session = host.session(ExecutionMode::Direct);
+    reply(
+        &mut session,
+        &host,
+        vec![invoke("cut", "edit.cut", json!({}))],
+    );
+    let Step::Paused {
+        question_id,
+        reason,
+        ..
+    } = session.poll(&host).unwrap()
+    else {
+        panic!()
+    };
+    assert_eq!(reason, "clipboard_access");
+    let Step::Paused {
+        question_id: write_id,
+        reason,
+        operation,
+        ..
+    } = session
+        .respond(
+            &host,
+            HostAnswer {
+                question_id,
+                answer: String::new(),
+                approved: true,
+                resource: None,
+            },
+        )
+        .unwrap()
+    else {
+        panic!()
+    };
+    assert_eq!(reason, "clipboard_write");
+    assert_eq!(host.snapshot().unwrap().revision, revision);
+    let token = operation.unwrap()["resource"].as_str().unwrap().to_owned();
+    host.editor
+        .lock()
+        .unwrap()
+        .confirm_clipboard_write(
+            &token,
+            &Source::Ai {
+                turn_id: session.turn_id(),
+            },
+        )
+        .unwrap();
+    let result = result(
+        session
+            .respond(
+                &host,
+                HostAnswer {
+                    question_id: write_id,
+                    answer: String::new(),
+                    approved: true,
+                    resource: Some(token),
+                },
+            )
+            .unwrap(),
+    );
+    assert!(result.get("error").is_none());
+    assert_eq!(host.snapshot().unwrap().revision, revision + 1);
+    session.abort(&host, "stopped").unwrap();
+    host.user("edit.undo", json!({}));
+    assert_eq!(
+        host.editor
+            .lock()
+            .unwrap()
+            .document()
+            .unwrap()
+            .export_pixels()
+            .unwrap(),
+        before
+    );
+}
+#[test]
+fn clipboard_write_failure_leaves_source_and_returns_truthful_status() {
+    let host = Host::new();
+    let revision = host.snapshot().unwrap().revision;
+    let mut session = host.session(ExecutionMode::Direct);
+    reply(
+        &mut session,
+        &host,
+        vec![invoke("cut", "edit.cut", json!({}))],
+    );
+    let Step::Paused { question_id, .. } = session.poll(&host).unwrap() else {
+        panic!()
+    };
+    let Step::Paused { question_id, .. } = session
+        .respond(
+            &host,
+            HostAnswer {
+                question_id,
+                answer: String::new(),
+                approved: true,
+                resource: None,
+            },
+        )
+        .unwrap()
+    else {
+        panic!()
+    };
+    let result = result(
+        session
+            .respond(
+                &host,
+                HostAnswer {
+                    question_id,
+                    answer: String::new(),
+                    approved: false,
+                    resource: None,
+                },
+            )
+            .unwrap(),
+    );
+    assert_eq!(result["status"], "clipboard_write_failed");
+    assert_eq!(host.snapshot().unwrap().revision, revision);
+}
+
+#[test]
 fn ask_first_is_core_enforced_and_question_does_not_implicitly_approve_edit() {
     let host = Host::new();
     let mut session = host.session(ExecutionMode::AskFirst);

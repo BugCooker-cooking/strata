@@ -152,7 +152,7 @@ fn build_catalog() -> Vec<CommandSpec> {
         Mutate,
         "混合模式",
         "Set blend mode",
-        "Choose normal, multiply, screen or overlay. Document samples remain unchanged.",
+        "Choose one of 27 registered blend modes. Blending operates on linear Display P3; source document samples remain unchanged. Dissolve uses deterministic canvas-coordinate and layer-ID noise, so repeats never flicker.",
         json!({"layer":{"name":"Background"},"blend_mode":"multiply"})
     );
     command!(
@@ -163,6 +163,33 @@ fn build_catalog() -> Vec<CommandSpec> {
         "Move layer",
         "Translate the layer in integer canvas pixels without clipping off-artboard content.",
         json!({"layer":{"name":"Background"},"x":-1,"y":2})
+    );
+    command!(
+        "layer.set_fill_opacity",
+        FillOpacity,
+        Mutate,
+        "填充不透明度",
+        "Set fill opacity",
+        "Set finite content fill_opacity in [0,1]. Layer opacity still controls the final result including styles; fill opacity controls content only.",
+        json!({"layer":{"name":"Background"},"fill_opacity":0.5})
+    );
+    command!(
+        "layer.set_locks",
+        SetLocks,
+        Mutate,
+        "图层锁定",
+        "Set layer locks",
+        "Set transparency/pixels/position/all locks. Full lock blocks edits except visibility and this unlock operation. Pixel operations and source color conversion respect locks at the command boundary.",
+        json!({"layer":{"name":"Background"},"locks":{"position":true}})
+    );
+    command!(
+        "layer.set_color_label",
+        SetColorLabel,
+        Mutate,
+        "图层颜色标签",
+        "Set layer color label",
+        "Set red/orange/yellow/green/blue/violet/gray or null. Does not change pixels.",
+        json!({"layer":{"name":"Background"},"color_label":"blue"})
     );
     command!(
         "layer.move_order",
@@ -398,10 +425,292 @@ fn build_catalog() -> Vec<CommandSpec> {
         "Export PNG/TIFF at document depth or JPEG/WebP at 8-bit. WebP defaults to lossless; webp_lossless=false enables lossy RGB with lossless alpha, quality 1..100 (default 80). JPEG quality is 1..100 (default 90) and requires an 8-bit RGB background in output space. quality is rejected for lossless WebP; webp_lossless is rejected for non-WebP. Optional width/height must both be positive, bounded to 512 MiB output samples; WebP dimensions <=16383. Resize uses linear-light premultiplied area reduction / bilinear enlargement. target_space is optional srgb/display_p3, otherwise keep working ICC. All outputs include document DPI. 16-bit to JPEG/WebP requires allow_quantization=true. Source samples/history/dirty state do not change.",
         json!({"resource":"fixture-export","format":"png"})
     );
+    command!(
+        "layer.create_group",
+        CreateGroup,
+        Mutate,
+        "新建组",
+        "Create group",
+        "Create a pass-through compositing group inside the active group or alongside the active layer. Maximum nesting depth 16.",
+        json!({"name":"Group"})
+    );
+    command!(
+        "layer.group",
+        GroupLayers,
+        Mutate,
+        "编组",
+        "Group layers",
+        "Group a contiguous range of unlocked siblings into a pass-through group, preserving sibling z order. Child canvas coordinates remain unchanged.",
+        json!({"layers":[{"name":"Background"}],"name":"Group"})
+    );
+    command!(
+        "layer.ungroup",
+        Target,
+        Mutate,
+        "取消编组",
+        "Ungroup",
+        "Move immediate group children to its parent at the group position. Reset group visibility/opacity/blend/mask before ungrouping; isolated child blend interactions may differ against the parent backdrop.",
+        json!({"layer":{"name":"Group"}})
+    );
+    command!(
+        "layer.reparent",
+        Reparent,
+        Mutate,
+        "移动到组",
+        "Reparent layer",
+        "Move a layer or subtree to an unlocked group or null root, using optional zero-based sibling index. Reject cycles and excessive depth; absolute canvas positions are preserved.",
+        json!({"layer":{"name":"Background"},"parent":null,"index":0})
+    );
+    command!(
+        "layer.fill.solid",
+        SolidFill,
+        Mutate,
+        "新建纯色填充",
+        "Create solid fill",
+        "Create an editable artboard-sized fill using document-depth RGBA. Colors are interpreted in the working ICC. No source pixel blocks are allocated.",
+        json!({"name":"Solid","color":[32768,10000,20000,65535]})
+    );
+    command!(
+        "layer.fill.gradient",
+        GradientFill,
+        Mutate,
+        "新建渐变填充",
+        "Create gradient fill",
+        "Create a linear (angle degrees) or radial fill. start/end are RGBA at document depth; scale 0.01..100. Interpolate in linear light with premultiplied alpha.",
+        json!({"name":"Gradient","start":[0,0,0,65535],"end":[65535,65535,65535,65535],"angle":0,"scale":1})
+    );
+    command!(
+        "layer.fill.solid.set",
+        SetSolidFill,
+        Mutate,
+        "编辑纯色填充",
+        "Set solid fill",
+        "Update a solid fill layer's document-depth RGBA color; undo restores editable parameters.",
+        json!({"layer":{"name":"Solid"},"color":[65535,0,0,65535]})
+    );
+    command!(
+        "layer.fill.gradient.set",
+        SetGradientFill,
+        Mutate,
+        "编辑渐变填充",
+        "Set gradient fill",
+        "Update endpoints, angle, scale and radial mode of an editable gradient fill.",
+        json!({"layer":{"name":"Gradient"},"start":[0,0,0,65535],"end":[65535,0,0,65535],"angle":45,"scale":1,"radial":false})
+    );
+    command!(
+        "layer.add_hue_saturation",
+        CreateGroup,
+        Mutate,
+        "新建色相饱和度调整",
+        "Add hue saturation",
+        "Create a hue/saturation adjustment layer with the current selection mask, or white mask if no selection. HSL is evaluated in encoded Display P3 while compositing stays linear.",
+        json!({"name":"Hue"})
+    );
+    command!(
+        "adjust.hue_saturation.set",
+        HueSaturationParams,
+        Mutate,
+        "设置色相饱和度",
+        "Set hue saturation",
+        "Set hue -180..180 degrees, saturation and lightness -100..100. Original pixels remain unchanged; masks and opacity interpolate the adjusted composite.",
+        json!({"layer":{"name":"Hue"},"hue":20,"saturation":10,"lightness":0})
+    );
+    command!(
+        "layer.set_clipping",
+        Clipping,
+        Mutate,
+        "剪贴蒙版",
+        "Set clipping mask",
+        "Clip this layer to the nearest lower non-clipped sibling's alpha. Clipping chains cannot start without a pixel/fill/group base; adjustment-only bases are rejected. Group boundaries remain explicit.",
+        json!({"layer":{"name":"Clip"},"clipped":true})
+    );
+    command!(
+        "layer.rasterize",
+        RasterizeTarget,
+        Mutate,
+        "栅格化",
+        "Rasterize layer",
+        "Bake an editable fill or isolated group into document-depth pixels, preserving mask appearance, opacity/blend and off-artboard content. Adjustment layers require explicit bake_backdrop=true, consolidating the lower input stack. Undo restores editable structure.",
+        json!({"layer":{"name":"Solid"}})
+    );
+    command!(
+        "layer.mask.apply",
+        RasterizeTarget,
+        Mutate,
+        "应用蒙版",
+        "Apply layer mask",
+        "Multiply a pixel layer's original alpha by its enabled u16 mask without rewriting hidden RGB. Locked pixels/transparency are protected; fills/groups are rasterized with the mask baked. Adjustments require explicit bake_backdrop=true.",
+        json!({"layer":{"name":"Background"}})
+    );
+    command!(
+        "layer.merge_down",
+        Target,
+        Mutate,
+        "向下合并",
+        "Merge down",
+        "Bake this subtree and its lower sibling into one pixel layer. Respect locks, preserve outside-artboard content and reject blends that would change final appearance beyond depth tolerance.",
+        json!({"layer":{"name":"Upper"}})
+    );
+    command!(
+        "layer.merge_visible",
+        Empty,
+        Mutate,
+        "合并可见",
+        "Merge visible",
+        "Bake visible composition to a pixel layer while retaining hidden layers. Hidden children are reparented without revealing them. Pixel equivalence checked before commit.",
+        json!({})
+    );
+    command!(
+        "layer.flatten",
+        Empty,
+        Mutate,
+        "拼合图像",
+        "Flatten image",
+        "Bake the visible image and discard all previous layers including hidden ones. Requires explicit destructive-edit approval in AI turns.",
+        json!({})
+    );
+    command!(
+        "layer.stamp_visible",
+        Empty,
+        Mutate,
+        "盖印可见",
+        "Stamp visible",
+        "Add a new pixel layer containing the visible composition, preserving all source layers. This may change accumulated alpha if the original stack remains visible.",
+        json!({})
+    );
+    command!(
+        "layer.align",
+        AlignLayers,
+        Mutate,
+        "对齐图层",
+        "Align layers",
+        "Align unlocked independent layers/subtrees by exact content bounds to the selection or artboard. Modes: left/horizontal_center/right/top/vertical_center/bottom. No selected ancestor/descendant overlap.",
+        json!({"layers":[{"name":"Background"}],"mode":"horizontal_center","reference":"artboard"})
+    );
+    command!(
+        "layer.distribute",
+        DistributeLayers,
+        Mutate,
+        "分布图层",
+        "Distribute layers",
+        "Distribute at least three unlocked layers by horizontal/vertical centers or equal spacing, preserving the endpoint positions. Supports groups and generated fills.",
+        json!({"layers":[{"name":"Background"},{"name":"Second"},{"name":"Third"}],"mode":"horizontal_centers"})
+    );
+    command!(
+        "layer.set_styles",
+        SetStyles,
+        Mutate,
+        "图层样式",
+        "Set layer styles",
+        "Replace the optional drop_shadow, stroke, outer_glow, color_overlay and gradient_overlay settings. All RGBA colors use document depth/ICC. Shadow blur is Gaussian sigma 0..32 and offsets ±256; stroke/glow sizes 0..64. Content fill opacity does not fade effects; overall layer opacity does. Masks are applied before styles; effects are normal source-over except overlay colors' blend modes.",
+        json!({"layer":{"name":"Background"},"styles":{"stroke":{"color":[65535,65535,65535,65535],"size":2,"position":"outside"}}})
+    );
+    command!(
+        "edit.copy",
+        PixelTarget,
+        External,
+        "拷贝",
+        "Copy layer pixels",
+        "Prepare a bounded selection/artboard copy of the active or specified layer. Returns an opaque source-bound clipboard resource; the trusted host must write its payload to the system clipboard and acknowledge completion. No document history.",
+        json!({})
+    );
+    command!(
+        "edit.copy_merged",
+        PixelTarget,
+        External,
+        "合并拷贝",
+        "Copy merged",
+        "Prepare visible merged selection/artboard pixels for an explicitly approved host clipboard write. Hidden layers are not included.",
+        json!({})
+    );
+    command!(
+        "edit.cut",
+        ClipboardResource,
+        Mutate,
+        "剪切",
+        "Cut pixels",
+        "Clear the source alpha only after the host confirms a copy resource was written to the clipboard. The receipt must match this exact source, document state and original layer. Clipboard contents are not reversed by document undo.",
+        json!({"resource":"fixture-clipboard"})
+    );
+    command!(
+        "edit.paste",
+        ClipboardResource,
+        Mutate,
+        "粘贴",
+        "Paste pixels",
+        "Paste an explicitly host-authorized clipboard image as a centered pixel layer, converting ICC and depth. No implicit clipboard reads; resources are source/turn scoped.",
+        json!({"resource":"fixture-clipboard"})
+    );
+    command!(
+        "edit.paste_in_place",
+        ClipboardResource,
+        Mutate,
+        "原位粘贴",
+        "Paste in place",
+        "Paste a host-authorized clipboard image at its recorded canvas origin. If an external clipboard format has no origin, the host records (0,0).",
+        json!({"resource":"fixture-clipboard"})
+    );
+    command!(
+        "edit.clear",
+        PixelTarget,
+        Mutate,
+        "清除",
+        "Clear pixels",
+        "Clear alpha inside the current selection, or the whole active pixel layer if no selection. Preserve hidden RGB and respect pixel/transparency/ancestor locks.",
+        json!({})
+    );
+    command!(
+        "edit.clipboard.write_status",
+        ClipboardResource,
+        Query,
+        "剪贴板写入状态",
+        "Check clipboard write",
+        "Check the trusted host acknowledgement for a source-bound clipboard resource. This never reads system clipboard data or grants a resource.",
+        json!({"resource":"fixture-clipboard"})
+    );
+    command!(
+        "layer.via_copy",
+        PixelTarget,
+        Mutate,
+        "通过拷贝新建图层",
+        "Layer via copy",
+        "Create a pixel layer from the selected area of the active layer without writing to the system clipboard. One undoable edit.",
+        json!({})
+    );
+    command!(
+        "layer.via_cut",
+        PixelTarget,
+        Mutate,
+        "通过剪切新建图层",
+        "Layer via cut",
+        "Copy the selected active pixel-layer area to a new layer and clear source alpha atomically, without changing the system clipboard.",
+        json!({})
+    );
+    command!(
+        "layer.background_to_layer",
+        PixelTarget,
+        Mutate,
+        "背景转普通图层",
+        "Background to layer",
+        "Convert the active pixel background to an ordinary named Layer 0. Existing document pixel layers already have ordinary editable storage.",
+        json!({})
+    );
+    command!(
+        "layer.set_pass_through",
+        PassThrough,
+        Mutate,
+        "组穿透模式",
+        "Set group pass-through",
+        "Choose normal pass-through or isolated group compositing. Pass-through evaluates child blend/adjustment effects against the parent backdrop, then interpolates with the group mask/opacity. Non-normal group blend or group styles use isolated compositing.",
+        json!({"layer":{"name":"Group"},"pass_through":false})
+    );
     for item in &mut list {
         item.returns = match item.id {
             "document.inspect" => schemars::schema_for!(Snapshot),
             "layer.list" => schemars::schema_for!(LayerListResult),
+            "edit.copy" | "edit.copy_merged" => schemars::schema_for!(ClipboardCopyResult),
+            "edit.clipboard.write_status" => schemars::schema_for!(ClipboardWriteResult),
+            "layer.align" | "layer.distribute" => schemars::schema_for!(MultiLayerResult),
             "document.histogram" => schemars::schema_for!(HistogramResult),
             "select.subject" => schemars::schema_for!(SubjectResult),
             "select.marquee" | "select.all" | "select.none" | "select.inverse" => {
@@ -424,6 +733,19 @@ fn build_catalog() -> Vec<CommandSpec> {
         if item.kind == CommandKind::External {
             item.effects = vec!["document.read", "file.write"];
             item.permissions.push("write_resource");
+        }
+        if matches!(item.id, "edit.copy" | "edit.copy_merged") {
+            item.effects = vec!["document.read", "clipboard.write"];
+            item.permissions = vec!["bound_document", "clipboard.write_confirmation"];
+            item.batchable = false;
+        }
+        if matches!(
+            item.id,
+            "edit.cut" | "edit.paste" | "edit.paste_in_place" | "edit.clipboard.write_status"
+        ) {
+            item.batchable = false;
+            item.permissions.push("clipboard_resource");
+            item.effects.push("clipboard.read");
         }
         if item.id == "file.export" {
             item.examples.extend([

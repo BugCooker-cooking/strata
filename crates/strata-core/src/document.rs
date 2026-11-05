@@ -116,6 +116,86 @@ impl Document {
     pub fn active_layer(&self) -> Option<LayerId> {
         self.active
     }
+    pub fn is_descendant(&self, child: LayerId, parent: LayerId) -> bool {
+        let mut next = self
+            .layers
+            .iter()
+            .find(|l| l.id() == child)
+            .and_then(|l| l.info.parent);
+        for _ in 0..32 {
+            let Some(id) = next else { return false };
+            if id == parent {
+                return true;
+            }
+            next = self
+                .layers
+                .iter()
+                .find(|l| l.id() == id)
+                .and_then(|l| l.info.parent);
+        }
+        false
+    }
+    pub fn layer_depth(&self, child: LayerId) -> usize {
+        let mut next = self
+            .layers
+            .iter()
+            .find(|l| l.id() == child)
+            .and_then(|l| l.info.parent);
+        let mut depth = 0;
+        while let Some(id) = next {
+            depth += 1;
+            if depth > 16 {
+                break;
+            }
+            next = self
+                .layers
+                .iter()
+                .find(|l| l.id() == id)
+                .and_then(|l| l.info.parent);
+        }
+        depth
+    }
+    pub fn effective_visibility(&self, id: LayerId) -> bool {
+        let mut next = Some(id);
+        for _ in 0..17 {
+            let Some(id) = next else { return true };
+            let Some(layer) = self.layers.iter().find(|l| l.id() == id) else {
+                return false;
+            };
+            if !layer.info.visible {
+                return false;
+            }
+            next = layer.info.parent;
+        }
+        false
+    }
+    pub fn style_outset(&self, id: LayerId) -> [i64; 4] {
+        let mut result = [0; 4];
+        let mut next = Some(id);
+        for _ in 0..17 {
+            let Some(id) = next else { break };
+            let Some(layer) = self.layers.iter().find(|l| l.id() == id) else {
+                break;
+            };
+            let pad = layer.info.styles.outset();
+            for i in 0..4 {
+                result[i] += pad[i];
+            }
+            next = layer.info.parent;
+        }
+        result
+    }
+    pub(crate) fn insertion_parent(&self) -> Option<LayerId> {
+        self.active
+            .and_then(|id| self.layers.iter().find(|l| l.id() == id))
+            .and_then(|l| {
+                if matches!(l.info.kind, crate::LayerKind::Group) {
+                    Some(l.id())
+                } else {
+                    l.info.parent
+                }
+            })
+    }
     pub fn format(&self) -> PixelFormat {
         self.format
     }
@@ -179,11 +259,114 @@ impl Document {
         let mut bytes = 0u64;
         for layer in &self.layers {
             let info = &layer.info;
+            info.styles.validate(self.bit_depth())?;
+            if !info.styles.is_empty()
+                && matches!(
+                    info.kind,
+                    crate::LayerKind::Exposure { .. } | crate::LayerKind::HueSaturation { .. }
+                )
+            {
+                return Err(DocumentError::Invalid(
+                    "layer styles require pixel, fill or group content".into(),
+                ));
+            }
+            if let Some([width, height]) = info.generated_size
+                && (!matches!(
+                    info.kind,
+                    crate::LayerKind::Solid { .. } | crate::LayerKind::Gradient { .. }
+                ) || self.format.byte_count(width, height)? as u64 > MAX_FLAT_IMAGE_BYTES
+                    || info.x.checked_add(i64::from(width)).is_none()
+                    || info.y.checked_add(i64::from(height)).is_none())
+            {
+                return Err(DocumentError::Invalid("generated layer geometry".into()));
+            }
+            if info.clipped {
+                let base = self
+                    .layers
+                    .iter()
+                    .take_while(|l| l.id() != info.id)
+                    .filter(|l| l.info.parent == info.parent && !l.info.clipped)
+                    .last();
+                if base.is_none_or(|l| {
+                    matches!(
+                        l.info.kind,
+                        crate::LayerKind::Exposure { .. } | crate::LayerKind::HueSaturation { .. }
+                    )
+                }) {
+                    return Err(DocumentError::Invalid("clipping chain requires a lower pixel, fill or group base in the same parent".into()));
+                }
+            }
+            if let Some(parent) = info.parent
+                && (parent == info.id
+                    || !self.layers.iter().any(|l| {
+                        l.id() == parent && matches!(l.info.kind, crate::LayerKind::Group)
+                    })
+                    || self.is_descendant(parent, info.id)
+                    || self.layer_depth(info.id) > 16)
+            {
+                return Err(DocumentError::Invalid(
+                    "orphan, cyclic or excessively nested layer tree".into(),
+                ));
+            }
+            if matches!(info.kind, crate::LayerKind::Group) && layer.pixels.tile_count() != 0 {
+                return Err(DocumentError::Invalid(
+                    "groups cannot have pixel blocks".into(),
+                ));
+            }
+            if !matches!(info.kind, crate::LayerKind::Pixel) && layer.pixels.tile_count() != 0 {
+                return Err(DocumentError::Invalid(
+                    "generated or adjustment layer cannot own source pixels".into(),
+                ));
+            }
+            let colors_valid = |color: &[u16; 4]| {
+                self.format != PixelFormat::Rgba8 || color.iter().all(|c| *c <= 255)
+            };
+            match &info.kind {
+                crate::LayerKind::Solid { color } if !colors_valid(color) => {
+                    return Err(DocumentError::Invalid(
+                        "fill exceeds document bit depth".into(),
+                    ));
+                }
+                crate::LayerKind::Gradient {
+                    start,
+                    end,
+                    angle,
+                    scale,
+                    ..
+                } if !colors_valid(start)
+                    || !colors_valid(end)
+                    || !angle.is_finite()
+                    || !scale.is_finite()
+                    || !(0.01..=100.0).contains(scale) =>
+                {
+                    return Err(DocumentError::Invalid(
+                        "gradient colors/angle/scale invalid".into(),
+                    ));
+                }
+                crate::LayerKind::HueSaturation {
+                    hue,
+                    saturation,
+                    lightness,
+                } if !hue.is_finite()
+                    || !saturation.is_finite()
+                    || !lightness.is_finite()
+                    || !(-180.0..=180.0).contains(hue)
+                    || !(-100.0..=100.0).contains(saturation)
+                    || !(-100.0..=100.0).contains(lightness) =>
+                {
+                    return Err(DocumentError::Invalid(
+                        "hue must be -180..180; saturation/lightness -100..100".into(),
+                    ));
+                }
+                _ => {}
+            }
             if !info.id.is_valid()
                 || !ids.insert(info.id)
                 || info.name.len() > 1024
                 || !info.opacity.is_finite()
                 || !(0.0..=1.0).contains(&info.opacity)
+                || !info.fill_opacity.is_finite()
+                || !(0.0..=1.0).contains(&info.fill_opacity)
                 || layer.pixels.format() != self.format
             {
                 return Err(DocumentError::Invalid("layer metadata".into()));

@@ -17,6 +17,7 @@ Strata 是一个开源的、可以完全由 AI 驱动的专业级图像编辑器
 | [当前执行范围闭环清单](plans/2026-11-03-m1-closure.md) | M0/M1、工作区与 M1b 的逐项证据、交付 CI 及外部设备依赖 |
 | [第一版实施计划](plans/2026-11-02-strata-v1-roadmap.md) | 整体走向、里程碑 M0–M8、每个里程碑的交付内容、完成标准与 AI 验收任务 |
 | [剩余开发执行计划](plans/2026-11-04-v1-remaining.md) / [M2a 进展](research/2026-11-m2a-ai-progress.md) | M2a–M8 的当前执行顺序、AI 接口与原生模型接入、真实模型门槛 |
+| [完整 PS 覆盖](plans/photoshop-feature-coverage.md) / [M3 实现](research/2026-11-m3-layers-progress.md) | 全部 P0–P3 综合条目追踪；图层、样式与剪贴板实现及保留门槛 |
 | [P0 交付与验收矩阵](plans/2026-11-02-p0-acceptance-matrix.md) | 每条 P0 功能的交付里程碑、稳定验收 ID 与测试要求，防止遗漏和倒置依赖 |
 | [M0 详细实施计划](plans/2026-11-02-m0-foundation.md) | 项目地基、桥接/渲染/色彩与 8/16 位验证、打开失败安全、干净构建与画布生命周期 |
 | [M0 实施进度](research/2026-11-m0-progress.md) | 本机与双平台 CI 证据、接口偏差、仍待实机验证的门槛 |

@@ -42,21 +42,15 @@ pub fn blend(back: [f64; 4], front: [f64; 4], mode: BlendMode, opacity: f64) -> 
     }
     let mut out = [0.0; 4];
     out[3] = alpha;
+    let rgb = crate::blending::color(
+        [back[0], back[1], back[2]],
+        [front[0], front[1], front[2]],
+        mode,
+    );
     for i in 0..3 {
         let b = back[i];
         let s = front[i];
-        let mixed = match mode {
-            BlendMode::Normal => s,
-            BlendMode::Multiply => b * s,
-            BlendMode::Screen => b + s - b * s,
-            BlendMode::Overlay => {
-                if b <= 0.5 {
-                    2.0 * b * s
-                } else {
-                    1.0 - 2.0 * (1.0 - b) * (1.0 - s)
-                }
-            }
-        };
+        let mixed = rgb[i];
         out[i] = ((1.0 - asrc) * ab * b + (1.0 - ab) * asrc * s + ab * asrc * mixed) / alpha;
     }
     out
@@ -146,7 +140,8 @@ fn fingerprint(doc: &Document, coord: TileCoord, layers: usize) -> u64 {
         };
         let (first, _) = TileCoord::locate(x, y);
         let (last, _) = TileCoord::locate(x.saturating_add(255), y.saturating_add(255));
-        let mut touched = matches!(layer.info.kind, LayerKind::Exposure { .. });
+        let mut touched =
+            !matches!(layer.info.kind, LayerKind::Pixel) || !layer.info.styles.is_empty();
         for tx in first.x()..=last.x() {
             for ty in first.y()..=last.y() {
                 if let Ok(c) = TileCoord::new(tx, ty)
@@ -160,13 +155,67 @@ fn fingerprint(doc: &Document, coord: TileCoord, layers: usize) -> u64 {
         }
         if touched {
             layer.info.id.hash(&mut hash);
+            layer.info.parent.hash(&mut hash);
+            layer.info.clipped.hash(&mut hash);
+            layer.info.generated_size.hash(&mut hash);
+            layer.info.pass_through.hash(&mut hash);
+            if !layer.info.styles.is_empty() {
+                serde_json::to_vec(&layer.info.styles)
+                    .expect("validated style")
+                    .hash(&mut hash);
+                for candidate in doc.layers().iter().take(layers).filter(|candidate| {
+                    candidate.id() == layer.id() || doc.is_descendant(candidate.id(), layer.id())
+                }) {
+                    for c in candidate.pixels.tile_coords() {
+                        c.hash(&mut hash);
+                        candidate.pixels.tile_version(*c).hash(&mut hash);
+                    }
+                    if let Some(mask) = &candidate.mask {
+                        mask.layout().hash(&mut hash);
+                        for c in mask.tile_coords() {
+                            c.hash(&mut hash);
+                            mask.tile_version(*c).hash(&mut hash);
+                        }
+                    }
+                    serde_json::to_vec(candidate.info())
+                        .expect("validated layer")
+                        .hash(&mut hash);
+                }
+            }
             layer.info.x.hash(&mut hash);
             layer.info.y.hash(&mut hash);
             layer.info.opacity.to_bits().hash(&mut hash);
+            layer.info.fill_opacity.to_bits().hash(&mut hash);
             std::mem::discriminant(&layer.info.blend_mode).hash(&mut hash);
             std::mem::discriminant(&layer.info.kind).hash(&mut hash);
             if let LayerKind::Exposure { stops } = layer.info.kind {
                 stops.to_bits().hash(&mut hash);
+            }
+            match &layer.info.kind {
+                LayerKind::Solid { color } => color.hash(&mut hash),
+                LayerKind::Gradient {
+                    start,
+                    end,
+                    angle,
+                    scale,
+                    radial,
+                } => {
+                    start.hash(&mut hash);
+                    end.hash(&mut hash);
+                    angle.to_bits().hash(&mut hash);
+                    scale.to_bits().hash(&mut hash);
+                    radial.hash(&mut hash);
+                }
+                LayerKind::HueSaturation {
+                    hue,
+                    saturation,
+                    lightness,
+                } => {
+                    hue.to_bits().hash(&mut hash);
+                    saturation.to_bits().hash(&mut hash);
+                    lightness.to_bits().hash(&mut hash);
+                }
+                _ => {}
             }
             if let Some(mask) = &layer.mask {
                 mask.layout().hash(&mut hash);
@@ -214,10 +263,13 @@ fn compose_tile(
         .filter(|layer| layer.info.visible && layer.info.opacity > 0.0);
     if let Some(layer) = visible.next()
         && visible.next().is_none()
+        && layer.info.parent.is_none()
         && layer.info.opacity == 1.0
+        && layer.info.fill_opacity == 1.0
         && layer.info.blend_mode == BlendMode::Normal
         && matches!(layer.info.kind, LayerKind::Pixel)
         && layer.mask.is_none()
+        && layer.info.styles.is_empty()
         && let Some(sx) = ox.checked_sub(layer.info.x)
         && let Some(sy) = oy.checked_sub(layer.info.y)
         && sx.rem_euclid(256) == 0
@@ -235,30 +287,240 @@ fn compose_tile(
             return Ok(linear);
         }
     }
-    let mut out = vec![[0.0f64; 4]; 256 * 256];
-    for layer in doc.layers().iter().take(layers) {
+    let out = compose_stack(doc, coord, layers, None)?;
+    // Avoid retaining the larger f64 allocation through an in-place collect.
+    let mut result = Vec::with_capacity(out.len());
+    for pixel in out {
+        result.push(pixel.map(|v| v as f32));
+    }
+    Ok(result)
+}
+
+pub(crate) fn compose_stack(
+    doc: &Document,
+    coord: TileCoord,
+    layers: usize,
+    parent: Option<crate::LayerId>,
+) -> Result<Vec<[f64; 4]>, DocumentError> {
+    compose_with_backdrop(doc, coord, layers, parent, vec![[0.0; 4]; 256 * 256])
+}
+fn compose_with_backdrop(
+    doc: &Document,
+    coord: TileCoord,
+    layers: usize,
+    parent: Option<crate::LayerId>,
+    mut out: Vec<[f64; 4]>,
+) -> Result<Vec<[f64; 4]>, DocumentError> {
+    let siblings: Vec<_> = doc
+        .layers()
+        .iter()
+        .take(layers)
+        .filter(|layer| layer.info.parent == parent)
+        .collect();
+    if !siblings.iter().any(|layer| layer.info.clipped) {
+        return compose_sequence(doc, coord, layers, &siblings, out, false);
+    }
+    let mut begin = 0;
+    while begin < siblings.len() {
+        let mut end = begin + 1;
+        while end < siblings.len() && siblings[end].info.clipped {
+            end += 1;
+        }
+        if end == begin + 1 {
+            out = compose_sequence(doc, coord, layers, &siblings[begin..end], out, false)?;
+        } else {
+            let _chain_scratch = doc
+                .memory_pool()
+                .reserve(MemoryKind::Transient, 256 * 256 * 32)?;
+            let surface = compose_sequence(
+                doc,
+                coord,
+                layers,
+                &siblings[begin..end],
+                vec![[0.0; 4]; 256 * 256],
+                true,
+            )?;
+            let mode = siblings[begin].info.blend_mode;
+            for (back, front) in out.iter_mut().zip(surface) {
+                *back = blend(*back, front, mode, 1.0);
+            }
+        }
+        begin = end;
+    }
+    Ok(out)
+}
+fn compose_sequence(
+    doc: &Document,
+    coord: TileCoord,
+    layers: usize,
+    siblings: &[&crate::Layer],
+    mut out: Vec<[f64; 4]>,
+    clipping: bool,
+) -> Result<Vec<[f64; 4]>, DocumentError> {
+    let [ox, oy] = coord.origin();
+    for (ordinal, layer) in siblings.iter().copied().enumerate() {
         if !layer.info.visible || layer.info.opacity == 0.0 {
             continue;
         }
+        if !layer.info.styles.is_empty() {
+            let styled = crate::styles::render(doc, layer, coord, layers)?;
+            for (index, front) in styled.into_iter().enumerate() {
+                out[index] = blend_inside(
+                    out[index],
+                    front,
+                    layer.info.blend_mode,
+                    layer.info.opacity,
+                    clipping && ordinal > 0,
+                );
+            }
+            continue;
+        }
+        if matches!(layer.info.kind, LayerKind::Group) {
+            let _group_scratch = doc
+                .memory_pool()
+                .reserve(MemoryKind::Transient, 256 * 256 * 34)?;
+            let mask = layer_mask_tile(layer, ox, oy)?;
+            if layer.info.pass_through
+                && layer.info.blend_mode == BlendMode::Normal
+                && !(clipping && ordinal > 0)
+            {
+                let group =
+                    compose_with_backdrop(doc, coord, layers, Some(layer.id()), out.clone())?;
+                for (index, front) in group.into_iter().enumerate() {
+                    let amount = f64::from(mask.as_ref().map_or(65535, |m| m[index])) / 65535.0
+                        * layer.info.opacity
+                        * layer.info.fill_opacity;
+                    let back = out[index];
+                    let alpha = back[3] + (front[3] - back[3]) * amount;
+                    if alpha > 0.0 {
+                        for c in 0..3 {
+                            out[index][c] = (back[c] * back[3] * (1.0 - amount)
+                                + front[c] * front[3] * amount)
+                                / alpha;
+                        }
+                        out[index][3] = alpha;
+                    } else {
+                        out[index] = [0.0; 4];
+                    }
+                }
+                continue;
+            }
+            let group = compose_stack(doc, coord, layers, Some(layer.id()))?;
+            for (index, mut front) in group.into_iter().enumerate() {
+                front[3] *= f64::from(mask.as_ref().map_or(65535, |m| m[index])) / 65535.0;
+                let opacity = layer.info.opacity * layer.info.fill_opacity;
+                if layer.info.blend_mode == BlendMode::Dissolve {
+                    front[3] = if dissolve_noise(
+                        layer.id(),
+                        ox + (index % 256) as i64,
+                        oy + (index / 256) as i64,
+                    ) < front[3] * opacity
+                    {
+                        1.0
+                    } else {
+                        0.0
+                    };
+                    out[index] = blend_inside(
+                        out[index],
+                        front,
+                        BlendMode::Normal,
+                        1.0,
+                        clipping && ordinal > 0,
+                    );
+                } else {
+                    out[index] = blend_inside(
+                        out[index],
+                        front,
+                        layer.info.blend_mode,
+                        opacity,
+                        clipping && ordinal > 0,
+                    );
+                }
+            }
+            continue;
+        }
         let mask = layer_mask_tile(layer, ox, oy)?;
+        if let LayerKind::HueSaturation {
+            hue,
+            saturation,
+            lightness,
+        } = layer.info.kind
+        {
+            for (index, pixel) in out.iter_mut().enumerate() {
+                let back = [pixel[0], pixel[1], pixel[2]];
+                let adjusted = adjust_hsl(back, hue, saturation, lightness);
+                let mixed = crate::blending::color(back, adjusted, layer.info.blend_mode);
+                let amount = f64::from(mask.as_ref().map_or(65535, |m| m[index])) / 65535.0
+                    * layer.info.opacity
+                    * layer.info.fill_opacity;
+                for c in 0..3 {
+                    pixel[c] += (mixed[c] - back[c]) * amount;
+                }
+            }
+            continue;
+        }
+        if matches!(
+            layer.info.kind,
+            LayerKind::Solid { .. } | LayerKind::Gradient { .. }
+        ) {
+            let _fill_scratch = doc
+                .memory_pool()
+                .reserve(MemoryKind::Transient, 256 * 256 * 32)?;
+            let values = generated_fill(doc, layer, coord)?;
+            for (index, mut front) in values.into_iter().enumerate() {
+                front[3] *= f64::from(mask.as_ref().map_or(65535, |m| m[index])) / 65535.0;
+                let opacity = layer.info.opacity * layer.info.fill_opacity;
+                if layer.info.blend_mode == BlendMode::Dissolve {
+                    front[3] = if dissolve_noise(
+                        layer.id(),
+                        ox + (index % 256) as i64,
+                        oy + (index / 256) as i64,
+                    ) < front[3] * opacity
+                    {
+                        1.0
+                    } else {
+                        0.0
+                    };
+                    out[index] = blend_inside(
+                        out[index],
+                        front,
+                        BlendMode::Normal,
+                        1.0,
+                        clipping && ordinal > 0,
+                    );
+                } else {
+                    out[index] = blend_inside(
+                        out[index],
+                        front,
+                        layer.info.blend_mode,
+                        opacity,
+                        clipping && ordinal > 0,
+                    );
+                }
+            }
+            continue;
+        }
         if let LayerKind::Exposure { stops } = layer.info.kind {
             let gain = 2f64.powf(stops);
             for y in 0..256usize {
                 for x in 0..256usize {
                     let index = y * 256 + x;
-                    let amount = f64::from(mask.as_ref().map_or(65535, |m| m[index])) / 65535.0
-                        * layer.info.opacity;
-                    for channel in &mut out[index][..3] {
-                        let back = *channel;
-                        let adjusted = back * gain;
-                        let mixed = match layer.info.blend_mode {
-                            BlendMode::Normal => adjusted,
-                            BlendMode::Multiply => back * adjusted,
-                            BlendMode::Screen => back + adjusted - back * adjusted,
-                            BlendMode::Overlay if back <= 0.5 => 2.0 * back * adjusted,
-                            BlendMode::Overlay => 1.0 - 2.0 * (1.0 - back) * (1.0 - adjusted),
-                        };
-                        *channel += (mixed - back) * amount;
+                    let mut amount = f64::from(mask.as_ref().map_or(65535, |m| m[index])) / 65535.0
+                        * layer.info.opacity
+                        * layer.info.fill_opacity;
+                    if layer.info.blend_mode == BlendMode::Dissolve {
+                        amount =
+                            if dissolve_noise(layer.id(), ox + x as i64, oy + y as i64) < amount {
+                                1.0
+                            } else {
+                                0.0
+                            };
+                    }
+                    let back = [out[index][0], out[index][1], out[index][2]];
+                    let adjusted = back.map(|v| v * gain);
+                    let mixed = crate::blending::color(back, adjusted, layer.info.blend_mode);
+                    for c in 0..3 {
+                        out[index][c] += (mixed[c] - back[c]) * amount;
                     }
                 }
             }
@@ -297,19 +559,37 @@ fn compose_tile(
                         let index = y * 256 + x;
                         let mut front = linear[ly as usize * 256 + lx as usize].map(f64::from);
                         front[3] *= f64::from(mask.as_ref().map_or(65535, |m| m[index])) / 65535.0;
-                        out[index] =
-                            blend(out[index], front, layer.info.blend_mode, layer.info.opacity);
+                        let opacity = layer.info.opacity * layer.info.fill_opacity;
+                        if layer.info.blend_mode == BlendMode::Dissolve {
+                            front[3] = if dissolve_noise(layer.id(), ox + x as i64, oy + y as i64)
+                                < front[3] * opacity
+                            {
+                                1.0
+                            } else {
+                                0.0
+                            };
+                            out[index] = blend_inside(
+                                out[index],
+                                front,
+                                BlendMode::Normal,
+                                1.0,
+                                clipping && ordinal > 0,
+                            );
+                        } else {
+                            out[index] = blend_inside(
+                                out[index],
+                                front,
+                                layer.info.blend_mode,
+                                opacity,
+                                clipping && ordinal > 0,
+                            );
+                        }
                     }
                 }
             }
         }
     }
-    // Avoid retaining the larger f64 allocation through an in-place collect.
-    let mut result = Vec::with_capacity(out.len());
-    for pixel in out {
-        result.push(pixel.map(|v| v as f32));
-    }
-    Ok(result)
+    Ok(out)
 }
 
 pub fn layer_mask_tile(
@@ -424,10 +704,13 @@ impl Document {
             .filter(|l| l.info.visible && l.info.opacity > 0.0)
             .collect();
         if visible.len() == 1
+            && visible[0].info.parent.is_none()
             && visible[0].info.opacity == 1.0
+            && visible[0].info.fill_opacity == 1.0
             && visible[0].info.blend_mode == BlendMode::Normal
             && matches!(visible[0].info.kind, LayerKind::Pixel)
             && visible[0].mask.is_none()
+            && visible[0].info.styles.is_empty()
         {
             let l = visible[0];
             let mut out = match self.format {
@@ -520,4 +803,173 @@ impl Document {
         }
         Ok(out)
     }
+}
+fn blend_inside(
+    back: [f64; 4],
+    front: [f64; 4],
+    mode: BlendMode,
+    opacity: f64,
+    clipped: bool,
+) -> [f64; 4] {
+    if !clipped {
+        return blend(back, front, mode, opacity);
+    }
+    if back[3] == 0.0 {
+        return [0.0; 4];
+    }
+    let mixed = crate::blending::color(
+        [back[0], back[1], back[2]],
+        [front[0], front[1], front[2]],
+        mode,
+    );
+    let amount = front[3] * opacity;
+    [
+        back[0] + (mixed[0] - back[0]) * amount,
+        back[1] + (mixed[1] - back[1]) * amount,
+        back[2] + (mixed[2] - back[2]) * amount,
+        back[3],
+    ]
+}
+
+pub(crate) fn dissolve_noise(layer: crate::LayerId, x: i64, y: i64) -> f64 {
+    let seed = layer
+        .stable_bytes()
+        .iter()
+        .fold(0xcbf29ce484222325u64, |state, byte| {
+            (state ^ u64::from(*byte)).wrapping_mul(0x100000001b3)
+        });
+    let mut n = seed ^ (x as u64).wrapping_mul(0x9e3779b97f4a7c15) ^ (y as u64).rotate_left(29);
+    n = (n ^ (n >> 30)).wrapping_mul(0xbf58476d1ce4e5b9);
+    n = (n ^ (n >> 27)).wrapping_mul(0x94d049bb133111eb);
+    n ^= n >> 31;
+    ((n >> 11) as f64) * (1.0 / (1u64 << 53) as f64)
+}
+
+pub(crate) fn generated_fill(
+    doc: &Document,
+    layer: &crate::Layer,
+    coord: TileCoord,
+) -> Result<Vec<[f64; 4]>, DocumentError> {
+    let (start, end, angle, scale, radial) = match layer.info.kind {
+        LayerKind::Solid { color } => (color, color, 0.0, 1.0, false),
+        LayerKind::Gradient {
+            start,
+            end,
+            angle,
+            scale,
+            radial,
+        } => (start, end, angle, scale, radial),
+        _ => unreachable!("fill layer only"),
+    };
+    let source = if doc.bit_depth() == 8 {
+        PixelBuffer::Rgba8(start.into_iter().chain(end).map(|v| v as u8).collect())
+    } else {
+        PixelBuffer::Rgba16(start.into_iter().chain(end).collect())
+    };
+    let endpoints = strata_color::to_linear_p3(&source, 2, 1, doc.working_icc())?;
+    let start = endpoints[0].map(f64::from);
+    let end = endpoints[1].map(f64::from);
+    let [ox, oy] = coord.origin();
+    let [width, height] = layer
+        .info
+        .generated_size
+        .unwrap_or([doc.frame.width, doc.frame.height]);
+    let w = f64::from(width);
+    let h = f64::from(height);
+    let angle = angle.to_radians();
+    let axis = [angle.cos(), angle.sin()];
+    let span = (w * axis[0].abs() + h * axis[1].abs()) * scale;
+    let mut out = vec![[0.0; 4]; 256 * 256];
+    for y in 0..256usize {
+        for x in 0..256usize {
+            let sx = i128::from(ox) + x as i128 - i128::from(layer.info.x);
+            let sy = i128::from(oy) + y as i128 - i128::from(layer.info.y);
+            if sx < 0 || sy < 0 || sx >= i128::from(width) || sy >= i128::from(height) {
+                continue;
+            }
+            let px = sx as f64 + 0.5 - w / 2.0;
+            let py = sy as f64 + 0.5 - h / 2.0;
+            let t = if matches!(layer.info.kind, LayerKind::Solid { .. }) {
+                0.0
+            } else if radial {
+                (px * px + py * py).sqrt() / (w.min(h) * 0.5 * scale)
+            } else {
+                0.5 + (px * axis[0] + py * axis[1]) / span
+            };
+            let t = t.clamp(0.0, 1.0);
+            let alpha = start[3] * (1.0 - t) + end[3] * t;
+            let mut value = [0.0; 4];
+            value[3] = alpha;
+            if alpha > 0.0 {
+                for c in 0..3 {
+                    value[c] = (start[c] * start[3] * (1.0 - t) + end[c] * end[3] * t) / alpha;
+                }
+            }
+            out[y * 256 + x] = value;
+        }
+    }
+    Ok(out)
+}
+fn adjust_hsl(rgb: [f64; 3], hue: f64, saturation: f64, lightness: f64) -> [f64; 3] {
+    if hue == 0.0 && saturation == 0.0 && lightness == 0.0 {
+        return rgb;
+    }
+    let encoded = rgb
+        .map(|v| {
+            if v <= 0.0031308 {
+                v * 12.92
+            } else {
+                1.055 * v.powf(1.0 / 2.4) - 0.055
+            }
+        })
+        .map(|v| v.clamp(0.0, 1.0));
+    let max = encoded.into_iter().fold(f64::NEG_INFINITY, f64::max);
+    let min = encoded.into_iter().fold(f64::INFINITY, f64::min);
+    let delta = max - min;
+    let mut l = (max + min) / 2.0;
+    let mut s = if delta == 0.0 {
+        0.0
+    } else {
+        delta / (1.0 - (2.0 * l - 1.0).abs()).max(f64::EPSILON)
+    };
+    let mut h = if delta == 0.0 {
+        0.0
+    } else if max == encoded[0] {
+        ((encoded[1] - encoded[2]) / delta).rem_euclid(6.0)
+    } else if max == encoded[1] {
+        (encoded[2] - encoded[0]) / delta + 2.0
+    } else {
+        (encoded[0] - encoded[1]) / delta + 4.0
+    };
+    h = (h + hue / 60.0).rem_euclid(6.0);
+    let sat = saturation / 100.0;
+    let light = lightness / 100.0;
+    s = if sat >= 0.0 {
+        s + (1.0 - s) * sat
+    } else {
+        s * (1.0 + sat)
+    };
+    l = if light >= 0.0 {
+        l + (1.0 - l) * light
+    } else {
+        l * (1.0 + light)
+    };
+    let chroma = (1.0 - (2.0 * l - 1.0).abs()) * s;
+    let x = chroma * (1.0 - (h.rem_euclid(2.0) - 1.0).abs());
+    let m = l - chroma / 2.0;
+    let channels = match h.floor() as u8 {
+        0 => [chroma, x, 0.0],
+        1 => [x, chroma, 0.0],
+        2 => [0.0, chroma, x],
+        3 => [0.0, x, chroma],
+        4 => [x, 0.0, chroma],
+        _ => [chroma, 0.0, x],
+    };
+    channels.map(|c| c + m).map(|v| {
+        if v <= 0.04045 {
+            v / 12.92
+        } else {
+            ((v + 0.055) / 1.055).powf(2.4)
+        }
+    })
 }

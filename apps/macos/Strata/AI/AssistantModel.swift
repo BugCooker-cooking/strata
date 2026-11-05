@@ -87,7 +87,7 @@ final class AssistantModel: ObservableObject {
         do {
             var config = draft; config.vision = false; config.toolsVerified = false
             let configJSON = try config.json(); _ = try config.validated()
-            let credential = try settings.credential(for: config, replacement: key)
+            let credential = try await settings.credentialAsync(for: config, replacement: key)
             let transport = AITransport()
             let toolWire = try AIWireRequest.decode(aiProbeRequest(configJson: configJSON, vision: false))
             let toolData = try await transport.collect(toolWire, key: credential)
@@ -110,7 +110,7 @@ final class AssistantModel: ObservableObject {
             var config = draft
             if config.model.isEmpty { config.model = "model-list-probe" }
             let request = try AIWireRequest.decode(aiModelsRequest(configJson: config.json()))
-            let credential = try settings.credential(for: config, replacement: key)
+            let credential = try await settings.credentialAsync(for: config, replacement: key)
             let data = try await AITransport().collect(request, key: credential)
             let response = try AIJSON.decode(String(decoding: data, as: UTF8.self))
             let models = Array(Set(response["data"].array.compactMap { $0["id"].string }.filter { !$0.isEmpty && $0.utf8.count <= 256 })).sorted()
@@ -143,7 +143,9 @@ final class AssistantModel: ObservableObject {
                     contextApprovals[approvalKey] = shareCanvas
                 }
                 guard self.document == boundDocument else { throw AIClientError.message("活动文档已改变，请重新发送。") }
-                let credential = try settings.credential(for: config)
+                let credential = try await settings.credentialAsync(for: config)
+                try Task.checkCancellation()
+                guard self.document==boundDocument,self.generation==generation else{throw CancellationError()}
                 let prior = messages.filter { ["user", "assistant"].contains($0.role) && !$0.text.isEmpty }.suffix(40).map {
                     AIJSON.object(["role": .string($0.role), "text": .string(String($0.text.prefix(8000)))])
                 }
@@ -185,7 +187,9 @@ final class AssistantModel: ObservableObject {
                 }
                 messages.removeAll { $0.role == "assistant" && $0.text.isEmpty }; streamMessage = nil; persist()
             case "tool": record(step, turn: turn)
-            case "paused": paused = step; answer = ""; onStateChanged?(); persist(); return
+            case "paused":
+                if step["reason"].string=="clipboard_write"{try await completeClipboardWrite(step,turn:turn);continue}
+                paused = step; answer = ""; onStateChanged?(); persist(); return
             case "finished":
                 if let index = executions.firstIndex(where: { $0.id == turn }) {
                     executions[index].inputTokens = step["usage"]["input_tokens"].number ?? 0
@@ -202,6 +206,20 @@ final class AssistantModel: ObservableObject {
         guard self.turn == turn, let id = streamMessage, let index = messages.firstIndex(where: { $0.id == id }) else { return }
         messages[index].text += delta
     }
+    private func completeClipboardWrite(_ pending:AIJSON,turn:String)async throws{
+        guard let resource=pending["operation"]["resource"].string else{throw AIClientError.message("剪贴板写入资源缺失。")}
+        let engine=engine;var success=false
+        do{
+            let transfer=try await aiEngineWork{try engine.clipboardExport(resource:resource,turnId:turn)}
+            try Task.checkCancellation();guard self.turn==turn else{throw CancellationError()}
+            try NativeClipboard.write(transfer)
+            try engine.clipboardConfirmWrite(resource:resource,turnId:turn);success=true
+        }catch is CancellationError{throw CancellationError()}
+        catch{self.error=error.localizedDescription}
+        let response=try commandJSON(["question_id":pending["question_id"].string ?? "","approved":success,"resource":resource])
+        let raw=try await aiEngineWork{try engine.aiRespond(answerJson:response)}
+        record(try AIJSON.decode(raw),turn:turn);persist()
+    }
     private func record(_ step: AIJSON, turn: String) {
         if let index = executions.firstIndex(where: { $0.id == turn }) { executions[index].steps.append(step) }
         onStateChanged?()
@@ -215,16 +233,21 @@ final class AssistantModel: ObservableObject {
         task = Task { [weak self] in
             guard let self else { return }
             do {
-                let credential = try settings.credential(for: config)
+                let credential = try await settings.credentialAsync(for: config)
+                try Task.checkCancellation()
+                guard self.turn==turn,self.generation==generation else{throw CancellationError()}
                 var resource: String?
                 if pending["reason"].string == "file_resource", approved { resource = try await pickResource(pending, turn: turn) }
+                if pending["reason"].string=="clipboard_read",approved{
+                    do{resource=try await NativeClipboard.read(engine:engine,turn:turn)}catch{self.error=error.localizedDescription}
+                }
                 try Task.checkCancellation()
                 let response = try commandJSON(["question_id": pending["question_id"].string ?? "", "answer": text ?? answer,
-                                               "approved": approved && (pending["reason"].string != "file_resource" || resource != nil), "resource": resource as Any? ?? NSNull()])
+                                               "approved": approved && (!["file_resource","clipboard_read"].contains(pending["reason"].string ?? "") || resource != nil), "resource": resource as Any? ?? NSNull()])
                 let engine = engine
                 let raw = try await aiEngineWork { try engine.aiRespond(answerJson: response) }
                 let step = try AIJSON.decode(raw)
-                record(step, turn: turn)
+                if step["kind"].string=="tool"{record(step, turn: turn)}
                 if step["result"]["result"]["document_id"] != .null {
                     onDocumentFile?(selectedResourceURL, pending["operation"]["command"].string ?? "file.new")
                 }
@@ -241,7 +264,7 @@ final class AssistantModel: ObservableObject {
         task?.cancel(); task = nil; panel?.cancel(nil); panel = nil
         if let alertWindow, let window = window?(), window.attachedSheet === alertWindow { window.endSheet(alertWindow, returnCode: .cancel) }
         if let turn { try? engine.aiStop(turnId: turn) }
-        messages.append(AIChatMessage(role: "system", text: "本轮已停止。已提交的文档修改保留，可从历史撤销；已完成的保存/导出不会随文档撤销恢复。", turn: turn))
+        messages.append(AIChatMessage(role: "system", text: "本轮已停止。已提交的文档修改保留，可从历史撤销；已完成的保存/导出和系统剪贴板写入不会随文档撤销恢复。", turn: turn))
         finishLocal(status: "已停止")
     }
     private func finishLocal(status: String) {

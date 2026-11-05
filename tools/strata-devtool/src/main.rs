@@ -76,6 +76,86 @@ fn examples() -> Result<(), Box<dyn Error>> {
             };
             let mut args = example.clone();
             match spec.id {
+                "layer.set_pass_through" => {
+                    run(&mut editor, "layer.create_group", json!({"name":"Group"}))?;
+                }
+                "edit.cut" | "edit.clipboard.write_status" => {
+                    let copied = run(&mut editor, "edit.copy", json!({}))?;
+                    let token = copied["clipboard_resource"].as_str().unwrap();
+                    editor.confirm_clipboard_write(token, &Source::Test)?;
+                    args["resource"] = json!(token);
+                }
+                "edit.paste" | "edit.paste_in_place" => {
+                    let icc = strata_color::working_profile("srgb")?;
+                    let image = strata_core::ClipboardImage::new(
+                        strata_pixels::PixelBuffer::Rgba16(
+                            [32768, 32769, 50001, 65535].repeat(16 * 16),
+                        ),
+                        16,
+                        16,
+                        -1,
+                        2,
+                        icc,
+                        &strata_pixels::memory::MemoryPool::global(),
+                    )?;
+                    args["resource"] = json!(editor.grant_clipboard_image(image, Source::Test)?);
+                }
+                "layer.distribute" => {
+                    run(&mut editor, "layer.create", json!({"name":"Second"}))?;
+                    run(&mut editor, "layer.create", json!({"name":"Third"}))?;
+                }
+                "layer.rasterize" => {
+                    run(
+                        &mut editor,
+                        "layer.fill.solid",
+                        json!({"name":"Solid","color":[32768,10000,20000,65535]}),
+                    )?;
+                }
+                "layer.mask.apply" => {
+                    run(
+                        &mut editor,
+                        "layer.mask.add",
+                        json!({"layer":{"name":"Background"},"source":"white"}),
+                    )?;
+                }
+                "layer.merge_down" => {
+                    run(
+                        &mut editor,
+                        "layer.create",
+                        json!({"name":"Upper","fill":[32768,10000,20000,65535]}),
+                    )?;
+                }
+                "layer.set_clipping" => {
+                    run(&mut editor, "layer.create", json!({"name":"Clip"}))?;
+                }
+                "layer.fill.solid.set" => {
+                    run(
+                        &mut editor,
+                        "layer.fill.solid",
+                        json!({"name":"Solid","color":[65535,65535,65535,65535]}),
+                    )?;
+                }
+                "layer.fill.gradient.set" => {
+                    run(
+                        &mut editor,
+                        "layer.fill.gradient",
+                        json!({"name":"Gradient","start":[0,0,0,65535],"end":[65535,65535,65535,65535]}),
+                    )?;
+                }
+                "adjust.hue_saturation.set" => {
+                    run(
+                        &mut editor,
+                        "layer.add_hue_saturation",
+                        json!({"name":"Hue"}),
+                    )?;
+                }
+                "layer.ungroup" => {
+                    run(
+                        &mut editor,
+                        "layer.group",
+                        json!({"layers":[{"name":"Background"}],"name":"Group"}),
+                    )?;
+                }
                 "layer.mask.set_enabled" | "layer.mask.invert" | "layer.mask.remove" => {
                     run(
                         &mut editor,

@@ -142,6 +142,9 @@ pub struct HostAnswer {
 
 #[derive(Clone)]
 enum WaitReason {
+    ClipboardAccess { id: String, params: Value },
+    ClipboardRead { id: String, params: Value },
+    ClipboardWrite { resource: String, cut: bool },
     Question,
     Edit { destructive: bool },
     File { id: String, params: Value },
@@ -478,6 +481,27 @@ impl Session {
         if !params.is_object() {
             return Err(AiError::Invalid("command params must be an object".into()));
         }
+        if matches!(
+            id,
+            "edit.copy" | "edit.copy_merged" | "edit.cut" | "edit.paste" | "edit.paste_in_place"
+        ) {
+            let mut safe = params;
+            safe.as_object_mut().expect("object").remove("resource");
+            let read = matches!(id, "edit.paste" | "edit.paste_in_place");
+            let reason = if read {
+                WaitReason::ClipboardRead {
+                    id: id.into(),
+                    params: safe.clone(),
+                }
+            } else {
+                WaitReason::ClipboardAccess {
+                    id: id.into(),
+                    params: safe.clone(),
+                }
+            };
+            self.wait(host,call.clone(),reason,if read{format!("允许读取当前系统剪贴板中的图片并粘贴到本轮文档？粘贴后的可见合成可按本轮范围发送到 {}。",self.config.request_url()?)}else{"允许把本次图层/选区图片写入系统剪贴板？剪切只在宿主确认写入后清除源像素；文档撤销不会恢复剪贴板内容。".into()},vec!["允许".into(),"取消".into()],Some(json!({"command":id,"params":safe})))?;
+            return Ok(None);
+        }
         if spec.kind == CommandKind::Lifecycle && id == "file.new" {
             self.wait(host, call.clone(), WaitReason::Lifecycle { id: id.into(), params: params.clone() },
                 format!("允许新建文档并替换当前文档？请先保存需要保留的修改。新文档的元数据及已选择的画布范围将继续供同一服务使用：{}。",self.config.request_url()?),
@@ -535,6 +559,9 @@ impl Session {
         host.pause(self.turn)?;
         let id = Uuid::new_v4();
         let label = match &reason {
+            WaitReason::ClipboardAccess { .. } => "clipboard_access",
+            WaitReason::ClipboardRead { .. } => "clipboard_read",
+            WaitReason::ClipboardWrite { .. } => "clipboard_write",
             WaitReason::Question => "question",
             WaitReason::Edit { .. } => "edit_approval",
             WaitReason::File { .. } => "file_resource",
@@ -621,6 +648,92 @@ impl Session {
         self.paused_time += waiting.started.elapsed();
         host.resume(self.turn)?;
         let result = match waiting.reason {
+            WaitReason::ClipboardAccess { id, params } => {
+                if answer.approved {
+                    let copy_id = if id == "edit.copy_merged" {
+                        "edit.copy_merged"
+                    } else {
+                        "edit.copy"
+                    };
+                    let result = host.execute(
+                        self.turn,
+                        Uuid::new_v4(),
+                        copy_id,
+                        params,
+                        self.command_timeout(),
+                    )?;
+                    let resource = result["clipboard_resource"]
+                        .as_str()
+                        .ok_or_else(|| {
+                            AiError::Host("copy did not prepare a clipboard resource".into())
+                        })?
+                        .to_owned();
+                    self.wait(
+                        host,
+                        waiting.call.clone(),
+                        WaitReason::ClipboardWrite {
+                            resource: resource.clone(),
+                            cut: id == "edit.cut",
+                        },
+                        "正在写入已批准的系统剪贴板…".into(),
+                        vec![],
+                        Some(json!({"command":id,"resource":resource})),
+                    )?;
+                    return Ok(self
+                        .waiting
+                        .as_ref()
+                        .expect("clipboard host step")
+                        .step
+                        .clone());
+                } else {
+                    Ok((
+                        json!({"status":"denied","message":"The user declined clipboard writing."}),
+                        None,
+                    ))
+                }
+            }
+            WaitReason::ClipboardRead { id, mut params } => {
+                if let Some(resource) = answer.resource.filter(|_| answer.approved) {
+                    params["resource"] = json!(resource);
+                    host.execute(
+                        self.turn,
+                        Uuid::new_v4(),
+                        &id,
+                        params,
+                        self.command_timeout(),
+                    )
+                    .map(|data| (json!({"result":data}), None))
+                } else {
+                    Ok((
+                        json!({"status":"denied","message":"No clipboard image was authorized."}),
+                        None,
+                    ))
+                }
+            }
+            WaitReason::ClipboardWrite { resource, cut } => {
+                if answer.approved && answer.resource.as_deref() == Some(&resource) {
+                    let status = host.execute(
+                        self.turn,
+                        Uuid::new_v4(),
+                        "edit.clipboard.write_status",
+                        json!({"resource":resource}),
+                        self.command_timeout(),
+                    )?;
+                    if cut {
+                        host.execute(self.turn,Uuid::new_v4(),"edit.cut",json!({"resource":resource}),self.command_timeout()).map(|data|(json!({"result":data,"clipboard_status":status,"undo_boundary":"System clipboard contents are not restored by document undo."}),None))
+                    } else {
+                        Ok((
+                            json!({"result":status,"undo_boundary":"System clipboard contents are not restored by document undo."}),
+                            None,
+                        ))
+                    }
+                } else {
+                    Ok((
+                        json!({"status":"clipboard_write_failed","message":"No source pixels were cut because clipboard writing was not confirmed."}),
+                        None,
+                    ))
+                }
+            }
             WaitReason::Question => Ok((
                 json!({"answer":answer.answer,"state_after_pause":inspect(&host.snapshot()?)}),
                 None,
@@ -872,6 +985,8 @@ fn destructive(id: &str, params: &Value) -> bool {
     matches!(
         id,
         "layer.delete"
+            | "layer.rasterize"
+            | "layer.via_cut"
             | "layer.mask.remove"
             | "layer.merge_down"
             | "layer.merge_visible"
@@ -898,8 +1013,14 @@ fn contains(outer: &Region, inner: &Region) -> bool {
 /// Export only context covered by the grant: never file paths, hidden layer
 /// names, arbitrary execution parameters, or another document's conversation.
 pub fn inspect(snapshot: &Snapshot) -> Value {
-    let hidden = snapshot.layers.iter().filter(|l| !l.visible).count();
-    let layers: Vec<_> = snapshot.layers.iter().filter(|l| l.visible).collect();
+    let all = json!(snapshot.layers);
+    let visible = visible_ids(all.as_array().expect("layer list"));
+    let hidden = snapshot.layers.len() - visible.len();
+    let layers: Vec<_> = snapshot
+        .layers
+        .iter()
+        .filter(|l| visible.contains(&l.id.to_string()))
+        .collect();
     let active = snapshot
         .active_layer
         .filter(|id| layers.iter().any(|l| l.id == *id));
@@ -925,7 +1046,8 @@ fn sanitize_result(id: &str, params: &Value, mut result: Value) -> Value {
         }
     } else if matches!(id, "document.inspect" | "layer.list") {
         if let Some(layers) = result["layers"].as_array_mut() {
-            layers.retain(|l| l["visible"] == true);
+            let visible = visible_ids(layers);
+            layers.retain(|l| l["id"].as_str().is_some_and(|id| visible.contains(id)));
         }
         if let Some(map) = result.as_object_mut() {
             map.remove("session_id");
@@ -941,4 +1063,25 @@ fn sanitize_result(id: &str, params: &Value, mut result: Value) -> Value {
         }
     }
     result
+}
+fn visible_ids(layers: &[Value]) -> std::collections::HashSet<String> {
+    let mut allowed = std::collections::HashSet::new();
+    for _ in 0..17 {
+        let before = allowed.len();
+        for layer in layers {
+            if layer["visible"] == true
+                && (layer["parent"].is_null()
+                    || layer["parent"]
+                        .as_str()
+                        .is_some_and(|parent| allowed.contains(parent)))
+                && let Some(id) = layer["id"].as_str()
+            {
+                allowed.insert(id.to_owned());
+            }
+        }
+        if allowed.len() == before {
+            break;
+        }
+    }
+    allowed
 }

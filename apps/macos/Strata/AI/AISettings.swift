@@ -67,6 +67,35 @@ struct KeychainAISecrets: AISecretStore {
     }
 }
 
+/// Keychain services can wait on a locked login session even when interaction
+/// is disabled. Keep the main actor responsive and bound the caller's wait.
+private final class AISecretContinuation: @unchecked Sendable {
+    private let lock=NSLock()
+    private var continuation:CheckedContinuation<String?,Error>?
+    init(_ continuation:CheckedContinuation<String?,Error>){self.continuation=continuation}
+    func finish(_ result:Result<String?,Error>){
+        let next=lock.withLock{let next=continuation;continuation=nil;return next}
+        next?.resume(with:result)
+    }
+}
+private final class AISecretGate: @unchecked Sendable{
+    static let shared=AISecretGate()
+    private let lock=NSLock()
+    private var active=false
+    func begin()->Bool{lock.withLock{if active{return false};active=true;return true}}
+    func end(){lock.withLock{active=false}}
+}
+func readAISecret(_ store:any AISecretStore,account:String,timeout:TimeInterval=15)async throws->String?{
+    guard AISecretGate.shared.begin()else{throw AIClientError.message("钥匙串上一次读取仍在等待系统，请先解锁当前 Mac 会话。")}
+    return try await withCheckedThrowingContinuation{continuation in
+        let pending=AISecretContinuation(continuation)
+        DispatchQueue.global(qos:.userInitiated).async{defer{AISecretGate.shared.end()};pending.finish(Result{try store.read(account:account)})}
+        DispatchQueue.global(qos:.utility).asyncAfter(deadline:.now()+timeout){
+            pending.finish(.failure(AIClientError.message("钥匙串读取超时。请解锁当前 Mac 会话后重试；本轮未发送模型请求。")))
+        }
+    }
+}
+
 @MainActor
 final class AISettingsStore: ObservableObject {
     static let shared = AISettingsStore()
@@ -84,6 +113,12 @@ final class AISettingsStore: ObservableObject {
         if !replacement.isEmpty { return replacement }
         let value = try secrets.read(account: config.secretAccount()) ?? ""
         if config.kind != .local && value.isEmpty { throw AIClientError.message("请为这个服务地址与模型录入 API Key。") }
+        return value
+    }
+    func credentialAsync(for config:AIConfiguration,replacement:String="")async throws->String{
+        if !replacement.isEmpty{return replacement}
+        let value=try await readAISecret(secrets,account:config.secretAccount()) ?? ""
+        if config.kind != .local&&value.isEmpty{throw AIClientError.message("请为这个服务地址与模型录入 API Key。")}
         return value
     }
     func save(_ config: AIConfiguration, key: String) throws {

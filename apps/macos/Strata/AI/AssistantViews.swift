@@ -68,7 +68,7 @@ struct ConnectedAssistantPanel: View {
                         Button("停止", systemImage: "stop.circle.fill") { model.stop() }.tint(Color(nsColor: WorkspaceColors.danger)).keyboardShortcut(".", modifiers: .command)
                     } else {
                         Button("发送", systemImage: "arrow.up.circle.fill") { model.send() }
-                            .disabled(!model.configured || model.draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                            .disabled(workspace.busy || !model.configured || model.draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     }
                 }
                 Text("文档编辑可撤销；已写入的文件不随撤销恢复。").font(.system(size: 9)).foregroundStyle(Color(nsColor: WorkspaceColors.muted))

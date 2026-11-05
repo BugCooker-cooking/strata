@@ -12,11 +12,12 @@ final class LiveAITests: XCTestCase {
         let settings = AISettingsStore.shared
         let selected = try XCTUnwrap(settings.current, "Configure the service in Strata first.")
         guard URL(string: selected.endpoint)?.host == "121.196.245.65" else { throw XCTSkip("This acceptance run is authorized for the user-specified test endpoint only.") }
-        executionTimeAllowance = 600
+        executionTimeAllowance = 1200
         print("STRATA_LIVE reading configured credential without system interaction")
         let credential: String
         do {
-            credential = try XCTUnwrap(KeychainAISecrets(allowInteraction: false).read(account: selected.secretAccount()), "Configured credential missing.")
+            let value=try await readAISecret(KeychainAISecrets(allowInteraction:false),account:selected.secretAccount(),timeout:10)
+            credential = try XCTUnwrap(value, "Configured credential missing.")
         } catch {
             throw XCTSkip("The separately signed XCTest host cannot read this credential without a system prompt. Use the already authorized native application for live acceptance.")
         }
@@ -66,6 +67,9 @@ final class LiveAITests: XCTestCase {
         }
         if local {try SubjectModelStore.shared.configure(engine)}
         if ["export", "question", "stop"].contains(task) { _ = try engine.dispatch(command: "layer.create", paramsJson: commandJSON(["name": "草稿"])) }
+        if task=="groups"{for name in ["A","B","C"]{_ = try engine.dispatch(command:"layer.add_adjustment",paramsJson:commandJSON(["name":name,"type":"exposure"]))}}
+        if task=="clip"{_ = try engine.dispatch(command:"layer.duplicate",paramsJson:commandJSON(["layer":["name":"sample-photo"]]))}
+        if task=="stamp"{_ = try engine.dispatch(command:"layer.add_adjustment",paramsJson:commandJSON(["name":"提亮","type":"exposure","stops":0.5]))}
         let baseline = try EditorSnapshot.decode(engine.snapshotJson())
         let prompts = [
             "create": "新建一个图层叫‘草稿’，不透明度 50%。",
@@ -73,6 +77,10 @@ final class LiveAITests: XCTestCase {
             "export": "把最上面的‘草稿’图层混合模式改成滤色，然后导出 PNG。通过宿主文件授权选择目标。",
             "question": "你觉得要不要保留‘草稿’图层？请通过 ask_user 向我提问并给出保留/删除选项，在我回答之前不修改文档。",
             "stop": "先删掉‘草稿’图层。"
+            ,"groups":"把 A、B、C 三个相邻的调整图层放进一个组，叫‘调色’，保持原有顺序。"
+            ,"stroke":"给 sample-photo 像素图层添加白色描边，2 像素，位于外部；保持原始图层和像素不变。"
+            ,"clip":"让最上面的 sample-photo copy 图层只作用于下面的 sample-photo 图片，创建剪贴蒙版。"
+            ,"stamp":"把所有可见图层合并成一张新的像素层，但保留原来的所有图层。请使用盖印。"
         ]
         let localPrompt="人物提亮半档，背景不要动。先读取真实文档与画布，通过选择主体创建带当前选区蒙版的曝光调整图层，曝光 +0.5 档。然后使用 ask_user 暂停，让我指定区域修正蒙版；此时先不要结束。"
         let options = try commandJSON(["mode": "ask_first", "max_steps": 50, "request_timeout_seconds": 60, "turn_timeout_seconds": 300])
@@ -144,6 +152,21 @@ final class LiveAITests: XCTestCase {
         case "stop":
             XCTAssertTrue(stopped); XCTAssertEqual(final.revision, baseline.revision)
             passed = passed && stopped && final.revision == baseline.revision
+        case "groups":
+            let group=final.layers.first{$0.isGroup&&$0.name=="调色"}
+            let children=final.layers.filter{["A","B","C"].contains($0.name)}
+            let valid=group != nil && children.count==3 && children.allSatisfy{$0.parent==group?.id} && final.layers.count==baseline.layers.count+1
+            XCTAssertTrue(valid);passed = passed&&valid
+        case "stroke":
+            let stroke=final.layers.first{$0.name=="sample-photo"}?.styles?["stroke"]
+            let valid=stroke?["size"].number==2 && stroke?["position"].string=="outside" && stroke?["color"].array.compactMap(\.number)==[255,255,255,255] && final.layers.count==baseline.layers.count
+            XCTAssertTrue(valid);passed=passed&&valid
+        case "clip":
+            let valid=final.layers.last?.clipped==true && final.layers.count==baseline.layers.count
+            XCTAssertTrue(valid);passed=passed&&valid
+        case "stamp":
+            let valid=final.layers.count==baseline.layers.count+1 && Set(baseline.layers.map(\.id)).isSubset(of:Set(final.layers.map(\.id))) && final.history.last?.command=="layer.stamp_visible"
+            XCTAssertTrue(valid);passed=passed&&valid
         case "local_8","local_16":
             XCTAssertTrue(pausedQuestion)
             XCTAssertEqual(final.layers.count,baseline.layers.count+1)

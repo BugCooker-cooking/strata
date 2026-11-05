@@ -1,7 +1,8 @@
 .PHONY: test test-core test-app test-gpu lint rust project build run color-fixtures benchmark verify-clean commands
 CONFIGURATION ?= Debug
 DERIVED_DATA ?= build/DerivedData
-XCODE_ARGS = -project apps/macos/Strata.xcodeproj -scheme Strata -configuration $(CONFIGURATION) -destination 'platform=macOS,arch=arm64' -derivedDataPath $(DERIVED_DATA)
+BUILD_JOBS ?= 2
+XCODE_ARGS = -jobs $(BUILD_JOBS) -project apps/macos/Strata.xcodeproj -scheme Strata -configuration $(CONFIGURATION) -destination 'platform=macOS,arch=arm64' -derivedDataPath $(DERIVED_DATA)
 
 rust:
 	bash scripts/build-rust.sh $(CONFIGURATION)
@@ -31,6 +32,7 @@ lint:
 	cargo clippy --workspace --all-targets --locked -- -D warnings
 	bash scripts/check-portability.sh
 	bash scripts/lint-swift.sh
+	python3 scripts/feature-coverage.py --check
 
 # Refuses existing fixture outputs; choose a new directory for a separate run.
 FIXTURE_OUTPUT ?= build/color-fixtures-v1

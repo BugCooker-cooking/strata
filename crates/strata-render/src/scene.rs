@@ -158,6 +158,8 @@ impl Scene {
             .last()
             .filter(|layer| {
                 layer.info().visible
+                    && layer.info().parent.is_none()
+                    && !layer.info().clipped
                     && layer.info().opacity > 0.0
                     && layer.info().blend_mode == BlendMode::Normal
                     && matches!(layer.info().kind, LayerKind::Exposure { .. })
@@ -168,7 +170,11 @@ impl Scene {
             .as_ref()
             .and_then(|layer| {
                 if let LayerKind::Exposure { stops } = layer.info().kind {
-                    Some(((2f64.powf(stops) - 1.0) * layer.info().opacity) as f32)
+                    Some(
+                        ((2f64.powf(stops) - 1.0)
+                            * layer.info().opacity
+                            * layer.info().fill_opacity) as f32,
+                    )
                 } else {
                     None
                 }
@@ -456,35 +462,58 @@ fn visible_coords(
     let (left, top) = view.screen_to_image(vp, 0.0, 0.0);
     let (right, bottom) = view.screen_to_image(vp, vp.width as f32, vp.height as f32);
     let mut out = BTreeSet::new();
-    for layer in doc.layers() {
-        if !layer.info().visible || layer.info().opacity == 0.0 {
-            continue;
+    let mut add = |x: i128, y: i128, r: i128, b: i128| -> Result<(), RenderError> {
+        let x0 = (x as f64).max(f64::from(left).floor()) as i64;
+        let y0 = (y as f64).max(f64::from(top).floor()) as i64;
+        let x1 = (r as f64).min(f64::from(right).ceil()) as i64;
+        let y1 = (b as f64).min(f64::from(bottom).ceil()) as i64;
+        if x1 <= x0 || y1 <= y0 {
+            return Ok(());
         }
-        for coord in layer.pixels().tile_coords() {
-            let [x, y] = coord.origin();
-            let x = x
-                .checked_add(layer.info().x)
-                .ok_or(RenderError::InvalidView)?;
-            let y = y
-                .checked_add(layer.info().y)
-                .ok_or(RenderError::InvalidView)?;
-            if x as f64 > right as f64
-                || y as f64 > bottom as f64
-                || x as f64 + 256.0 < (left as f64)
-                || y as f64 + 256.0 < (top as f64)
-            {
-                continue;
-            }
-            let (a, _) = TileCoord::locate(x, y);
-            let (b, _) = TileCoord::locate(x + 255, y + 255);
-            for tx in a.x()..=b.x() {
-                for ty in a.y()..=b.y() {
-                    out.insert(TileCoord::new(tx, ty).map_err(err)?);
+        let (a, _) = TileCoord::locate(x0, y0);
+        let (b, _) = TileCoord::locate(x1 - 1, y1 - 1);
+        for tx in a.x()..=b.x() {
+            for ty in a.y()..=b.y() {
+                out.insert(TileCoord::new(tx, ty).map_err(err)?);
+                if out.len() > MAX_GPU_TILES {
+                    return Err(err("visible tile limit exceeded"));
                 }
             }
-            if out.len() > MAX_GPU_TILES {
-                return Err(err("visible tile limit exceeded"));
-            }
+        }
+        Ok(())
+    };
+    for layer in doc.layers() {
+        if !doc.effective_visibility(layer.id()) || layer.info().opacity == 0.0 {
+            continue;
+        }
+        let pad = doc.style_outset(layer.id());
+        let x = i128::from(layer.info().x);
+        let y = i128::from(layer.info().y);
+        if matches!(
+            layer.info().kind,
+            LayerKind::Solid { .. } | LayerKind::Gradient { .. }
+        ) {
+            let [w, h] = layer
+                .info()
+                .generated_size
+                .unwrap_or([doc.frame().width, doc.frame().height]);
+            add(
+                x - i128::from(pad[0]),
+                y - i128::from(pad[1]),
+                x + i128::from(w) + i128::from(pad[2]),
+                y + i128::from(h) + i128::from(pad[3]),
+            )?;
+        }
+        for coord in layer.pixels().tile_coords() {
+            let [ox, oy] = coord.origin();
+            let ox = x + i128::from(ox);
+            let oy = y + i128::from(oy);
+            add(
+                ox - i128::from(pad[0]),
+                oy - i128::from(pad[1]),
+                ox + 256 + i128::from(pad[2]),
+                oy + 256 + i128::from(pad[3]),
+            )?;
         }
     }
     Ok(out)

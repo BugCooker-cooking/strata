@@ -131,6 +131,10 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
     }
     func validateMenuItem(_ item: NSMenuItem) -> Bool {
         switch item.action {
+        case #selector(copyPixels(_:)):(window?.firstResponder as? NSTextView)?.isSelectable == true || (workspace.permissions.edits&&workspace.hasDocument)
+        case #selector(cutPixels(_:)),#selector(pastePixels(_:)),#selector(clearPixels(_:)):textEditor != nil || (workspace.permissions.edits&&workspace.hasDocument)
+        case #selector(copyMergedPixels(_:)),#selector(pasteInPlace(_:)):workspace.permissions.edits&&workspace.hasDocument
+        case #selector(selectAllPixels(_:)):textEditor != nil || (workspace.permissions.selectionEdits&&workspace.hasDocument)
         case #selector(stopAI): assistant.running || busy
         case #selector(undo): canUndo
         case #selector(redo): canRedo
@@ -141,6 +145,14 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
     }
     private func act(_ action: WorkspaceAction) {
         switch action {
+        case .alignSelected(let mode):
+            let ids=workspace.selectedLayers.isEmpty ? selected.map{[$0.id]} ?? [] : Array(workspace.selectedLayers)
+            perform("layer.align",["layers":ids.map{["id":$0]},"mode":mode,"reference":ids.count==1 ? "artboard" : "selection"])
+        case .distributeSelected(let mode):
+            perform("layer.distribute",["layers":Array(workspace.selectedLayers).map{["id":$0]},"mode":mode])
+        case .groupSelected:
+            let ids=workspace.selectedLayers.isEmpty ? selected.map{[$0.id]} ?? [] : Array(workspace.selectedLayers)
+            perform("layer.group",["layers":ids.map{["id":$0]},"name":"组"])
         case .cancelWork: try? engine.cancelPendingWork()
         case .prepareSubjectModel:
             guard let window else { return }; SubjectModelStore.shared.ensureInstalled(window: window, engine: engine) {}
@@ -177,7 +189,9 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         case .duplicateLayer: duplicateLayer()
         case .deleteLayer: deleteLayer()
         case .reorder(let delta): reorder(delta)
-        case .selectLayer(let id): perform("layer.select", ["layer": ["id": id]])
+        case .selectLayer(let id):
+            if NSEvent.modifierFlags.contains(.command){if !workspace.selectedLayers.insert(id).inserted{workspace.selectedLayers.remove(id)}}else{workspace.selectedLayers=[id]}
+            perform("layer.select", ["layer": ["id": id]])
         case .rename(let name): layerCommand("layer.rename", ["name": name])
         case .visibility(let id, let visible): perform("layer.set_visibility", ["layer": ["id": id], "visible": visible])
         case .opacity(let value): layerCommand("layer.set_opacity", ["opacity": value])
@@ -209,6 +223,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         assistant.bind(document: snapshot.documentId, inheritedTurn: snapshot.control?.turnId)
         let oldControl = state?.control?.kind
         workspace.snapshot = snapshot; window?.isDocumentEdited = snapshot.dirty
+        if let space=NSColorSpace(iccProfileData:Data(engine.workingProfileIcc())){workspace.workingColorSpace=space}
+        workspace.selectedLayers=workspace.selectedLayers.intersection(Set(snapshot.layers.map(\.id)))
         canvas.documentOrigin = NSPoint(x: CGFloat(snapshot.frame?.x ?? 0), y: CGFloat(snapshot.frame?.y ?? 0))
         canvas.isSelectionEnabled = workspace.permissions.selectionEdits
         canvas.selectionMode = workspace.selectionMode
@@ -285,8 +301,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
     func layerCommand(_ command: String, _ extra: [String: Any] = [:]) { guard let layer = selected else { return }; var params = extra; params["layer"] = ["id": layer.id]; perform(command, params) }
     @objc func duplicateLayer() { layerCommand("layer.duplicate") }
     @objc func deleteLayer() { layerCommand("layer.delete") }
-    private func reorder(_ delta: Int) { guard let state, let layer = selected, let index = state.layers.firstIndex(where: { $0.id == layer.id }), state.layers.indices.contains(index + delta) else { return }; layerCommand("layer.move_order", ["index": index + delta]) }
-    private var textEditor: NSTextView? { (window?.firstResponder as? NSTextView).flatMap { $0.isEditable ? $0 : nil } }
+    private func reorder(_ delta: Int) { guard let state, let layer = selected else{return};let siblings=state.layers.filter{$0.parent==layer.parent};guard let index=siblings.firstIndex(where:{$0.id==layer.id}),siblings.indices.contains(index+delta)else{return};layerCommand("layer.move_order",["index":index+delta]) }
+    var textEditor: NSTextView? { (window?.firstResponder as? NSTextView).flatMap { $0.isEditable ? $0 : nil } }
     private var canUndo: Bool { textEditor.map { $0.undoManager?.canUndo == true } ?? workspace.canUndo }
     private var canRedo: Bool { textEditor.map { $0.undoManager?.canRedo == true } ?? workspace.canRedo }
     @objc func undo() { if let textEditor { textEditor.undoManager?.undo() } else if workspace.canUndo { perform("edit.undo", [:]) } }

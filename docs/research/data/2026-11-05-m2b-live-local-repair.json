@@ -9980,5 +9980,6 @@
     }
   ],
   "status": "completed",
-  "evidence_note": "Authorized local live acceptance. Same configured endpoint was exercised through OpenAI-compatible and Anthropic protocols with Gemini and Claude models; no credentials or image payloads are stored in this evidence."
+  "evidence_note": "Authorized local live acceptance. Same configured endpoint was exercised through OpenAI-compatible and Anthropic protocols with Gemini and Claude models; no credentials or image payloads are stored in this evidence.",
+  "sampling_note": "Integration smoke oracle: target at (300,800); two protected sample points at (50,50) and (350,1050). Does not replace the fixed-region 10-photo quality benchmark."
 }

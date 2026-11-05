@@ -29,7 +29,7 @@ fn uniform(doc: &Document, value: u16) -> Result<TiledMask, CommandError> {
     )
     .map_err(|e| DocumentError::from(e).into())
 }
-fn mask(doc: &Document, preset: MaskPreset) -> Result<TiledMask, CommandError> {
+pub(super) fn mask(doc: &Document, preset: MaskPreset) -> Result<TiledMask, CommandError> {
     match preset {
         MaskPreset::White => uniform(doc, u16::MAX),
         MaskPreset::Black => uniform(doc, 0),
@@ -41,7 +41,7 @@ fn mask(doc: &Document, preset: MaskPreset) -> Result<TiledMask, CommandError> {
         }),
     }
 }
-fn attach(layer: &mut Layer, mask: TiledMask) {
+pub(super) fn attach(layer: &mut Layer, mask: TiledMask) {
     layer.info.mask = Some(LayerMaskInfo {
         enabled: true,
         layout: mask.layout(),
@@ -197,6 +197,7 @@ pub(super) fn mutate(
         layer.info.kind = match p.adjustment_type {
             AdjustmentType::Exposure => LayerKind::Exposure { stops: p.stops },
         };
+        layer.info.parent = doc.insertion_parent();
         attach(&mut layer, coverage);
         let id = layer.id();
         let index = doc

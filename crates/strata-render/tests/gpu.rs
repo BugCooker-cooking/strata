@@ -206,6 +206,76 @@ fn exposure_mask_display_resources_release_the_document_gpu_budget() {
 }
 
 #[test]
+fn group_fill_and_style_display_match_cpu_reference_at_sample_centers() {
+    let Some(mut renderer) = renderer() else {
+        return;
+    };
+    let mut editor = strata_core::Editor::new();
+    for (id, params) in [
+        (
+            "file.new",
+            serde_json::json!({"width":16,"height":16,"bit_depth":16}),
+        ),
+        (
+            "layer.fill.gradient",
+            serde_json::json!({"name":"fill","start":[10000,10000,10000,65535],"end":[40000,40000,40000,65535]}),
+        ),
+        (
+            "select.marquee",
+            serde_json::json!({"x":4,"y":4,"width":4,"height":4}),
+        ),
+        (
+            "layer.mask.add",
+            serde_json::json!({"layer":{"name":"fill"},"source":"from_selection"}),
+        ),
+        (
+            "layer.group",
+            serde_json::json!({"layers":[{"name":"fill"}],"name":"group"}),
+        ),
+        (
+            "layer.set_styles",
+            serde_json::json!({"layer":{"name":"group"},"styles":{"stroke":{"color":[65535,65535,65535,65535],"size":1},"drop_shadow":{"color":[20000,20000,20000,65535],"offset_x":4,"offset_y":0,"blur":0}}}),
+        ),
+    ] {
+        editor
+            .execute(
+                editor.request(strata_core::Source::Test),
+                id,
+                params,
+                |_| Ok(()),
+            )
+            .unwrap();
+    }
+    let scene = renderer
+        .prepare_document(editor.document().unwrap(), true)
+        .unwrap();
+    renderer.commit_document(scene).unwrap();
+    renderer
+        .set_view(ViewTransform {
+            zoom: 3.0,
+            center_x: 8.0,
+            center_y: 8.0,
+        })
+        .unwrap();
+    renderer.render().unwrap();
+    let actual = renderer.read_offscreen_rgba().unwrap();
+    let PixelBuffer::Rgba16(expected) = editor.document().unwrap().export_pixels().unwrap() else {
+        panic!()
+    };
+    for (x, y) in [(5usize, 5usize), (3, 5), (10, 5)] {
+        let actual = pixel(&actual, x * 3 + 9, y * 3 + 9);
+        let offset = (y * 16 + x) * 4;
+        for channel in 0..3 {
+            let target = ((u32::from(expected[offset + channel]) + 128) / 257) as i32;
+            assert!(
+                (i32::from(actual[channel]) - target).abs() <= 4,
+                "({x},{y}) {channel}: {actual:?} target {target}"
+            );
+        }
+    }
+}
+
+#[test]
 fn tiled_scene_preserves_source_and_has_no_mip_seam() {
     let Some(mut r) = renderer() else {
         return;

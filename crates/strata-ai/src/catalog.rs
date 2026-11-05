@@ -102,6 +102,10 @@ pub fn describe(ids: &[String]) -> Result<Value, AiError> {
             description["host_resource_workflow"]=json!("For invoke_command in this assistant, omit params.resource to request a native host file picker. The host will pause, obtain the user's explicit selection/overwrite approval, inject a turn-scoped opaque resource, then validate the full command. Do not ask the user for resource tokens or invent paths. File effects cannot be batched.");
             if let Some(required)=description["params"]["required"].as_array_mut() {required.retain(|name|name!="resource");}
         }
+        if matches!(spec.id,"edit.copy"|"edit.copy_merged"|"edit.cut"|"edit.paste"|"edit.paste_in_place"){
+            description["host_clipboard_workflow"]=json!("Invoke this command with resource omitted. The trusted host pauses for an explicit clipboard read/write approval, creates source-bound resources, confirms system writes, and only then commits cut/paste. Do not request resource tokens from the user.");
+            if let Some(required)=description["params"]["required"].as_array_mut(){required.retain(|name|name!="resource");}
+        }
         description
     }).collect();
     Ok(json!({"commands":commands}))

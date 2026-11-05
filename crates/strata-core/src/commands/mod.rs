@@ -1,12 +1,16 @@
+mod arrange;
 mod executor;
 mod export;
+mod generated;
 mod local;
 mod new;
+mod raster;
 mod registry;
 mod resample;
+mod tree;
 pub use executor::{
-    CommandError, Control, Editor, ExposureInteraction, HistoryInfo, MarqueeInteraction,
-    MoveInteraction, PreparedCommand, Request, Snapshot, Source,
+    ClipboardImage, CommandError, Control, Editor, ExposureInteraction, HistoryInfo,
+    MarqueeInteraction, MoveInteraction, PreparedCommand, Request, Snapshot, Source,
 };
 pub use registry::{CommandKind, CommandSpec, catalog};
 
@@ -230,6 +234,116 @@ params!(SetExposure {
     layer: LayerRef,
     stops: f64
 });
+params!(FillOpacity {
+    layer: LayerRef,
+    fill_opacity: f64
+});
+params!(SetLocks {
+    layer: LayerRef,
+    locks: crate::LayerLocks
+});
+params!(Clipping {
+    layer: LayerRef,
+    clipped: bool
+});
+params!(PassThrough {
+    layer: LayerRef,
+    pass_through: bool
+});
+params!(SetStyles {
+    layer: LayerRef,
+    styles: crate::styles::LayerStyles
+});
+params!(RasterizeTarget {
+    layer: LayerRef,
+    #[serde(default)]
+    bake_backdrop: bool
+});
+params!(PixelTarget{#[serde(default)]layer:Option<LayerRef>});
+params!(ClipboardResource { resource: String });
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum AlignMode {
+    Left,
+    HorizontalCenter,
+    Right,
+    Top,
+    VerticalCenter,
+    Bottom,
+}
+#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum AlignReference {
+    #[default]
+    Selection,
+    Artboard,
+}
+params!(AlignLayers{layers:Vec<LayerRef>,mode:AlignMode,#[serde(default)] reference:AlignReference});
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum Distribution {
+    HorizontalCenters,
+    VerticalCenters,
+    HorizontalSpacing,
+    VerticalSpacing,
+}
+params!(DistributeLayers{layers:Vec<LayerRef>,mode:Distribution});
+#[derive(Serialize, JsonSchema)]
+pub struct MultiLayerResult {
+    pub layer_ids: Vec<crate::LayerId>,
+}
+#[derive(Serialize, JsonSchema)]
+pub struct ClipboardCopyResult {
+    pub clipboard_resource: String,
+    pub status: String,
+    pub undoable: bool,
+}
+#[derive(Serialize, JsonSchema)]
+pub struct ClipboardWriteResult {
+    pub status: String,
+    pub undoable: bool,
+}
+params!(SetColorLabel{layer:LayerRef,color_label:Option<crate::ColorLabel>});
+params!(GroupLayers{layers:Vec<LayerRef>,name:String});
+params!(CreateGroup { name: String });
+params!(SolidFill {
+    name: String,
+    color: [u16; 4]
+});
+params!(GradientFill {
+    name: String,
+    start: [u16; 4],
+    end: [u16; 4],
+    #[serde(default)]
+    angle: f64,
+    #[serde(default = "unit_scale")]
+    scale: f64,
+    #[serde(default)]
+    radial: bool
+});
+fn unit_scale() -> f64 {
+    1.0
+}
+params!(SetSolidFill {
+    layer: LayerRef,
+    color: [u16; 4]
+});
+params!(SetGradientFill {
+    layer: LayerRef,
+    start: [u16; 4],
+    end: [u16; 4],
+    angle: f64,
+    scale: f64,
+    #[serde(default)]
+    radial: bool
+});
+params!(HueSaturationParams {
+    layer: LayerRef,
+    hue: f64,
+    saturation: f64,
+    lightness: f64
+});
+params!(Reparent{layer:LayerRef,parent:Option<LayerRef>,#[serde(default)] index:Option<usize>});
 
 fn parse<T: serde::de::DeserializeOwned>(params: Value) -> Result<T, CommandError> {
     serde_json::from_value(params).map_err(|e| CommandError::Invalid(e.to_string()))

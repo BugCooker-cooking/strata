@@ -332,6 +332,16 @@ impl Editor {
         );
         layer.info.x = p.x;
         layer.info.y = p.y;
+        layer.info.parent = doc.insertion_parent();
+        if layer.info.parent.is_some_and(|id| {
+            doc.layers()
+                .iter()
+                .any(|l| l.id() == id && l.info().locks.all)
+        }) {
+            return Err(CommandError::Invalid(
+                "cannot place into a locked group".into(),
+            ));
+        }
         let id = layer.id();
         let index = doc
             .active

@@ -34,7 +34,7 @@ impl Document {
             selection: self.selection.as_ref().map(TiledMask::layout),
             resolution_dpi: self.resolution_dpi,
             preset: self.preset.clone(),
-            version: 1,
+            version: 2,
             id: self.id,
             state: self.state,
             frame: self.frame.clone(),
@@ -86,7 +86,7 @@ impl Document {
     ) -> Result<Self, DocumentError> {
         let meta: Manifest =
             serde_json::from_value(metadata).map_err(|e| DocumentError::Invalid(e.to_string()))?;
-        if !matches!(meta.version, 0 | 1)
+        if !matches!(meta.version, 0..=2)
             || meta.layers.len() > crate::MAX_LAYERS
             || meta.working_icc.len() > 4 * 1024 * 1024
             || meta
@@ -108,6 +108,26 @@ impl Document {
         {
             return Err(DocumentError::Invalid(
                 "v0 manifest contains newer feature metadata".into(),
+            ));
+        }
+        if meta.version < 2
+            && meta.layers.iter().any(|l| {
+                l.parent.is_some()
+                    || !l.styles.is_empty()
+                    || l.clipped
+                    || l.pass_through
+                    || !matches!(
+                        l.kind,
+                        crate::LayerKind::Pixel | crate::LayerKind::Exposure { .. }
+                    )
+                    || l.fill_opacity != 1.0
+                    || l.locks != crate::LayerLocks::default()
+                    || l.color_label.is_some()
+            })
+        {
+            return Err(DocumentError::Invalid(
+                "legacy manifest contains layer-tree or locking metadata requiring version 2"
+                    .into(),
             ));
         }
         let format = match meta.bit_depth {

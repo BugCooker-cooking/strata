@@ -17,6 +17,10 @@ use uuid::Uuid;
 #[path = "files.rs"]
 mod files;
 use files::{RecentFile, Resource, WriteCandidate};
+#[path = "clipboard.rs"]
+mod clipboard;
+pub use clipboard::ClipboardImage;
+use clipboard::{ClipCandidate, ClipResource};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
@@ -162,6 +166,8 @@ enum Action {
     Open(Option<std::path::PathBuf>),
     Recover,
     External(Box<WriteCandidate>),
+    ClipboardCopy(Box<ClipCandidate>),
+    ClipboardEdit(String),
 }
 
 /// An opaque staged transaction. The host can prepare display resources before
@@ -194,6 +200,7 @@ impl PreparedCommand {
                 | Action::Edit
                 | Action::Place(_)
                 | Action::History(_)
+                | Action::ClipboardEdit(_)
         ) && !self.replay
             && !self.command.starts_with("select.")
     }
@@ -228,6 +235,7 @@ pub struct Editor {
     receipts: HashMap<Uuid, Receipt>,
     pub(crate) project_path: Option<std::path::PathBuf>,
     resources: HashMap<String, Resource>,
+    clipboards: HashMap<String, ClipResource>,
     recent: Vec<RecentFile>,
     executions: Vec<Value>,
     control_events: Vec<Value>,
@@ -256,6 +264,7 @@ impl Editor {
             receipts: HashMap::new(),
             project_path: None,
             resources: HashMap::new(),
+            clipboards: HashMap::new(),
             recent: Vec::new(),
             executions: Vec::new(),
             control_events: Vec::new(),
@@ -604,10 +613,20 @@ impl Editor {
         let mut read_resource = None;
         let (action, result) = match kind {
             CommandKind::Query => {
-                let _: Empty = parse(params.clone())?;
+                if id == "edit.clipboard.write_status" {
+                    let p: ClipboardResource = parse(params.clone())?;
+                    self.check_clipboard(&request, &p.resource)?;
+                    if !self.clipboard_write_confirmed(&request, &p.resource)? {
+                        return Err(CommandError::Permission);
+                    }
+                } else {
+                    let _: Empty = parse(params.clone())?;
+                }
                 (
                     Action::Query,
-                    if id == "file.recent.list" {
+                    if id == "edit.clipboard.write_status" {
+                        json!({"status":"completed","undoable":false})
+                    } else if id == "file.recent.list" {
                         self.recent_result(&request)
                     } else if id == "document.histogram" {
                         json!(
@@ -652,7 +671,13 @@ impl Editor {
             }
             CommandKind::Mutate => {
                 let doc = candidate.as_mut().ok_or(CommandError::NoDocument)?;
-                let (action, result) = if id == "select.subject" {
+                let (action, result) = if matches!(
+                    id,
+                    "edit.cut" | "edit.paste" | "edit.paste_in_place"
+                ) {
+                    let (token, result) = self.clipboard_edit(&request, doc, id, params.clone())?;
+                    (Action::ClipboardEdit(token), result)
+                } else if id == "select.subject" {
                     let p: crate::SubjectParams = parse(params.clone())?;
                     let service=self.selector.as_ref().ok_or_else(||CommandError::Invalid("Subject model is not configured. Open the subject model panel and approve the verified model download.".into()))?;
                     let result = service
@@ -763,6 +788,12 @@ impl Editor {
                 }
                 (Action::View, json!({"view":id,"params":params}))
             }
+            CommandKind::External if matches!(id, "edit.copy" | "edit.copy_merged") => {
+                let copy = self.prepare_copy(&request, id, params.clone())?;
+                let result =
+                    json!({"clipboard_resource":copy.token,"status":"prepared","undoable":false});
+                (Action::ClipboardCopy(Box::new(copy)), result)
+            }
             CommandKind::External => (
                 Action::External(Box::new(self.prepare_write(
                     &request,
@@ -842,6 +873,7 @@ impl Editor {
                 | Action::Edit
                 | Action::Place(_)
                 | Action::History(_)
+                | Action::ClipboardEdit(_)
         ) && self.revision == u64::MAX
         {
             return Err(CommandError::Invalid("revision exhausted".into()));
@@ -849,12 +881,18 @@ impl Editor {
         if let Action::Place(resource) = &prepared.action {
             self.resource(resource, &prepared.request, false)?;
         }
+        if let Action::ClipboardEdit(resource) = &prepared.action {
+            self.check_clipboard(&prepared.request, resource)?;
+        }
         if let Some(resource) = &prepared.read_resource {
             self.resource(resource, &prepared.request, false)?;
         }
         match prepared.action {
             Action::External(write) => {
                 self.commit_write(&prepared.request, &prepared.command, *write)?;
+            }
+            Action::ClipboardCopy(copy) => {
+                self.commit_copy(*copy, &prepared.command)?;
             }
             Action::Open(path) => {
                 self.saved = prepared.candidate.as_ref().map(Document::state_id);
@@ -872,7 +910,7 @@ impl Editor {
                 self.project_path = None;
                 self.revision += 1;
             }
-            Action::Edit | Action::Place(_) => {
+            Action::Edit | Action::Place(_) | Action::ClipboardEdit(_) => {
                 let after = prepared.candidate.clone().ok_or(CommandError::NoDocument)?;
                 let before = self.document.clone().ok_or(CommandError::NoDocument)?;
                 let mut unique = HashSet::new();
@@ -975,14 +1013,205 @@ impl Editor {
 }
 
 pub(super) fn mutate(doc: &mut Document, id: &str, params: Value) -> Result<Value, CommandError> {
+    if let Some(result) = clipboard::local_edit(doc, id, params.clone())? {
+        return Ok(result);
+    }
+    if matches!(
+        id,
+        "layer.create" | "layer.create_group" | "layer.add_adjustment"
+    ) && doc.insertion_parent().is_some_and(|parent| {
+        doc.layers
+            .iter()
+            .any(|l| l.info.locks.all && (l.id() == parent || doc.is_descendant(parent, l.id())))
+    }) {
+        return Err(CommandError::Invalid(
+            "cannot insert into a locked parent group".into(),
+        ));
+    }
+    if id == "color.convert"
+        && doc
+            .layers()
+            .iter()
+            .any(|layer| layer.info().locks.all || layer.info().locks.pixels)
+    {
+        return Err(CommandError::Invalid(
+            "working-space conversion would change locked pixels; unlock affected layers first"
+                .into(),
+        ));
+    }
+    if let Some(target) = params.get("layer") {
+        let reference: LayerRef = parse(target.clone())?;
+        let target = doc.resolve(&reference)?;
+        let layer = doc
+            .layers()
+            .iter()
+            .find(|layer| layer.id() == target)
+            .expect("resolved layer");
+        if doc
+            .layers()
+            .iter()
+            .any(|ancestor| ancestor.info().locks.all && doc.is_descendant(target, ancestor.id()))
+        {
+            return Err(CommandError::Invalid(
+                "a parent group is fully locked".into(),
+            ));
+        }
+        if layer.info().locks.all && !matches!(id, "layer.set_locks" | "layer.set_visibility") {
+            return Err(CommandError::Invalid(
+                "layer is fully locked; unlock it before editing".into(),
+            ));
+        }
+        if layer.info().locks.position && id == "layer.set_position" {
+            return Err(CommandError::Invalid("layer position is locked".into()));
+        }
+        if id == "layer.set_position"
+            && doc.layers.iter().any(|ancestor| {
+                ancestor.info.locks.position && doc.is_descendant(target, ancestor.id())
+            })
+        {
+            return Err(CommandError::Invalid(
+                "a parent group locks positions".into(),
+            ));
+        }
+        match id {
+            "layer.set_pass_through" => {
+                let p: PassThrough = parse(params)?;
+                let layer = doc.layers.iter_mut().find(|l| l.id() == target).unwrap();
+                if !matches!(layer.info.kind, crate::LayerKind::Group) {
+                    return Err(CommandError::Invalid(
+                        "pass-through applies only to layer groups".into(),
+                    ));
+                }
+                layer.info.pass_through = p.pass_through;
+                return Ok(json!({"layer_id":target}));
+            }
+            "layer.set_styles" => {
+                let p: SetStyles = parse(params)?;
+                doc.layers
+                    .iter_mut()
+                    .find(|l| l.id() == target)
+                    .unwrap()
+                    .info
+                    .styles = p.styles;
+                return Ok(json!({"layer_id":target}));
+            }
+            "layer.set_clipping" => {
+                let p: Clipping = parse(params)?;
+                doc.layers
+                    .iter_mut()
+                    .find(|l| l.id() == target)
+                    .unwrap()
+                    .info
+                    .clipped = p.clipped;
+                return Ok(json!({"layer_id":target}));
+            }
+            "layer.set_fill_opacity" => {
+                let p: FillOpacity = parse(params)?;
+                doc.layers
+                    .iter_mut()
+                    .find(|l| l.id() == target)
+                    .expect("resolved layer")
+                    .info
+                    .fill_opacity = p.fill_opacity;
+                return Ok(json!({"layer_id":target}));
+            }
+            "layer.set_locks" => {
+                let p: SetLocks = parse(params)?;
+                doc.layers
+                    .iter_mut()
+                    .find(|l| l.id() == target)
+                    .expect("resolved layer")
+                    .info
+                    .locks = p.locks;
+                return Ok(json!({"layer_id":target}));
+            }
+            "layer.set_color_label" => {
+                let p: SetColorLabel = parse(params)?;
+                doc.layers
+                    .iter_mut()
+                    .find(|l| l.id() == target)
+                    .expect("resolved layer")
+                    .info
+                    .color_label = p.color_label;
+                return Ok(json!({"layer_id":target}));
+            }
+            _ => {}
+        }
+    }
     if let Some(result) = super::local::mutate(doc, id, params.clone())? {
         return Ok(result);
+    }
+    if let Some(result) = super::tree::mutate(doc, id, params.clone())? {
+        return Ok(result);
+    }
+    if let Some(result) = super::generated::mutate(doc, id, params.clone())? {
+        return Ok(result);
+    }
+    if let Some(result) = super::raster::mutate(doc, id, params.clone())? {
+        return Ok(result);
+    }
+    if let Some(result) = super::arrange::mutate(doc, id, params.clone())? {
+        return Ok(result);
+    }
+    if matches!(id, "layer.create")
+        && doc.insertion_parent().is_some_and(|parent| {
+            doc.layers()
+                .iter()
+                .any(|l| l.id() == parent && l.info().locks.all)
+        })
+    {
+        return Err(CommandError::Invalid(
+            "cannot insert into a locked group".into(),
+        ));
     }
     if id == "color.convert" {
         let p: ConvertColor = parse(params)?;
         let icc = strata_color::working_profile(&p.space).map_err(DocumentError::from)?;
         let pool = doc.memory_pool();
         for layer in &mut doc.layers {
+            let convert_sample = |color: [u16; 4]| -> Result<[u16; 4], CommandError> {
+                let source = if doc.format == PixelFormat::Rgba8 {
+                    PixelBuffer::Rgba8(color.map(|v| v as u8).to_vec())
+                } else {
+                    PixelBuffer::Rgba16(color.to_vec())
+                };
+                let converted =
+                    strata_color::convert_to_profile(&source, 1, 1, &doc.working_icc, &icc)
+                        .map_err(DocumentError::from)?;
+                Ok(match converted {
+                    PixelBuffer::Rgba8(v) => [
+                        u16::from(v[0]),
+                        u16::from(v[1]),
+                        u16::from(v[2]),
+                        u16::from(v[3]),
+                    ],
+                    PixelBuffer::Rgba16(v) => [v[0], v[1], v[2], v[3]],
+                })
+            };
+            match &mut layer.info.kind {
+                crate::LayerKind::Solid { color } => *color = convert_sample(*color)?,
+                crate::LayerKind::Gradient { start, end, .. } => {
+                    *start = convert_sample(*start)?;
+                    *end = convert_sample(*end)?;
+                }
+                _ => {}
+            }
+            if let Some(style) = &mut layer.info.styles.drop_shadow {
+                style.color = convert_sample(style.color)?;
+            }
+            if let Some(style) = &mut layer.info.styles.stroke {
+                style.color = convert_sample(style.color)?;
+            }
+            if let Some(style) = &mut layer.info.styles.outer_glow {
+                style.color = convert_sample(style.color)?;
+            }
+            if let Some(style) = &mut layer.info.styles.color_overlay {
+                style.color = convert_sample(style.color)?;
+            }
+            if let Some(style) = &mut layer.info.styles.gradient_overlay {
+                style.start = convert_sample(style.start)?;
+                style.end = convert_sample(style.end)?;
+            }
             let mut converted =
                 TiledPixels::with_pool(doc.format, tile_limit(doc.format), pool.clone());
             for (coord, tile) in layer.pixels.tiles() {
@@ -1060,6 +1289,7 @@ pub(super) fn mutate(doc: &mut Document, id: &str, params: Value) -> Result<Valu
             }
         }
         let mut layer = Layer::new(p.name, pixels);
+        layer.info.parent = doc.insertion_parent();
         layer.info.x = doc.frame.x;
         layer.info.y = doc.frame.y;
         let id = layer.id();
@@ -1084,23 +1314,11 @@ pub(super) fn mutate(doc: &mut Document, id: &str, params: Value) -> Result<Valu
     match id {
         "layer.delete" => {
             let _: Target = parse(params)?;
-            doc.layers.remove(index);
-            if doc.active == Some(layer_id) {
-                doc.active = doc.layers.last().map(Layer::id);
-            }
+            return super::tree::delete(doc, layer_id);
         }
         "layer.duplicate" => {
             let _: Target = parse(params)?;
-            if doc.layers.len() >= crate::MAX_LAYERS {
-                return Err(DocumentError::ResourceLimit.into());
-            }
-            let mut copy = doc.layers[index].clone();
-            copy.info.id = LayerId::fresh();
-            copy.info.name = format!("{} copy", copy.info.name);
-            let id = copy.id();
-            doc.layers.insert(index + 1, copy);
-            doc.active = Some(id);
-            return Ok(json!({"layer_id":id}));
+            return super::tree::duplicate(doc, layer_id);
         }
         "layer.rename" => {
             let p: Rename = parse(params)?;
@@ -1120,16 +1338,33 @@ pub(super) fn mutate(doc: &mut Document, id: &str, params: Value) -> Result<Valu
         }
         "layer.set_position" => {
             let p: Position = parse(params)?;
-            doc.layers[index].info.x = p.x;
-            doc.layers[index].info.y = p.y;
+            return super::tree::move_position(doc, layer_id, p.x, p.y);
         }
         "layer.move_order" => {
             let p: Order = parse(params)?;
-            if p.index >= doc.layers.len() {
-                return Err(CommandError::Invalid("layer index out of range".into()));
+            let parent = doc.layers[index].info.parent;
+            let count = doc
+                .layers
+                .iter()
+                .filter(|l| l.info.parent == parent)
+                .count();
+            if p.index >= count {
+                return Err(CommandError::Invalid("sibling index out of range".into()));
             }
             let layer = doc.layers.remove(index);
-            doc.layers.insert(p.index, layer);
+            let siblings: Vec<_> = doc
+                .layers
+                .iter()
+                .enumerate()
+                .filter(|(_, l)| l.info.parent == parent)
+                .map(|(i, _)| i)
+                .collect();
+            let at = if p.index == siblings.len() {
+                siblings.last().map_or(doc.layers.len(), |i| i + 1)
+            } else {
+                siblings[p.index]
+            };
+            doc.layers.insert(at, layer);
         }
         _ => return Err(CommandError::Invalid(format!("not a batchable edit: {id}"))),
     }

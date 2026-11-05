@@ -336,7 +336,42 @@ Permissions: `bound_document`
         "normal",
         "multiply",
         "screen",
-        "overlay"
+        "overlay",
+        "dissolve",
+        "darken",
+        "color_burn",
+        "linear_burn",
+        "darker_color",
+        "lighten",
+        "color_dodge",
+        "linear_dodge",
+        "lighter_color",
+        "soft_light",
+        "hard_light",
+        "vivid_light",
+        "linear_light",
+        "pin_light",
+        "hard_mix",
+        "difference",
+        "exclusion",
+        "subtract",
+        "divide",
+        "hue",
+        "saturation",
+        "color",
+        "luminosity"
+      ]
+    },
+    "ColorLabel": {
+      "type": "string",
+      "enum": [
+        "red",
+        "orange",
+        "yellow",
+        "green",
+        "blue",
+        "violet",
+        "gray"
       ]
     },
     "Control": {
@@ -453,6 +488,86 @@ Permissions: `bound_document`
         "height"
       ]
     },
+    "Glow": {
+      "type": "object",
+      "properties": {
+        "color": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "uint16",
+            "maximum": 65535,
+            "minimum": 0
+          },
+          "maxItems": 4,
+          "minItems": 4
+        },
+        "size": {
+          "type": "number",
+          "format": "double"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "color",
+        "size"
+      ]
+    },
+    "GradientOverlay": {
+      "type": "object",
+      "properties": {
+        "angle": {
+          "type": "number",
+          "format": "double"
+        },
+        "blend_mode": {
+          "$ref": "#/$defs/BlendMode",
+          "default": "normal"
+        },
+        "end": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "uint16",
+            "maximum": 65535,
+            "minimum": 0
+          },
+          "maxItems": 4,
+          "minItems": 4
+        },
+        "opacity": {
+          "type": "number",
+          "format": "double",
+          "default": 1.0
+        },
+        "radial": {
+          "type": "boolean",
+          "default": false
+        },
+        "scale": {
+          "type": "number",
+          "format": "double",
+          "default": 1.0
+        },
+        "start": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "uint16",
+            "maximum": 65535,
+            "minimum": 0
+          },
+          "maxItems": 4,
+          "minItems": 4
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "start",
+        "end",
+        "angle"
+      ]
+    },
     "HistoryInfo": {
       "type": "object",
       "properties": {
@@ -481,6 +596,40 @@ Permissions: `bound_document`
         "blend_mode": {
           "$ref": "#/$defs/BlendMode"
         },
+        "clipped": {
+          "type": "boolean",
+          "default": false
+        },
+        "color_label": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ColorLabel"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "fill_opacity": {
+          "type": "number",
+          "format": "double",
+          "default": 1.0
+        },
+        "generated_size": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "default": null,
+          "items": {
+            "type": "integer",
+            "format": "uint32",
+            "minimum": 0
+          },
+          "maxItems": 2,
+          "minItems": 2
+        },
         "id": {
           "type": "string",
           "format": "uuid"
@@ -489,6 +638,15 @@ Permissions: `bound_document`
           "$ref": "#/$defs/LayerKind",
           "default": {
             "kind": "pixel"
+          }
+        },
+        "locks": {
+          "$ref": "#/$defs/LayerLocks",
+          "default": {
+            "all": false,
+            "pixels": false,
+            "position": false,
+            "transparency": false
           }
         },
         "mask": {
@@ -508,6 +666,28 @@ Permissions: `bound_document`
         "opacity": {
           "type": "number",
           "format": "double"
+        },
+        "parent": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uuid",
+          "default": null
+        },
+        "pass_through": {
+          "type": "boolean",
+          "default": false
+        },
+        "styles": {
+          "$ref": "#/$defs/LayerStyles",
+          "default": {
+            "color_overlay": null,
+            "drop_shadow": null,
+            "gradient_overlay": null,
+            "outer_glow": null,
+            "stroke": null
+          }
         },
         "visible": {
           "type": "boolean"
@@ -564,8 +744,147 @@ Permissions: `bound_document`
             "kind",
             "stops"
           ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "group"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "color": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "format": "uint16",
+                "maximum": 65535,
+                "minimum": 0
+              },
+              "maxItems": 4,
+              "minItems": 4
+            },
+            "kind": {
+              "type": "string",
+              "const": "solid"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "color"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "angle": {
+              "type": "number",
+              "format": "double"
+            },
+            "end": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "format": "uint16",
+                "maximum": 65535,
+                "minimum": 0
+              },
+              "maxItems": 4,
+              "minItems": 4
+            },
+            "kind": {
+              "type": "string",
+              "const": "gradient"
+            },
+            "radial": {
+              "type": "boolean",
+              "default": false
+            },
+            "scale": {
+              "type": "number",
+              "format": "double"
+            },
+            "start": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "format": "uint16",
+                "maximum": 65535,
+                "minimum": 0
+              },
+              "maxItems": 4,
+              "minItems": 4
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "start",
+            "end",
+            "angle",
+            "scale"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "hue": {
+              "type": "number",
+              "format": "double"
+            },
+            "kind": {
+              "type": "string",
+              "const": "hue_saturation"
+            },
+            "lightness": {
+              "type": "number",
+              "format": "double"
+            },
+            "saturation": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "hue",
+            "saturation",
+            "lightness"
+          ]
         }
       ]
+    },
+    "LayerLocks": {
+      "type": "object",
+      "properties": {
+        "all": {
+          "type": "boolean",
+          "default": false
+        },
+        "pixels": {
+          "type": "boolean",
+          "default": false
+        },
+        "position": {
+          "type": "boolean",
+          "default": false
+        },
+        "transparency": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "additionalProperties": false
     },
     "LayerMaskInfo": {
       "type": "object",
@@ -594,6 +913,67 @@ Permissions: `bound_document`
         "anchor_y"
       ]
     },
+    "LayerStyles": {
+      "type": "object",
+      "properties": {
+        "color_overlay": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Overlay"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "drop_shadow": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Shadow"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "gradient_overlay": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GradientOverlay"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "outer_glow": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Glow"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "stroke": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Stroke"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "additionalProperties": false
+    },
     "MaskLayout": {
       "type": "object",
       "properties": {
@@ -617,12 +997,113 @@ Permissions: `bound_document`
         "inverted"
       ]
     },
+    "Overlay": {
+      "type": "object",
+      "properties": {
+        "blend_mode": {
+          "$ref": "#/$defs/BlendMode",
+          "default": "normal"
+        },
+        "color": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "uint16",
+            "maximum": 65535,
+            "minimum": 0
+          },
+          "maxItems": 4,
+          "minItems": 4
+        },
+        "opacity": {
+          "type": "number",
+          "format": "double",
+          "default": 1.0
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "color"
+      ]
+    },
+    "Shadow": {
+      "type": "object",
+      "properties": {
+        "blur": {
+          "type": "number",
+          "format": "double"
+        },
+        "color": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "uint16",
+            "maximum": 65535,
+            "minimum": 0
+          },
+          "maxItems": 4,
+          "minItems": 4
+        },
+        "offset_x": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "offset_y": {
+          "type": "integer",
+          "format": "int32"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "color",
+        "offset_x",
+        "offset_y",
+        "blur"
+      ]
+    },
     "SourceInfo": {
       "type": "string",
       "enum": [
         "user",
         "ai",
         "test"
+      ]
+    },
+    "Stroke": {
+      "type": "object",
+      "properties": {
+        "color": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "uint16",
+            "maximum": 65535,
+            "minimum": 0
+          },
+          "maxItems": 4,
+          "minItems": 4
+        },
+        "position": {
+          "$ref": "#/$defs/StrokePosition",
+          "default": "outside"
+        },
+        "size": {
+          "type": "number",
+          "format": "double"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "color",
+        "size"
+      ]
+    },
+    "StrokePosition": {
+      "type": "string",
+      "enum": [
+        "outside",
+        "inside",
+        "center"
       ]
     }
   }
@@ -770,7 +1251,42 @@ Permissions: `bound_document`
         "normal",
         "multiply",
         "screen",
-        "overlay"
+        "overlay",
+        "dissolve",
+        "darken",
+        "color_burn",
+        "linear_burn",
+        "darker_color",
+        "lighten",
+        "color_dodge",
+        "linear_dodge",
+        "lighter_color",
+        "soft_light",
+        "hard_light",
+        "vivid_light",
+        "linear_light",
+        "pin_light",
+        "hard_mix",
+        "difference",
+        "exclusion",
+        "subtract",
+        "divide",
+        "hue",
+        "saturation",
+        "color",
+        "luminosity"
+      ]
+    },
+    "ColorLabel": {
+      "type": "string",
+      "enum": [
+        "red",
+        "orange",
+        "yellow",
+        "green",
+        "blue",
+        "violet",
+        "gray"
       ]
     },
     "CoverageRect": {
@@ -803,11 +1319,125 @@ Permissions: `bound_document`
         "height"
       ]
     },
+    "Glow": {
+      "type": "object",
+      "properties": {
+        "color": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "uint16",
+            "maximum": 65535,
+            "minimum": 0
+          },
+          "maxItems": 4,
+          "minItems": 4
+        },
+        "size": {
+          "type": "number",
+          "format": "double"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "color",
+        "size"
+      ]
+    },
+    "GradientOverlay": {
+      "type": "object",
+      "properties": {
+        "angle": {
+          "type": "number",
+          "format": "double"
+        },
+        "blend_mode": {
+          "$ref": "#/$defs/BlendMode",
+          "default": "normal"
+        },
+        "end": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "uint16",
+            "maximum": 65535,
+            "minimum": 0
+          },
+          "maxItems": 4,
+          "minItems": 4
+        },
+        "opacity": {
+          "type": "number",
+          "format": "double",
+          "default": 1.0
+        },
+        "radial": {
+          "type": "boolean",
+          "default": false
+        },
+        "scale": {
+          "type": "number",
+          "format": "double",
+          "default": 1.0
+        },
+        "start": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "uint16",
+            "maximum": 65535,
+            "minimum": 0
+          },
+          "maxItems": 4,
+          "minItems": 4
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "start",
+        "end",
+        "angle"
+      ]
+    },
     "LayerInfo": {
       "type": "object",
       "properties": {
         "blend_mode": {
           "$ref": "#/$defs/BlendMode"
+        },
+        "clipped": {
+          "type": "boolean",
+          "default": false
+        },
+        "color_label": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ColorLabel"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "fill_opacity": {
+          "type": "number",
+          "format": "double",
+          "default": 1.0
+        },
+        "generated_size": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "default": null,
+          "items": {
+            "type": "integer",
+            "format": "uint32",
+            "minimum": 0
+          },
+          "maxItems": 2,
+          "minItems": 2
         },
         "id": {
           "type": "string",
@@ -817,6 +1447,15 @@ Permissions: `bound_document`
           "$ref": "#/$defs/LayerKind",
           "default": {
             "kind": "pixel"
+          }
+        },
+        "locks": {
+          "$ref": "#/$defs/LayerLocks",
+          "default": {
+            "all": false,
+            "pixels": false,
+            "position": false,
+            "transparency": false
           }
         },
         "mask": {
@@ -836,6 +1475,28 @@ Permissions: `bound_document`
         "opacity": {
           "type": "number",
           "format": "double"
+        },
+        "parent": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uuid",
+          "default": null
+        },
+        "pass_through": {
+          "type": "boolean",
+          "default": false
+        },
+        "styles": {
+          "$ref": "#/$defs/LayerStyles",
+          "default": {
+            "color_overlay": null,
+            "drop_shadow": null,
+            "gradient_overlay": null,
+            "outer_glow": null,
+            "stroke": null
+          }
         },
         "visible": {
           "type": "boolean"
@@ -892,8 +1553,147 @@ Permissions: `bound_document`
             "kind",
             "stops"
           ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "group"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "color": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "format": "uint16",
+                "maximum": 65535,
+                "minimum": 0
+              },
+              "maxItems": 4,
+              "minItems": 4
+            },
+            "kind": {
+              "type": "string",
+              "const": "solid"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "color"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "angle": {
+              "type": "number",
+              "format": "double"
+            },
+            "end": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "format": "uint16",
+                "maximum": 65535,
+                "minimum": 0
+              },
+              "maxItems": 4,
+              "minItems": 4
+            },
+            "kind": {
+              "type": "string",
+              "const": "gradient"
+            },
+            "radial": {
+              "type": "boolean",
+              "default": false
+            },
+            "scale": {
+              "type": "number",
+              "format": "double"
+            },
+            "start": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "format": "uint16",
+                "maximum": 65535,
+                "minimum": 0
+              },
+              "maxItems": 4,
+              "minItems": 4
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "start",
+            "end",
+            "angle",
+            "scale"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "hue": {
+              "type": "number",
+              "format": "double"
+            },
+            "kind": {
+              "type": "string",
+              "const": "hue_saturation"
+            },
+            "lightness": {
+              "type": "number",
+              "format": "double"
+            },
+            "saturation": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "hue",
+            "saturation",
+            "lightness"
+          ]
         }
       ]
+    },
+    "LayerLocks": {
+      "type": "object",
+      "properties": {
+        "all": {
+          "type": "boolean",
+          "default": false
+        },
+        "pixels": {
+          "type": "boolean",
+          "default": false
+        },
+        "position": {
+          "type": "boolean",
+          "default": false
+        },
+        "transparency": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "additionalProperties": false
     },
     "LayerMaskInfo": {
       "type": "object",
@@ -922,6 +1722,67 @@ Permissions: `bound_document`
         "anchor_y"
       ]
     },
+    "LayerStyles": {
+      "type": "object",
+      "properties": {
+        "color_overlay": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Overlay"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "drop_shadow": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Shadow"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "gradient_overlay": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GradientOverlay"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "outer_glow": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Glow"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "stroke": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Stroke"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "additionalProperties": false
+    },
     "MaskLayout": {
       "type": "object",
       "properties": {
@@ -943,6 +1804,107 @@ Permissions: `bound_document`
         "bounds",
         "default_coverage",
         "inverted"
+      ]
+    },
+    "Overlay": {
+      "type": "object",
+      "properties": {
+        "blend_mode": {
+          "$ref": "#/$defs/BlendMode",
+          "default": "normal"
+        },
+        "color": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "uint16",
+            "maximum": 65535,
+            "minimum": 0
+          },
+          "maxItems": 4,
+          "minItems": 4
+        },
+        "opacity": {
+          "type": "number",
+          "format": "double",
+          "default": 1.0
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "color"
+      ]
+    },
+    "Shadow": {
+      "type": "object",
+      "properties": {
+        "blur": {
+          "type": "number",
+          "format": "double"
+        },
+        "color": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "uint16",
+            "maximum": 65535,
+            "minimum": 0
+          },
+          "maxItems": 4,
+          "minItems": 4
+        },
+        "offset_x": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "offset_y": {
+          "type": "integer",
+          "format": "int32"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "color",
+        "offset_x",
+        "offset_y",
+        "blur"
+      ]
+    },
+    "Stroke": {
+      "type": "object",
+      "properties": {
+        "color": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "uint16",
+            "maximum": 65535,
+            "minimum": 0
+          },
+          "maxItems": 4,
+          "minItems": 4
+        },
+        "position": {
+          "$ref": "#/$defs/StrokePosition",
+          "default": "outside"
+        },
+        "size": {
+          "type": "number",
+          "format": "double"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "color",
+        "size"
+      ]
+    },
+    "StrokePosition": {
+      "type": "string",
+      "enum": [
+        "outside",
+        "inside",
+        "center"
       ]
     }
   }
@@ -1574,7 +2536,7 @@ Permissions: `bound_document`
 
 ## `layer.set_blend_mode` — 混合模式
 
-Choose normal, multiply, screen or overlay. Document samples remain unchanged.
+Choose one of 27 registered blend modes. Blending operates on linear Display P3; source document samples remain unchanged. Dissolve uses deterministic canvas-coordinate and layer-ID noise, so repeats never flicker.
 
 Kind: `Mutate` · Undoable: `true` · Batchable: `true`
 
@@ -1611,7 +2573,30 @@ Permissions: `bound_document`
         "normal",
         "multiply",
         "screen",
-        "overlay"
+        "overlay",
+        "dissolve",
+        "darken",
+        "color_burn",
+        "linear_burn",
+        "darker_color",
+        "lighten",
+        "color_dodge",
+        "linear_dodge",
+        "lighter_color",
+        "soft_light",
+        "hard_light",
+        "vivid_light",
+        "linear_light",
+        "pin_light",
+        "hard_mix",
+        "difference",
+        "exclusion",
+        "subtract",
+        "divide",
+        "hue",
+        "saturation",
+        "color",
+        "luminosity"
       ]
     },
     "LayerRef": {
@@ -1779,6 +2764,340 @@ Permissions: `bound_document`
   },
   "x": -1,
   "y": 2
+}
+```
+
+## `layer.set_fill_opacity` — 填充不透明度
+
+Set finite content fill_opacity in [0,1]. Layer opacity still controls the final result including styles; fill opacity controls content only.
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `true`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "FillOpacity",
+  "type": "object",
+  "properties": {
+    "fill_opacity": {
+      "type": "number",
+      "format": "double"
+    },
+    "layer": {
+      "$ref": "#/$defs/LayerRef"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "layer",
+    "fill_opacity"
+  ],
+  "$defs": {
+    "LayerRef": {
+      "description": "Stable ID preferred. Duplicate names return candidates instead of guessing.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LayerResult",
+  "type": "object",
+  "properties": {
+    "layer_id": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "required": [
+    "layer_id"
+  ]
+}
+```
+
+### Examples
+
+```json
+{
+  "fill_opacity": 0.5,
+  "layer": {
+    "name": "Background"
+  }
+}
+```
+
+## `layer.set_locks` — 图层锁定
+
+Set transparency/pixels/position/all locks. Full lock blocks edits except visibility and this unlock operation. Pixel operations and source color conversion respect locks at the command boundary.
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `true`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SetLocks",
+  "type": "object",
+  "properties": {
+    "layer": {
+      "$ref": "#/$defs/LayerRef"
+    },
+    "locks": {
+      "$ref": "#/$defs/LayerLocks"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "layer",
+    "locks"
+  ],
+  "$defs": {
+    "LayerLocks": {
+      "type": "object",
+      "properties": {
+        "all": {
+          "type": "boolean",
+          "default": false
+        },
+        "pixels": {
+          "type": "boolean",
+          "default": false
+        },
+        "position": {
+          "type": "boolean",
+          "default": false
+        },
+        "transparency": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "LayerRef": {
+      "description": "Stable ID preferred. Duplicate names return candidates instead of guessing.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LayerResult",
+  "type": "object",
+  "properties": {
+    "layer_id": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "required": [
+    "layer_id"
+  ]
+}
+```
+
+### Examples
+
+```json
+{
+  "layer": {
+    "name": "Background"
+  },
+  "locks": {
+    "position": true
+  }
+}
+```
+
+## `layer.set_color_label` — 图层颜色标签
+
+Set red/orange/yellow/green/blue/violet/gray or null. Does not change pixels.
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `true`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SetColorLabel",
+  "type": "object",
+  "properties": {
+    "color_label": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ColorLabel"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "layer": {
+      "$ref": "#/$defs/LayerRef"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "layer"
+  ],
+  "$defs": {
+    "ColorLabel": {
+      "type": "string",
+      "enum": [
+        "red",
+        "orange",
+        "yellow",
+        "green",
+        "blue",
+        "violet",
+        "gray"
+      ]
+    },
+    "LayerRef": {
+      "description": "Stable ID preferred. Duplicate names return candidates instead of guessing.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LayerResult",
+  "type": "object",
+  "properties": {
+    "layer_id": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "required": [
+    "layer_id"
+  ]
+}
+```
+
+### Examples
+
+```json
+{
+  "color_label": "blue",
+  "layer": {
+    "name": "Background"
+  }
 }
 ```
 
@@ -4125,6 +5444,3039 @@ Permissions: `bound_document, write_resource`
   "allow_quantization": true,
   "format": "webp",
   "resource": "fixture-export"
+}
+```
+
+## `layer.create_group` — 新建组
+
+Create a pass-through compositing group inside the active group or alongside the active layer. Maximum nesting depth 16.
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `true`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CreateGroup",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "name"
+  ]
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LayerResult",
+  "type": "object",
+  "properties": {
+    "layer_id": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "required": [
+    "layer_id"
+  ]
+}
+```
+
+### Examples
+
+```json
+{
+  "name": "Group"
+}
+```
+
+## `layer.group` — 编组
+
+Group a contiguous range of unlocked siblings into a pass-through group, preserving sibling z order. Child canvas coordinates remain unchanged.
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `true`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GroupLayers",
+  "type": "object",
+  "properties": {
+    "layers": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/LayerRef"
+      }
+    },
+    "name": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "layers",
+    "name"
+  ],
+  "$defs": {
+    "LayerRef": {
+      "description": "Stable ID preferred. Duplicate names return candidates instead of guessing.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LayerResult",
+  "type": "object",
+  "properties": {
+    "layer_id": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "required": [
+    "layer_id"
+  ]
+}
+```
+
+### Examples
+
+```json
+{
+  "layers": [
+    {
+      "name": "Background"
+    }
+  ],
+  "name": "Group"
+}
+```
+
+## `layer.ungroup` — 取消编组
+
+Move immediate group children to its parent at the group position. Reset group visibility/opacity/blend/mask before ungrouping; isolated child blend interactions may differ against the parent backdrop.
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `true`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Target",
+  "type": "object",
+  "properties": {
+    "layer": {
+      "$ref": "#/$defs/LayerRef"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "layer"
+  ],
+  "$defs": {
+    "LayerRef": {
+      "description": "Stable ID preferred. Duplicate names return candidates instead of guessing.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LayerResult",
+  "type": "object",
+  "properties": {
+    "layer_id": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "required": [
+    "layer_id"
+  ]
+}
+```
+
+### Examples
+
+```json
+{
+  "layer": {
+    "name": "Group"
+  }
+}
+```
+
+## `layer.reparent` — 移动到组
+
+Move a layer or subtree to an unlocked group or null root, using optional zero-based sibling index. Reject cycles and excessive depth; absolute canvas positions are preserved.
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `true`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Reparent",
+  "type": "object",
+  "properties": {
+    "index": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "uint",
+      "default": null,
+      "minimum": 0
+    },
+    "layer": {
+      "$ref": "#/$defs/LayerRef"
+    },
+    "parent": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/LayerRef"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "layer"
+  ],
+  "$defs": {
+    "LayerRef": {
+      "description": "Stable ID preferred. Duplicate names return candidates instead of guessing.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LayerResult",
+  "type": "object",
+  "properties": {
+    "layer_id": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "required": [
+    "layer_id"
+  ]
+}
+```
+
+### Examples
+
+```json
+{
+  "index": 0,
+  "layer": {
+    "name": "Background"
+  },
+  "parent": null
+}
+```
+
+## `layer.fill.solid` — 新建纯色填充
+
+Create an editable artboard-sized fill using document-depth RGBA. Colors are interpreted in the working ICC. No source pixel blocks are allocated.
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `true`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SolidFill",
+  "type": "object",
+  "properties": {
+    "color": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "format": "uint16",
+        "maximum": 65535,
+        "minimum": 0
+      },
+      "maxItems": 4,
+      "minItems": 4
+    },
+    "name": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "name",
+    "color"
+  ]
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LayerResult",
+  "type": "object",
+  "properties": {
+    "layer_id": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "required": [
+    "layer_id"
+  ]
+}
+```
+
+### Examples
+
+```json
+{
+  "color": [
+    32768,
+    10000,
+    20000,
+    65535
+  ],
+  "name": "Solid"
+}
+```
+
+## `layer.fill.gradient` — 新建渐变填充
+
+Create a linear (angle degrees) or radial fill. start/end are RGBA at document depth; scale 0.01..100. Interpolate in linear light with premultiplied alpha.
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `true`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GradientFill",
+  "type": "object",
+  "properties": {
+    "angle": {
+      "type": "number",
+      "format": "double",
+      "default": 0.0
+    },
+    "end": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "format": "uint16",
+        "maximum": 65535,
+        "minimum": 0
+      },
+      "maxItems": 4,
+      "minItems": 4
+    },
+    "name": {
+      "type": "string"
+    },
+    "radial": {
+      "type": "boolean",
+      "default": false
+    },
+    "scale": {
+      "type": "number",
+      "format": "double",
+      "default": 1.0
+    },
+    "start": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "format": "uint16",
+        "maximum": 65535,
+        "minimum": 0
+      },
+      "maxItems": 4,
+      "minItems": 4
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "name",
+    "start",
+    "end"
+  ]
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LayerResult",
+  "type": "object",
+  "properties": {
+    "layer_id": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "required": [
+    "layer_id"
+  ]
+}
+```
+
+### Examples
+
+```json
+{
+  "angle": 0,
+  "end": [
+    65535,
+    65535,
+    65535,
+    65535
+  ],
+  "name": "Gradient",
+  "scale": 1,
+  "start": [
+    0,
+    0,
+    0,
+    65535
+  ]
+}
+```
+
+## `layer.fill.solid.set` — 编辑纯色填充
+
+Update a solid fill layer's document-depth RGBA color; undo restores editable parameters.
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `true`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SetSolidFill",
+  "type": "object",
+  "properties": {
+    "color": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "format": "uint16",
+        "maximum": 65535,
+        "minimum": 0
+      },
+      "maxItems": 4,
+      "minItems": 4
+    },
+    "layer": {
+      "$ref": "#/$defs/LayerRef"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "layer",
+    "color"
+  ],
+  "$defs": {
+    "LayerRef": {
+      "description": "Stable ID preferred. Duplicate names return candidates instead of guessing.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LayerResult",
+  "type": "object",
+  "properties": {
+    "layer_id": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "required": [
+    "layer_id"
+  ]
+}
+```
+
+### Examples
+
+```json
+{
+  "color": [
+    65535,
+    0,
+    0,
+    65535
+  ],
+  "layer": {
+    "name": "Solid"
+  }
+}
+```
+
+## `layer.fill.gradient.set` — 编辑渐变填充
+
+Update endpoints, angle, scale and radial mode of an editable gradient fill.
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `true`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SetGradientFill",
+  "type": "object",
+  "properties": {
+    "angle": {
+      "type": "number",
+      "format": "double"
+    },
+    "end": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "format": "uint16",
+        "maximum": 65535,
+        "minimum": 0
+      },
+      "maxItems": 4,
+      "minItems": 4
+    },
+    "layer": {
+      "$ref": "#/$defs/LayerRef"
+    },
+    "radial": {
+      "type": "boolean",
+      "default": false
+    },
+    "scale": {
+      "type": "number",
+      "format": "double"
+    },
+    "start": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "format": "uint16",
+        "maximum": 65535,
+        "minimum": 0
+      },
+      "maxItems": 4,
+      "minItems": 4
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "layer",
+    "start",
+    "end",
+    "angle",
+    "scale"
+  ],
+  "$defs": {
+    "LayerRef": {
+      "description": "Stable ID preferred. Duplicate names return candidates instead of guessing.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LayerResult",
+  "type": "object",
+  "properties": {
+    "layer_id": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "required": [
+    "layer_id"
+  ]
+}
+```
+
+### Examples
+
+```json
+{
+  "angle": 45,
+  "end": [
+    65535,
+    0,
+    0,
+    65535
+  ],
+  "layer": {
+    "name": "Gradient"
+  },
+  "radial": false,
+  "scale": 1,
+  "start": [
+    0,
+    0,
+    0,
+    65535
+  ]
+}
+```
+
+## `layer.add_hue_saturation` — 新建色相饱和度调整
+
+Create a hue/saturation adjustment layer with the current selection mask, or white mask if no selection. HSL is evaluated in encoded Display P3 while compositing stays linear.
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `true`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CreateGroup",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "name"
+  ]
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LayerResult",
+  "type": "object",
+  "properties": {
+    "layer_id": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "required": [
+    "layer_id"
+  ]
+}
+```
+
+### Examples
+
+```json
+{
+  "name": "Hue"
+}
+```
+
+## `adjust.hue_saturation.set` — 设置色相饱和度
+
+Set hue -180..180 degrees, saturation and lightness -100..100. Original pixels remain unchanged; masks and opacity interpolate the adjusted composite.
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `true`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "HueSaturationParams",
+  "type": "object",
+  "properties": {
+    "hue": {
+      "type": "number",
+      "format": "double"
+    },
+    "layer": {
+      "$ref": "#/$defs/LayerRef"
+    },
+    "lightness": {
+      "type": "number",
+      "format": "double"
+    },
+    "saturation": {
+      "type": "number",
+      "format": "double"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "layer",
+    "hue",
+    "saturation",
+    "lightness"
+  ],
+  "$defs": {
+    "LayerRef": {
+      "description": "Stable ID preferred. Duplicate names return candidates instead of guessing.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LayerResult",
+  "type": "object",
+  "properties": {
+    "layer_id": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "required": [
+    "layer_id"
+  ]
+}
+```
+
+### Examples
+
+```json
+{
+  "hue": 20,
+  "layer": {
+    "name": "Hue"
+  },
+  "lightness": 0,
+  "saturation": 10
+}
+```
+
+## `layer.set_clipping` — 剪贴蒙版
+
+Clip this layer to the nearest lower non-clipped sibling's alpha. Clipping chains cannot start without a pixel/fill/group base; adjustment-only bases are rejected. Group boundaries remain explicit.
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `true`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Clipping",
+  "type": "object",
+  "properties": {
+    "clipped": {
+      "type": "boolean"
+    },
+    "layer": {
+      "$ref": "#/$defs/LayerRef"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "layer",
+    "clipped"
+  ],
+  "$defs": {
+    "LayerRef": {
+      "description": "Stable ID preferred. Duplicate names return candidates instead of guessing.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LayerResult",
+  "type": "object",
+  "properties": {
+    "layer_id": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "required": [
+    "layer_id"
+  ]
+}
+```
+
+### Examples
+
+```json
+{
+  "clipped": true,
+  "layer": {
+    "name": "Clip"
+  }
+}
+```
+
+## `layer.rasterize` — 栅格化
+
+Bake an editable fill or isolated group into document-depth pixels, preserving mask appearance, opacity/blend and off-artboard content. Adjustment layers require explicit bake_backdrop=true, consolidating the lower input stack. Undo restores editable structure.
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `true`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RasterizeTarget",
+  "type": "object",
+  "properties": {
+    "bake_backdrop": {
+      "type": "boolean",
+      "default": false
+    },
+    "layer": {
+      "$ref": "#/$defs/LayerRef"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "layer"
+  ],
+  "$defs": {
+    "LayerRef": {
+      "description": "Stable ID preferred. Duplicate names return candidates instead of guessing.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LayerResult",
+  "type": "object",
+  "properties": {
+    "layer_id": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "required": [
+    "layer_id"
+  ]
+}
+```
+
+### Examples
+
+```json
+{
+  "layer": {
+    "name": "Solid"
+  }
+}
+```
+
+## `layer.mask.apply` — 应用蒙版
+
+Multiply a pixel layer's original alpha by its enabled u16 mask without rewriting hidden RGB. Locked pixels/transparency are protected; fills/groups are rasterized with the mask baked. Adjustments require explicit bake_backdrop=true.
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `true`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RasterizeTarget",
+  "type": "object",
+  "properties": {
+    "bake_backdrop": {
+      "type": "boolean",
+      "default": false
+    },
+    "layer": {
+      "$ref": "#/$defs/LayerRef"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "layer"
+  ],
+  "$defs": {
+    "LayerRef": {
+      "description": "Stable ID preferred. Duplicate names return candidates instead of guessing.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LayerResult",
+  "type": "object",
+  "properties": {
+    "layer_id": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "required": [
+    "layer_id"
+  ]
+}
+```
+
+### Examples
+
+```json
+{
+  "layer": {
+    "name": "Background"
+  }
+}
+```
+
+## `layer.merge_down` — 向下合并
+
+Bake this subtree and its lower sibling into one pixel layer. Respect locks, preserve outside-artboard content and reject blends that would change final appearance beyond depth tolerance.
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `true`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Target",
+  "type": "object",
+  "properties": {
+    "layer": {
+      "$ref": "#/$defs/LayerRef"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "layer"
+  ],
+  "$defs": {
+    "LayerRef": {
+      "description": "Stable ID preferred. Duplicate names return candidates instead of guessing.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LayerResult",
+  "type": "object",
+  "properties": {
+    "layer_id": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "required": [
+    "layer_id"
+  ]
+}
+```
+
+### Examples
+
+```json
+{
+  "layer": {
+    "name": "Upper"
+  }
+}
+```
+
+## `layer.merge_visible` — 合并可见
+
+Bake visible composition to a pixel layer while retaining hidden layers. Hidden children are reparented without revealing them. Pixel equivalence checked before commit.
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `true`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Empty",
+  "type": "object",
+  "additionalProperties": false
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LayerResult",
+  "type": "object",
+  "properties": {
+    "layer_id": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "required": [
+    "layer_id"
+  ]
+}
+```
+
+### Examples
+
+```json
+{}
+```
+
+## `layer.flatten` — 拼合图像
+
+Bake the visible image and discard all previous layers including hidden ones. Requires explicit destructive-edit approval in AI turns.
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `true`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Empty",
+  "type": "object",
+  "additionalProperties": false
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LayerResult",
+  "type": "object",
+  "properties": {
+    "layer_id": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "required": [
+    "layer_id"
+  ]
+}
+```
+
+### Examples
+
+```json
+{}
+```
+
+## `layer.stamp_visible` — 盖印可见
+
+Add a new pixel layer containing the visible composition, preserving all source layers. This may change accumulated alpha if the original stack remains visible.
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `true`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Empty",
+  "type": "object",
+  "additionalProperties": false
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LayerResult",
+  "type": "object",
+  "properties": {
+    "layer_id": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "required": [
+    "layer_id"
+  ]
+}
+```
+
+### Examples
+
+```json
+{}
+```
+
+## `layer.align` — 对齐图层
+
+Align unlocked independent layers/subtrees by exact content bounds to the selection or artboard. Modes: left/horizontal_center/right/top/vertical_center/bottom. No selected ancestor/descendant overlap.
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `true`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AlignLayers",
+  "type": "object",
+  "properties": {
+    "layers": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/LayerRef"
+      }
+    },
+    "mode": {
+      "$ref": "#/$defs/AlignMode"
+    },
+    "reference": {
+      "$ref": "#/$defs/AlignReference",
+      "default": "selection"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "layers",
+    "mode"
+  ],
+  "$defs": {
+    "AlignMode": {
+      "type": "string",
+      "enum": [
+        "left",
+        "horizontal_center",
+        "right",
+        "top",
+        "vertical_center",
+        "bottom"
+      ]
+    },
+    "AlignReference": {
+      "type": "string",
+      "enum": [
+        "selection",
+        "artboard"
+      ]
+    },
+    "LayerRef": {
+      "description": "Stable ID preferred. Duplicate names return candidates instead of guessing.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MultiLayerResult",
+  "type": "object",
+  "properties": {
+    "layer_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uuid"
+      }
+    }
+  },
+  "required": [
+    "layer_ids"
+  ]
+}
+```
+
+### Examples
+
+```json
+{
+  "layers": [
+    {
+      "name": "Background"
+    }
+  ],
+  "mode": "horizontal_center",
+  "reference": "artboard"
+}
+```
+
+## `layer.distribute` — 分布图层
+
+Distribute at least three unlocked layers by horizontal/vertical centers or equal spacing, preserving the endpoint positions. Supports groups and generated fills.
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `true`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DistributeLayers",
+  "type": "object",
+  "properties": {
+    "layers": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/LayerRef"
+      }
+    },
+    "mode": {
+      "$ref": "#/$defs/Distribution"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "layers",
+    "mode"
+  ],
+  "$defs": {
+    "Distribution": {
+      "type": "string",
+      "enum": [
+        "horizontal_centers",
+        "vertical_centers",
+        "horizontal_spacing",
+        "vertical_spacing"
+      ]
+    },
+    "LayerRef": {
+      "description": "Stable ID preferred. Duplicate names return candidates instead of guessing.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MultiLayerResult",
+  "type": "object",
+  "properties": {
+    "layer_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uuid"
+      }
+    }
+  },
+  "required": [
+    "layer_ids"
+  ]
+}
+```
+
+### Examples
+
+```json
+{
+  "layers": [
+    {
+      "name": "Background"
+    },
+    {
+      "name": "Second"
+    },
+    {
+      "name": "Third"
+    }
+  ],
+  "mode": "horizontal_centers"
+}
+```
+
+## `layer.set_styles` — 图层样式
+
+Replace the optional drop_shadow, stroke, outer_glow, color_overlay and gradient_overlay settings. All RGBA colors use document depth/ICC. Shadow blur is Gaussian sigma 0..32 and offsets ±256; stroke/glow sizes 0..64. Content fill opacity does not fade effects; overall layer opacity does. Masks are applied before styles; effects are normal source-over except overlay colors' blend modes.
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `true`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SetStyles",
+  "type": "object",
+  "properties": {
+    "layer": {
+      "$ref": "#/$defs/LayerRef"
+    },
+    "styles": {
+      "$ref": "#/$defs/LayerStyles"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "layer",
+    "styles"
+  ],
+  "$defs": {
+    "BlendMode": {
+      "type": "string",
+      "enum": [
+        "normal",
+        "multiply",
+        "screen",
+        "overlay",
+        "dissolve",
+        "darken",
+        "color_burn",
+        "linear_burn",
+        "darker_color",
+        "lighten",
+        "color_dodge",
+        "linear_dodge",
+        "lighter_color",
+        "soft_light",
+        "hard_light",
+        "vivid_light",
+        "linear_light",
+        "pin_light",
+        "hard_mix",
+        "difference",
+        "exclusion",
+        "subtract",
+        "divide",
+        "hue",
+        "saturation",
+        "color",
+        "luminosity"
+      ]
+    },
+    "Glow": {
+      "type": "object",
+      "properties": {
+        "color": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "uint16",
+            "maximum": 65535,
+            "minimum": 0
+          },
+          "maxItems": 4,
+          "minItems": 4
+        },
+        "size": {
+          "type": "number",
+          "format": "double"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "color",
+        "size"
+      ]
+    },
+    "GradientOverlay": {
+      "type": "object",
+      "properties": {
+        "angle": {
+          "type": "number",
+          "format": "double"
+        },
+        "blend_mode": {
+          "$ref": "#/$defs/BlendMode",
+          "default": "normal"
+        },
+        "end": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "uint16",
+            "maximum": 65535,
+            "minimum": 0
+          },
+          "maxItems": 4,
+          "minItems": 4
+        },
+        "opacity": {
+          "type": "number",
+          "format": "double",
+          "default": 1.0
+        },
+        "radial": {
+          "type": "boolean",
+          "default": false
+        },
+        "scale": {
+          "type": "number",
+          "format": "double",
+          "default": 1.0
+        },
+        "start": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "uint16",
+            "maximum": 65535,
+            "minimum": 0
+          },
+          "maxItems": 4,
+          "minItems": 4
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "start",
+        "end",
+        "angle"
+      ]
+    },
+    "LayerRef": {
+      "description": "Stable ID preferred. Duplicate names return candidates instead of guessing.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ]
+        }
+      ]
+    },
+    "LayerStyles": {
+      "type": "object",
+      "properties": {
+        "color_overlay": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Overlay"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "drop_shadow": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Shadow"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "gradient_overlay": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GradientOverlay"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "outer_glow": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Glow"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "stroke": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Stroke"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "additionalProperties": false
+    },
+    "Overlay": {
+      "type": "object",
+      "properties": {
+        "blend_mode": {
+          "$ref": "#/$defs/BlendMode",
+          "default": "normal"
+        },
+        "color": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "uint16",
+            "maximum": 65535,
+            "minimum": 0
+          },
+          "maxItems": 4,
+          "minItems": 4
+        },
+        "opacity": {
+          "type": "number",
+          "format": "double",
+          "default": 1.0
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "color"
+      ]
+    },
+    "Shadow": {
+      "type": "object",
+      "properties": {
+        "blur": {
+          "type": "number",
+          "format": "double"
+        },
+        "color": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "uint16",
+            "maximum": 65535,
+            "minimum": 0
+          },
+          "maxItems": 4,
+          "minItems": 4
+        },
+        "offset_x": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "offset_y": {
+          "type": "integer",
+          "format": "int32"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "color",
+        "offset_x",
+        "offset_y",
+        "blur"
+      ]
+    },
+    "Stroke": {
+      "type": "object",
+      "properties": {
+        "color": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "uint16",
+            "maximum": 65535,
+            "minimum": 0
+          },
+          "maxItems": 4,
+          "minItems": 4
+        },
+        "position": {
+          "$ref": "#/$defs/StrokePosition",
+          "default": "outside"
+        },
+        "size": {
+          "type": "number",
+          "format": "double"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "color",
+        "size"
+      ]
+    },
+    "StrokePosition": {
+      "type": "string",
+      "enum": [
+        "outside",
+        "inside",
+        "center"
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LayerResult",
+  "type": "object",
+  "properties": {
+    "layer_id": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "required": [
+    "layer_id"
+  ]
+}
+```
+
+### Examples
+
+```json
+{
+  "layer": {
+    "name": "Background"
+  },
+  "styles": {
+    "stroke": {
+      "color": [
+        65535,
+        65535,
+        65535,
+        65535
+      ],
+      "position": "outside",
+      "size": 2
+    }
+  }
+}
+```
+
+## `edit.copy` — 拷贝
+
+Prepare a bounded selection/artboard copy of the active or specified layer. Returns an opaque source-bound clipboard resource; the trusted host must write its payload to the system clipboard and acknowledge completion. No document history.
+
+Kind: `External` · Undoable: `false` · Batchable: `false`
+
+Effects: `document.read, clipboard.write`
+
+Permissions: `bound_document, clipboard.write_confirmation`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PixelTarget",
+  "type": "object",
+  "properties": {
+    "layer": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/LayerRef"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "LayerRef": {
+      "description": "Stable ID preferred. Duplicate names return candidates instead of guessing.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ClipboardCopyResult",
+  "type": "object",
+  "properties": {
+    "clipboard_resource": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string"
+    },
+    "undoable": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "clipboard_resource",
+    "status",
+    "undoable"
+  ]
+}
+```
+
+### Examples
+
+```json
+{}
+```
+
+## `edit.copy_merged` — 合并拷贝
+
+Prepare visible merged selection/artboard pixels for an explicitly approved host clipboard write. Hidden layers are not included.
+
+Kind: `External` · Undoable: `false` · Batchable: `false`
+
+Effects: `document.read, clipboard.write`
+
+Permissions: `bound_document, clipboard.write_confirmation`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PixelTarget",
+  "type": "object",
+  "properties": {
+    "layer": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/LayerRef"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "LayerRef": {
+      "description": "Stable ID preferred. Duplicate names return candidates instead of guessing.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ClipboardCopyResult",
+  "type": "object",
+  "properties": {
+    "clipboard_resource": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string"
+    },
+    "undoable": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "clipboard_resource",
+    "status",
+    "undoable"
+  ]
+}
+```
+
+### Examples
+
+```json
+{}
+```
+
+## `edit.cut` — 剪切
+
+Clear the source alpha only after the host confirms a copy resource was written to the clipboard. The receipt must match this exact source, document state and original layer. Clipboard contents are not reversed by document undo.
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `false`
+
+Effects: `document.write, clipboard.read`
+
+Permissions: `bound_document, clipboard_resource`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ClipboardResource",
+  "type": "object",
+  "properties": {
+    "resource": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "resource"
+  ]
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LayerResult",
+  "type": "object",
+  "properties": {
+    "layer_id": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "required": [
+    "layer_id"
+  ]
+}
+```
+
+### Examples
+
+```json
+{
+  "resource": "fixture-clipboard"
+}
+```
+
+## `edit.paste` — 粘贴
+
+Paste an explicitly host-authorized clipboard image as a centered pixel layer, converting ICC and depth. No implicit clipboard reads; resources are source/turn scoped.
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `false`
+
+Effects: `document.write, clipboard.read`
+
+Permissions: `bound_document, clipboard_resource`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ClipboardResource",
+  "type": "object",
+  "properties": {
+    "resource": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "resource"
+  ]
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LayerResult",
+  "type": "object",
+  "properties": {
+    "layer_id": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "required": [
+    "layer_id"
+  ]
+}
+```
+
+### Examples
+
+```json
+{
+  "resource": "fixture-clipboard"
+}
+```
+
+## `edit.paste_in_place` — 原位粘贴
+
+Paste a host-authorized clipboard image at its recorded canvas origin. If an external clipboard format has no origin, the host records (0,0).
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `false`
+
+Effects: `document.write, clipboard.read`
+
+Permissions: `bound_document, clipboard_resource`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ClipboardResource",
+  "type": "object",
+  "properties": {
+    "resource": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "resource"
+  ]
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LayerResult",
+  "type": "object",
+  "properties": {
+    "layer_id": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "required": [
+    "layer_id"
+  ]
+}
+```
+
+### Examples
+
+```json
+{
+  "resource": "fixture-clipboard"
+}
+```
+
+## `edit.clear` — 清除
+
+Clear alpha inside the current selection, or the whole active pixel layer if no selection. Preserve hidden RGB and respect pixel/transparency/ancestor locks.
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `true`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PixelTarget",
+  "type": "object",
+  "properties": {
+    "layer": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/LayerRef"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "LayerRef": {
+      "description": "Stable ID preferred. Duplicate names return candidates instead of guessing.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LayerResult",
+  "type": "object",
+  "properties": {
+    "layer_id": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "required": [
+    "layer_id"
+  ]
+}
+```
+
+### Examples
+
+```json
+{}
+```
+
+## `edit.clipboard.write_status` — 剪贴板写入状态
+
+Check the trusted host acknowledgement for a source-bound clipboard resource. This never reads system clipboard data or grants a resource.
+
+Kind: `Query` · Undoable: `false` · Batchable: `false`
+
+Effects: `document.read, clipboard.read`
+
+Permissions: `bound_document, clipboard_resource`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ClipboardResource",
+  "type": "object",
+  "properties": {
+    "resource": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "resource"
+  ]
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ClipboardWriteResult",
+  "type": "object",
+  "properties": {
+    "status": {
+      "type": "string"
+    },
+    "undoable": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "status",
+    "undoable"
+  ]
+}
+```
+
+### Examples
+
+```json
+{
+  "resource": "fixture-clipboard"
+}
+```
+
+## `layer.via_copy` — 通过拷贝新建图层
+
+Create a pixel layer from the selected area of the active layer without writing to the system clipboard. One undoable edit.
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `true`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PixelTarget",
+  "type": "object",
+  "properties": {
+    "layer": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/LayerRef"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "LayerRef": {
+      "description": "Stable ID preferred. Duplicate names return candidates instead of guessing.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LayerResult",
+  "type": "object",
+  "properties": {
+    "layer_id": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "required": [
+    "layer_id"
+  ]
+}
+```
+
+### Examples
+
+```json
+{}
+```
+
+## `layer.via_cut` — 通过剪切新建图层
+
+Copy the selected active pixel-layer area to a new layer and clear source alpha atomically, without changing the system clipboard.
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `true`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PixelTarget",
+  "type": "object",
+  "properties": {
+    "layer": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/LayerRef"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "LayerRef": {
+      "description": "Stable ID preferred. Duplicate names return candidates instead of guessing.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LayerResult",
+  "type": "object",
+  "properties": {
+    "layer_id": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "required": [
+    "layer_id"
+  ]
+}
+```
+
+### Examples
+
+```json
+{}
+```
+
+## `layer.background_to_layer` — 背景转普通图层
+
+Convert the active pixel background to an ordinary named Layer 0. Existing document pixel layers already have ordinary editable storage.
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `true`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PixelTarget",
+  "type": "object",
+  "properties": {
+    "layer": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/LayerRef"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "LayerRef": {
+      "description": "Stable ID preferred. Duplicate names return candidates instead of guessing.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LayerResult",
+  "type": "object",
+  "properties": {
+    "layer_id": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "required": [
+    "layer_id"
+  ]
+}
+```
+
+### Examples
+
+```json
+{}
+```
+
+## `layer.set_pass_through` — 组穿透模式
+
+Choose normal pass-through or isolated group compositing. Pass-through evaluates child blend/adjustment effects against the parent backdrop, then interpolates with the group mask/opacity. Non-normal group blend or group styles use isolated compositing.
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `true`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PassThrough",
+  "type": "object",
+  "properties": {
+    "layer": {
+      "$ref": "#/$defs/LayerRef"
+    },
+    "pass_through": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "layer",
+    "pass_through"
+  ],
+  "$defs": {
+    "LayerRef": {
+      "description": "Stable ID preferred. Duplicate names return candidates instead of guessing.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LayerResult",
+  "type": "object",
+  "properties": {
+    "layer_id": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "required": [
+    "layer_id"
+  ]
+}
+```
+
+### Examples
+
+```json
+{
+  "layer": {
+    "name": "Group"
+  },
+  "pass_through": false
 }
 ```
 

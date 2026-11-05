@@ -4,12 +4,25 @@ struct EditorSnapshot: Decodable, Sendable {
     struct Control: Decodable, Sendable { let kind: String; let turnId: String? }
     struct Frame: Decodable, Sendable { let name: String; let width: UInt32; let height: UInt32; let x: Int64; let y: Int64 }
     struct Layer: Decodable, Sendable {
-        struct Kind: Decodable, Sendable { let kind: String; let stops: Double? }
+        struct Kind: Decodable, Sendable {
+            let kind:String;let stops:Double?
+            let color:[UInt16]?;let start:[UInt16]?;let end:[UInt16]?;let angle:Double?;let scale:Double?;let radial:Bool?
+            let hue:Double?;let saturation:Double?;let lightness:Double?
+        }
         struct Mask: Decodable, Sendable { let enabled: Bool }
+        struct Locks: Decodable, Sendable { let transparency:Bool;let pixels:Bool;let position:Bool;let all:Bool }
         let id: String; let name: String; let visible: Bool; let opacity: Double; let blendMode: String; let x: Int64; let y: Int64
         let kind: Kind?; let mask: Mask?
+        let fillOpacity:Double?;let locks:Locks?;let colorLabel:String?
+        let parent:String?
+        let clipped:Bool?
+        let passThrough:Bool?
+        let styles:AIJSON?
         var exposure: Double? { kind?.kind == "exposure" ? kind?.stops : nil }
-        var title: String { exposure != nil ? "曝光调整图层" : "像素图层" }
+        var isGroup:Bool{kind?.kind=="group"}
+        var title:String{
+            switch kind?.kind{case "group":"图层组";case "exposure":"曝光调整图层";case "solid":"纯色填充";case "gradient":"渐变填充";case "hue_saturation":"色相/饱和度调整";default:"像素图层"}
+        }
     }
     struct History: Decodable, Sendable { let command: String; let source: String; let turnId: String? }
     struct Execution: Decodable, Sendable { let command: String; let status: String }

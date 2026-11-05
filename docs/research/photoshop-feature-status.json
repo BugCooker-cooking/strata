@@ -1,0 +1,332 @@
+{
+  "PS-00-9768e5bc84": {
+    "implementation": "已实现",
+    "acceptance": "当前设备已有证据；持续回归",
+    "evidence": [
+      {
+        "label": "当前实现与验证",
+        "path": "2026-11-03-m1-closure.md"
+      }
+    ]
+  },
+  "PS-00-4282fbce73": {
+    "implementation": "已实现",
+    "acceptance": "当前设备已有证据；持续回归",
+    "evidence": [
+      {
+        "label": "当前实现与验证",
+        "path": "2026-11-03-m1-closure.md"
+      }
+    ]
+  },
+  "PS-00-6a15d3790f": {
+    "implementation": "已实现",
+    "acceptance": "当前设备已有证据；持续回归",
+    "evidence": [
+      {
+        "label": "当前实现与验证",
+        "path": "../research/2026-11-m2b-local-editing-progress.md"
+      }
+    ]
+  },
+  "PS-00-a9af7235f5": {
+    "implementation": "已实现",
+    "acceptance": "当前设备已有证据；持续回归",
+    "evidence": [
+      {
+        "label": "当前实现与验证",
+        "path": "../research/2026-11-m2b-local-editing-progress.md"
+      }
+    ]
+  },
+  "PS-00-e5b005f04b": {
+    "implementation": "已实现",
+    "acceptance": "当前设备已有证据；持续回归",
+    "evidence": [
+      {
+        "label": "当前实现与验证",
+        "path": "../research/2026-11-m2b-local-editing-progress.md"
+      }
+    ]
+  },
+  "PS-00-aa907aaad8": {
+    "implementation": "已实现",
+    "acceptance": "当前设备已有证据；持续回归",
+    "evidence": [
+      {
+        "label": "当前实现与验证",
+        "path": "../research/2026-11-m2b-local-editing-progress.md"
+      }
+    ]
+  },
+  "PS-00-7a6d3fc6af": {
+    "implementation": "已实现",
+    "acceptance": "当前设备已有证据；持续回归",
+    "evidence": [
+      {
+        "label": "当前实现与验证",
+        "path": "2026-11-03-m1-closure.md"
+      }
+    ]
+  },
+  "PS-00-81f5847182": {
+    "implementation": "已实现",
+    "acceptance": "当前设备已有证据；持续回归",
+    "evidence": [
+      {
+        "label": "当前实现与验证",
+        "path": "2026-11-03-m1-closure.md"
+      }
+    ]
+  },
+  "PS-00-a664122198": {
+    "implementation": "已实现",
+    "acceptance": "当前设备已有证据；持续回归",
+    "evidence": [
+      {
+        "label": "当前实现与验证",
+        "path": "2026-11-03-m1-closure.md"
+      }
+    ]
+  },
+  "PS-00-6f14bdb57f": {
+    "implementation": "已实现",
+    "acceptance": "当前设备已有证据；持续回归",
+    "evidence": [
+      {
+        "label": "当前实现与验证",
+        "path": "2026-11-03-m1-closure.md"
+      }
+    ]
+  },
+  "PS-01-51efedefef": {
+    "implementation": "已实现",
+    "acceptance": "当前设备已有证据；持续回归",
+    "evidence": [
+      {
+        "label": "当前实现与验证",
+        "path": "2026-11-03-m1-closure.md"
+      }
+    ]
+  },
+  "PS-01-9b14920078": {
+    "implementation": "已实现",
+    "acceptance": "当前设备已有证据；持续回归",
+    "evidence": [
+      {
+        "label": "当前实现与验证",
+        "path": "2026-11-03-m1-closure.md"
+      }
+    ]
+  },
+  "PS-01-b6d7cbc94d": {
+    "implementation": "已实现",
+    "acceptance": "当前设备已有证据；持续回归",
+    "evidence": [
+      {
+        "label": "当前实现与验证",
+        "path": "2026-11-03-m1-closure.md"
+      }
+    ]
+  },
+  "PS-01-8f62b2552b": {
+    "implementation": "已实现",
+    "acceptance": "当前设备已有证据；持续回归",
+    "evidence": [
+      {
+        "label": "当前实现与验证",
+        "path": "2026-11-03-m1-closure.md"
+      }
+    ]
+  },
+  "PS-01-894622b1ce": {
+    "implementation": "部分实现",
+    "acceptance": "导出面板/参数已有证据；快速导出配置仍待补齐",
+    "evidence": [
+      {
+        "label": "当前实现与验证",
+        "path": "2026-11-03-m1-closure.md"
+      }
+    ]
+  },
+  "PS-01-e7337088bf": {
+    "implementation": "已实现",
+    "acceptance": "当前设备已有证据；持续回归",
+    "evidence": [
+      {
+        "label": "当前实现与验证",
+        "path": "2026-11-03-m1-closure.md"
+      }
+    ]
+  },
+  "PS-04-430fc8e2db": {
+    "implementation": "已实现（M3 集成中）",
+    "acceptance": "M3 验收中；后续绘画/调整类型继续扩充",
+    "evidence": [
+      {
+        "label": "M3 计划",
+        "path": "2026-11-05-m3-layers.md"
+      }
+    ]
+  },
+  "PS-04-4e8bda1fd0": {
+    "implementation": "已实现（M3 集成中）",
+    "acceptance": "M3 验收中；后续绘画/调整类型继续扩充",
+    "evidence": [
+      {
+        "label": "M3 计划",
+        "path": "2026-11-05-m3-layers.md"
+      }
+    ]
+  },
+  "PS-04-fe6945c814": {
+    "implementation": "已实现（M3 集成中）",
+    "acceptance": "M3 验收中；后续绘画/调整类型继续扩充",
+    "evidence": [
+      {
+        "label": "M3 计划",
+        "path": "2026-11-05-m3-layers.md"
+      }
+    ]
+  },
+  "PS-04-54bcfbb2ac": {
+    "implementation": "已实现（M3 集成中）",
+    "acceptance": "M3 验收中；后续绘画/调整类型继续扩充",
+    "evidence": [
+      {
+        "label": "M3 计划",
+        "path": "2026-11-05-m3-layers.md"
+      }
+    ]
+  },
+  "PS-04-a7fe5679e6": {
+    "implementation": "已实现（M3 集成中）",
+    "acceptance": "M3 验收中；后续绘画/调整类型继续扩充",
+    "evidence": [
+      {
+        "label": "M3 计划",
+        "path": "2026-11-05-m3-layers.md"
+      }
+    ]
+  },
+  "PS-04-bd9b0e9d03": {
+    "implementation": "已实现（M3 集成中）",
+    "acceptance": "M3 验收中；后续绘画/调整类型继续扩充",
+    "evidence": [
+      {
+        "label": "M3 计划",
+        "path": "2026-11-05-m3-layers.md"
+      }
+    ]
+  },
+  "PS-04-e5e334c943": {
+    "implementation": "已实现（M3 集成中）",
+    "acceptance": "M3 验收中；后续绘画/调整类型继续扩充",
+    "evidence": [
+      {
+        "label": "M3 计划",
+        "path": "2026-11-05-m3-layers.md"
+      }
+    ]
+  },
+  "PS-04-e77c27785e": {
+    "implementation": "已实现（M3 集成中）",
+    "acceptance": "M3 验收中；后续绘画/调整类型继续扩充",
+    "evidence": [
+      {
+        "label": "M3 计划",
+        "path": "2026-11-05-m3-layers.md"
+      }
+    ]
+  },
+  "PS-04-d5e9c4039f": {
+    "implementation": "部分实现",
+    "acceptance": "结构/应用已实现；蒙版画笔待 M6",
+    "evidence": [
+      {
+        "label": "M3 计划",
+        "path": "2026-11-05-m3-layers.md"
+      }
+    ]
+  },
+  "PS-04-9101e755a1": {
+    "implementation": "已实现（M3 集成中）",
+    "acceptance": "M3 验收中；后续绘画/调整类型继续扩充",
+    "evidence": [
+      {
+        "label": "M3 计划",
+        "path": "2026-11-05-m3-layers.md"
+      }
+    ]
+  },
+  "PS-04-cb66199f15": {
+    "implementation": "部分实现",
+    "acceptance": "曝光与色相饱和度已实现；其余类型待 M5",
+    "evidence": [
+      {
+        "label": "M3 计划",
+        "path": "2026-11-05-m3-layers.md"
+      }
+    ]
+  },
+  "PS-04-755f2b287b": {
+    "implementation": "已实现（M3 集成中）",
+    "acceptance": "M3 验收中；后续绘画/调整类型继续扩充",
+    "evidence": [
+      {
+        "label": "M3 计划",
+        "path": "2026-11-05-m3-layers.md"
+      }
+    ]
+  },
+  "PS-04-853e6d30f3": {
+    "implementation": "部分实现",
+    "acceptance": "已有类型已实现；文字/智能对象随对应类型接入",
+    "evidence": [
+      {
+        "label": "M3 计划",
+        "path": "2026-11-05-m3-layers.md"
+      }
+    ]
+  },
+  "PS-04-d6c3930e2f": {
+    "implementation": "已实现（M3 集成中）",
+    "acceptance": "M3 验收中；后续绘画/调整类型继续扩充",
+    "evidence": [
+      {
+        "label": "M3 计划",
+        "path": "2026-11-05-m3-layers.md"
+      }
+    ]
+  },
+  "PS-05-24f905f241": {
+    "implementation": "部分实现",
+    "acceptance": "矩形/主体基础已实现；完整选区待 M4",
+    "evidence": [
+      {
+        "label": "M2b",
+        "path": "../research/2026-11-m2b-local-editing-progress.md"
+      }
+    ]
+  },
+  "PS-05-f88b2ecb2f": {
+    "implementation": "部分实现",
+    "acceptance": "矩形/主体基础已实现；完整选区待 M4",
+    "evidence": [
+      {
+        "label": "M2b",
+        "path": "../research/2026-11-m2b-local-editing-progress.md"
+      }
+    ]
+  },
+  "PS-05-c3053c1de1": {
+    "implementation": "部分实现",
+    "acceptance": "矩形/主体基础已实现；完整选区待 M4",
+    "evidence": [
+      {
+        "label": "M2b",
+        "path": "../research/2026-11-m2b-local-editing-progress.md"
+      }
+    ]
+  }
+}

@@ -138,19 +138,23 @@ private struct LayerProperties: View {
                 Label(model.selected?.title ?? "文档", systemImage: "square.3.layers.3d").fontWeight(.medium)
                 if let layer = model.selected {
                     TextField("图层名称", text: $name).textFieldStyle(.roundedBorder).onSubmit { model.send(.rename(name)) }
-                        .disabled(!model.permissions.edits).accessibilityLabel("图层名称")
+                        .disabled(!model.permissions.edits || layer.locks?.all == true).accessibilityLabel("图层名称")
                     caption("位置")
                     HStack {
                         coordinate("X", text: $x); coordinate("Y", text: $y)
                     }
                     caption("外观")
                     BlendOpacityControls(model: model)
+                    LayerMetadataControls(model:model)
                     if layer.exposure != nil { ExposureControls(model: model) }
+                    if ["solid","gradient","hue_saturation"].contains(layer.kind?.kind ?? ""){GeneratedLayerControls(model:model)}
+                    if !["exposure","hue_saturation"].contains(layer.kind?.kind ?? ""){LayerStyleControls(model:model)}
                     if let mask = layer.mask {
                         Divider(); caption("像素蒙版")
                         Toggle("启用蒙版", isOn: Binding(get: { mask.enabled }, set: { model.send(.command("layer.mask.set_enabled", ["layer": ["id": layer.id], "enabled": $0])) })).disabled(!model.permissions.edits)
                         HStack {
                             Button("反相") { model.send(.command("layer.mask.invert", ["layer": ["id": layer.id]])) }
+                            Button(layer.kind?.kind=="pixel" ? "应用" : "应用并栅格化"){model.send(.command("layer.mask.apply",["layer":["id":layer.id],"bake_backdrop":["exposure","hue_saturation"].contains(layer.kind?.kind ?? "")]))}
                             Button("移除") { model.send(.command("layer.mask.remove", ["layer": ["id": layer.id]])) }
                         }.disabled(!model.permissions.edits)
                     }
@@ -171,7 +175,7 @@ private struct LayerProperties: View {
     private func caption(_ text: String) -> some View { Text(text).font(.system(size: 11)).foregroundStyle(Color(nsColor: WorkspaceColors.muted)) }
     private func coordinate(_ title: String, text: Binding<String>) -> some View {
         HStack(spacing: 6) { Text(title).foregroundStyle(Color(nsColor: WorkspaceColors.secondary)); TextField(title, text: text).multilineTextAlignment(.trailing).onSubmit(commitPosition); Text("px").foregroundStyle(Color(nsColor: WorkspaceColors.muted)) }
-            .padding(6).background(RoundedRectangle(cornerRadius: 4).fill(Color(nsColor: WorkspaceColors.input))).disabled(!model.permissions.edits)
+            .padding(6).background(RoundedRectangle(cornerRadius: 4).fill(Color(nsColor: WorkspaceColors.input))).disabled(!model.permissions.edits || model.selected?.locks?.position == true || model.selected?.locks?.all == true)
     }
     private func sync() { name = model.selected?.name ?? ""; x = String(model.selected?.x ?? 0); y = String(model.selected?.y ?? 0) }
     private func commitPosition() {
@@ -189,7 +193,7 @@ private struct BlendOpacityControls: View {
                 Text("混合模式").foregroundStyle(Color(nsColor: WorkspaceColors.secondary))
                 Spacer()
                 Picker("混合模式", selection: Binding(get: { model.selected?.blendMode ?? "normal" }, set: { model.send(.blend($0)) })) {
-                    Text("正常").tag("normal"); Text("正片叠底").tag("multiply"); Text("滤色").tag("screen"); Text("叠加").tag("overlay")
+                    ForEach(LayerBlendChoice.all,id:\.id){choice in Text(choice.title).tag(choice.id)}
                 }.labelsHidden().frame(width: 108)
             }
             HStack(spacing: 8) {
@@ -197,7 +201,7 @@ private struct BlendOpacityControls: View {
                 Slider(value: $opacity, in: 0...100, onEditingChanged: { editing in if !editing { model.send(.opacity(opacity / 100)) } }).accessibilityLabel("图层不透明度")
                 Text("\(Int(opacity.rounded()))%").monospacedDigit().frame(width: 35, alignment: .trailing)
             }
-        }.disabled(!model.permissions.edits || model.selected == nil)
+        }.disabled(!model.permissions.edits || model.selected == nil || model.selected?.locks?.all == true)
             .onAppear { opacity = (model.selected?.opacity ?? 1) * 100 }
             .onChange(of: model.selected?.id) { _, _ in opacity = (model.selected?.opacity ?? 1) * 100 }
             .onChange(of: model.selected?.opacity) { _, value in opacity = (value ?? 1) * 100 }
@@ -214,8 +218,9 @@ private struct AdjustmentPanel: View {
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 14) {
                     ForEach(entries, id: \.0) { item in
                         VStack(spacing: 7) {
-                            WorkspaceIconButton(title: item.0, symbol: item.1, enabled: item.0 == "曝光" && model.hasDocument && model.permissions.edits) {
-                                model.send(.command("layer.add_adjustment", ["name": "曝光", "type": "exposure", "stops": 0.5, "mask": model.snapshot?.selection == nil ? "white" : "from_selection"]))
+                            WorkspaceIconButton(title: item.0, symbol: item.1, enabled: ["曝光","色相 / 饱和度"].contains(item.0) && model.hasDocument && model.permissions.edits) {
+                                if item.0=="曝光"{model.send(.command("layer.add_adjustment", ["name": "曝光", "type": "exposure", "stops": 0.5, "mask": model.snapshot?.selection == nil ? "white" : "from_selection"]))}
+                                else{model.send(.command("layer.add_hue_saturation",["name":"色相/饱和度"]))}
                                 model.inspector = .properties
                             }
                             Text(item.0).font(.system(size: 10)).lineLimit(2).multilineTextAlignment(.center)
@@ -259,7 +264,7 @@ private struct HistoryPanel: View {
                 }
                 if model.snapshot?.executions.isEmpty == false {
                     Divider().padding(.vertical, 8)
-                    Text("文件记录 · 不随文档撤销恢复").font(.system(size: 10)).foregroundStyle(Color(nsColor: WorkspaceColors.secondary)).padding(.horizontal, 12)
+                    Text("外部记录 · 不随文档撤销恢复").font(.system(size: 10)).foregroundStyle(Color(nsColor: WorkspaceColors.secondary)).padding(.horizontal, 12)
                     ForEach(Array((model.snapshot?.executions ?? []).enumerated()), id: \.offset) { _, item in
                         Label("\(commandTitle(item.command)) · \(item.status)", systemImage: "doc.badge.arrow.up").font(.system(size: 11)).padding(10)
                     }
@@ -272,7 +277,7 @@ private struct HistoryPanel: View {
 private struct LayerPanel: View {
     @ObservedObject var model: WorkspaceModel
     @State private var filter = ""
-    var layers: [EditorSnapshot.Layer] { Array((model.snapshot?.layers ?? []).reversed()).filter { filter.isEmpty || $0.name.localizedCaseInsensitiveContains(filter) } }
+    var layers: [EditorSnapshot.Layer] { model.displayLayers.filter { filter.isEmpty || $0.name.localizedCaseInsensitiveContains(filter) } }
     var body: some View {
         VStack(spacing: 0) {
             HStack { Label("图层", systemImage: "square.3.layers.3d"); Spacer(); Text("\(model.snapshot?.layers.count ?? 0)").foregroundStyle(Color(nsColor: WorkspaceColors.muted)) }.padding(12)
@@ -283,22 +288,56 @@ private struct LayerPanel: View {
                 LazyVStack(spacing: 2) {
                     ForEach(layers, id: \.id) { layer in
                         HStack(spacing: 7) {
+                            if layer.isGroup{
+                                WorkspaceIconButton(title:"展开或收起 "+layer.name,symbol:model.collapsedGroups.contains(layer.id) ? "chevron.right" : "chevron.down"){
+                                    if !model.collapsedGroups.insert(layer.id).inserted{model.collapsedGroups.remove(layer.id)}
+                                }
+                            }
                             WorkspaceIconButton(title: layer.visible ? "隐藏 \(layer.name)" : "显示 \(layer.name)", symbol: layer.visible ? "eye" : "eye.slash", enabled: model.permissions.visibility) { model.send(.visibility(layer.id, !layer.visible)) }
                             Button { model.send(.selectLayer(layer.id)) } label: {
                                 HStack(spacing: 9) {
                                     ZStack {
-                                        if let image = model.thumbnails[layer.id] { Image(nsImage: image).resizable().scaledToFit() }
-                                        else { Image(systemName: "photo").foregroundStyle(Color(nsColor: WorkspaceColors.muted)) }
+                                        if layer.isGroup{Image(systemName:"folder").foregroundStyle(Color(nsColor:WorkspaceColors.secondary))}
+                                        else if let image = model.thumbnails[layer.id] { Image(nsImage: image).resizable().scaledToFit() }
+                                        else { Image(systemName: layer.isGroup ? "folder" : "photo").foregroundStyle(Color(nsColor: WorkspaceColors.muted)) }
                                     }.frame(width: 30, height: 30).background(Color(nsColor: WorkspaceColors.raised)).clipShape(RoundedRectangle(cornerRadius: 4))
                                     VStack(alignment: .leading, spacing: 3) { Text(layer.name).lineLimit(1); Text(layer.title + (layer.mask != nil ? " · 蒙版" : "")).font(.system(size: 10)).foregroundStyle(Color(nsColor: WorkspaceColors.muted)) }
+                                    if let label=layer.colorLabel{Circle().fill(LayerMetadataControls.labelColor(label)).frame(width:6,height:6)}
                                     Spacer(minLength: 0)
                                     if model.snapshot?.control?.kind == "running", model.snapshot?.activeLayer == layer.id { Image(systemName: "sparkles").foregroundStyle(Color(nsColor: WorkspaceColors.ai)).accessibilityLabel("AI 当前图层") }
                                 }.contentShape(Rectangle())
                             }.buttonStyle(.plain).disabled(!model.permissions.selection)
-                        }.padding(.horizontal, 4).padding(.vertical, 4)
-                            .background(RoundedRectangle(cornerRadius: 5).fill(model.snapshot?.activeLayer == layer.id ? Color(nsColor: WorkspaceColors.accent).opacity(0.20) : .clear))
+                        }.padding(.leading,CGFloat(model.layerDepth(layer))*12).padding(.horizontal, 4).padding(.vertical, 4)
+                            .background(RoundedRectangle(cornerRadius: 5).fill(model.snapshot?.activeLayer == layer.id || model.selectedLayers.contains(layer.id) ? Color(nsColor: WorkspaceColors.accent).opacity(0.20) : .clear))
                             .contextMenu {
                                 Button("复制图层") { model.send(.duplicateLayer) }.disabled(model.selected?.id != layer.id || !model.permissions.edits)
+                                Button("通过拷贝新建图层"){model.send(.command("layer.via_copy",["layer":["id":layer.id]]))}.disabled(!model.permissions.edits)
+                                Button("通过剪切新建图层"){model.send(.command("layer.via_cut",["layer":["id":layer.id]]))}.disabled(!model.permissions.edits || layer.kind?.kind != "pixel")
+                                if layer.kind?.kind=="pixel"{Button("背景转普通图层"){model.send(.command("layer.background_to_layer",["layer":["id":layer.id]]))}.disabled(!model.permissions.edits)}
+                                Button("将所选图层编组"){model.send(.groupSelected)}.disabled(!model.permissions.edits)
+                                Button(layer.clipped == true ? "释放剪贴蒙版" : "创建剪贴蒙版"){model.send(.command("layer.set_clipping",["layer":["id":layer.id],"clipped":layer.clipped != true]))}.disabled(!model.permissions.edits)
+                                Button(["exposure","hue_saturation"].contains(layer.kind?.kind ?? "") ? "栅格化并合并下方输入" : "栅格化"){model.send(.command("layer.rasterize",["layer":["id":layer.id],"bake_backdrop":["exposure","hue_saturation"].contains(layer.kind?.kind ?? "")]))}.disabled(!model.permissions.edits || layer.kind?.kind=="pixel")
+                                Button("向下合并"){model.send(.command("layer.merge_down",["layer":["id":layer.id]]))}.disabled(!model.permissions.edits)
+                                Button("合并可见"){model.send(.command("layer.merge_visible",[:]))}.disabled(!model.permissions.edits)
+                                Button("拼合图像"){model.send(.command("layer.flatten",[:]))}.disabled(!model.permissions.edits)
+                                Button("盖印可见并保留图层"){model.send(.command("layer.stamp_visible",[:]))}.disabled(!model.permissions.edits)
+                                Menu("对齐所选图层"){
+                                    ForEach([("左侧","left"),("水平居中","horizontal_center"),("右侧","right"),("顶端","top"),("垂直居中","vertical_center"),("底端","bottom")],id:\.1){title,mode in
+                                        Button(title){model.send(.alignSelected(mode))}
+                                    }
+                                }.disabled(!model.permissions.edits)
+                                Menu("分布所选图层"){
+                                    ForEach([("水平中心","horizontal_centers"),("垂直中心","vertical_centers"),("水平间距","horizontal_spacing"),("垂直间距","vertical_spacing")],id:\.1){title,mode in
+                                        Button(title){model.send(.distributeSelected(mode))}
+                                    }
+                                }.disabled(!model.permissions.edits||model.selectedLayers.count<3)
+                                if layer.isGroup{Button("取消编组"){model.send(.command("layer.ungroup",["layer":["id":layer.id]]))}.disabled(!model.permissions.edits)}
+                                Menu("移动到组"){
+                                    Button("根层级"){model.send(.command("layer.reparent",["layer":["id":layer.id],"parent":NSNull()]))}
+                                    ForEach(model.snapshot?.layers.filter{$0.isGroup&&$0.id != layer.id} ?? [],id:\.id){group in
+                                        Button(group.name){model.send(.command("layer.reparent",["layer":["id":layer.id],"parent":["id":group.id]]))}
+                                    }
+                                }.disabled(!model.permissions.edits)
                             }
                     }
                     if layers.isEmpty { Text(filter.isEmpty ? "新建或打开图片开始编辑" : "没有匹配的图层").foregroundStyle(Color(nsColor: WorkspaceColors.secondary)).padding(20) }
@@ -316,11 +355,18 @@ private struct LayerPanel: View {
                     }
                 } label: { Image(systemName: "rectangle.inset.filled") }
                     .menuStyle(.borderlessButton).fixedSize().disabled(!model.permissions.edits || model.selected == nil || model.selected?.mask != nil).help("添加像素蒙版")
-                WorkspaceIconButton(title: "新建组", symbol: "folder.badge.plus", enabled: false)
+                Menu{
+                    Button("新建空组"){model.send(.command("layer.create_group",["name":"组"]))}
+                    Button("将所选图层编组"){model.send(.groupSelected)}
+                }label:{Image(systemName:"folder.badge.plus")}.menuStyle(.borderlessButton).fixedSize().disabled(!model.permissions.edits || !model.hasDocument).help("图层组")
                 WorkspaceIconButton(title: "复制图层", symbol: "square.on.square", enabled: model.permissions.edits && model.selected != nil) { model.send(.duplicateLayer) }
-                WorkspaceIconButton(title: "新建图层", symbol: "plus.square", enabled: model.permissions.edits && model.hasDocument) { model.send(.newLayer) }
+                Menu{
+                    Button("像素图层…"){model.send(.newLayer)}
+                    Button("纯色填充"){let max=model.snapshot?.bitDepth==16 ? 65535 : 255;model.send(.command("layer.fill.solid",["name":"纯色填充","color":[max,max,max,max]]))}
+                    Button("渐变填充"){let max=model.snapshot?.bitDepth==16 ? 65535 : 255;model.send(.command("layer.fill.gradient",["name":"渐变填充","start":[0,0,0,max],"end":[max,max,max,max]]))}
+                }label:{Image(systemName:"plus.square")}.menuStyle(.borderlessButton).fixedSize().disabled(!model.permissions.edits || !model.hasDocument).help("新建图层")
                 WorkspaceIconButton(title: "置入图片 (⇧⌘P)", symbol: "photo.badge.plus", enabled: model.permissions.edits && model.hasDocument) { model.send(.place) }
-                WorkspaceIconButton(title: "删除图层", symbol: "trash", enabled: model.permissions.edits && model.selected != nil) { model.send(.deleteLayer) }
+                WorkspaceIconButton(title: "删除图层", symbol: "trash", enabled: model.permissions.edits && model.selected != nil && model.selected?.locks?.all != true) { model.send(.deleteLayer) }
             }.padding(5)
         }
     }

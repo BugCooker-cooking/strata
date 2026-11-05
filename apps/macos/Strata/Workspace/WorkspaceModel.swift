@@ -86,6 +86,9 @@ final class WorkspaceModel: ObservableObject {
     @Published var tool = EditorTool.hand
     @Published var selectionMode = "replace"
     @Published var histogram: [Double] = []
+    @Published var workingColorSpace=NSColorSpace.sRGB
+    @Published var collapsedGroups:Set<String>=[]
+    @Published var selectedLayers:Set<String>=[]
     @Published var inspector = InspectorTab.properties
     @Published var assistantVisible = true
     @Published var inspectorVisible = true
@@ -93,6 +96,21 @@ final class WorkspaceModel: ObservableObject {
     var action: ((WorkspaceAction) -> Void)?
     var permissions: WorkspacePermissions { WorkspacePermissions(busy: busy, control: snapshot?.control?.kind ?? "user") }
     var selected: EditorSnapshot.Layer? { snapshot?.layers.first { $0.id == snapshot?.activeLayer } }
+    var displayLayers:[EditorSnapshot.Layer]{
+        let layers=snapshot?.layers ?? []
+        func children(_ parent:String?,depth:Int)->[EditorSnapshot.Layer]{
+            guard depth<=16 else{return []}
+            return layers.reversed().filter{$0.parent==parent}.flatMap{layer in
+                [layer]+(layer.isGroup && !collapsedGroups.contains(layer.id) ? children(layer.id,depth:depth+1) : [])
+            }
+        }
+        return children(nil,depth:0)
+    }
+    func layerDepth(_ layer:EditorSnapshot.Layer)->Int{
+        var parent=layer.parent;var depth=0
+        while let id=parent,depth<16{depth+=1;parent=snapshot?.layers.first{$0.id==id}?.parent}
+        return depth
+    }
     var hasDocument: Bool { snapshot?.frame != nil }
     var selectionSummary: String? {
         guard snapshot?.selection != nil else { return nil }
@@ -112,6 +130,8 @@ final class WorkspaceModel: ObservableObject {
 }
 
 enum WorkspaceAction {
+    case alignSelected(String),distributeSelected(String)
+    case groupSelected
     case cancelWork
     case selectSubject
     case prepareSubjectModel
@@ -142,5 +162,10 @@ func commandTitle(_ command: String) -> String {
      "select.all": "全选", "select.none": "取消选择", "select.inverse": "反选",
      "layer.add_adjustment": "新建曝光调整层", "adjust.exposure.set": "调整曝光",
      "layer.mask.add": "添加蒙版", "layer.mask.invert": "反相蒙版",
-     "layer.mask.set_enabled": "切换蒙版", "layer.mask.remove": "移除蒙版"] [command] ?? command
+     "layer.mask.set_enabled": "切换蒙版", "layer.mask.remove": "移除蒙版",
+     "layer.set_fill_opacity":"填充不透明度","layer.set_locks":"图层锁定","layer.set_color_label":"颜色标签",
+     "layer.group":"编组","layer.create_group":"新建组","layer.ungroup":"取消编组","layer.reparent":"移动到组",
+     "layer.fill.solid":"纯色填充","layer.fill.gradient":"渐变填充","layer.add_hue_saturation":"色相/饱和度调整",
+     "layer.rasterize":"栅格化","layer.mask.apply":"应用蒙版","layer.merge_down":"向下合并",
+     "layer.merge_visible":"合并可见","layer.flatten":"拼合图像","layer.stamp_visible":"盖印可见","layer.set_clipping":"剪贴蒙版"] [command] ?? command
 }

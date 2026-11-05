@@ -20,7 +20,7 @@
 - 真实 ONNX 主体命令、曝光、撤销、保存重开：已显式运行默认忽略的资产测试，3.25 秒通过；每个原始 RGBA 块逐样本一致。该测试发现并修复源图无 ICC 时配置文件显示名称的往返变化。
 - [CPU 报告](data/2026-11-05-m2b-subject-cpu.json)：320×320 模型，单前景组件、约 98.99% 高置信取样；[Core ML 报告](data/2026-11-05-m2b-subject-coreml.json)：同样例可用，推理约 224 ms，首次加载/编译约 3.60 s。统计中的预算保留量不等同于进程 RSS。
 - M2a 两种协议的 8 项非导出真实任务通过；补充宿主文件选择说明后，两种协议导出复测均通过。视觉探测移除无关工具后两者通过，见 [初轮（保留两个导出失败）](data/2026-11-05-m2a-live-initial.json) 和 [定向复测](data/2026-11-05-m2a-live-export-rerun.json)。目前这些任务使用同一个 Gemini 模型，经两种协议验证；不等同于 v0.1 要求的两个独立模型质量评测。
-- 完整局部修图实测：Gemini（OpenAI 兼容协议）与 Claude Sonnet 4.6（Anthropic）在 8/16 位样例上均完成主体选择、曝光 +0.5、暂停、用户矩形修正、蒙版曝光和保存重开；目标区域亮度比约 1.146，保护区最大通道误差 0，撤销/重做与源图层样本保持。指标见 [授权的本地实测](data/2026-11-05-m2b-live-local-repair.json)。
+- 完整局部修图实测：Gemini（OpenAI 兼容协议）与 Claude Sonnet 4.6（Anthropic）在 8/16 位样例上均完成主体选择、曝光 +0.5、暂停、用户矩形修正、蒙版曝光和保存重开；目标采样点亮度比约 1.146，两个保护采样点最大通道误差 0，撤销/重做与源图层样本保持。指标见 [授权的本地实测](data/2026-11-05-m2b-live-local-repair.json)。
 - 同一 Release 场景的曝光连续预览 p95 从 CPU 合成约 207.04 ms 降到 GPU 底图/蒙版纹理路径约 4.51 ms（目标 33.33 ms）；数据见 [before](data/2026-11-05-m2b-exposure-preview-before.json) 与 [after](data/2026-11-05-m2b-exposure-preview-after.json)。强制真实 Metal 的 14 项渲染测试全部通过。
 
 ## 运行库与许可

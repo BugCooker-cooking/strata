@@ -12,8 +12,10 @@ use strata_core::{
 use strata_render::{Renderer, Viewport};
 uniffi::setup_scaffolding!();
 mod ai;
+mod clipboard;
 mod local;
 mod subject;
+pub use clipboard::ClipboardTransfer;
 pub use local::SelectionEdge;
 mod thumbnails;
 pub use thumbnails::LayerThumbnail;
@@ -167,6 +169,18 @@ pub struct StrataEngine {
 
 #[uniffi::export]
 impl StrataEngine {
+    pub fn working_profile_icc(&self) -> Vec<u8> {
+        self.inner
+            .lock()
+            .ok()
+            .and_then(|inner| {
+                inner
+                    .editor
+                    .document()
+                    .map(|doc| doc.working_icc().to_vec())
+            })
+            .unwrap_or_default()
+    }
     /// Small host display copies. Never replace document samples or enter history.
     pub fn layer_thumbnails(&self, revision: u64) -> Result<Vec<LayerThumbnail>, StrataError> {
         let doc = {
