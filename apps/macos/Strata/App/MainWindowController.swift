@@ -22,7 +22,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
     var state: EditorSnapshot? { workspace.snapshot }
     var selected: EditorSnapshot.Layer? { workspace.selected }
     var busy = false {
-        didSet { workspace.busy = busy; canvas.isEditingEnabled = workspace.permissions.edits; canvas.isSelectionEnabled = workspace.permissions.selectionEdits; window?.toolbar?.validateVisibleItems() }
+        didSet { workspace.busy = busy; canvas.isWorkBusy = busy; canvas.isEditingEnabled = workspace.permissions.edits; canvas.isSelectionEnabled = workspace.permissions.selectionEdits; window?.toolbar?.validateVisibleItems() }
     }
     var onNewTab: (() -> Void)?
     var onOpenURL: ((URL) -> Void)?
@@ -340,6 +340,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
     }
     func windowDidChangeOcclusionState(_ notification: Notification) { canvas.visibilityChanged() }
     func showError(_ error: Error) {
+        if let strataError = error as? StrataError, case .Cancelled = strataError { return }
         guard let window, window.attachedSheet == nil else { return }; let alert = NSAlert(); alert.messageText = "操作未完成"
         alert.informativeText = (error as? StrataError)?.userMessage ?? error.localizedDescription; alert.beginSheetModal(for: window)
     }

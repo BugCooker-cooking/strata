@@ -9,6 +9,8 @@ pub use scene::PreparedScene;
 
 #[derive(Debug, thiserror::Error)]
 pub enum RenderError {
+    #[error("render preparation cancelled")]
+    Cancelled,
     #[error("no GPU adapter available")]
     NoAdapter,
     #[error("GPU device request failed: {0}")]

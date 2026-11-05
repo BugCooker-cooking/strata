@@ -127,8 +127,12 @@ impl ExportPlan {
         })
     }
 
-    pub fn pixels(&self, doc: &Document) -> Result<PixelBuffer, CommandError> {
-        let source = doc.export_pixels()?;
+    pub fn pixels(
+        &self,
+        doc: &Document,
+        cancel: &dyn Fn() -> bool,
+    ) -> Result<PixelBuffer, CommandError> {
+        let source = doc.export_pixels_cancellable(cancel)?;
         let source = if (self.width, self.height) != (doc.frame().width, doc.frame().height) {
             super::resample::resize(
                 &source,

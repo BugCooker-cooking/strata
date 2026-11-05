@@ -91,6 +91,16 @@ impl Compositor {
         coord: TileCoord,
         layers: usize,
     ) -> Result<LinearTile, DocumentError> {
+        self.tile_prefix_cancellable(doc, coord, layers, &|| false)
+    }
+    pub fn tile_prefix_cancellable(
+        &mut self,
+        doc: &Document,
+        coord: TileCoord,
+        layers: usize,
+        cancel: &dyn Fn() -> bool,
+    ) -> Result<LinearTile, DocumentError> {
+        check_cancel(cancel)?;
         self.clock += 1;
         let key = fingerprint(doc, coord, layers);
         if let Some((old, tile, used)) = self.cache.get_mut(&coord)
@@ -103,7 +113,7 @@ impl Compositor {
         let pool = doc.memory_pool();
         let reservation = pool.reserve(MemoryKind::CpuCache, 256 * 256 * 16)?;
         let tile = Arc::new(LinearPixels {
-            pixels: compose_tile(doc, coord, layers)?,
+            pixels: compose_tile(doc, coord, layers, cancel)?,
             _reservation: reservation,
         });
         // Pin before global registration: a pressure callback may trim caches
@@ -254,7 +264,9 @@ fn compose_tile(
     doc: &Document,
     coord: TileCoord,
     layers: usize,
+    cancel: &dyn Fn() -> bool,
 ) -> Result<Vec<[f32; 4]>, DocumentError> {
+    check_cancel(cancel)?;
     let _scratch = doc
         .memory_pool()
         .reserve(MemoryKind::Transient, 256 * 256 * (32 + 16 + 2))?;
@@ -292,7 +304,7 @@ fn compose_tile(
             return Ok(linear);
         }
     }
-    let out = compose_stack(doc, coord, layers, None)?;
+    let out = compose_stack(doc, coord, layers, None, cancel)?;
     // Avoid retaining the larger f64 allocation through an in-place collect.
     let mut result = Vec::with_capacity(out.len());
     for pixel in out {
@@ -306,8 +318,24 @@ pub(crate) fn compose_stack(
     coord: TileCoord,
     layers: usize,
     parent: Option<crate::LayerId>,
+    cancel: &dyn Fn() -> bool,
 ) -> Result<Vec<[f64; 4]>, DocumentError> {
-    compose_with_backdrop(doc, coord, layers, parent, vec![[0.0; 4]; 256 * 256])
+    check_cancel(cancel)?;
+    compose_with_backdrop(
+        doc,
+        coord,
+        layers,
+        parent,
+        vec![[0.0; 4]; 256 * 256],
+        cancel,
+    )
+}
+fn check_cancel(cancel: &dyn Fn() -> bool) -> Result<(), DocumentError> {
+    if cancel() {
+        Err(DocumentError::Cancelled)
+    } else {
+        Ok(())
+    }
 }
 fn compose_with_backdrop(
     doc: &Document,
@@ -315,7 +343,9 @@ fn compose_with_backdrop(
     layers: usize,
     parent: Option<crate::LayerId>,
     mut out: Vec<[f64; 4]>,
+    cancel: &dyn Fn() -> bool,
 ) -> Result<Vec<[f64; 4]>, DocumentError> {
+    check_cancel(cancel)?;
     let siblings: Vec<_> = doc
         .layers()
         .iter()
@@ -323,7 +353,7 @@ fn compose_with_backdrop(
         .filter(|layer| layer.info.parent == parent)
         .collect();
     if !siblings.iter().any(|layer| layer.info.clipped) {
-        return compose_sequence(doc, coord, layers, &siblings, out, false);
+        return compose_sequence(doc, coord, layers, &siblings, out, false, cancel);
     }
     let mut begin = 0;
     while begin < siblings.len() {
@@ -332,7 +362,15 @@ fn compose_with_backdrop(
             end += 1;
         }
         if end == begin + 1 {
-            out = compose_sequence(doc, coord, layers, &siblings[begin..end], out, false)?;
+            out = compose_sequence(
+                doc,
+                coord,
+                layers,
+                &siblings[begin..end],
+                out,
+                false,
+                cancel,
+            )?;
         } else {
             let _chain_scratch = doc
                 .memory_pool()
@@ -344,6 +382,7 @@ fn compose_with_backdrop(
                 &siblings[begin..end],
                 vec![[0.0; 4]; 256 * 256],
                 true,
+                cancel,
             )?;
             let mode = siblings[begin].info.blend_mode;
             for (back, front) in out.iter_mut().zip(surface) {
@@ -361,14 +400,16 @@ fn compose_sequence(
     siblings: &[&crate::Layer],
     mut out: Vec<[f64; 4]>,
     clipping: bool,
+    cancel: &dyn Fn() -> bool,
 ) -> Result<Vec<[f64; 4]>, DocumentError> {
     let [ox, oy] = coord.origin();
     for (ordinal, layer) in siblings.iter().copied().enumerate() {
+        check_cancel(cancel)?;
         if !layer.info.visible || layer.info.opacity == 0.0 {
             continue;
         }
         if !layer.info.styles.is_empty() {
-            let styled = crate::styles::render(doc, layer, coord, layers)?;
+            let styled = crate::styles::render(doc, layer, coord, layers, cancel)?;
             for (index, front) in styled.into_iter().enumerate() {
                 out[index] = blend_inside(
                     out[index],
@@ -389,8 +430,14 @@ fn compose_sequence(
                 && layer.info.blend_mode == BlendMode::Normal
                 && !(clipping && ordinal > 0)
             {
-                let group =
-                    compose_with_backdrop(doc, coord, layers, Some(layer.id()), out.clone())?;
+                let group = compose_with_backdrop(
+                    doc,
+                    coord,
+                    layers,
+                    Some(layer.id()),
+                    out.clone(),
+                    cancel,
+                )?;
                 for (index, front) in group.into_iter().enumerate() {
                     let amount = f64::from(mask.as_ref().map_or(65535, |m| m[index])) / 65535.0
                         * layer.info.opacity
@@ -410,7 +457,7 @@ fn compose_sequence(
                 }
                 continue;
             }
-            let group = compose_stack(doc, coord, layers, Some(layer.id()))?;
+            let group = compose_stack(doc, coord, layers, Some(layer.id()), cancel)?;
             for (index, mut front) in group.into_iter().enumerate() {
                 front[3] *= f64::from(mask.as_ref().map_or(65535, |m| m[index])) / 65535.0;
                 let opacity = layer.info.opacity * layer.info.fill_opacity;
@@ -736,6 +783,13 @@ impl Document {
     }
     /// Export from source/CPU composition, never from an 8-bit display texture.
     pub fn export_pixels(&self) -> Result<PixelBuffer, DocumentError> {
+        self.export_pixels_cancellable(&|| false)
+    }
+    pub fn export_pixels_cancellable(
+        &self,
+        cancel: &dyn Fn() -> bool,
+    ) -> Result<PixelBuffer, DocumentError> {
+        check_cancel(cancel)?;
         self.validate()?;
         let count = self
             .format
@@ -762,6 +816,7 @@ impl Document {
                 PixelFormat::Rgba16 => PixelBuffer::Rgba16(vec![0; count]),
             };
             for (coord, tile) in l.pixels.tiles() {
+                check_cancel(cancel)?;
                 let tile = tile?;
                 let [ox, oy] = coord.origin();
                 for y in 0..256i64 {
@@ -815,7 +870,8 @@ impl Document {
         for tx in first.x()..=last.x() {
             for ty in first.y()..=last.y() {
                 let coord = TileCoord::new(tx, ty)?;
-                let linear = compositor.tile(self, coord)?;
+                let linear =
+                    compositor.tile_prefix_cancellable(self, coord, self.layers().len(), cancel)?;
                 let converted =
                     strata_color::from_linear_p3(&linear, self.format, self.working_icc())?;
                 let [ox, oy] = coord.origin();

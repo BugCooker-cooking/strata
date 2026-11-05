@@ -109,6 +109,9 @@ fn command_error(e: CommandError) -> StrataError {
         CommandError::Stale | CommandError::Expired => StrataError::Cancelled {
             message: e.to_string(),
         },
+        CommandError::Document(strata_core::DocumentError::Cancelled) => StrataError::Cancelled {
+            message: "composition cancelled".into(),
+        },
         CommandError::Image(strata_io::IoError::NotFound(path)) => StrataError::NotFound {
             path: path.display().to_string(),
         },
@@ -162,6 +165,8 @@ impl Default for Inner {
 #[derive(uniffi::Object)]
 pub struct StrataEngine {
     inner: Mutex<Inner>,
+    work_cancellation: strata_core::commands::WorkCancellation,
+    active_ai_request: Mutex<Option<(uuid::Uuid, strata_core::commands::Request)>>,
     listener: Arc<dyn EngineListener>,
     recovery: Mutex<Option<strata_io::recovery::RecoveryStore>>,
     ai: Mutex<Option<strata_ai::Session>>,
@@ -196,7 +201,7 @@ impl StrataEngine {
             .map(|v| v.unwrap_or_default())
     }
     pub fn artboard_overlay(&self) -> Option<ArtboardOverlay> {
-        let inner = self.inner.lock().ok()?;
+        let inner = self.inner.try_lock().ok()?;
         let renderer = inner.renderer.as_ref()?;
         let frame = inner.editor.document()?.frame();
         let view = renderer.view();
@@ -211,8 +216,12 @@ impl StrataEngine {
     }
     #[uniffi::constructor]
     pub fn new(listener: Arc<dyn EngineListener>) -> Arc<Self> {
+        let inner = Inner::default();
+        let work_cancellation = inner.editor.work_cancellation();
         Arc::new(Self {
-            inner: Mutex::new(Inner::default()),
+            inner: Mutex::new(inner),
+            work_cancellation,
+            active_ai_request: Mutex::new(None),
             listener,
             recovery: Mutex::new(None),
             ai: Mutex::new(None),
@@ -359,7 +368,19 @@ impl StrataEngine {
                 message: e.to_string(),
             })?;
         if command.starts_with("view.") {
-            let mut inner = self.lock()?;
+            let mut inner = match self.inner.try_lock() {
+                Ok(inner) => inner,
+                Err(std::sync::TryLockError::WouldBlock) => {
+                    return Err(StrataError::Cancelled {
+                        message: "display preparation is busy; navigation input skipped".into(),
+                    });
+                }
+                Err(error) => {
+                    return Err(StrataError::Internal {
+                        message: error.to_string(),
+                    });
+                }
+            };
             let request = inner.editor.request(Source::User);
             let prepared = inner
                 .editor
@@ -408,8 +429,21 @@ impl StrataEngine {
         })
     }
     pub fn render_frame(&self) -> Result<FrameInfo, StrataError> {
-        let frame = self
-            .lock()?
+        let mut inner = match self.inner.try_lock() {
+            Ok(inner) => inner,
+            Err(std::sync::TryLockError::WouldBlock) => {
+                return Ok(FrameInfo {
+                    cpu_ms: 0.0,
+                    skipped: true,
+                });
+            }
+            Err(error) => {
+                return Err(StrataError::Internal {
+                    message: error.to_string(),
+                });
+            }
+        };
+        let frame = inner
             .renderer
             .as_mut()
             .ok_or(StrataError::NoCanvas)?
@@ -535,7 +569,7 @@ impl StrataEngine {
     }
     pub fn canvas_zoom(&self) -> f32 {
         self.inner
-            .lock()
+            .try_lock()
             .ok()
             .and_then(|i| i.renderer.as_ref().map(|r| r.view().zoom))
             .unwrap_or(1.0)
@@ -553,8 +587,16 @@ fn apply(
         if let (Some(doc), Some(renderer)) = (prepared.document(), &mut inner.renderer) {
             Some(
                 renderer
-                    .prepare_document(doc, opened)
-                    .map_err(render_error)?,
+                    .prepare_document_cancellable(doc, opened, &|| prepared.work_expired())
+                    .map_err(|error| {
+                        if matches!(error, strata_render::RenderError::Cancelled) {
+                            StrataError::Cancelled {
+                                message: error.to_string(),
+                            }
+                        } else {
+                            render_error(error)
+                        }
+                    })?,
             )
         } else {
             None

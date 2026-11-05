@@ -141,7 +141,11 @@ pub(crate) fn render(
     layer: &Layer,
     coord: TileCoord,
     layers: usize,
+    cancel: &dyn Fn() -> bool,
 ) -> Result<Vec<[f64; 4]>, DocumentError> {
+    if cancel() {
+        return Err(DocumentError::Cancelled);
+    }
     let _budget = doc
         .memory_pool()
         .reserve(MemoryKind::Transient, 64 * 1024 * 1024)?;
@@ -189,9 +193,12 @@ pub(crate) fn render(
     let mut center = vec![[0.0; 4]; 256 * 256];
     for tx in first.x()..=last.x() {
         for ty in first.y()..=last.y() {
+            if cancel() {
+                return Err(DocumentError::Cancelled);
+            }
             let c = TileCoord::new(tx, ty)?;
             let values =
-                crate::composite::compose_stack(&isolated, c, isolated.layers.len(), None)?;
+                crate::composite::compose_stack(&isolated, c, isolated.layers.len(), None, cancel)?;
             let [x0, y0] = c.origin();
             if c == coord {
                 center.copy_from_slice(&values);

@@ -52,6 +52,10 @@ pub struct Request {
 }
 
 impl Request {
+    /// Cancel this request's generation without touching a newer editor turn.
+    pub fn cancel(&self) {
+        self.cancellation.store(true, Ordering::Release);
+    }
     /// Trusted callers may shorten a request's commit deadline. Model parameters
     /// cannot construct or extend it. Checked again after fallible preparation.
     pub fn with_timeout(mut self, timeout: Duration) -> Self {
@@ -185,6 +189,9 @@ pub struct PreparedCommand {
     replay: bool,
 }
 impl PreparedCommand {
+    pub fn work_expired(&self) -> bool {
+        self.request.expired()
+    }
     pub fn is_replay(&self) -> bool {
         self.replay
     }
@@ -241,7 +248,7 @@ pub struct Editor {
     control_events: Vec<Value>,
     decoder: Option<std::sync::Arc<dyn strata_io::PlatformDecoder>>,
     selector: Option<Arc<dyn crate::SubjectSelector>>,
-    cancellation: Arc<AtomicBool>,
+    cancellation: WorkCancellation,
 }
 impl Default for Editor {
     fn default() -> Self {
@@ -270,7 +277,7 @@ impl Editor {
             control_events: Vec::new(),
             decoder: None,
             selector: None,
-            cancellation: Arc::new(AtomicBool::new(false)),
+            cancellation: WorkCancellation::default(),
         }
     }
     pub fn with_decoder(decoder: std::sync::Arc<dyn strata_io::PlatformDecoder>) -> Self {
@@ -339,7 +346,7 @@ impl Editor {
             revision: self.revision,
             issued: Instant::now(),
             deadline: Instant::now() + Duration::from_secs(3600),
-            cancellation: self.cancellation.clone(),
+            cancellation: self.cancellation.token(),
         }
     }
     pub fn begin_move(&self, layer: LayerRef) -> Result<MoveInteraction, CommandError> {
@@ -500,7 +507,7 @@ impl Editor {
             return Err(CommandError::ControlLocked);
         }
         let turn_id = Uuid::new_v4();
-        self.cancellation = Arc::new(AtomicBool::new(false));
+        self.cancellation.cancel();
         self.control = Control::Running { turn_id };
         self.epoch += 1;
         Ok(turn_id)
@@ -522,15 +529,16 @@ impl Editor {
         Ok(())
     }
     pub fn stop_turn(&mut self) {
-        self.cancellation.store(true, Ordering::Release);
-        self.cancellation = Arc::new(AtomicBool::new(false));
+        self.cancellation.cancel();
         self.control = Control::User;
         self.epoch += 1;
     }
     pub fn cancel_pending_work(&mut self) {
-        self.cancellation.store(true, Ordering::Release);
-        self.cancellation = Arc::new(AtomicBool::new(false));
+        self.cancellation.cancel();
         self.epoch += 1;
+    }
+    pub fn work_cancellation(&self) -> WorkCancellation {
+        self.cancellation.clone()
     }
     fn authorize(&self, source: &Source, id: &str, kind: CommandKind) -> Result<(), CommandError> {
         let allowed = match (source, &self.control) {

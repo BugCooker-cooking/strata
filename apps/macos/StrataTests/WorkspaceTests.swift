@@ -4,6 +4,24 @@ import XCTest
 
 final class WorkspaceTests: XCTestCase {
     @MainActor
+    func testBusyNavigationAndExplicitCancellationKeepTheWorkspaceResponsive() throws {
+        let engine=StrataEngine(listener:EngineEvents{_ in})
+        let controller=MainWindowController(engine:engine)
+        defer{controller.canvas.shutdown();controller.window?.orderOut(nil)}
+        controller.busy=true
+        XCTAssertTrue(controller.canvas.isWorkBusy)
+        let tool=controller.workspace.tool
+        controller.workspace.selectTool(.zoom)
+        XCTAssertEqual(controller.workspace.tool,tool)
+        controller.canvas.fit();controller.canvas.zoomBy(2);controller.canvas.actualSize()
+        XCTAssertNil(controller.window?.attachedSheet)
+        controller.showError(StrataError.Cancelled(message:"user cancelled"))
+        XCTAssertNil(controller.window?.attachedSheet,"An explicit cancellation should not open a modal error")
+        controller.busy=false
+        controller.workspace.selectTool(.zoom)
+        XCTAssertEqual(controller.workspace.tool,.zoom)
+    }
+    @MainActor
     func testMemoryPressureCallbackRunsOnUtilityQueueAndPreservesDocument() async throws {
         let handler = AppDelegate.makeMemoryPressureHandler()
         weak var retiredEngine: StrataEngine?

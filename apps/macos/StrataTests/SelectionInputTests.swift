@@ -34,11 +34,14 @@ final class SelectionInputTests: XCTestCase {
     @MainActor
     func testEllipseAndWandCommitOnceAndQuickWaitsForBothBrushClasses() async throws {
         let engine = try engine(), input = CanvasSelectionInput(engine: engine)
+        var outlinePresent = false
+        input.onChanged = { [weak input] in outlinePresent = input?.paths().0 != nil }
         var failures: [String] = []
         input.onError = { failures.append($0.localizedDescription) }
         input.configure(CanvasSelectionConfiguration(command: "select.ellipse"))
         input.down(NSPoint(x:2,y:2), modifiers: [], clicks: 1)
         input.up(NSPoint(x:12,y:12)); try await finish(input)
+        XCTAssertFalse(outlinePresent, "Completed ellipse must clear its staged canvas outline")
         XCTAssertEqual(try EditorSnapshot.decode(engine.snapshotJson()).history.count, 1)
         input.configure(CanvasSelectionConfiguration(command: "select.wand", tolerance: 0))
         input.down(NSPoint(x:4,y:4), modifiers: [], clicks: 1); try await finish(input)

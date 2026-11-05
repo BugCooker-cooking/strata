@@ -125,7 +125,11 @@ impl StrataEngine {
                 prompt,
                 prior,
             ) {
-                Ok(session) => *slot = Some(session),
+                Ok(session) => {
+                    *self.active_ai_request.lock().map_err(ai_error)? =
+                        Some((turn, inner.editor.request(Source::Ai { turn_id: turn })));
+                    *slot = Some(session);
+                }
                 Err(error) => {
                     inner.editor.stop_turn();
                     return Err(ai_error(error));
@@ -201,6 +205,13 @@ impl StrataEngine {
     /// decode/composition/tool preparation cannot prevent revoking commit rights.
     pub fn ai_stop(&self, turn_id: String) -> Result<(), StrataError> {
         let turn = parse_id(&turn_id)?;
+        // Mark the exact turn's token before waiting for a display-preparation
+        // mutex. A stale stop can never cancel a newer turn's generation.
+        if let Some((active, request)) = &*self.active_ai_request.lock().map_err(ai_error)?
+            && *active == turn
+        {
+            request.cancel();
+        }
         ToolHost::stop(self, turn).map_err(ai_error)
     }
     pub fn ai_grant_read(&self, turn_id: String, path: String) -> Result<String, StrataError> {
@@ -282,12 +293,27 @@ impl ToolHost for StrataEngine {
         };
         request.call_id = call;
         request = request.with_timeout(timeout);
-        let prepared = snapshot
-            .prepare(request, id, params.clone())
-            .map_err(|e| AiError::Host(e.to_string()))?;
+        let prepared = snapshot.prepare(request, id, params.clone()).map_err(|e| {
+            if matches!(
+                e,
+                CommandError::Expired
+                    | CommandError::Stale
+                    | CommandError::Document(strata_core::DocumentError::Cancelled)
+            ) {
+                AiError::Stopped
+            } else {
+                AiError::Host(e.to_string())
+            }
+        })?;
         let result = {
             let mut inner = self.lock().map_err(|e| AiError::Host(e.to_string()))?;
-            apply(&mut inner, prepared, id, &params).map_err(|e| AiError::Host(e.to_string()))?
+            apply(&mut inner, prepared, id, &params).map_err(|e| {
+                if matches!(e, StrataError::Cancelled { .. }) {
+                    AiError::Stopped
+                } else {
+                    AiError::Host(e.to_string())
+                }
+            })?
         };
         self.deliver_events()
             .map_err(|e| AiError::Host(e.to_string()))?;
@@ -330,6 +356,13 @@ impl ToolHost for StrataEngine {
             if matches!(inner.editor.control(), Control::Running { turn_id } | Control::Paused { turn_id } if *turn_id == turn)
             {
                 inner.editor.stop_turn();
+                let mut active = self
+                    .active_ai_request
+                    .lock()
+                    .map_err(|e| AiError::Host(e.to_string()))?;
+                if active.as_ref().is_some_and(|(id, _)| *id == turn) {
+                    *active = None;
+                }
                 queue_state(&mut inner);
             }
         }
@@ -618,6 +651,24 @@ mod tests {
         let old_request = request["request_id"].as_str().unwrap().to_string();
         engine.ai_stop(old.clone()).unwrap();
         let new = begin(&engine);
+        let current_candidate = {
+            let inner = engine.lock().unwrap();
+            inner
+                .editor
+                .prepare(
+                    inner.editor.request(Source::Ai {
+                        turn_id: Uuid::parse_str(&new).unwrap(),
+                    }),
+                    "layer.create",
+                    json!({"name":"new generation"}),
+                )
+                .unwrap()
+        };
+        engine.ai_stop(old.clone()).unwrap();
+        assert!(
+            !current_candidate.work_expired(),
+            "stale stop cancelled a newer turn"
+        );
         assert!(engine.ai_poll(old).is_err());
         assert!(
             engine
@@ -634,5 +685,46 @@ mod tests {
             }
         );
         engine.ai_stop(new).unwrap();
+    }
+    #[test]
+    fn ai_stop_marks_its_token_before_waiting_for_a_busy_renderer() {
+        let engine = engine();
+        let turn = begin(&engine);
+        let pending = {
+            let inner = engine.lock().unwrap();
+            inner
+                .editor
+                .prepare(
+                    inner.editor.request(Source::Ai {
+                        turn_id: Uuid::parse_str(&turn).unwrap(),
+                    }),
+                    "layer.create",
+                    json!({"name":"cancel me"}),
+                )
+                .unwrap()
+        };
+        let locked = engine.lock().unwrap();
+        let worker = engine.clone();
+        let thread = std::thread::spawn(move || worker.ai_stop(turn));
+        let start = std::time::Instant::now();
+        while !pending.work_expired() && start.elapsed() < std::time::Duration::from_secs(1) {
+            std::thread::sleep(std::time::Duration::from_millis(1));
+        }
+        let cancelled = pending.work_expired();
+        let frame = engine.render_frame().unwrap();
+        assert!(engine.artboard_overlay().is_none());
+        assert_eq!(engine.canvas_zoom(), 1.0);
+        assert!(matches!(
+            engine.pan_by(1.0, 1.0),
+            Err(StrataError::Cancelled { .. })
+        ));
+        drop(locked);
+        thread.join().unwrap().unwrap();
+        assert!(
+            cancelled,
+            "AI stop waited for the renderer before revoking its token"
+        );
+        assert!(frame.skipped);
+        assert_eq!(engine.lock().unwrap().editor.control(), &Control::User);
     }
 }

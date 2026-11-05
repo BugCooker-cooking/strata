@@ -222,6 +222,54 @@ mod tests {
         fn on_event(&self, _: EngineEventDto) {}
     }
     #[test]
+    fn cancelling_never_waits_for_the_editor_mutex_and_late_commit_stays_rejected() {
+        let engine = StrataEngine::new(Arc::new(Listener));
+        engine
+            .dispatch(
+                "file.new".into(),
+                json!({"width":8,"height":8,"bit_depth":16}).to_string(),
+            )
+            .unwrap();
+        let candidate = {
+            let inner = engine.lock().unwrap();
+            inner
+                .editor
+                .prepare(
+                    inner.editor.request(Source::User),
+                    "layer.create",
+                    json!({"name":"late"}),
+                )
+                .unwrap()
+        };
+        let locked = engine.lock().unwrap();
+        let (sender, receiver) = std::sync::mpsc::channel();
+        let worker = engine.clone();
+        let thread = std::thread::spawn(move || {
+            sender.send(worker.cancel_pending_work()).unwrap();
+        });
+        let signal = receiver.recv_timeout(std::time::Duration::from_secs(1));
+        drop(locked);
+        thread.join().unwrap();
+        assert!(
+            signal.is_ok(),
+            "cancellation blocked on the editor/render mutex"
+        );
+        signal.unwrap().unwrap();
+        assert!(matches!(
+            engine.lock().unwrap().editor.commit(candidate),
+            Err(CommandError::Expired)
+        ));
+        engine
+            .dispatch(
+                "layer.create".into(),
+                json!({"name":"new request"}).to_string(),
+            )
+            .unwrap();
+        let state = engine.lock().unwrap().editor.snapshot();
+        assert_eq!(state.layers.len(), 2);
+        assert_eq!(state.history.len(), 1);
+    }
+    #[test]
     fn selection_gestures_reject_late_commits_wrong_commands_and_cancellation() {
         let engine = StrataEngine::new(Arc::new(Listener));
         engine

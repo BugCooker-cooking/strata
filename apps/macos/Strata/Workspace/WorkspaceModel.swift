@@ -133,7 +133,7 @@ final class WorkspaceModel: ObservableObject {
     var canRedo: Bool { permissions.history && (snapshot?.historyCursor ?? 0) < (snapshot?.history.count ?? 0) }
     func send(_ action: WorkspaceAction) { self.action?(action) }
     func selectTool(_ tool: EditorTool) {
-        guard tool.available, tool != .move || permissions.edits, !tool.isSelection || permissions.selectionEdits else { return }
+        guard !busy, tool.available, tool != .move || permissions.edits, !tool.isSelection || permissions.selectionEdits else { return }
         if tool == .subject { if permissions.edits { send(.selectSubject) }; return }
         self.tool = tool; send(.tool(tool))
     }

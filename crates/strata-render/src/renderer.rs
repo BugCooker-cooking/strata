@@ -538,6 +538,17 @@ impl Renderer {
         document: &strata_core::Document,
         fit: bool,
     ) -> Result<super::scene::PreparedScene, RenderError> {
+        self.prepare_document_cancellable(document, fit, &|| false)
+    }
+    pub fn prepare_document_cancellable(
+        &mut self,
+        document: &strata_core::Document,
+        fit: bool,
+        cancel: &dyn Fn() -> bool,
+    ) -> Result<super::scene::PreparedScene, RenderError> {
+        if cancel() {
+            return Err(RenderError::Cancelled);
+        }
         let view = if fit {
             let f = document.frame();
             let mut v = ViewTransform::fit(f.width, f.height, self.viewport);
@@ -548,13 +559,14 @@ impl Renderer {
             self.view
         };
         let mut scene = super::scene::Scene::new(document.clone(), self.scene.as_ref());
-        scene.prepare_visible(
+        scene.prepare_visible_cancellable(
             &self.device,
             &self.queue,
             &self.scene_pipeline,
             &self.sampler,
             view,
             self.viewport,
+            cancel,
         )?;
         Ok(super::scene::PreparedScene {
             owner: self.id,

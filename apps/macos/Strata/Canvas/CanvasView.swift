@@ -23,6 +23,7 @@ final class CanvasView: NSView {
     var isSelectionEnabled = true {
         didSet { if !isSelectionEnabled, !selectionInput.running { selectionInput.cancel() } }
     }
+    var isWorkBusy = false
     var onSelectionRunning: ((Bool) -> Void)?
     private var benchmark: CanvasBenchmark?
     var onError: ((Error) -> Void)?
@@ -183,7 +184,7 @@ final class CanvasView: NSView {
 
     @objc private func displayFrame(_ link: CADisplayLink) {
         let benchmarking = benchmark?.finished == false
-        guard attached, dirty || benchmarking else { return }
+        guard attached, !isWorkBusy || benchmarking, dirty || benchmarking else { return }
         do {
             if benchmarking { try benchmark?.beforeFrame(viewport: viewport, window: window, link: link) }
             let frame = try engine.renderFrame()
@@ -294,6 +295,7 @@ final class CanvasView: NSView {
     }
 
     override func mouseDown(with event: NSEvent) {
+        guard !isWorkBusy else { return }
         benchmark?.cancel(BenchmarkFailure("User input interrupted benchmark"))
         window?.makeFirstResponder(self)
         if selectionCommand != nil {
@@ -356,12 +358,13 @@ final class CanvasView: NSView {
         addTrackingArea(area); pointerTracking = area
     }
     override func mouseMoved(with event: NSEvent) {
+        guard !isWorkBusy else { return }
         let point = convert(event.locationInWindow, from: nil)
-        if let document = documentPoint(point) { selectionInput.hover(document) }
+        if selectionCommand != nil, isSelectionEnabled, let document = documentPoint(point) { selectionInput.hover(document) }
         onPointerMoved?(point)
     }
     func panByPoints(dx: CGFloat, dy: CGFloat) { pan(dx: dx, dy: dy) }
-    func actualSize() { zoomBy(1 / CGFloat(engine.canvasZoom())) }
+    func actualSize() { guard !isWorkBusy else { return }; zoomBy(1 / CGFloat(engine.canvasZoom())) }
     private func cancelLayerDrag() {
         guard layerDrag != nil else { return }
         do { try engine.endLayerMove(x: 0, y: 0, cancel: true) } catch { onError?(error) }
@@ -369,11 +372,13 @@ final class CanvasView: NSView {
     }
 
     private func pan(dx: CGFloat, dy: CGFloat) {
+        guard !isWorkBusy else { return }
         do { try engine.panBy(dx: Float(dx * scale), dy: Float(dy * scale)); markDirty() }
         catch { onError?(error) }
     }
 
     private func zoom(at point: NSPoint, factor: CGFloat) {
+        guard !isWorkBusy else { return }
         do {
             try engine.zoomAt(x: Float(point.x * scale), y: Float(point.y * scale), factor: Float(factor))
             markDirty()
@@ -381,10 +386,12 @@ final class CanvasView: NSView {
     }
 
     func zoomBy(_ factor: CGFloat) {
+        guard !isWorkBusy else { return }
         benchmark?.cancel(BenchmarkFailure("User input interrupted benchmark"))
         zoom(at: NSPoint(x: bounds.midX, y: bounds.midY), factor: factor)
     }
     func fit() {
+        guard !isWorkBusy else { return }
         benchmark?.cancel(BenchmarkFailure("User input interrupted benchmark"))
         do { try engine.fitToScreen(); markDirty() } catch { onError?(error) }
     }

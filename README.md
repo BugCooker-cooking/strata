@@ -10,7 +10,9 @@ Strata is an open-source, AI-operable image editor with a portable Rust core and
 
 目前在 [BugCooker-cooking/strata](https://github.com/BugCooker-cooking/strata) 私有开发；成品完成后再决定公开，不自动切换仓库可见性。
 
-M1a 已接入单画板与像素图层：新建/打开、增删复制/排序/移动、显隐/不透明度、四种混合模式、撤销/重做、`.strata` 保存重开、PNG/TIFF 8/16 位导出，以及显式工作空间转换。原生应用与无界面工具使用同一命令执行器。M2a 的 AI 接口、模型设置与聊天面板已实现并进入验收，见 [当前进展](docs/research/2026-11-m2a-ai-progress.md)。上图是完整 v1 的界面设计稿，不是当前功能截图。选区、蒙版和调整层仍待后续实现，不是正式产品。
+当前已推进至 M5：可移植 AI 接口、原生模型设置/对话、u16 分块选区与蒙版、主体选择/局部曝光、27 种混合模式、穿透/隔离图层组、填充/样式/剪贴板，以及形状/套索/魔棒/图割选区和亮度、色阶、曲线、白平衡等调色调整层。原生应用与无界面工具使用同一命令执行器，保留 8/16 位源样本、工作 ICC、撤销与工程恢复。见 [M3](docs/research/2026-11-m3-layers-progress.md)、[M4](docs/research/2026-11-m4-selection-progress.md)、[M5](docs/research/2026-11-m5-adjustments-progress.md) 的实现与验收证据。
+
+完整范围继续覆盖 [PS 功能清单的 P0–P3](docs/plans/photoshop-feature-coverage.md)，尚未全部实现。阴影/高光、实时调色预览、绘画/修复/专业滤镜、文字/变换、PSD/RAW 等仍继续开发；真实模型新增任务、困难照片质量集和外部设备门槛独立追踪。上图是完整 v1 的界面设计稿，不是当前功能截图；当前仍为开发版本。
 
 2026-11-03 已落实原生工作区框架：文档标签、分组工具栏、属性/调整/历史、图层缩略图、可调侧栏、AI 未接入面板、标尺/缩放/导航与状态栏，支持深/浅主题。M1b 已推进独立文档标签、最近文件和可撤销的图片置入；M1b 的后续交付按分批验收记录推进。见 [工作区与 M1b 记录](docs/research/2026-11-workspace-progress.md)。
 
@@ -27,7 +29,7 @@ M1b 第三批已接入导出尺寸、macOS HEIC、30 秒空闲恢复检查点与
 ## 开发
 
 - Rust **1.97.1**（rustup 自动读取 `rust-toolchain.toml`）。
-- macOS 本机验证环境：Apple Silicon、Xcode **27.1** / Swift **6.4**、XcodeGen **2.45.4**。
+- macOS 本机验证环境：Apple Silicon、Xcode **27.2** / Swift **6.4.2**、XcodeGen **2.45.4**。
 - 远程已通过：Ubuntu 24.04、macOS 15 arm64；原生环境 Xcode **16.4** / Swift **6.1.2**、XcodeGen **2.46.0**。
 - 最终应用最低运行版本目标为 macOS **14.0**；该最低版本尚未实机验证。
 
@@ -43,9 +45,13 @@ make commands
 cargo run --release -p strata-devtool -- demo build/m1a-demo-new
 cargo run --release -p strata-devtool -- capacity
 cargo run --release -p strata-devtool -- memory-stress build/new-memory-stress
+cargo run --release -p strata-devtool -- selection-benchmark build/new-selection-report.json
+cargo run --release -p strata-devtool -- tonal-benchmark build/new-tonal-report.json
 ```
 
 `make run` 自动编译 Rust、生成 Swift 绑定与 Xcode 工程并启动应用。`make test` 同时跑 Rust 和 XCTest；Linux 使用 `make test-core`。`make test-gpu` 要求真实 GPU，不允许以无 adapter 跳过代替通过。Release 使用 `make run CONFIGURATION=Release FRAME_STATS=1`。
+
+本机验收一次只运行一个 Strata 实例，完成即退出；Make 默认两个构建任务。选区/调色基准记录固定 24MP / 16 位命令或完整 CPU 导出耗时，不作为原生帧率证据。
 
 `make color-fixtures` 生成原生 P3 色块、完整 16 位灰阶和透明边缘，拒绝覆盖已有输出；再次生成时指定 `FIXTURE_OUTPUT=build/color-fixtures-v2`。`make benchmark` 运行真实 Release 画布，置顶诊断窗口完成 3×30 秒平移缩放，原始时间戳和环境写入独立的 `build/canvas-benchmark.*/report.json`；期间请勿操作该窗口，遮挡、尺寸/屏幕变化或用户输入会中止测量。报告记录置顶模式、60Hz 请求频率与屏幕实际刷新能力，不把 CPU 提交当作 GPU 呈现时间。
 

@@ -167,7 +167,7 @@ impl StrataEngine {
         Ok(())
     }
     pub fn cancel_pending_work(&self) -> Result<(), StrataError> {
-        self.lock()?.editor.cancel_pending_work();
+        self.work_cancellation.cancel();
         Ok(())
     }
     pub fn clear_subject_model(&self) -> Result<(), StrataError> {

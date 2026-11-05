@@ -109,6 +109,22 @@ impl Scene {
         view: ViewTransform,
         vp: Viewport,
     ) -> Result<(), RenderError> {
+        self.prepare_visible_cancellable(device, queue, pipeline, sampler, view, vp, &|| false)
+    }
+    #[allow(clippy::too_many_arguments)]
+    pub fn prepare_visible_cancellable(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        pipeline: &wgpu::RenderPipeline,
+        sampler: &wgpu::Sampler,
+        view: ViewTransform,
+        vp: Viewport,
+        cancel: &dyn Fn() -> bool,
+    ) -> Result<(), RenderError> {
+        if cancel() {
+            return Err(RenderError::Cancelled);
+        }
         if self.last == Some((view, vp)) {
             return Ok(());
         }
@@ -192,6 +208,9 @@ impl Scene {
             self.fingerprints.clear();
         }
         for coord in coords {
+            if cancel() {
+                return Err(RenderError::Cancelled);
+            }
             let mut signatures = Vec::new();
             let mut neighbor_coords = Vec::new();
             for y in -1..=1 {
@@ -218,9 +237,18 @@ impl Scene {
                 let neighbors = neighbor_coords
                     .into_iter()
                     .map(|c| {
+                        if cancel() {
+                            return Err(RenderError::Cancelled);
+                        }
                         self.compositor
-                            .tile_prefix(&self.document, c, prefix)
-                            .map_err(err)
+                            .tile_prefix_cancellable(&self.document, c, prefix, cancel)
+                            .map_err(|error| {
+                                if matches!(error, strata_core::DocumentError::Cancelled) {
+                                    RenderError::Cancelled
+                                } else {
+                                    err(error)
+                                }
+                            })
                     })
                     .collect::<Result<Vec<_>, _>>()?;
                 // Prewarm the next sharper mip when one ordinary 1.25x zoom

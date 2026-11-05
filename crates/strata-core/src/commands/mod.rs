@@ -1,4 +1,5 @@
 mod arrange;
+mod cancellation;
 mod executor;
 mod export;
 mod generated;
@@ -11,6 +12,7 @@ mod sample_selection;
 mod selection;
 mod tonal;
 mod tree;
+pub use cancellation::WorkCancellation;
 pub use executor::{
     ClipboardImage, CommandError, Control, Editor, ExposureInteraction, HistoryInfo,
     MarqueeInteraction, MoveInteraction, PreparedCommand, Request, Snapshot, Source,

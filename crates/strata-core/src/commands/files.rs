@@ -370,7 +370,7 @@ impl Editor {
         let resource = self.resource(&resource_id, request, true)?;
         let data = if let Some(export) = export {
             WriteData::Image {
-                pixels: export.pixels(doc)?,
+                pixels: export.pixels(doc, &|| request.expired())?,
                 width: export.width,
                 height: export.height,
                 icc: export.icc,

@@ -731,6 +731,40 @@ fn failed_prepare_preserves_image_and_view() {
 }
 
 #[test]
+fn cancelling_scene_preparation_keeps_the_last_committed_frame() {
+    let Some(mut renderer) = renderer() else {
+        return;
+    };
+    put(
+        &mut renderer,
+        PixelBuffer::Rgba8([200, 100, 50, 255].repeat(4)),
+        2,
+        2,
+    );
+    renderer.render().unwrap();
+    let before = renderer.read_offscreen_rgba().unwrap();
+    let view = renderer.view();
+    let mut editor = strata_core::Editor::new();
+    editor.execute(editor.request(strata_core::Source::Test),"file.new",serde_json::json!({"width":512,"height":512,"bit_depth":16,"background":[30000,40000,50000,65535]}),|_|Ok(())).unwrap();
+    let visits = std::cell::Cell::new(0);
+    let result = renderer.prepare_document_cancellable(editor.document().unwrap(), true, &|| {
+        visits.set(visits.get() + 1);
+        visits.get() > 4
+    });
+    assert!(matches!(result, Err(RenderError::Cancelled)));
+    assert!(visits.get() > 4);
+    assert_eq!(renderer.view(), view);
+    renderer.render().unwrap();
+    assert_eq!(renderer.read_offscreen_rgba().unwrap(), before);
+    let scene = renderer
+        .prepare_document(editor.document().unwrap(), true)
+        .unwrap();
+    renderer.commit_document(scene).unwrap();
+    renderer.render().unwrap();
+    assert_ne!(renderer.read_offscreen_rgba().unwrap(), before);
+}
+
+#[test]
 fn new_scale_rescales_view() {
     let Some(mut r) = renderer() else {
         return;

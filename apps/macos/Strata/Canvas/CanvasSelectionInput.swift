@@ -42,9 +42,10 @@ final class CanvasSelectionInput {
         else if active { try? engine.endSelection(command: configuration.command, paramsJson: "{}", cancel: true) }
         clear()
     }
-    private func clear() {
+    private func clear(force: Bool = false) {
+        let hadInput = force || active || running || !points.isEmpty || !foreground.isEmpty || !background.isEmpty
         active = false; points = []; foreground = []; background = []; lastBrush = nil
-        onChanged?()
+        if hadInput { onChanged?() }
     }
     private func begin(_ point: NSPoint, modifiers: NSEvent.ModifierFlags) throws {
         guard !active else { return }
@@ -139,7 +140,7 @@ final class CanvasSelectionInput {
                 do { try await aiEngineWork { try engine.endSelection(command: command, paramsJson: encoded, cancel: false) }; result = .success(()) }
                 catch { result = .failure(error) }
                 guard let self else { return }
-                self.running = false; self.clear(); self.onRunning?(false)
+                self.running = false; self.clear(force: true); self.onRunning?(false)
                 switch result { case .success: self.onCommitted?(); case .failure(let error): self.onError?(error) }
             }
         } catch { cancel(); onError?(error) }

@@ -12,6 +12,8 @@ pub(crate) fn default_resolution_dpi() -> u32 {
 
 #[derive(Debug, thiserror::Error)]
 pub enum DocumentError {
+    #[error("composition cancelled")]
+    Cancelled,
     #[error("invalid document: {0}")]
     Invalid(String),
     #[error("document resource limit exceeded")]
