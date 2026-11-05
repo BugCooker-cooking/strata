@@ -19,6 +19,14 @@ pub fn tonal_curve_preview(points_json: String) -> Result<Vec<f32>, StrataError>
 
 #[uniffi::export]
 impl StrataEngine {
+    pub fn begin_clone(&self, layer_id: String) -> Result<(), StrataError> {
+        let layer = serde_json::from_value(json!({"id":layer_id})).map_err(render_error)?;
+        self.issue_tonal_preview()?;
+        let mut inner = self.lock()?;
+        crate::tonal_preview::restore(&mut inner)?;
+        inner.brush = Some(inner.editor.begin_clone(layer).map_err(command_error)?);
+        Ok(())
+    }
     pub fn begin_paint(&self, layer_id: String, command: String) -> Result<(), StrataError> {
         let layer = serde_json::from_value(json!({"id":layer_id})).map_err(render_error)?;
         self.issue_tonal_preview()?;

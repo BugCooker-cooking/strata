@@ -25,6 +25,9 @@ final class CanvasView: NSView {
     private let paintGuide = CAShapeLayer()
     private var brushTool = false
     private var brushPreviewColor = NSColor.black
+    private var cloneTool = false
+    private var cloneSource:NSPoint?
+    private let cloneMarker=CAShapeLayer()
     var documentOrigin = NSPoint.zero
     private var selectionCommand: String?
     var isSelectionEnabled = true {
@@ -34,6 +37,7 @@ final class CanvasView: NSView {
     var onSelectionRunning: ((Bool) -> Void)?
     var onBrushRunning: ((Bool) -> Void)?
     var onColorSample:(([Double],Bool,String)->Void)?
+    var onCloneSource:((NSPoint)->Void)?
     private var benchmark: CanvasBenchmark?
     var onError: ((Error) -> Void)?
     var onCommitted: (() -> Void)?
@@ -77,6 +81,7 @@ final class CanvasView: NSView {
         brushPreview.fillColor = nil; brushPreview.lineCap = .round; brushPreview.lineJoin = .round
         layer?.addSublayer(brushPreview)
         paintGuide.fillColor=nil;paintGuide.strokeColor=NSColor.white.cgColor;paintGuide.lineWidth=1;paintGuide.lineDashPattern=[4,4];layer?.addSublayer(paintGuide)
+        cloneMarker.fillColor=nil;cloneMarker.strokeColor=NSColor.white.cgColor;cloneMarker.lineWidth=1;layer?.addSublayer(cloneMarker)
         selectionInput.onChanged = { [weak self] in self?.drawMarqueePreview() }
         selectionInput.onRunning = { [weak self] running in self?.onSelectionRunning?(running) }
         selectionInput.onCommitted = { [weak self] in self?.markDirty(); self?.onCommitted?() }
@@ -254,6 +259,7 @@ final class CanvasView: NSView {
         drawMarqueePreview()
         drawBrushPreview()
         drawPaintGuide()
+        drawCloneMarker()
     }
     func setSelectionOutline(_ edges: [SelectionEdge]) {
         selectionEdges = edges
@@ -308,6 +314,9 @@ final class CanvasView: NSView {
     }
     func configureBrush(_ model: WorkspaceModel) {
         brushTool = model.tool.isBrush
+        cloneTool = model.tool == .clone
+        cloneSource = cloneTool && model.cloneSource?.count == 2 ? NSPoint(x:model.cloneSource?[0] ?? 0,y:model.cloneSource?[1] ?? 0) : nil
+        drawCloneMarker()
         if !brushTool { brushInput.cancel(); return }
         let color = model.foregroundColor.usingColorSpace(model.workingColorSpace) ?? NSColor(srgbRed:0,green:0,blue:0,alpha:1)
         func bounded(_ value: Double, _ range: ClosedRange<Double>, _ fallback: Double) -> Double {
@@ -317,11 +326,11 @@ final class CanvasView: NSView {
         let maskColor = (model.tool == .eraser ? model.backgroundColor : model.foregroundColor).usingColorSpace(model.workingColorSpace) ?? NSColor(srgbRed:1,green:1,blue:1,alpha:1)
         let maskValue = bounded(Double(maskColor.redComponent)*0.2126+Double(maskColor.greenComponent)*0.7152+Double(maskColor.blueComponent)*0.0722,0...1,1)
         brushPreviewColor = model.tool == .eraser ? NSColor.white.withAlphaComponent(0.5) : color
-        let configuration = CanvasBrushConfiguration(layer:model.selected?.id,erase:model.tool == .eraser,target:model.brushTarget,
+        let configuration = CanvasBrushConfiguration(layer:model.selected?.id,erase:model.tool == .eraser,target:cloneTool ? "pixels" : model.brushTarget,
             size:bounded(model.brushSize,0.5...4096,24),hardness:bounded(model.brushHardness/100,0...1,0.8),
             opacity:bounded(model.brushOpacity/100,0...1,1),flow:bounded(model.brushFlow/100,0...1,1),
             spacing:bounded(model.brushSpacing/100,0.01...2,0.2),color:rgba,
-            value:maskValue,pressureSize:model.brushPressureSize,pressureOpacity:model.brushPressureOpacity)
+            value:maskValue,pressureSize:model.brushPressureSize,pressureOpacity:model.brushPressureOpacity,clone:cloneTool,aligned:model.cloneAligned,cloneSource:model.cloneSource,cloneSample:model.cloneSample)
         brushInput.configure(configuration)
     }
     func configurePaint(_ model:WorkspaceModel){
@@ -338,6 +347,11 @@ final class CanvasView: NSView {
         guard let path=paintInput.path(),let frame=engine.artboardOverlay()else{paintGuide.path=nil;return}
         let zoom=CGFloat(engine.canvasZoom())/scale;var transform=CGAffineTransform(a:zoom,b:0,c:0,d:zoom,tx:CGFloat(frame.x)/scale-documentOrigin.x*zoom,ty:CGFloat(frame.y)/scale-documentOrigin.y*zoom)
         paintGuide.path=path.copy(using:&transform)
+    }
+    private func drawCloneMarker(){
+        guard cloneTool,let source=cloneSource,let frame=engine.artboardOverlay()else{cloneMarker.path=nil;return}
+        let zoom=CGFloat(engine.canvasZoom())/scale;let p=NSPoint(x:CGFloat(frame.x)/scale+(source.x-documentOrigin.x)*zoom,y:CGFloat(frame.y)/scale+(source.y-documentOrigin.y)*zoom)
+        let path=CGMutablePath();path.addEllipse(in:CGRect(x:p.x-5,y:p.y-5,width:10,height:10));path.move(to:NSPoint(x:p.x-9,y:p.y));path.addLine(to:NSPoint(x:p.x+9,y:p.y));path.move(to:NSPoint(x:p.x,y:p.y-9));path.addLine(to:NSPoint(x:p.x,y:p.y+9));cloneMarker.path=path
     }
     private func drawBrushPreview() {
         guard let source = brushInput.path(), let frame = engine.artboardOverlay() else { brushPreview.path = nil; return }
@@ -372,6 +386,7 @@ final class CanvasView: NSView {
         if paintTool{guard let point=documentPoint(convert(event.locationInWindow,from:nil))else{return};paintInput.down(point,background:event.modifierFlags.contains(.option));return}
         if brushTool {
             guard isEditingEnabled, let point = documentPoint(convert(event.locationInWindow,from:nil)) else { return }
+            if cloneTool,event.modifierFlags.contains(.option){onCloneSource?(point);return}
             brushInput.down(point,pressure:brushPressure(event)); return
         }
         if selectionCommand != nil {

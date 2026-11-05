@@ -13767,6 +13767,17 @@ Permissions: `bound_document`
   "title": "BrushStroke",
   "type": "object",
   "properties": {
+    "clone_source": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CloneSource"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
     "color": {
       "type": "array",
       "default": [
@@ -13870,6 +13881,41 @@ Permissions: `bound_document`
         "mask"
       ]
     },
+    "CloneSource": {
+      "type": "object",
+      "properties": {
+        "destination": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "default": null,
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 2,
+          "minItems": 2
+        },
+        "sample": {
+          "$ref": "#/$defs/SelectionSample",
+          "default": "current_layer"
+        },
+        "source": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 2,
+          "minItems": 2
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "source"
+      ]
+    },
     "LayerRef": {
       "description": "Stable ID preferred. Duplicate names return candidates instead of guessing.",
       "oneOf": [
@@ -13898,6 +13944,13 @@ Permissions: `bound_document`
             "name"
           ]
         }
+      ]
+    },
+    "SelectionSample": {
+      "type": "string",
+      "enum": [
+        "merged",
+        "current_layer"
       ]
     }
   }
@@ -14013,6 +14066,17 @@ Permissions: `bound_document`
   "title": "BrushStroke",
   "type": "object",
   "properties": {
+    "clone_source": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CloneSource"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
     "color": {
       "type": "array",
       "default": [
@@ -14116,6 +14180,41 @@ Permissions: `bound_document`
         "mask"
       ]
     },
+    "CloneSource": {
+      "type": "object",
+      "properties": {
+        "destination": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "default": null,
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 2,
+          "minItems": 2
+        },
+        "sample": {
+          "$ref": "#/$defs/SelectionSample",
+          "default": "current_layer"
+        },
+        "source": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 2,
+          "minItems": 2
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "source"
+      ]
+    },
     "LayerRef": {
       "description": "Stable ID preferred. Duplicate names return candidates instead of guessing.",
       "oneOf": [
@@ -14144,6 +14243,13 @@ Permissions: `bound_document`
             "name"
           ]
         }
+      ]
+    },
+    "SelectionSample": {
+      "type": "string",
+      "enum": [
+        "merged",
+        "current_layer"
       ]
     }
   }
@@ -14997,6 +15103,278 @@ Permissions: `bound_document`
       ]
     }
   ]
+}
+```
+
+## `retouch.clone` — 仿制图章笔触
+
+Clone from an immutable input snapshot during one pixel brush stroke. Required clone_source.source is canvas [x,y]; destination is the canvas anchor for fixed alignment, default first stroke point. Sampling maps target + source - destination, bilinear premultiplied linear P3 with out-of-artboard transparent; sample=current_layer uses raw target pixel layer, sample=merged uses the visible composite. Source colors never feed back from just-written target samples. Same size/hardness/opacity/flow/spacing/pressure/selection/transparency and ancestor lock semantics as paint.stroke. Pixel target only; color/value ignored, clone_source not allowed on ordinary brushes. At most 8192 points, bounded dab work and tile cache; shared budgets and cancellation apply. Atomic one history edit. 中文：仿制图章、取样点、对齐、所有图层取样。
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `false`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BrushStroke",
+  "type": "object",
+  "properties": {
+    "clone_source": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CloneSource"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "color": {
+      "type": "array",
+      "default": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "items": {
+        "type": "number",
+        "format": "double"
+      },
+      "maxItems": 4,
+      "minItems": 4
+    },
+    "flow": {
+      "type": "number",
+      "format": "double",
+      "default": 1.0
+    },
+    "hardness": {
+      "type": "number",
+      "format": "double",
+      "default": 0.8
+    },
+    "layer": {
+      "$ref": "#/$defs/LayerRef"
+    },
+    "opacity": {
+      "type": "number",
+      "format": "double",
+      "default": 1.0
+    },
+    "points": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/BrushPoint"
+      }
+    },
+    "pressure_opacity": {
+      "type": "boolean",
+      "default": true
+    },
+    "pressure_size": {
+      "type": "boolean",
+      "default": true
+    },
+    "size": {
+      "type": "number",
+      "format": "double",
+      "default": 24.0
+    },
+    "spacing": {
+      "type": "number",
+      "format": "double",
+      "default": 0.2
+    },
+    "target": {
+      "$ref": "#/$defs/BrushTarget",
+      "default": "pixels"
+    },
+    "value": {
+      "type": "number",
+      "format": "double",
+      "default": 1.0
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "layer",
+    "points"
+  ],
+  "$defs": {
+    "BrushPoint": {
+      "type": "object",
+      "properties": {
+        "pressure": {
+          "type": "number",
+          "format": "double",
+          "default": 1.0
+        },
+        "x": {
+          "type": "number",
+          "format": "double"
+        },
+        "y": {
+          "type": "number",
+          "format": "double"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "x",
+        "y"
+      ]
+    },
+    "BrushTarget": {
+      "type": "string",
+      "enum": [
+        "pixels",
+        "mask"
+      ]
+    },
+    "CloneSource": {
+      "type": "object",
+      "properties": {
+        "destination": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "default": null,
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 2,
+          "minItems": 2
+        },
+        "sample": {
+          "$ref": "#/$defs/SelectionSample",
+          "default": "current_layer"
+        },
+        "source": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 2,
+          "minItems": 2
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "source"
+      ]
+    },
+    "LayerRef": {
+      "description": "Stable ID preferred. Duplicate names return candidates instead of guessing.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ]
+        }
+      ]
+    },
+    "SelectionSample": {
+      "type": "string",
+      "enum": [
+        "merged",
+        "current_layer"
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BrushResult",
+  "type": "object",
+  "properties": {
+    "layer_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "target": {
+      "$ref": "#/$defs/BrushTarget"
+    },
+    "touched_tiles": {
+      "type": "integer",
+      "format": "uint",
+      "minimum": 0
+    }
+  },
+  "required": [
+    "layer_id",
+    "target",
+    "touched_tiles"
+  ],
+  "$defs": {
+    "BrushTarget": {
+      "type": "string",
+      "enum": [
+        "pixels",
+        "mask"
+      ]
+    }
+  }
+}
+```
+
+### Examples
+
+```json
+{
+  "clone_source": {
+    "sample": "current_layer",
+    "source": [
+      3.5,
+      3.5
+    ]
+  },
+  "layer": {
+    "name": "Background"
+  },
+  "points": [
+    {
+      "x": 10.5,
+      "y": 10.5
+    }
+  ],
+  "size": 4
 }
 ```
 

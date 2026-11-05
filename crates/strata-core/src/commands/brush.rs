@@ -191,7 +191,7 @@ pub(super) fn mutate_cancellable(
     params: Value,
     cancel: &dyn Fn() -> bool,
 ) -> Result<Option<Value>, CommandError> {
-    if !matches!(id, "paint.stroke" | "paint.erase") {
+    if !matches!(id, "paint.stroke" | "paint.erase" | "retouch.clone") {
         return Ok(None);
     }
     let p: BrushStroke = parse(params)?;
@@ -201,6 +201,12 @@ pub(super) fn mutate_cancellable(
     let index = doc.layers().iter().position(|l| l.id() == target).unwrap();
     let info = doc.layers[index].info.clone();
     let erase = id == "paint.erase";
+    if id == "retouch.clone"
+        && (p.clone_source.is_none() || !matches!(p.target, BrushTarget::Pixels))
+        || id != "retouch.clone" && p.clone_source.is_some()
+    {
+        return Err(CommandError::Invalid("retouch.clone needs clone_source and a pixel target; ordinary brushes cannot include clone_source".into()));
+    }
     if doc.layers.iter().any(|l| {
         (l.id() == target || doc.is_descendant(target, l.id()))
             && (l.info.locks.all || l.info.locks.pixels)
@@ -259,7 +265,10 @@ pub(super) fn mutate_cancellable(
     };
     if p.opacity == 0.0
         || p.flow == 0.0
-        || !erase && matches!(p.target, BrushTarget::Pixels) && p.color[3] == 0.0
+        || !erase
+            && p.clone_source.is_none()
+            && matches!(p.target, BrushTarget::Pixels)
+            && p.color[3] == 0.0
     {
         return Ok(Some(result(0)));
     }
@@ -306,6 +315,11 @@ pub(super) fn mutate_cancellable(
     let color = strata_color::working_to_linear_p3(&[p.color.map(|v| v as f32)], doc.working_icc())
         .map_err(DocumentError::from)?[0]
         .map(f64::from);
+    let mut clone = p
+        .clone_source
+        .as_ref()
+        .map(|source| super::clone_source::CloneSampler::new(doc, target, source, &p.points[0]))
+        .transpose()?;
     let mut touched = 0;
     for tx in first.x()..=last.x() {
         for ty in first.y()..=last.y() {
@@ -424,7 +438,19 @@ pub(super) fn mutate_cancellable(
                             if info.locks.transparency && old[3] == 0.0 {
                                 continue;
                             }
+                            let color = if let Some(sampler) = &mut clone {
+                                sampler.color(
+                                    canvas_x as f64 + (i % 256) as f64 + 0.5,
+                                    canvas_y as f64 + (i / 256) as f64 + 0.5,
+                                    cancel,
+                                )?
+                            } else {
+                                color
+                            };
                             let a = color[3] * w;
+                            if a == 0.0 {
+                                continue;
+                            }
                             let alpha = if info.locks.transparency {
                                 old[3]
                             } else {

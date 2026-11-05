@@ -4,6 +4,25 @@ import XCTest
 
 final class BrushInputTests:XCTestCase{
     @MainActor
+    func testCloneNeedsSourceAndAlignedModeKeepsOffsetAcrossStrokes()async throws{
+        for aligned in [false,true]{
+            let engine=StrataEngine(listener:EngineEvents{_ in})
+            _ = try engine.dispatch(command:"file.new",paramsJson:commandJSON(["width":16,"height":16,"bit_depth":16]))
+            _ = try engine.dispatch(command:"paint.gradient",paramsJson:commandJSON(["layer":["name":"Background"],"start":[0.5,0.5],"end":[15.5,0.5],"stops":[["at":0,"color":[0,0,0,1]],["at":1,"color":[1,1,1,1]]]]))
+            let state=try EditorSnapshot.decode(engine.snapshotJson()),id=try XCTUnwrap(state.activeLayer)
+            let input=CanvasBrushInput(engine:engine);var failures:[String]=[];input.onError={failures.append($0.localizedDescription)}
+            input.configure(CanvasBrushConfiguration(layer:id,size:2,hardness:1,clone:true,aligned:aligned))
+            input.down(NSPoint(x:8.5,y:8.5),pressure:1);XCTAssertEqual(failures.count,1)
+            input.configure(CanvasBrushConfiguration(layer:id,size:2,hardness:1,clone:true,aligned:aligned,cloneSource:[2.5,8.5]))
+            input.down(NSPoint(x:8.5,y:8.5),pressure:1);input.up(NSPoint(x:8.5,y:8.5),pressure:1);try await finish(input)
+            input.down(NSPoint(x:10.5,y:8.5),pressure:1);input.up(NSPoint(x:10.5,y:8.5),pressure:1);try await finish(input)
+            let final=try EditorSnapshot.decode(engine.snapshotJson());let actual=try AIJSON.decode(engine.sampleColor(paramsJson:commandJSON(["x":10,"y":8,"sample":"current_layer"]),revision:final.revision))
+            XCTAssertEqual(final.history.count,3);XCTAssertEqual(final.history.last?.command,"retouch.clone")
+            XCTAssertEqual(actual["color"].array.first?.number ?? -1,aligned ? 4.0/15.0 : 2.0/15.0,accuracy:0.0001)
+            XCTAssertEqual(failures.count,1)
+        }
+    }
+    @MainActor
     private func configured(erase:Bool=false,target:String="pixels")throws->(StrataEngine,CanvasBrushInput){
         let engine=StrataEngine(listener:EngineEvents{_ in})
         _ = try engine.dispatch(command:"file.new",paramsJson:commandJSON(["width":16,"height":16,"bit_depth":16,"background":[20000,30000,40000,65535]]))

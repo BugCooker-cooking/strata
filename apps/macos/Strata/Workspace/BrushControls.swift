@@ -7,7 +7,10 @@ struct BrushToolOptions: View {
     }
     var body: some View {
         HStack(spacing:8) {
-            Picker("绘制目标",selection:update(\.brushTarget)) {Text("像素").tag("pixels");Text("图层蒙版").tag("mask")}.frame(width:110).labelsHidden()
+            if model.tool == .clone{
+                Picker("仿制取样",selection:update(\.cloneSample)){Text("当前层").tag("current_layer");Text("可见合成").tag("merged")}.frame(width:110).labelsHidden()
+                Toggle("对齐",isOn:update(\.cloneAligned))
+            }else{Picker("绘制目标",selection:update(\.brushTarget)) {Text("像素").tag("pixels");Text("图层蒙版").tag("mask")}.frame(width:110).labelsHidden()}
             field("大小",update(\.brushSize),unit:"px")
             field("硬度",update(\.brushHardness),unit:"%")
             field("不透明度",update(\.brushOpacity),unit:"%")
@@ -15,7 +18,7 @@ struct BrushToolOptions: View {
             field("间距",update(\.brushSpacing),unit:"%")
             Toggle("压感大小",isOn:update(\.brushPressureSize))
             Toggle("压感不透明度",isOn:update(\.brushPressureOpacity))
-            Text("Esc 取消当前笔触").foregroundStyle(Color(nsColor:WorkspaceColors.secondary))
+            Text(model.tool == .clone ? "⌥ 设置源点 · Esc 取消笔触" : "Esc 取消当前笔触").foregroundStyle(Color(nsColor:WorkspaceColors.secondary))
         }.textFieldStyle(.roundedBorder).disabled(!model.permissions.edits)
     }
     private func field(_ title:String,_ value:Binding<Double>,unit:String) -> some View {

@@ -597,6 +597,12 @@ impl Editor {
             command: command.into(),
         })
     }
+    pub fn begin_clone(&self, layer: LayerRef) -> Result<BrushInteraction, CommandError> {
+        self.authorize(&Source::User, "retouch.clone", CommandKind::Mutate)?;
+        let mut interaction = self.begin_brush(layer, BrushTarget::Pixels, false)?;
+        interaction.command = "retouch.clone".into();
+        Ok(interaction)
+    }
     pub fn prepare_brush(
         &self,
         interaction: &BrushInteraction,

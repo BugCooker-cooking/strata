@@ -102,6 +102,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
             self.workspace.sampledColorSummary=String(format:"RGB %.4f / %.4f / %.4f · %@",values[0],values[1],values[2],profile)
             self.canvas.configurePaint(self.workspace)
         }
+        canvas.onCloneSource = {[weak self] point in guard let self else{return};self.workspace.cloneSource=[Double(point.x),Double(point.y)];self.canvas.configureBrush(self.workspace)}
         canvas.onToolKey = { [weak self] key in
             if key == "X", let self { self.workspace.swapPaintColors(); return true }
             if key == "D", let self { self.workspace.foregroundColor = .black; self.workspace.backgroundColor = .white; self.workspace.send(.tool(self.workspace.tool)); return true }
@@ -242,6 +243,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
     private func apply(_ snapshot: EditorSnapshot) {
         assistant.bind(document: snapshot.documentId, inheritedTurn: snapshot.control?.turnId)
         let oldControl = state?.control?.kind
+        if snapshot.documentId != state?.documentId {workspace.cloneSource=nil}
         workspace.snapshot = snapshot; window?.isDocumentEdited = snapshot.dirty
         workspace.tonalPreview?.bind(snapshot)
         if let space=NSColorSpace(iccProfileData:Data(engine.workingProfileIcc())){workspace.workingColorSpace=space}

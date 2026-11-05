@@ -1,6 +1,7 @@
 mod arrange;
 mod brush;
 mod cancellation;
+mod clone_source;
 mod executor;
 mod export;
 mod generated;
@@ -272,7 +273,12 @@ params!(BrushStroke{
     #[serde(default="brush_full")]value:f64,
     #[serde(default="enabled")]pressure_size:bool,
     #[serde(default="enabled")]pressure_opacity:bool
+    ,#[serde(default)]clone_source:Option<CloneSource>
 });
+fn sample_current() -> SelectionSample {
+    SelectionSample::CurrentLayer
+}
+params!(CloneSource{source:[f64;2],#[serde(default)]destination:Option<[f64;2]>,#[serde(default="sample_current")]sample:SelectionSample});
 #[derive(Serialize, JsonSchema)]
 pub struct BrushResult {
     pub layer_id: crate::LayerId,

@@ -590,5 +590,15 @@
         "path": "../research/2026-11-m6-paint-retouch-progress.md"
       }
     ]
+  },
+  "PS-07-ec6361e1f3": {
+    "implementation": "已实现",
+    "acceptance": "本机原始/合成取样、对齐、像素/原生/Metal/单窗口证据；连续性能另记",
+    "evidence": [
+      {
+        "label": "M6 仿制图章",
+        "path": "../research/2026-11-m6-paint-retouch-progress.md"
+      }
+    ]
   }
 }

@@ -637,6 +637,60 @@ fn all_pixel_gradient_shapes_and_fill_update_display_tiles_against_cpu() {
 }
 
 #[test]
+fn clone_stamp_display_matches_immutable_cpu_sample_after_edit() {
+    let Some(mut renderer) = renderer() else {
+        return;
+    };
+    let mut editor = strata_core::Editor::new();
+    for (id, args) in [
+        (
+            "file.new",
+            serde_json::json!({"width":16,"height":16,"bit_depth":16,"working_space":"display_p3"}),
+        ),
+        (
+            "paint.gradient",
+            serde_json::json!({"layer":{"name":"Background"},"start":[0.5,0.5],"end":[15.5,0.5],"stops":[{"at":0,"color":[0.1,0.2,0.3,1]},{"at":1,"color":[0.8,0.6,0.4,1]}]}),
+        ),
+        (
+            "retouch.clone",
+            serde_json::json!({"layer":{"name":"Background"},"points":[{"x":11.5,"y":8.5}],"size":6,"opacity":0.7,"clone_source":{"source":[3.0,8.5]}}),
+        ),
+    ] {
+        editor
+            .execute(editor.request(strata_core::Source::Test), id, args, |_| {
+                Ok(())
+            })
+            .unwrap();
+    }
+    let doc = editor.document().unwrap();
+    let scene = renderer.prepare_document(doc, false).unwrap();
+    renderer.commit_document(scene).unwrap();
+    renderer
+        .set_view(ViewTransform {
+            zoom: 3.0,
+            center_x: 8.0,
+            center_y: 8.0,
+        })
+        .unwrap();
+    renderer.render().unwrap();
+    let actual = renderer.read_offscreen_rgba().unwrap();
+    let PixelBuffer::Rgba16(expected) = doc.export_pixels().unwrap() else {
+        panic!()
+    };
+    for (x, y) in [(2usize, 8usize), (9, 8), (11, 8), (13, 8)] {
+        let shown = pixel(&actual, x * 3 + 9, y * 3 + 9);
+        let i = (y * 16 + x) * 4;
+        for c in 0..3 {
+            let target = ((u32::from(expected[i + c]) + 128) / 257) as i32;
+            assert!(
+                (i32::from(shown[c]) - target).abs() <= 4,
+                "clone {x},{y},{c} {shown:?} != {target}"
+            );
+        }
+    }
+}
+
+#[test]
 fn tiled_scene_preserves_source_and_has_no_mip_seam() {
     let Some(mut r) = renderer() else {
         return;

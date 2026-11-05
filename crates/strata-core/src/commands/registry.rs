@@ -890,11 +890,20 @@ fn build_catalog() -> Vec<CommandSpec> {
         "Paint linear/radial/angle/reflected/diamond gradient on an explicit pixel layer, artboard and current selection. Start/end are bounded canvas positions and must differ. At most 64 strictly increasing stops spanning at=0..1; normalized working RGBA. Colors interpolate in premultiplied encoded working RGB to avoid transparent hidden-color halos, then composite in linear P3 with opacity 0..1; reverse optional. Shape coordinates use pixel centers: linear projection, radial distance, signed angle modulo one turn, reflected absolute projection, diamond L1 distance. Fill locks/cancellation/shared budgets/atomic history apply. 中文：线性、径向、角度、对称、菱形渐变。",
         json!({"layer":{"name":"Background"},"start":[2.5,8.5],"end":[12.5,8.5],"stops":[{"at":0,"color":[0,0,0,1]},{"at":1,"color":[1,1,1,1]}],"shape":"linear"})
     );
+    command!(
+        "retouch.clone",
+        BrushStroke,
+        Mutate,
+        "仿制图章笔触",
+        "Clone stamp stroke",
+        "Clone from an immutable input snapshot during one pixel brush stroke. Required clone_source.source is canvas [x,y]; destination is the canvas anchor for fixed alignment, default first stroke point. Sampling maps target + source - destination, bilinear premultiplied linear P3 with out-of-artboard transparent; sample=current_layer uses raw target pixel layer, sample=merged uses the visible composite. Source colors never feed back from just-written target samples. Same size/hardness/opacity/flow/spacing/pressure/selection/transparency and ancestor lock semantics as paint.stroke. Pixel target only; color/value ignored, clone_source not allowed on ordinary brushes. At most 8192 points, bounded dab work and tile cache; shared budgets and cancellation apply. Atomic one history edit. 中文：仿制图章、取样点、对齐、所有图层取样。",
+        json!({"layer":{"name":"Background"},"points":[{"x":10.5,"y":10.5}],"size":4,"clone_source":{"source":[3.5,3.5],"sample":"current_layer"}})
+    );
     for item in &mut list {
         item.returns = match item.id {
             "paint.sample_color" => schemars::schema_for!(SampleColorResult),
             "paint.fill" | "paint.bucket" | "paint.gradient" => schemars::schema_for!(BrushResult),
-            "paint.stroke" | "paint.erase" => schemars::schema_for!(BrushResult),
+            "paint.stroke" | "paint.erase" | "retouch.clone" => schemars::schema_for!(BrushResult),
             "document.inspect" => schemars::schema_for!(Snapshot),
             "layer.list" => schemars::schema_for!(LayerListResult),
             "edit.copy" | "edit.copy_merged" => schemars::schema_for!(ClipboardCopyResult),
@@ -993,6 +1002,9 @@ fn build_catalog() -> Vec<CommandSpec> {
             }
         }
         if item.id == "document.batch" || item.id == "file.place" {
+            item.batchable = false;
+        }
+        if matches!(item.id, "retouch.clone") {
             item.batchable = false;
         }
         if matches!(item.id, "paint.stroke" | "paint.erase") {

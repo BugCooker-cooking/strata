@@ -7,6 +7,7 @@ struct CanvasBrushConfiguration: Equatable {
     var size = 24.0, hardness = 0.8, opacity = 1.0, flow = 1.0, spacing = 0.2
     var color = [0.0,0.0,0.0,1.0], value = 1.0
     var pressureSize = true, pressureOpacity = true
+    var clone = false, aligned = true, cloneSource: [Double]?, cloneSample = "current_layer"
 }
 @MainActor
 final class CanvasBrushInput {
@@ -14,6 +15,8 @@ final class CanvasBrushInput {
     private(set) var configuration = CanvasBrushConfiguration()
     private var points: [(point: NSPoint, pressure: Double)] = []
     private var active = false
+    private var cloneDestination:NSPoint?
+    private var activeDestination:NSPoint?
     private(set) var running = false
     var onChanged: (() -> Void)?
     var onRunning: ((Bool) -> Void)?
@@ -22,12 +25,17 @@ final class CanvasBrushInput {
     init(engine: StrataEngine) { self.engine = engine }
     func configure(_ value: CanvasBrushConfiguration) {
         if configuration != value { cancel() }
+        if configuration.layer != value.layer || configuration.cloneSource != value.cloneSource || configuration.aligned != value.aligned {cloneDestination=nil}
         configuration = value
     }
     func down(_ point: NSPoint, pressure: Double) {
         guard !running, let layer = configuration.layer else { return }
         do {
-            try engine.beginBrush(layerId: layer, target: configuration.target, erase: configuration.erase)
+            if configuration.clone {
+                guard configuration.cloneSource != nil else{throw AIClientError.message("请先按住 ⌥ 单击画布设置仿制源点。")}
+                try engine.beginClone(layerId:layer)
+                activeDestination=configuration.aligned ? cloneDestination ?? point : point
+            }else{try engine.beginBrush(layerId: layer, target: configuration.target, erase: configuration.erase)}
             active = true; points = [(point,pressure)]; onChanged?()
         } catch { onError?(error) }
     }
@@ -42,9 +50,11 @@ final class CanvasBrushInput {
         do {
             let settings = configuration
             let path = points.map { ["x":Double($0.point.x),"y":Double($0.point.y),"pressure":$0.pressure] }
-            let parameters: [String:Any] = ["points":path,"size":settings.size,"hardness":settings.hardness,
+            var parameters: [String:Any] = ["points":path,"size":settings.size,"hardness":settings.hardness,
                 "opacity":settings.opacity,"flow":settings.flow,"spacing":settings.spacing,"color":settings.color,
                 "value":settings.value,"pressure_size":settings.pressureSize,"pressure_opacity":settings.pressureOpacity]
+            let destination=activeDestination
+            if settings.clone,let source=settings.cloneSource,let destination {parameters["clone_source"]=["source":source,"destination":[Double(destination.x),Double(destination.y)],"sample":settings.cloneSample]}
             let encoded = try commandJSON(parameters), engine = engine
             active = false; running = true; onRunning?(true)
             Task { [weak self] in
@@ -53,7 +63,7 @@ final class CanvasBrushInput {
                 catch { result = .failure(error) }
                 guard let self else { return }
                 self.running = false; self.points = []; self.onChanged?(); self.onRunning?(false)
-                switch result { case .success:self.onCommitted?(); case .failure(let error):self.onError?(error) }
+                switch result { case .success:if settings.clone,settings.aligned{self.cloneDestination=destination};self.onCommitted?(); case .failure(let error):self.onError?(error) }
             }
         } catch { cancel(); onError?(error) }
     }
