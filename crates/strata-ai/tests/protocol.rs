@@ -182,6 +182,30 @@ fn catalog_is_lazy_bilingual_bounded_and_has_no_unimplemented_commands() {
     );
     assert!(catalog::search("", 1).is_err());
     assert!(catalog::search("layer", 100).is_err());
+    for query in [
+        "色阶",
+        "曲线",
+        "自然饱和度",
+        "色温",
+        "色彩平衡",
+        "黑白",
+        "照片滤镜",
+        "通道混合器",
+        "色调分离",
+        "渐变映射",
+        "可选颜色",
+        "去色",
+    ] {
+        let matches = catalog::search(query, 32).unwrap();
+        assert!(
+            matches["matches"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|m| m["id"] == "layer.add_tonal_adjustment"),
+            "missing Chinese tonal discovery: {query}"
+        );
+    }
     assert!(catalog::describe(&[]).is_err());
     assert!(catalog::browse(Some("unknown")).is_err());
     assert!(catalog::describe(&["type.create".into()]).is_err());

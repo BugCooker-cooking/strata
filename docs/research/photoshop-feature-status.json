@@ -422,5 +422,95 @@
         "path": "../research/2026-11-m5-adjustments-progress.md"
       }
     ]
+  },
+  "PS-06-e7e1ea6652": {
+    "implementation": "已实现",
+    "acceptance": "核心/原生/Metal 回归；实时预览、固定性能和真实模型另记",
+    "evidence": [
+      {
+        "label": "M5 第二批",
+        "path": "../research/2026-11-m5-adjustments-progress.md"
+      }
+    ]
+  },
+  "PS-06-cdc392db20": {
+    "implementation": "已实现",
+    "acceptance": "核心/原生/Metal 回归；实时预览、固定性能和真实模型另记",
+    "evidence": [
+      {
+        "label": "M5 第二批",
+        "path": "../research/2026-11-m5-adjustments-progress.md"
+      }
+    ]
+  },
+  "PS-06-47d88357c5": {
+    "implementation": "已实现",
+    "acceptance": "核心/原生/Metal 回归；实时预览、固定性能和真实模型另记",
+    "evidence": [
+      {
+        "label": "M5 第二批",
+        "path": "../research/2026-11-m5-adjustments-progress.md"
+      }
+    ]
+  },
+  "PS-06-2263716466": {
+    "implementation": "已实现",
+    "acceptance": "核心/原生/Metal 回归；实时预览、固定性能和真实模型另记",
+    "evidence": [
+      {
+        "label": "M5 第二批",
+        "path": "../research/2026-11-m5-adjustments-progress.md"
+      }
+    ]
+  },
+  "PS-06-7fec4dc313": {
+    "implementation": "已实现",
+    "acceptance": "核心/原生/Metal 回归；实时预览、固定性能和真实模型另记",
+    "evidence": [
+      {
+        "label": "M5 第二批",
+        "path": "../research/2026-11-m5-adjustments-progress.md"
+      }
+    ]
+  },
+  "PS-06-39bbb078d5": {
+    "implementation": "已实现",
+    "acceptance": "核心/原生/Metal 回归；实时预览、固定性能和真实模型另记",
+    "evidence": [
+      {
+        "label": "M5 第二批",
+        "path": "../research/2026-11-m5-adjustments-progress.md"
+      }
+    ]
+  },
+  "PS-06-1769d6d1d6": {
+    "implementation": "已实现",
+    "acceptance": "核心/原生/Metal 回归；实时预览、固定性能和真实模型另记",
+    "evidence": [
+      {
+        "label": "M5 第二批",
+        "path": "../research/2026-11-m5-adjustments-progress.md"
+      }
+    ]
+  },
+  "PS-06-63924bf039": {
+    "implementation": "已实现",
+    "acceptance": "核心/原生/Metal 回归；实时预览、固定性能和真实模型另记",
+    "evidence": [
+      {
+        "label": "M5 第二批",
+        "path": "../research/2026-11-m5-adjustments-progress.md"
+      }
+    ]
+  },
+  "PS-06-be1d0be625": {
+    "implementation": "已实现",
+    "acceptance": "核心/原生/Metal 回归；实时预览、固定性能和真实模型另记",
+    "evidence": [
+      {
+        "label": "M5 第二批",
+        "path": "../research/2026-11-m5-adjustments-progress.md"
+      }
+    ]
   }
 }

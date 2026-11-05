@@ -453,15 +453,7 @@ fn compose_sequence(
                 .memory_pool()
                 .reserve(MemoryKind::Transient, 256 * 256 * 64)?;
             let source = out.iter().map(|v| v.map(|c| c as f32)).collect::<Vec<_>>();
-            let mut working = strata_color::linear_p3_to_working(&source, doc.working_icc())?;
-            let prepared = adjustment.prepare();
-            for p in &mut working {
-                let value = prepared.color([f64::from(p[0]), f64::from(p[1]), f64::from(p[2])]);
-                for c in 0..3 {
-                    p[c] = value[c] as f32;
-                }
-            }
-            let result = strata_color::working_to_linear_p3(&working, doc.working_icc())?;
+            let result = adjustment.transform(&source, doc.working_icc())?;
             for (index, pixel) in out.iter_mut().enumerate() {
                 let back = [pixel[0], pixel[1], pixel[2]];
                 let front = [

@@ -513,6 +513,29 @@ Permissions: `bound_document`
         "size"
       ]
     },
+    "GradientMapStop": {
+      "type": "object",
+      "properties": {
+        "at": {
+          "type": "number",
+          "format": "double"
+        },
+        "color": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 3,
+          "minItems": 3
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "at",
+        "color"
+      ]
+    },
     "GradientOverlay": {
       "type": "object",
       "properties": {
@@ -1316,6 +1339,456 @@ Permissions: `bound_document`
           "required": [
             "type"
           ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "saturation": {
+              "type": "number",
+              "format": "double",
+              "default": 0.0
+            },
+            "type": {
+              "type": "string",
+              "const": "vibrance"
+            },
+            "vibrance": {
+              "type": "number",
+              "format": "double",
+              "default": 0.0
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "preserve_luminance": {
+              "type": "boolean",
+              "default": true
+            },
+            "temperature": {
+              "type": "number",
+              "format": "double",
+              "default": 0.0
+            },
+            "tint": {
+              "type": "number",
+              "format": "double",
+              "default": 0.0
+            },
+            "type": {
+              "type": "string",
+              "const": "white_balance"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "highlights": {
+              "type": "array",
+              "default": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "items": {
+                "type": "number",
+                "format": "double"
+              },
+              "maxItems": 3,
+              "minItems": 3
+            },
+            "midtones": {
+              "type": "array",
+              "default": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "items": {
+                "type": "number",
+                "format": "double"
+              },
+              "maxItems": 3,
+              "minItems": 3
+            },
+            "preserve_luminance": {
+              "type": "boolean",
+              "default": true
+            },
+            "shadows": {
+              "type": "array",
+              "default": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "items": {
+                "type": "number",
+                "format": "double"
+              },
+              "maxItems": 3,
+              "minItems": 3
+            },
+            "type": {
+              "type": "string",
+              "const": "color_balance"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "tint": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "default": null,
+              "items": {
+                "type": "number",
+                "format": "double"
+              },
+              "maxItems": 3,
+              "minItems": 3
+            },
+            "tint_amount": {
+              "type": "number",
+              "format": "double",
+              "default": 25.0
+            },
+            "type": {
+              "type": "string",
+              "const": "black_white"
+            },
+            "weights": {
+              "type": "array",
+              "default": [
+                40.0,
+                60.0,
+                40.0,
+                60.0,
+                20.0,
+                80.0
+              ],
+              "items": {
+                "type": "number",
+                "format": "double"
+              },
+              "maxItems": 6,
+              "minItems": 6
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "color": {
+              "type": "array",
+              "default": [
+                1.0,
+                0.65,
+                0.3
+              ],
+              "items": {
+                "type": "number",
+                "format": "double"
+              },
+              "maxItems": 3,
+              "minItems": 3
+            },
+            "density": {
+              "type": "number",
+              "format": "double",
+              "default": 25.0
+            },
+            "preserve_luminance": {
+              "type": "boolean",
+              "default": true
+            },
+            "type": {
+              "type": "string",
+              "const": "photo_filter"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "gray": {
+              "type": "array",
+              "default": [
+                0.3,
+                0.59,
+                0.11,
+                0.0
+              ],
+              "items": {
+                "type": "number",
+                "format": "double"
+              },
+              "maxItems": 4,
+              "minItems": 4
+            },
+            "matrix": {
+              "type": "array",
+              "default": [
+                [
+                  1.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  1.0,
+                  0.0
+                ]
+              ],
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "number",
+                  "format": "double"
+                },
+                "maxItems": 4,
+                "minItems": 4
+              },
+              "maxItems": 3,
+              "minItems": 3
+            },
+            "monochrome": {
+              "type": "boolean",
+              "default": false
+            },
+            "type": {
+              "type": "string",
+              "const": "channel_mixer"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "invert"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "levels": {
+              "type": "integer",
+              "format": "uint32",
+              "default": 6,
+              "minimum": 0
+            },
+            "type": {
+              "type": "string",
+              "const": "posterize"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "level": {
+              "type": "number",
+              "format": "double",
+              "default": 0.5
+            },
+            "type": {
+              "type": "string",
+              "const": "threshold"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "reverse": {
+              "type": "boolean",
+              "default": false
+            },
+            "stops": {
+              "type": "array",
+              "default": [
+                {
+                  "at": 0.0,
+                  "color": [
+                    0.0,
+                    0.0,
+                    0.0
+                  ]
+                },
+                {
+                  "at": 1.0,
+                  "color": [
+                    1.0,
+                    1.0,
+                    1.0
+                  ]
+                }
+              ],
+              "items": {
+                "$ref": "#/$defs/GradientMapStop"
+              }
+            },
+            "type": {
+              "type": "string",
+              "const": "gradient_map"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "ranges": {
+              "type": "array",
+              "default": [
+                [
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ]
+              ],
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "number",
+                  "format": "double"
+                },
+                "maxItems": 4,
+                "minItems": 4
+              },
+              "maxItems": 9,
+              "minItems": 9
+            },
+            "relative": {
+              "type": "boolean",
+              "default": true
+            },
+            "type": {
+              "type": "string",
+              "const": "selective_color"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "desaturate"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
         }
       ]
     }
@@ -1555,6 +2028,29 @@ Permissions: `bound_document`
       "required": [
         "color",
         "size"
+      ]
+    },
+    "GradientMapStop": {
+      "type": "object",
+      "properties": {
+        "at": {
+          "type": "number",
+          "format": "double"
+        },
+        "color": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 3,
+          "minItems": 3
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "at",
+        "color"
       ]
     },
     "GradientOverlay": {
@@ -2324,6 +2820,456 @@ Permissions: `bound_document`
             "type": {
               "type": "string",
               "const": "curves"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "saturation": {
+              "type": "number",
+              "format": "double",
+              "default": 0.0
+            },
+            "type": {
+              "type": "string",
+              "const": "vibrance"
+            },
+            "vibrance": {
+              "type": "number",
+              "format": "double",
+              "default": 0.0
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "preserve_luminance": {
+              "type": "boolean",
+              "default": true
+            },
+            "temperature": {
+              "type": "number",
+              "format": "double",
+              "default": 0.0
+            },
+            "tint": {
+              "type": "number",
+              "format": "double",
+              "default": 0.0
+            },
+            "type": {
+              "type": "string",
+              "const": "white_balance"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "highlights": {
+              "type": "array",
+              "default": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "items": {
+                "type": "number",
+                "format": "double"
+              },
+              "maxItems": 3,
+              "minItems": 3
+            },
+            "midtones": {
+              "type": "array",
+              "default": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "items": {
+                "type": "number",
+                "format": "double"
+              },
+              "maxItems": 3,
+              "minItems": 3
+            },
+            "preserve_luminance": {
+              "type": "boolean",
+              "default": true
+            },
+            "shadows": {
+              "type": "array",
+              "default": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "items": {
+                "type": "number",
+                "format": "double"
+              },
+              "maxItems": 3,
+              "minItems": 3
+            },
+            "type": {
+              "type": "string",
+              "const": "color_balance"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "tint": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "default": null,
+              "items": {
+                "type": "number",
+                "format": "double"
+              },
+              "maxItems": 3,
+              "minItems": 3
+            },
+            "tint_amount": {
+              "type": "number",
+              "format": "double",
+              "default": 25.0
+            },
+            "type": {
+              "type": "string",
+              "const": "black_white"
+            },
+            "weights": {
+              "type": "array",
+              "default": [
+                40.0,
+                60.0,
+                40.0,
+                60.0,
+                20.0,
+                80.0
+              ],
+              "items": {
+                "type": "number",
+                "format": "double"
+              },
+              "maxItems": 6,
+              "minItems": 6
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "color": {
+              "type": "array",
+              "default": [
+                1.0,
+                0.65,
+                0.3
+              ],
+              "items": {
+                "type": "number",
+                "format": "double"
+              },
+              "maxItems": 3,
+              "minItems": 3
+            },
+            "density": {
+              "type": "number",
+              "format": "double",
+              "default": 25.0
+            },
+            "preserve_luminance": {
+              "type": "boolean",
+              "default": true
+            },
+            "type": {
+              "type": "string",
+              "const": "photo_filter"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "gray": {
+              "type": "array",
+              "default": [
+                0.3,
+                0.59,
+                0.11,
+                0.0
+              ],
+              "items": {
+                "type": "number",
+                "format": "double"
+              },
+              "maxItems": 4,
+              "minItems": 4
+            },
+            "matrix": {
+              "type": "array",
+              "default": [
+                [
+                  1.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  1.0,
+                  0.0
+                ]
+              ],
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "number",
+                  "format": "double"
+                },
+                "maxItems": 4,
+                "minItems": 4
+              },
+              "maxItems": 3,
+              "minItems": 3
+            },
+            "monochrome": {
+              "type": "boolean",
+              "default": false
+            },
+            "type": {
+              "type": "string",
+              "const": "channel_mixer"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "invert"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "levels": {
+              "type": "integer",
+              "format": "uint32",
+              "default": 6,
+              "minimum": 0
+            },
+            "type": {
+              "type": "string",
+              "const": "posterize"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "level": {
+              "type": "number",
+              "format": "double",
+              "default": 0.5
+            },
+            "type": {
+              "type": "string",
+              "const": "threshold"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "reverse": {
+              "type": "boolean",
+              "default": false
+            },
+            "stops": {
+              "type": "array",
+              "default": [
+                {
+                  "at": 0.0,
+                  "color": [
+                    0.0,
+                    0.0,
+                    0.0
+                  ]
+                },
+                {
+                  "at": 1.0,
+                  "color": [
+                    1.0,
+                    1.0,
+                    1.0
+                  ]
+                }
+              ],
+              "items": {
+                "$ref": "#/$defs/GradientMapStop"
+              }
+            },
+            "type": {
+              "type": "string",
+              "const": "gradient_map"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "ranges": {
+              "type": "array",
+              "default": [
+                [
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ]
+              ],
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "number",
+                  "format": "double"
+                },
+                "maxItems": 4,
+                "minItems": 4
+              },
+              "maxItems": 9,
+              "minItems": 9
+            },
+            "relative": {
+              "type": "boolean",
+              "default": true
+            },
+            "type": {
+              "type": "string",
+              "const": "selective_color"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "desaturate"
             }
           },
           "additionalProperties": false,
@@ -10541,7 +11487,7 @@ Permissions: `bound_document`
 
 ## `layer.add_tonal_adjustment` — 新建调色调整层
 
-Create a brightness_contrast, levels or curves adjustment with the current selection as mask (white if none). All math uses floating encoded document working RGB; source samples and alpha remain untouched. brightness/contrast are -100..100; brightness adds /100 and contrast scales about 0.5 (negative gain 1+c, positive gain 1/(1-c), +100 hard threshold). Levels applies master then R/G/B ranges, normalized endpoints and gamma 0.1..10. Curves applies master then R/G/B shape-preserving PCHIP curves; 2..64 points in 0..1, first x=0, last x=1, strictly increasing x; nonmonotonic y allowed. Defaults are exact identity. One history item, saved in manifest v4.
+Create a typed adjustment with the current selection as mask (white if none). Floating encoded document working RGB, source samples and alpha preserved. brightness_contrast: -100..100, additive brightness /100 then contrast about 0.5 (negative gain 1+c; positive 1/(1-c); +100 threshold). levels: master then RGB, normalized black/white and gamma 0.1..10. curves: master then RGB PCHIP, 2..64 points, x strictly increasing from 0 to 1, y 0..1. vibrance: vibrance/saturation -100..100, prioritize low saturation and reduce enhancement near skin hue. color_balance: shadows/midtones/highlights RGB axes -100..100, Rec.709 encoded-luma range weights; preserve_luminance gamut-clips while retaining luma. black_white: six hue sensitivities R/Y/G/C/B/M -200..300, optional normalized tint and tint_amount 0..100. photo_filter: normalized RGB transmittance color, density 0..100 and optional luma preservation. channel_mixer: 3x4 normalized coefficients -2..2 with constants, optional monochrome gray row. invert: 1-RGB. posterize: 2..65536 levels/channel. threshold: encoded Rec.709-weighted level 0..1, equality maps white. gradient_map: 2..64 strictly ordered normalized stops spanning 0..1, encoded RGB interpolation and optional reverse. selective_color: nine CMYK percentage rows R/Y/G/C/B/M/white/neutral/black, -100..100; relative scales by channel/headroom and absolute uses direct offsets. desaturate: HSL lightness (min+max)/2. Neutral settings of brightness/levels/curves/vibrance/balance/mixer/selective color are exact identity in normal mode. One undoable edit; manifest v4. white_balance: temperature/tint -100..100; positive temperature warms using reciprocal-Kelvin shift relative to D65 (6504K) and Bradford adaptation in linear Display P3, positive tint reduces the M cone response toward magenta; optional physical Y preservation. This is the exception to encoded working RGB operations. 中文检索：亮度、对比度、色阶、曲线、自然饱和度、色温、色调、色彩平衡、黑白、照片滤镜、通道混合器、反相、色调分离、阈值、渐变映射、可选颜色、去色。
 
 Kind: `Mutate` · Undoable: `true` · Batchable: `true`
 
@@ -10572,6 +11518,29 @@ Permissions: `bound_document`
     "adjustment"
   ],
   "$defs": {
+    "GradientMapStop": {
+      "type": "object",
+      "properties": {
+        "at": {
+          "type": "number",
+          "format": "double"
+        },
+        "color": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 3,
+          "minItems": 3
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "at",
+        "color"
+      ]
+    },
     "LevelRange": {
       "type": "object",
       "properties": {
@@ -10765,6 +11734,456 @@ Permissions: `bound_document`
           "required": [
             "type"
           ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "saturation": {
+              "type": "number",
+              "format": "double",
+              "default": 0.0
+            },
+            "type": {
+              "type": "string",
+              "const": "vibrance"
+            },
+            "vibrance": {
+              "type": "number",
+              "format": "double",
+              "default": 0.0
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "preserve_luminance": {
+              "type": "boolean",
+              "default": true
+            },
+            "temperature": {
+              "type": "number",
+              "format": "double",
+              "default": 0.0
+            },
+            "tint": {
+              "type": "number",
+              "format": "double",
+              "default": 0.0
+            },
+            "type": {
+              "type": "string",
+              "const": "white_balance"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "highlights": {
+              "type": "array",
+              "default": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "items": {
+                "type": "number",
+                "format": "double"
+              },
+              "maxItems": 3,
+              "minItems": 3
+            },
+            "midtones": {
+              "type": "array",
+              "default": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "items": {
+                "type": "number",
+                "format": "double"
+              },
+              "maxItems": 3,
+              "minItems": 3
+            },
+            "preserve_luminance": {
+              "type": "boolean",
+              "default": true
+            },
+            "shadows": {
+              "type": "array",
+              "default": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "items": {
+                "type": "number",
+                "format": "double"
+              },
+              "maxItems": 3,
+              "minItems": 3
+            },
+            "type": {
+              "type": "string",
+              "const": "color_balance"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "tint": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "default": null,
+              "items": {
+                "type": "number",
+                "format": "double"
+              },
+              "maxItems": 3,
+              "minItems": 3
+            },
+            "tint_amount": {
+              "type": "number",
+              "format": "double",
+              "default": 25.0
+            },
+            "type": {
+              "type": "string",
+              "const": "black_white"
+            },
+            "weights": {
+              "type": "array",
+              "default": [
+                40.0,
+                60.0,
+                40.0,
+                60.0,
+                20.0,
+                80.0
+              ],
+              "items": {
+                "type": "number",
+                "format": "double"
+              },
+              "maxItems": 6,
+              "minItems": 6
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "color": {
+              "type": "array",
+              "default": [
+                1.0,
+                0.65,
+                0.3
+              ],
+              "items": {
+                "type": "number",
+                "format": "double"
+              },
+              "maxItems": 3,
+              "minItems": 3
+            },
+            "density": {
+              "type": "number",
+              "format": "double",
+              "default": 25.0
+            },
+            "preserve_luminance": {
+              "type": "boolean",
+              "default": true
+            },
+            "type": {
+              "type": "string",
+              "const": "photo_filter"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "gray": {
+              "type": "array",
+              "default": [
+                0.3,
+                0.59,
+                0.11,
+                0.0
+              ],
+              "items": {
+                "type": "number",
+                "format": "double"
+              },
+              "maxItems": 4,
+              "minItems": 4
+            },
+            "matrix": {
+              "type": "array",
+              "default": [
+                [
+                  1.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  1.0,
+                  0.0
+                ]
+              ],
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "number",
+                  "format": "double"
+                },
+                "maxItems": 4,
+                "minItems": 4
+              },
+              "maxItems": 3,
+              "minItems": 3
+            },
+            "monochrome": {
+              "type": "boolean",
+              "default": false
+            },
+            "type": {
+              "type": "string",
+              "const": "channel_mixer"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "invert"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "levels": {
+              "type": "integer",
+              "format": "uint32",
+              "default": 6,
+              "minimum": 0
+            },
+            "type": {
+              "type": "string",
+              "const": "posterize"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "level": {
+              "type": "number",
+              "format": "double",
+              "default": 0.5
+            },
+            "type": {
+              "type": "string",
+              "const": "threshold"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "reverse": {
+              "type": "boolean",
+              "default": false
+            },
+            "stops": {
+              "type": "array",
+              "default": [
+                {
+                  "at": 0.0,
+                  "color": [
+                    0.0,
+                    0.0,
+                    0.0
+                  ]
+                },
+                {
+                  "at": 1.0,
+                  "color": [
+                    1.0,
+                    1.0,
+                    1.0
+                  ]
+                }
+              ],
+              "items": {
+                "$ref": "#/$defs/GradientMapStop"
+              }
+            },
+            "type": {
+              "type": "string",
+              "const": "gradient_map"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "ranges": {
+              "type": "array",
+              "default": [
+                [
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ]
+              ],
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "number",
+                  "format": "double"
+                },
+                "maxItems": 4,
+                "minItems": 4
+              },
+              "maxItems": 9,
+              "minItems": 9
+            },
+            "relative": {
+              "type": "boolean",
+              "default": true
+            },
+            "type": {
+              "type": "string",
+              "const": "selective_color"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "desaturate"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
         }
       ]
     }
@@ -10839,9 +12258,243 @@ Permissions: `bound_document`
 }
 ```
 
+```json
+{
+  "adjustment": {
+    "saturation": 5,
+    "type": "vibrance",
+    "vibrance": 25
+  },
+  "name": "vibrance"
+}
+```
+
+```json
+{
+  "adjustment": {
+    "preserve_luminance": true,
+    "temperature": 20,
+    "tint": -10,
+    "type": "white_balance"
+  },
+  "name": "white_balance"
+}
+```
+
+```json
+{
+  "adjustment": {
+    "midtones": [
+      15,
+      0,
+      -10
+    ],
+    "type": "color_balance"
+  },
+  "name": "color_balance"
+}
+```
+
+```json
+{
+  "adjustment": {
+    "tint": [
+      0.8,
+      0.6,
+      0.4
+    ],
+    "tint_amount": 20,
+    "type": "black_white",
+    "weights": [
+      40,
+      60,
+      40,
+      60,
+      20,
+      80
+    ]
+  },
+  "name": "black_white"
+}
+```
+
+```json
+{
+  "adjustment": {
+    "color": [
+      1,
+      0.65,
+      0.3
+    ],
+    "density": 25,
+    "type": "photo_filter"
+  },
+  "name": "photo_filter"
+}
+```
+
+```json
+{
+  "adjustment": {
+    "matrix": [
+      [
+        0,
+        0,
+        1,
+        0
+      ],
+      [
+        0,
+        1,
+        0,
+        0
+      ],
+      [
+        1,
+        0,
+        0,
+        0
+      ]
+    ],
+    "type": "channel_mixer"
+  },
+  "name": "channel_mixer"
+}
+```
+
+```json
+{
+  "adjustment": {
+    "type": "invert"
+  },
+  "name": "invert"
+}
+```
+
+```json
+{
+  "adjustment": {
+    "levels": 6,
+    "type": "posterize"
+  },
+  "name": "posterize"
+}
+```
+
+```json
+{
+  "adjustment": {
+    "level": 0.45,
+    "type": "threshold"
+  },
+  "name": "threshold"
+}
+```
+
+```json
+{
+  "adjustment": {
+    "stops": [
+      {
+        "at": 0,
+        "color": [
+          0,
+          0,
+          0.2
+        ]
+      },
+      {
+        "at": 1,
+        "color": [
+          1,
+          0.9,
+          0.5
+        ]
+      }
+    ],
+    "type": "gradient_map"
+  },
+  "name": "gradient_map"
+}
+```
+
+```json
+{
+  "adjustment": {
+    "ranges": [
+      [
+        10,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0
+      ]
+    ],
+    "type": "selective_color"
+  },
+  "name": "selective_color"
+}
+```
+
+```json
+{
+  "adjustment": {
+    "type": "desaturate"
+  },
+  "name": "desaturate"
+}
+```
+
 ## `adjust.tonal.set` — 设置调色调整层
 
-Replace complete tonal settings of an existing adjustment layer without changing its type. Same strict normalized parameters as layer.add_tonal_adjustment. Omitted fields reset to identity; specify the complete intended settings. Masks, alpha and original source samples are preserved; lock and ancestor checks apply.
+Replace complete tonal settings of an existing adjustment layer without changing its type. Same strict normalized parameters as layer.add_tonal_adjustment. Omitted fields reset to that type's defaults; specify the complete intended settings. Masks, alpha and original source samples are preserved; lock and ancestor checks apply. 中文检索：亮度、对比度、色阶、曲线、自然饱和度、色温、色调、色彩平衡、黑白、照片滤镜、通道混合器、反相、色调分离、阈值、渐变映射、可选颜色、去色。
 
 Kind: `Mutate` · Undoable: `true` · Batchable: `true`
 
@@ -10872,6 +12525,29 @@ Permissions: `bound_document`
     "adjustment"
   ],
   "$defs": {
+    "GradientMapStop": {
+      "type": "object",
+      "properties": {
+        "at": {
+          "type": "number",
+          "format": "double"
+        },
+        "color": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 3,
+          "minItems": 3
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "at",
+        "color"
+      ]
+    },
     "LayerRef": {
       "description": "Stable ID preferred. Duplicate names return candidates instead of guessing.",
       "oneOf": [
@@ -11095,6 +12771,456 @@ Permissions: `bound_document`
           "required": [
             "type"
           ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "saturation": {
+              "type": "number",
+              "format": "double",
+              "default": 0.0
+            },
+            "type": {
+              "type": "string",
+              "const": "vibrance"
+            },
+            "vibrance": {
+              "type": "number",
+              "format": "double",
+              "default": 0.0
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "preserve_luminance": {
+              "type": "boolean",
+              "default": true
+            },
+            "temperature": {
+              "type": "number",
+              "format": "double",
+              "default": 0.0
+            },
+            "tint": {
+              "type": "number",
+              "format": "double",
+              "default": 0.0
+            },
+            "type": {
+              "type": "string",
+              "const": "white_balance"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "highlights": {
+              "type": "array",
+              "default": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "items": {
+                "type": "number",
+                "format": "double"
+              },
+              "maxItems": 3,
+              "minItems": 3
+            },
+            "midtones": {
+              "type": "array",
+              "default": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "items": {
+                "type": "number",
+                "format": "double"
+              },
+              "maxItems": 3,
+              "minItems": 3
+            },
+            "preserve_luminance": {
+              "type": "boolean",
+              "default": true
+            },
+            "shadows": {
+              "type": "array",
+              "default": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "items": {
+                "type": "number",
+                "format": "double"
+              },
+              "maxItems": 3,
+              "minItems": 3
+            },
+            "type": {
+              "type": "string",
+              "const": "color_balance"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "tint": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "default": null,
+              "items": {
+                "type": "number",
+                "format": "double"
+              },
+              "maxItems": 3,
+              "minItems": 3
+            },
+            "tint_amount": {
+              "type": "number",
+              "format": "double",
+              "default": 25.0
+            },
+            "type": {
+              "type": "string",
+              "const": "black_white"
+            },
+            "weights": {
+              "type": "array",
+              "default": [
+                40.0,
+                60.0,
+                40.0,
+                60.0,
+                20.0,
+                80.0
+              ],
+              "items": {
+                "type": "number",
+                "format": "double"
+              },
+              "maxItems": 6,
+              "minItems": 6
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "color": {
+              "type": "array",
+              "default": [
+                1.0,
+                0.65,
+                0.3
+              ],
+              "items": {
+                "type": "number",
+                "format": "double"
+              },
+              "maxItems": 3,
+              "minItems": 3
+            },
+            "density": {
+              "type": "number",
+              "format": "double",
+              "default": 25.0
+            },
+            "preserve_luminance": {
+              "type": "boolean",
+              "default": true
+            },
+            "type": {
+              "type": "string",
+              "const": "photo_filter"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "gray": {
+              "type": "array",
+              "default": [
+                0.3,
+                0.59,
+                0.11,
+                0.0
+              ],
+              "items": {
+                "type": "number",
+                "format": "double"
+              },
+              "maxItems": 4,
+              "minItems": 4
+            },
+            "matrix": {
+              "type": "array",
+              "default": [
+                [
+                  1.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  1.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  1.0,
+                  0.0
+                ]
+              ],
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "number",
+                  "format": "double"
+                },
+                "maxItems": 4,
+                "minItems": 4
+              },
+              "maxItems": 3,
+              "minItems": 3
+            },
+            "monochrome": {
+              "type": "boolean",
+              "default": false
+            },
+            "type": {
+              "type": "string",
+              "const": "channel_mixer"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "invert"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "levels": {
+              "type": "integer",
+              "format": "uint32",
+              "default": 6,
+              "minimum": 0
+            },
+            "type": {
+              "type": "string",
+              "const": "posterize"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "level": {
+              "type": "number",
+              "format": "double",
+              "default": 0.5
+            },
+            "type": {
+              "type": "string",
+              "const": "threshold"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "reverse": {
+              "type": "boolean",
+              "default": false
+            },
+            "stops": {
+              "type": "array",
+              "default": [
+                {
+                  "at": 0.0,
+                  "color": [
+                    0.0,
+                    0.0,
+                    0.0
+                  ]
+                },
+                {
+                  "at": 1.0,
+                  "color": [
+                    1.0,
+                    1.0,
+                    1.0
+                  ]
+                }
+              ],
+              "items": {
+                "$ref": "#/$defs/GradientMapStop"
+              }
+            },
+            "type": {
+              "type": "string",
+              "const": "gradient_map"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "ranges": {
+              "type": "array",
+              "default": [
+                [
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                [
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ]
+              ],
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "number",
+                  "format": "double"
+                },
+                "maxItems": 4,
+                "minItems": 4
+              },
+              "maxItems": 9,
+              "minItems": 9
+            },
+            "relative": {
+              "type": "boolean",
+              "default": true
+            },
+            "type": {
+              "type": "string",
+              "const": "selective_color"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "desaturate"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
         }
       ]
     }
@@ -11177,6 +13303,264 @@ Permissions: `bound_document`
   },
   "layer": {
     "name": "Curves"
+  }
+}
+```
+
+```json
+{
+  "adjustment": {
+    "saturation": 5,
+    "type": "vibrance",
+    "vibrance": 25
+  },
+  "layer": {
+    "name": "vibrance"
+  }
+}
+```
+
+```json
+{
+  "adjustment": {
+    "preserve_luminance": true,
+    "temperature": 20,
+    "tint": -10,
+    "type": "white_balance"
+  },
+  "layer": {
+    "name": "white_balance"
+  }
+}
+```
+
+```json
+{
+  "adjustment": {
+    "midtones": [
+      15,
+      0,
+      -10
+    ],
+    "type": "color_balance"
+  },
+  "layer": {
+    "name": "color_balance"
+  }
+}
+```
+
+```json
+{
+  "adjustment": {
+    "tint": [
+      0.8,
+      0.6,
+      0.4
+    ],
+    "tint_amount": 20,
+    "type": "black_white",
+    "weights": [
+      40,
+      60,
+      40,
+      60,
+      20,
+      80
+    ]
+  },
+  "layer": {
+    "name": "black_white"
+  }
+}
+```
+
+```json
+{
+  "adjustment": {
+    "color": [
+      1,
+      0.65,
+      0.3
+    ],
+    "density": 25,
+    "type": "photo_filter"
+  },
+  "layer": {
+    "name": "photo_filter"
+  }
+}
+```
+
+```json
+{
+  "adjustment": {
+    "matrix": [
+      [
+        0,
+        0,
+        1,
+        0
+      ],
+      [
+        0,
+        1,
+        0,
+        0
+      ],
+      [
+        1,
+        0,
+        0,
+        0
+      ]
+    ],
+    "type": "channel_mixer"
+  },
+  "layer": {
+    "name": "channel_mixer"
+  }
+}
+```
+
+```json
+{
+  "adjustment": {
+    "type": "invert"
+  },
+  "layer": {
+    "name": "invert"
+  }
+}
+```
+
+```json
+{
+  "adjustment": {
+    "levels": 6,
+    "type": "posterize"
+  },
+  "layer": {
+    "name": "posterize"
+  }
+}
+```
+
+```json
+{
+  "adjustment": {
+    "level": 0.45,
+    "type": "threshold"
+  },
+  "layer": {
+    "name": "threshold"
+  }
+}
+```
+
+```json
+{
+  "adjustment": {
+    "stops": [
+      {
+        "at": 0,
+        "color": [
+          0,
+          0,
+          0.2
+        ]
+      },
+      {
+        "at": 1,
+        "color": [
+          1,
+          0.9,
+          0.5
+        ]
+      }
+    ],
+    "type": "gradient_map"
+  },
+  "layer": {
+    "name": "gradient_map"
+  }
+}
+```
+
+```json
+{
+  "adjustment": {
+    "ranges": [
+      [
+        10,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0
+      ]
+    ],
+    "type": "selective_color"
+  },
+  "layer": {
+    "name": "selective_color"
+  }
+}
+```
+
+```json
+{
+  "adjustment": {
+    "type": "desaturate"
+  },
+  "layer": {
+    "name": "desaturate"
   }
 }
 ```

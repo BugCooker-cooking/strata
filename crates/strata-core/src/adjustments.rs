@@ -3,6 +3,7 @@
 use crate::DocumentError;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+mod point_color;
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(default, deny_unknown_fields)]
@@ -30,6 +31,52 @@ fn identity_curve() -> Vec<[f64; 2]> {
 fn identity_channels() -> [Vec<[f64; 2]>; 3] {
     std::array::from_fn(|_| identity_curve())
 }
+fn yes() -> bool {
+    true
+}
+fn density() -> f64 {
+    25.0
+}
+fn half() -> f64 {
+    0.5
+}
+fn poster_levels() -> u32 {
+    6
+}
+fn warm_filter() -> [f64; 3] {
+    [1.0, 0.65, 0.3]
+}
+fn bw_weights() -> [f64; 6] {
+    [40.0, 60.0, 40.0, 60.0, 20.0, 80.0]
+}
+fn mixer_identity() -> [[f64; 4]; 3] {
+    [
+        [1.0, 0.0, 0.0, 0.0],
+        [0.0, 1.0, 0.0, 0.0],
+        [0.0, 0.0, 1.0, 0.0],
+    ]
+}
+fn gray_mix() -> [f64; 4] {
+    [0.3, 0.59, 0.11, 0.0]
+}
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct GradientMapStop {
+    pub at: f64,
+    pub color: [f64; 3],
+}
+fn default_gradient() -> Vec<GradientMapStop> {
+    vec![
+        GradientMapStop {
+            at: 0.0,
+            color: [0.0; 3],
+        },
+        GradientMapStop {
+            at: 1.0,
+            color: [1.0; 3],
+        },
+    ]
+}
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "type", rename_all = "snake_case", deny_unknown_fields)]
 pub enum TonalAdjustment {
@@ -51,8 +98,106 @@ pub enum TonalAdjustment {
         #[serde(default = "identity_channels")]
         channels: [Vec<[f64; 2]>; 3],
     },
+    Vibrance {
+        #[serde(default)]
+        vibrance: f64,
+        #[serde(default)]
+        saturation: f64,
+    },
+    WhiteBalance {
+        #[serde(default)]
+        temperature: f64,
+        #[serde(default)]
+        tint: f64,
+        #[serde(default = "yes")]
+        preserve_luminance: bool,
+    },
+    ColorBalance {
+        #[serde(default)]
+        shadows: [f64; 3],
+        #[serde(default)]
+        midtones: [f64; 3],
+        #[serde(default)]
+        highlights: [f64; 3],
+        #[serde(default = "yes")]
+        preserve_luminance: bool,
+    },
+    BlackWhite {
+        #[serde(default = "bw_weights")]
+        weights: [f64; 6],
+        #[serde(default)]
+        tint: Option<[f64; 3]>,
+        #[serde(default = "density")]
+        tint_amount: f64,
+    },
+    PhotoFilter {
+        #[serde(default = "warm_filter")]
+        color: [f64; 3],
+        #[serde(default = "density")]
+        density: f64,
+        #[serde(default = "yes")]
+        preserve_luminance: bool,
+    },
+    ChannelMixer {
+        #[serde(default = "mixer_identity")]
+        matrix: [[f64; 4]; 3],
+        #[serde(default)]
+        monochrome: bool,
+        #[serde(default = "gray_mix")]
+        gray: [f64; 4],
+    },
+    Invert {},
+    Posterize {
+        #[serde(default = "poster_levels")]
+        levels: u32,
+    },
+    Threshold {
+        #[serde(default = "half")]
+        level: f64,
+    },
+    GradientMap {
+        #[serde(default = "default_gradient")]
+        stops: Vec<GradientMapStop>,
+        #[serde(default)]
+        reverse: bool,
+    },
+    SelectiveColor {
+        #[serde(default)]
+        ranges: Box<[[f64; 4]; 9]>,
+        #[serde(default = "yes")]
+        relative: bool,
+    },
+    Desaturate {},
 }
 impl TonalAdjustment {
+    pub(crate) fn transform(
+        &self,
+        source: &[[f32; 4]],
+        icc: &[u8],
+    ) -> Result<Vec<[f32; 4]>, strata_color::ColorError> {
+        if let Self::WhiteBalance {
+            temperature,
+            tint,
+            preserve_luminance,
+        } = self
+        {
+            return Ok(point_color::white_balance(
+                source,
+                *temperature,
+                *tint,
+                *preserve_luminance,
+            ));
+        }
+        let mut working = strata_color::linear_p3_to_working(source, icc)?;
+        let prepared = self.prepare();
+        for p in &mut working {
+            let value = prepared.color([f64::from(p[0]), f64::from(p[1]), f64::from(p[2])]);
+            for c in 0..3 {
+                p[c] = value[c] as f32;
+            }
+        }
+        strata_color::working_to_linear_p3(&working, icc)
+    }
     pub fn curve_samples(points: &[[f64; 2]], count: usize) -> Result<Vec<f32>, DocumentError> {
         if !(2..=1025).contains(&count) {
             return Err(DocumentError::Invalid(
@@ -115,6 +260,7 @@ impl TonalAdjustment {
                     }
                 }
             }
+            _ => point_color::validate(self)?,
         }
         Ok(())
     }
@@ -131,6 +277,7 @@ impl TonalAdjustment {
             Self::Curves { master, channels } => std::iter::once(master)
                 .chain(channels)
                 .all(|points| points.iter().all(|p| p[0] == p[1])),
+            _ => point_color::is_identity(self),
         }
     }
     pub(crate) fn prepare(&self) -> PreparedTonal {
@@ -168,7 +315,7 @@ impl PreparedTonal {
             Self::Other(TonalAdjustment::Levels { master, channels }) => {
                 std::array::from_fn(|c| level(level(rgb[c], master), &channels[c]))
             }
-            _ => unreachable!("curves are prepared"),
+            Self::Other(settings) => point_color::apply(settings, rgb),
         }
     }
 }

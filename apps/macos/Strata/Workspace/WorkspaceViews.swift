@@ -141,7 +141,10 @@ private struct LayerProperties: View {
                     BlendOpacityControls(model: model)
                     LayerMetadataControls(model:model)
                     if layer.exposure != nil { ExposureControls(model: model) }
-                    if layer.kind?.kind == "adjustment" { TonalAdjustmentControls(model:model) }
+                    if layer.kind?.kind == "adjustment" {
+                        if ["brightness_contrast","levels","curves"].contains(layer.kind?.adjustment?["type"].string ?? "") {TonalAdjustmentControls(model:model)}
+                        else {PointColorControls(model:model)}
+                    }
                     if ["solid","gradient","hue_saturation"].contains(layer.kind?.kind ?? ""){GeneratedLayerControls(model:model)}
                     if !layer.isAdjustment{LayerStyleControls(model:model)}
                     if let mask = layer.mask {
@@ -205,7 +208,13 @@ private struct BlendOpacityControls: View {
 
 private struct AdjustmentPanel: View {
     @ObservedObject var model: WorkspaceModel
-    private let entries = [("曝光", "plusminus"), ("亮度 / 对比度", "sun.max"), ("色阶", "chart.bar"), ("曲线", "point.topleft.down.to.point.bottomright.curvepath"), ("色相 / 饱和度", "slider.horizontal.3"), ("色彩平衡", "circle.lefthalf.filled"), ("黑白", "circle.righthalf.filled"), ("自然饱和度", "drop"), ("渐变映射", "rectangle.lefthalf.filled"), ("反相", "circle.dotted")]
+    private let entries = [
+        ("exposure","曝光","plusminus"),("brightness_contrast","亮度 / 对比度","sun.max"),("levels","色阶","chart.bar"),
+        ("curves","曲线","point.topleft.down.to.point.bottomright.curvepath"),("hue_saturation","色相 / 饱和度","slider.horizontal.3"),
+        ("vibrance","自然饱和度","drop"),("white_balance","色温 / 色调","thermometer.medium"),("color_balance","色彩平衡","circle.lefthalf.filled"),("black_white","黑白","circle.righthalf.filled"),
+        ("photo_filter","照片滤镜","camera.filters"),("channel_mixer","通道混合器","slider.horizontal.3"),
+        ("invert","反相","circle.dotted"),("posterize","色调分离","square.stack.3d.up"),("threshold","阈值","circle.lefthalf.filled"),
+        ("gradient_map","渐变映射","rectangle.lefthalf.filled"),("selective_color","可选颜色","paintpalette"),("desaturate","去色","drop.halffull")]
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
@@ -213,13 +222,13 @@ private struct AdjustmentPanel: View {
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 14) {
                     ForEach(entries, id: \.0) { item in
                         VStack(spacing: 7) {
-                            WorkspaceIconButton(title: item.0, symbol: item.1, enabled: ["曝光","色相 / 饱和度","亮度 / 对比度","色阶","曲线"].contains(item.0) && model.hasDocument && model.permissions.edits) {
-                                if item.0=="曝光"{model.send(.command("layer.add_adjustment", ["name": "曝光", "type": "exposure", "stops": 0.5, "mask": model.snapshot?.selection == nil ? "white" : "from_selection"]))}
-                                else if item.0=="色相 / 饱和度"{model.send(.command("layer.add_hue_saturation",["name":"色相/饱和度"]))}
-                                else {let type = item.0=="曲线" ? "curves" : item.0=="色阶" ? "levels" : "brightness_contrast";model.send(.command("layer.add_tonal_adjustment",["name":item.0,"adjustment":["type":type]]))}
+                            WorkspaceIconButton(title: item.1, symbol: item.2, enabled: model.hasDocument && model.permissions.edits) {
+                                if item.0=="exposure"{model.send(.command("layer.add_adjustment", ["name": "曝光", "type": "exposure", "stops": 0.5, "mask": model.snapshot?.selection == nil ? "white" : "from_selection"]))}
+                                else if item.0=="hue_saturation"{model.send(.command("layer.add_hue_saturation",["name":"色相/饱和度"]))}
+                                else {model.send(.command("layer.add_tonal_adjustment",["name":item.1,"adjustment":["type":item.0]]))}
                                 model.inspector = .properties
                             }
-                            Text(item.0).font(.system(size: 10)).lineLimit(2).multilineTextAlignment(.center)
+                            Text(item.1).font(.system(size: 10)).lineLimit(2).multilineTextAlignment(.center)
                         }
                     }
                 }

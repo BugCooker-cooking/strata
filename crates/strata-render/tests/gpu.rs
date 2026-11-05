@@ -363,6 +363,89 @@ fn tonal_adjustment_display_matches_cpu_and_parameter_updates_invalidate_tiles()
 }
 
 #[test]
+fn point_color_and_white_balance_display_match_color_managed_cpu_reference() {
+    let Some(mut renderer) = renderer() else {
+        return;
+    };
+    for type_name in [
+        "vibrance",
+        "white_balance",
+        "color_balance",
+        "black_white",
+        "photo_filter",
+        "channel_mixer",
+        "invert",
+        "posterize",
+        "threshold",
+        "gradient_map",
+        "selective_color",
+        "desaturate",
+    ] {
+        let mut editor = strata_core::Editor::new();
+        let settings = match type_name {
+            "vibrance" => serde_json::json!({"type":type_name,"vibrance":40}),
+            "white_balance" => serde_json::json!({"type":type_name,"temperature":30,"tint":10}),
+            "color_balance" => serde_json::json!({"type":type_name,"midtones":[15,-10,5]}),
+            _ => serde_json::json!({"type":type_name}),
+        };
+        for (id, args) in [
+            (
+                "file.new",
+                serde_json::json!({"width":16,"height":16,"bit_depth":16,"working_space":"display_p3","background":[20000,35000,45000,65535]}),
+            ),
+            (
+                "select.marquee",
+                serde_json::json!({"x":0,"y":0,"width":8,"height":16}),
+            ),
+            (
+                "layer.add_tonal_adjustment",
+                serde_json::json!({"name":type_name,"adjustment":settings}),
+            ),
+        ] {
+            editor
+                .execute(editor.request(strata_core::Source::Test), id, args, |_| {
+                    Ok(())
+                })
+                .unwrap();
+        }
+        let doc = editor.document().unwrap();
+        let scene = renderer.prepare_document(doc, false).unwrap();
+        renderer.commit_document(scene).unwrap();
+        renderer
+            .set_view(ViewTransform {
+                zoom: 3.0,
+                center_x: 8.0,
+                center_y: 8.0,
+            })
+            .unwrap();
+        renderer.render().unwrap();
+        let actual = renderer.read_offscreen_rgba().unwrap();
+        let expected = strata_color::to_display_p3(
+            &doc.export_pixels().unwrap(),
+            16,
+            16,
+            Some(doc.working_icc()),
+        )
+        .unwrap()
+        .pixels;
+        let PixelBuffer::Rgba16(expected) = expected else {
+            panic!()
+        };
+        for (x, y) in [(2usize, 6usize), (6, 6), (10, 6), (14, 6)] {
+            let shown = pixel(&actual, x * 3 + 9, y * 3 + 9);
+            let offset = (y * 16 + x) * 4;
+            for c in 0..3 {
+                let target = ((u32::from(expected[offset + c]) + 128) / 257) as i32;
+                assert!(
+                    (i32::from(shown[c]) - target).abs() <= 4,
+                    "{type_name} ({x},{y}) channel {c}: {shown:?} target {target}"
+                );
+            }
+        }
+    }
+}
+
+#[test]
 fn tiled_scene_preserves_source_and_has_no_mip_seam() {
     let Some(mut r) = renderer() else {
         return;

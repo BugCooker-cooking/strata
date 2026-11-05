@@ -10,7 +10,7 @@ mod project;
 mod recovery;
 pub mod styles;
 mod subject;
-pub use adjustments::{LevelRange, TonalAdjustment};
+pub use adjustments::{GradientMapStop, LevelRange, TonalAdjustment};
 pub use commands::{ClipboardImage, Editor, Source};
 pub use document::{
     Document, DocumentCandidate, DocumentError, Frame, MAX_DOCUMENT_BYTES, MAX_FLAT_IMAGE_BYTES,
