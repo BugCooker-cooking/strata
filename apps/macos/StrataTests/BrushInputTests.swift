@@ -4,6 +4,32 @@ import XCTest
 
 final class BrushInputTests:XCTestCase{
     @MainActor
+    func testDodgeBurnAndSpongeUseNestedInputAndKeepSourceAlpha()async throws{
+        for command in ["retouch.dodge","retouch.burn","retouch.sponge"]{
+            let(engine,input)=try configured();let state=try EditorSnapshot.decode(engine.snapshotJson()),id=try XCTUnwrap(state.activeLayer)
+            input.configure(CanvasBrushConfiguration(layer:id,size:4,hardness:1,tonalCommand:command,tonalExposure:1,spongeVibrance:false))
+            var failures:[String]=[];input.onError={failures.append($0.localizedDescription)}
+            input.down(NSPoint(x:10.5,y:8.5),pressure:1);input.up(NSPoint(x:10.5,y:8.5),pressure:1);try await finish(input)
+            let final=try EditorSnapshot.decode(engine.snapshotJson());XCTAssertEqual(final.history.count,1);XCTAssertEqual(final.history.last?.command,command);XCTAssertTrue(failures.isEmpty,failures.joined(separator:"; "))
+            let color=try AIJSON.decode(engine.sampleColor(paramsJson:commandJSON(["x":10,"y":8,"sample":"current_layer"]),revision:final.revision))["color"].array.compactMap(\.number)
+            XCTAssertEqual(color[3],1,accuracy:0.00001)
+            if command == "retouch.sponge" {XCTAssertEqual(color[0],color[2],accuracy:0.0002)}else{XCTAssertTrue(command == "retouch.dodge" ? color[0]>20000.0/65535 : color[0]<20000.0/65535)}
+            _ = try engine.dispatch(command:"edit.undo",paramsJson:"{}");XCTAssertEqual(try EditorSnapshot.decode(engine.snapshotJson()).historyCursor,0)
+        }
+    }
+    @MainActor
+    func testSpotHealingNeedsNoSourceAndUsesNestedAtomicStroke()async throws{
+        let(engine,input)=try configured()
+        let state=try EditorSnapshot.decode(engine.snapshotJson()),id=try XCTUnwrap(state.activeLayer)
+        input.configure(CanvasBrushConfiguration(layer:id,size:2,hardness:1,spot:true,spotSearchRadius:8))
+        var failures:[String]=[];input.onError={failures.append($0.localizedDescription)}
+        input.down(NSPoint(x:10.5,y:8.5),pressure:1);input.up(NSPoint(x:10.5,y:8.5),pressure:1);try await finish(input)
+        let final=try EditorSnapshot.decode(engine.snapshotJson())
+        XCTAssertTrue(failures.isEmpty,failures.joined(separator:"; "));XCTAssertEqual(final.history.count,1);XCTAssertEqual(final.history.last?.command,"retouch.spot_heal")
+        _ = try engine.dispatch(command:"edit.undo",paramsJson:"{}")
+        XCTAssertEqual(try EditorSnapshot.decode(engine.snapshotJson()).historyCursor,0)
+    }
+    @MainActor
     func testHealingBrushKeepsTargetToneAndCommitsOneNestedStroke()async throws{
         let(engine,input)=try configured()
         let state=try EditorSnapshot.decode(engine.snapshotJson()),id=try XCTUnwrap(state.activeLayer)

@@ -609,6 +609,27 @@ impl Editor {
         interaction.command = "retouch.heal".into();
         Ok(interaction)
     }
+    pub fn begin_spot_heal(&self, layer: LayerRef) -> Result<BrushInteraction, CommandError> {
+        self.authorize(&Source::User, "retouch.spot_heal", CommandKind::Mutate)?;
+        let mut interaction = self.begin_brush(layer, BrushTarget::Pixels, false)?;
+        interaction.command = "retouch.spot_heal".into();
+        Ok(interaction)
+    }
+    pub fn begin_tonal_brush(
+        &self,
+        layer: LayerRef,
+        command: &str,
+    ) -> Result<BrushInteraction, CommandError> {
+        if !matches!(command, "retouch.dodge" | "retouch.burn" | "retouch.sponge") {
+            return Err(CommandError::Invalid(
+                "unsupported tonal brush command".into(),
+            ));
+        }
+        self.authorize(&Source::User, command, CommandKind::Mutate)?;
+        let mut interaction = self.begin_brush(layer, BrushTarget::Pixels, false)?;
+        interaction.command = command.into();
+        Ok(interaction)
+    }
     pub fn prepare_brush(
         &self,
         interaction: &BrushInteraction,
@@ -617,7 +638,14 @@ impl Editor {
         if self.epoch != interaction.epoch {
             return Err(CommandError::Stale);
         }
-        let payload = if interaction.command == "retouch.heal" {
+        let payload = if matches!(
+            interaction.command.as_str(),
+            "retouch.heal"
+                | "retouch.spot_heal"
+                | "retouch.dodge"
+                | "retouch.burn"
+                | "retouch.sponge"
+        ) {
             params.get_mut("stroke").ok_or_else(|| {
                 CommandError::Invalid("healing needs nested stroke parameters".into())
             })?
@@ -962,6 +990,14 @@ impl Editor {
                     super::selection::mutate_cancellable(doc, id, params.clone(), &|| {
                         request.expired()
                     })?
+                {
+                    (Action::Edit, result)
+                } else if let Some(result) =
+                    super::tonal_brush::mutate(doc, id, params.clone(), &|| request.expired())?
+                {
+                    (Action::Edit, result)
+                } else if let Some(result) =
+                    super::spot_heal::mutate(doc, id, params.clone(), &|| request.expired())?
                 {
                     (Action::Edit, result)
                 } else if let Some(result) =

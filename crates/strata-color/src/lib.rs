@@ -10,6 +10,8 @@ use std::{
     sync::{Arc, Mutex, OnceLock},
 };
 use strata_pixels::{PixelBuffer, PixelError};
+mod gamut;
+pub use gamut::WorkingGamut;
 
 #[derive(Debug, thiserror::Error)]
 pub enum ColorError {

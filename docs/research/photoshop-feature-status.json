@@ -610,5 +610,25 @@
         "path": "../research/2026-11-m6-paint-retouch-progress.md"
       }
     ]
+  },
+  "PS-07-7fd32754e9": {
+    "implementation": "已实现",
+    "acceptance": "本机核心/原生输入/Metal/Release 通过；手工、照片质量与连续性能仍待验收",
+    "evidence": [
+      {
+        "label": "M6 自动近邻污点修复",
+        "path": "../research/2026-11-m6-paint-retouch-progress.md"
+      }
+    ]
+  },
+  "PS-07-74865c42fd": {
+    "implementation": "已实现",
+    "acceptance": "本机核心/原生输入/Metal/Release 通过；手工、照片质量与连续性能仍待验收",
+    "evidence": [
+      {
+        "label": "M6 局部色调笔触",
+        "path": "../research/2026-11-m6-paint-retouch-progress.md"
+      }
+    ]
   }
 }

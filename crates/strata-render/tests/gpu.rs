@@ -771,6 +771,128 @@ fn healing_texture_display_matches_cpu_boundary_solution() {
 }
 
 #[test]
+fn automatic_spot_removes_a_known_color_blemish_in_metal_display() {
+    let Some(mut renderer) = renderer() else {
+        return;
+    };
+    let mut editor = strata_core::Editor::new();
+    for (id, args) in [
+        (
+            "file.new",
+            serde_json::json!({"width":16,"height":16,"bit_depth":16,"working_space":"display_p3","background":[44000,44000,44000,65535]}),
+        ),
+        (
+            "paint.stroke",
+            serde_json::json!({"layer":{"name":"Background"},"points":[{"x":10.5,"y":8.5}],"size":1,"hardness":1,"color":[1,0,0,1]}),
+        ),
+        (
+            "retouch.spot_heal",
+            serde_json::json!({"stroke":{"layer":{"name":"Background"},"points":[{"x":10.5,"y":8.5}],"size":4,"hardness":1},"search_radius":8}),
+        ),
+    ] {
+        editor
+            .execute(editor.request(strata_core::Source::Test), id, args, |_| {
+                Ok(())
+            })
+            .unwrap();
+    }
+    let doc = editor.document().unwrap();
+    let PixelBuffer::Rgba16(expected) = doc.export_pixels().unwrap() else {
+        panic!()
+    };
+    for c in 0..3 {
+        assert!(
+            expected[(8 * 16 + 10) * 4 + c].abs_diff(44000) <= 8,
+            "spot fixture retained blemish"
+        );
+    }
+    let scene = renderer.prepare_document(doc, false).unwrap();
+    renderer.commit_document(scene).unwrap();
+    renderer
+        .set_view(ViewTransform {
+            zoom: 3.0,
+            center_x: 8.0,
+            center_y: 8.0,
+        })
+        .unwrap();
+    renderer.render().unwrap();
+    let actual = renderer.read_offscreen_rgba().unwrap();
+    for (x, y) in [(2usize, 8usize), (9, 8), (10, 8), (12, 8)] {
+        let shown = pixel(&actual, x * 3 + 9, y * 3 + 9);
+        let i = (y * 16 + x) * 4;
+        for c in 0..3 {
+            let target = ((u32::from(expected[i + c]) + 128) / 257) as i32;
+            assert!(
+                (i32::from(shown[c]) - target).abs() <= 4,
+                "spot display {x},{y},{c}: {shown:?} != {target}"
+            );
+        }
+    }
+}
+
+#[test]
+fn dodge_burn_and_sponge_match_linear_cpu_over_canvas_and_keep_alpha() {
+    let Some(mut renderer) = renderer() else {
+        return;
+    };
+    for command in ["retouch.dodge", "retouch.burn", "retouch.sponge"] {
+        let mut e = strata_core::Editor::new();
+        e.execute(e.request(strata_core::Source::Test),"file.new",serde_json::json!({"width":16,"height":16,"bit_depth":16,"working_space":"display_p3","background":[20000,30000,40000,32768]}),|_|Ok(())).unwrap();
+        let stroke = serde_json::json!({"layer":{"name":"Background"},"points":[{"x":8.5,"y":8.5}],"size":6,"hardness":0.5,"opacity":0.7});
+        let p = if command == "retouch.sponge" {
+            serde_json::json!({"stroke":stroke,"amount":1,"mode":"desaturate","vibrance":false})
+        } else {
+            serde_json::json!({"stroke":stroke,"exposure":0.8,"protect_tones":true,"range":"midtones"})
+        };
+        e.execute(e.request(strata_core::Source::Test), command, p, |_| Ok(()))
+            .unwrap();
+        let doc = e.document().unwrap();
+        let strata_pixels::PixelValue::Rgba16(raw) = doc.layers()[0].pixels().pixel(8, 8).unwrap()
+        else {
+            panic!()
+        };
+        assert_eq!(raw[3], 32768);
+        let scene = renderer.prepare_document(doc, false).unwrap();
+        renderer.commit_document(scene).unwrap();
+        renderer
+            .set_view(ViewTransform {
+                zoom: 3.0,
+                center_x: 8.0,
+                center_y: 8.0,
+            })
+            .unwrap();
+        renderer.render().unwrap();
+        let actual = renderer.read_offscreen_rgba().unwrap();
+        let reference = strata_core::composite::Compositor::new(1)
+            .tile(doc, strata_pixels::TileCoord::new(0, 0).unwrap())
+            .unwrap();
+        for (x, y) in [(2usize, 6usize), (8, 8), (10, 8), (13, 8)] {
+            let p = reference[y * 256 + x];
+            let shown = pixel(&actual, x * 3 + 9, y * 3 + 9);
+            for c in 0..3 {
+                let bg = f64::from(CANVAS_BG_SRGB[c]) / 255.0;
+                let bg = if bg <= 0.04045 {
+                    bg / 12.92
+                } else {
+                    ((bg + 0.055) / 1.055).powf(2.4)
+                };
+                let v = f64::from(p[c]) * f64::from(p[3]) + bg * (1.0 - f64::from(p[3]));
+                let encoded = if v <= 0.0031308 {
+                    12.92 * v
+                } else {
+                    1.055 * v.powf(1.0 / 2.4) - 0.055
+                };
+                let expected = (encoded.clamp(0.0, 1.0) * 255.0).round() as u8;
+                assert!(
+                    shown[c].abs_diff(expected) <= 2,
+                    "{command} {x},{y},{c}: {shown:?} != {expected}"
+                );
+            }
+        }
+    }
+}
+
+#[test]
 fn tiled_scene_preserves_source_and_has_no_mip_seam() {
     let Some(mut r) = renderer() else {
         return;

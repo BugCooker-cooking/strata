@@ -12,6 +12,8 @@ pub(super) struct CloneSampler {
     offset: [f64; 2],
     tiles: HashMap<TileCoord, Vec<[f32; 4]>>,
     compositor: Compositor,
+    tile_loads: usize,
+    tile_load_limit: usize,
     _budget: Reservation,
 }
 impl CloneSampler {
@@ -52,8 +54,13 @@ impl CloneSampler {
             offset: [p.source[0] - destination[0], p.source[1] - destination[1]],
             tiles: HashMap::new(),
             compositor: Compositor::new(1),
+            tile_loads: 0,
+            tile_load_limit: usize::MAX,
             _budget: budget,
         })
+    }
+    pub fn limit_tile_loads(&mut self, limit: usize) {
+        self.tile_load_limit = limit;
     }
     fn point(
         &mut self,
@@ -90,6 +97,13 @@ impl CloneSampler {
         };
         let (coord, [px, py]) = TileCoord::locate(x, y);
         if !self.tiles.contains_key(&coord) {
+            if self.tile_loads >= self.tile_load_limit {
+                return Err(CommandError::Invalid(format!(
+                    "texture search exceeds {} decoded source tiles; shrink the brush or search radius",
+                    self.tile_load_limit
+                )));
+            }
+            self.tile_loads += 1;
             if self.tiles.len() >= 8 {
                 self.tiles.clear();
             }
@@ -158,5 +172,43 @@ impl CloneSampler {
         cancel: &dyn Fn() -> bool,
     ) -> Result<[f64; 4], CommandError> {
         self.color(x - self.offset[0], y - self.offset[1], cancel)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn search_sampling_has_a_separate_bounded_tile_decode_budget() {
+        let mut e = crate::Editor::new();
+        e.execute(e.request(Source::Test),"file.new",serde_json::json!({"width":512,"height":16,"bit_depth":16,"background":[20000,30000,40000,65535]}),|_|Ok(())).unwrap();
+        let doc = e.document().unwrap();
+        let layer = doc.active_layer().unwrap();
+        let source = CloneSource {
+            source: [1.5, 8.5],
+            destination: None,
+            sample: SelectionSample::CurrentLayer,
+        };
+        let mut sampler = CloneSampler::new(
+            doc,
+            layer,
+            &source,
+            &BrushPoint {
+                x: 1.5,
+                y: 8.5,
+                pressure: 1.0,
+            },
+        )
+        .unwrap();
+        sampler.limit_tile_loads(1);
+        assert!(sampler.destination_color(1.5, 8.5, &|| false).is_ok());
+        assert!(
+            sampler
+                .destination_color(300.5, 8.5, &|| false)
+                .unwrap_err()
+                .to_string()
+                .contains("decoded source tiles")
+        );
+        assert!(sampler.destination_color(1.5, 8.5, &|| false).is_ok());
     }
 }

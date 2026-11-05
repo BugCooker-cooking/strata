@@ -1,7 +1,7 @@
 //! Gradient-domain healing with an immutable source and target boundary.
 //! The finite footprint and solver residual are explicit resource/quality gates.
 use super::*;
-use crate::{Document, DocumentError, LayerKind};
+use crate::{Document, DocumentError, LayerId, LayerKind};
 use serde_json::json;
 use strata_pixels::memory::MemoryKind;
 fn check(cancel: &dyn Fn() -> bool) -> Result<(), CommandError> {
@@ -102,6 +102,56 @@ fn solve(
         (norm / (value.len() * 3) as f64).sqrt()
     )))
 }
+pub(super) fn validate_limits(iterations: u32, tolerance: f64) -> Result<(), CommandError> {
+    if !(1..=2048).contains(&iterations)
+        || !tolerance.is_finite()
+        || !(1e-7..=0.001).contains(&tolerance)
+    {
+        return Err(CommandError::Invalid(
+            "healing max_iterations 1..2048 and tolerance 1e-7..0.001 required".into(),
+        ));
+    }
+    Ok(())
+}
+pub(super) fn footprint(
+    doc: &Document,
+    stroke: &BrushStroke,
+    cancel: &dyn Fn() -> bool,
+) -> Result<(LayerId, strata_pixels::TiledMask), CommandError> {
+    check(cancel)?;
+    if !matches!(stroke.target, BrushTarget::Pixels) {
+        return Err(CommandError::Invalid(
+            "healing requires a pixel layer target".into(),
+        ));
+    }
+    let target = doc.resolve(&stroke.layer)?;
+    let index = doc.layers().iter().position(|l| l.id() == target).unwrap();
+    if !matches!(doc.layers()[index].info().kind, LayerKind::Pixel) {
+        return Err(CommandError::Invalid("healing needs a pixel target".into()));
+    }
+    // Reuse the exact brush rasterizer on a temporary coverage plane. The
+    // original target pixels and existing layer mask remain immutable.
+    let mut footprint = doc.clone();
+    let mask = super::local::uniform(doc, 0)?;
+    super::local::attach(&mut footprint.layers[index], mask);
+    let mut stroke = stroke.clone();
+    stroke.target = BrushTarget::Mask;
+    stroke.value = 1.0;
+    stroke.clone_source = None;
+    super::brush::mutate_cancellable(
+        &mut footprint,
+        "paint.stroke",
+        serde_json::to_value(&stroke).map_err(|e| CommandError::Invalid(e.to_string()))?,
+        cancel,
+    )?;
+    Ok((
+        target,
+        footprint.layers[index]
+            .mask
+            .take()
+            .expect("temporary coverage"),
+    ))
+}
 pub(super) fn mutate(
     doc: &mut Document,
     id: &str,
@@ -113,45 +163,12 @@ pub(super) fn mutate(
     }
     check(cancel)?;
     let mut p: HealStroke = parse(params)?;
-    if !(1..=2048).contains(&p.max_iterations)
-        || !p.tolerance.is_finite()
-        || !(1e-7..=0.001).contains(&p.tolerance)
-    {
-        return Err(CommandError::Invalid(
-            "healing max_iterations 1..2048 and tolerance 1e-7..0.001 required".into(),
-        ));
-    }
-    if !matches!(p.stroke.target, BrushTarget::Pixels) {
-        return Err(CommandError::Invalid(
-            "healing requires a pixel layer target".into(),
-        ));
-    }
+    validate_limits(p.max_iterations, p.tolerance)?;
     let clone =
         p.stroke.clone_source.take().ok_or_else(|| {
             CommandError::Invalid("healing needs an explicit clone_source".into())
         })?;
-    let target = doc.resolve(&p.stroke.layer)?;
-    let index = doc.layers().iter().position(|l| l.id() == target).unwrap();
-    if !matches!(doc.layers()[index].info().kind, LayerKind::Pixel) {
-        return Err(CommandError::Invalid("healing needs a pixel target".into()));
-    }
-    // Reuse the exact brush rasterizer on a temporary coverage plane. The
-    // original target pixels and existing layer mask remain immutable.
-    let mut footprint = doc.clone();
-    let mask = super::local::uniform(doc, 0)?;
-    super::local::attach(&mut footprint.layers[index], mask);
-    p.stroke.target = BrushTarget::Mask;
-    p.stroke.value = 1.0;
-    super::brush::mutate_cancellable(
-        &mut footprint,
-        "paint.stroke",
-        serde_json::to_value(&p.stroke).map_err(|e| CommandError::Invalid(e.to_string()))?,
-        cancel,
-    )?;
-    let coverage = footprint.layers[index]
-        .mask
-        .take()
-        .expect("temporary coverage");
+    let (target, coverage) = footprint(doc, &p.stroke, cancel)?;
     let result = |pixels, steps, rms| json!({"layer_id":target,"domain_pixels":pixels,"iterations":steps,"residual_rms":rms,"method":"linear P3 Poisson source gradients with immutable target Dirichlet boundary"});
     let Some(bounds) = coverage.content_bounds().map_err(DocumentError::from)? else {
         return Ok(Some(result(0, 0, 0.0)));

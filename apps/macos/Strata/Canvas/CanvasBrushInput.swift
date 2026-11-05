@@ -9,6 +9,11 @@ struct CanvasBrushConfiguration: Equatable {
     var pressureSize = true, pressureOpacity = true
     var clone = false, aligned = true, cloneSource: [Double]?, cloneSample = "current_layer"
     var heal = false
+    var spot = false
+    var spotSearchRadius = 64.0
+    var tonalCommand:String?
+    var tonalRange = "midtones", tonalExposure = 0.5
+    var protectTones = true, spongeMode = "desaturate", spongeVibrance = true
 }
 @MainActor
 final class CanvasBrushInput {
@@ -26,14 +31,18 @@ final class CanvasBrushInput {
     init(engine: StrataEngine) { self.engine = engine }
     func configure(_ value: CanvasBrushConfiguration) {
         if configuration != value { cancel() }
-        if configuration.layer != value.layer || configuration.cloneSource != value.cloneSource || configuration.aligned != value.aligned {cloneDestination=nil}
+        if configuration.layer != value.layer || configuration.cloneSource != value.cloneSource || configuration.aligned != value.aligned || configuration.spot != value.spot || configuration.heal != value.heal {cloneDestination=nil}
         configuration = value
     }
     func down(_ point: NSPoint, pressure: Double) {
         guard !running, let layer = configuration.layer else { return }
         do {
-            if configuration.clone {
-                guard configuration.cloneSource != nil else{throw AIClientError.message("请先按住 ⌥ 单击画布设置仿制源点。")}
+            if let command=configuration.tonalCommand{
+                try engine.beginTonalBrush(layerId:layer,command:command)
+            }else if configuration.spot {
+                try engine.beginSpotHeal(layerId:layer)
+            }else if configuration.clone {
+                guard configuration.cloneSource != nil else{throw AIClientError.message("请先按住 ⌥ 单击画布设置取样源点。")}
                 if configuration.heal{try engine.beginHeal(layerId:layer)}else{try engine.beginClone(layerId:layer)}
                 activeDestination=configuration.aligned ? cloneDestination ?? point : point
             }else{try engine.beginBrush(layerId: layer, target: configuration.target, erase: configuration.erase)}
@@ -56,7 +65,16 @@ final class CanvasBrushInput {
                 "value":settings.value,"pressure_size":settings.pressureSize,"pressure_opacity":settings.pressureOpacity]
             let destination=activeDestination
             if settings.clone,let source=settings.cloneSource,let destination {parameters["clone_source"]=["source":source,"destination":[Double(destination.x),Double(destination.y)],"sample":settings.cloneSample]}
-            let encoded = try commandJSON(settings.heal ? ["stroke":parameters] : parameters), engine = engine
+            var payload:[String:Any] = settings.heal || settings.spot || settings.tonalCommand != nil ? ["stroke":parameters] : parameters
+            if settings.spot {
+                guard settings.spotSearchRadius.isFinite,(1...512).contains(settings.spotSearchRadius) else{throw AIClientError.message("污点修复搜索范围需要在 1–512px 内。")}
+                payload["sample"]=settings.cloneSample;payload["search_radius"]=Int(settings.spotSearchRadius)
+            }
+            if let command=settings.tonalCommand {
+                if command == "retouch.sponge" {payload["amount"]=settings.tonalExposure;payload["mode"]=settings.spongeMode;payload["vibrance"]=settings.spongeVibrance}
+                else {payload["exposure"]=settings.tonalExposure;payload["range"]=settings.tonalRange;payload["protect_tones"]=settings.protectTones}
+            }
+            let encoded = try commandJSON(payload), engine = engine
             active = false; running = true; onRunning?(true)
             Task { [weak self] in
                 let result: Result<Void,Error>

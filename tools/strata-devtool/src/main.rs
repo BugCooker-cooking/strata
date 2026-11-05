@@ -78,6 +78,13 @@ fn examples() -> Result<(), Box<dyn Error>> {
             };
             let mut args = example.clone();
             match spec.id {
+                "retouch.spot_heal" => {
+                    run(
+                        &mut editor,
+                        "paint.fill",
+                        json!({"layer":{"name":"Background"},"color":[0.4,0.5,0.6,1]}),
+                    )?;
+                }
                 "paint.stroke" | "paint.erase" if args["target"] == "mask" => {
                     run(
                         &mut editor,

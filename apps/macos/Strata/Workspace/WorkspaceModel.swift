@@ -38,9 +38,9 @@ enum EditorTool: String, CaseIterable, Identifiable {
     var title: String { Self.info[self]!.0 }
     var symbol: String { Self.info[self]!.1 }
     var key: String { Self.info[self]!.2 }
-    var available: Bool { [.move, .marquee, .lasso, .selection, .subject, .brush, .eraser, .clone, .heal, .bucket, .gradient, .eyedropper, .hand, .zoom].contains(self) }
+    var available: Bool { [.move, .marquee, .lasso, .selection, .subject, .brush, .eraser, .clone, .heal, .dodge, .bucket, .gradient, .eyedropper, .hand, .zoom].contains(self) }
     var isPaint: Bool { isBrush || [.bucket,.gradient].contains(self) }
-    var isBrush: Bool { [.brush,.eraser,.clone,.heal].contains(self) }
+    var isBrush: Bool { [.brush,.eraser,.clone,.heal,.dodge].contains(self) }
     var isSelection: Bool { [.marquee, .lasso, .selection].contains(self) }
     static let groups: [[EditorTool]] = [[.move], [.marquee, .lasso, .selection, .subject], [.crop, .eyedropper], [.heal, .clone, .brush, .eraser, .bucket, .gradient, .dodge], [.text, .pen, .shape], [.hand, .zoom]]
     private static let info: [EditorTool: (String, String, String)] = [
@@ -49,8 +49,8 @@ enum EditorTool: String, CaseIterable, Identifiable {
         .subject: ("选择主体", "person.crop.rectangle", ""), .crop: ("裁剪", "crop", "C"),
         .eyedropper: ("吸管", "eyedropper", "I"), .heal: ("修复画笔", "bandage", "J"),
         .clone: ("仿制图章", "seal", "S"), .brush: ("画笔", "paintbrush.pointed", "B"),
-        .eraser: ("橡皮擦", "eraser", "E"), .bucket: ("油漆桶", "paintbucket", "K"), .gradient: ("渐变", "square.lefthalf.filled", "G"),
-        .dodge: ("减淡 / 加深", "sun.max", "O"), .text: ("文字", "textformat", "T"),
+        .eraser: ("橡皮擦", "eraser", "E"), .bucket: ("油漆桶", "drop.fill", "K"), .gradient: ("渐变", "square.lefthalf.filled", "G"),
+        .dodge: ("减淡 / 加深 / 海绵", "sun.max", "O"), .text: ("文字", "textformat", "T"),
         .pen: ("钢笔", "pencil.tip.crop.circle", "P"), .shape: ("形状", "square.on.circle", "U"),
         .hand: ("抓手", "hand.draw", "H"), .zoom: ("缩放", "magnifyingglass", "Z")]
 }
@@ -119,6 +119,14 @@ final class WorkspaceModel: ObservableObject {
     @Published var cloneSource:[Double]?
     @Published var cloneAligned = true
     @Published var cloneSample = "current_layer"
+    @Published var healMode = "sampled"
+    @Published var spotSearchRadius = 64.0
+    @Published var tonalBrushMode = "dodge"
+    @Published var tonalBrushRange = "midtones"
+    @Published var tonalBrushExposure = 50.0
+    @Published var tonalBrushProtect = true
+    @Published var spongeMode = "desaturate"
+    @Published var spongeVibrance = true
     @Published var histogram: [Double] = []
     @Published var workingColorSpace=NSColorSpace.sRGB
     @Published var collapsedGroups:Set<String>=[]
@@ -208,6 +216,8 @@ private let commandTitles: [String: String] = [
      "paint.fill":"填充像素", "paint.bucket":"油漆桶", "paint.gradient":"渐变像素", "paint.sample_color":"吸取颜色",
      "retouch.clone":"仿制图章笔触",
      "retouch.heal":"修复画笔笔触",
+     "retouch.spot_heal":"污点修复笔触",
+     "retouch.dodge":"减淡笔触", "retouch.burn":"加深笔触", "retouch.sponge":"海绵笔触",
      "layer.add_adjustment": "新建曝光调整层", "adjust.exposure.set": "调整曝光",
      "layer.mask.add": "添加蒙版", "layer.mask.invert": "反相蒙版",
      "layer.mask.set_enabled": "切换蒙版", "layer.mask.remove": "移除蒙版",

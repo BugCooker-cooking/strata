@@ -131,7 +131,7 @@ fn pixel(pixels: &PixelBuffer, i: usize) -> [f64; 4] {
         PixelBuffer::Rgba16(v) => std::array::from_fn(|c| f64::from(v[i * 4 + c]) / 65535.0),
     }
 }
-fn set_alpha(pixels: &mut PixelBuffer, index: usize, alpha: f64) {
+pub(super) fn set_alpha(pixels: &mut PixelBuffer, index: usize, alpha: f64) {
     match pixels {
         PixelBuffer::Rgba8(v) => v[index * 4 + 3] = (alpha.clamp(0.0, 1.0) * 255.0).round() as u8,
         PixelBuffer::Rgba16(v) => {

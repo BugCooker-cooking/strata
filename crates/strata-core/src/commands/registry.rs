@@ -38,9 +38,9 @@ pub fn catalog() -> &'static [CommandSpec] {
 fn build_catalog() -> Vec<CommandSpec> {
     let mut list = Vec::new();
     macro_rules! command {
-        ($id:literal,$params:ty,$kind:ident,$zh:literal,$en:literal,$description:expr,$example:expr) => {{
+        ($id:expr,$params:ty,$kind:ident,$zh:expr,$en:expr,$description:expr,$example:expr) => {{
             let kind=CommandKind::$kind;
-            list.push(CommandSpec { id:$id,path:$id.split('.').collect(),title_zh:$zh,title_en:$en,summary:$en,description:$description,kind,
+            list.push(CommandSpec { id:$id,path:($id).split('.').collect(),title_zh:$zh,title_en:$en,summary:$en,description:$description,kind,
                 effects:match kind { CommandKind::Query=>vec!["document.read"], CommandKind::View=>vec!["view.write"],_=>vec!["document.write"] },
                 permissions:vec!["bound_document"],batchable:matches!(kind,CommandKind::Query|CommandKind::Mutate),undoable:kind==CommandKind::Mutate,
                 params:schemars::schema_for!($params),returns:schemars::schema_for!(Value),
@@ -908,11 +908,47 @@ fn build_catalog() -> Vec<CommandSpec> {
         "Transfer source texture while solving linear-P3 Poisson gradients against an immutable target Dirichlet boundary. Required stroke uses the same round brush/selection/pressure/opacity/flow/locks as paint.stroke, pixel target and explicit clone_source as retouch.clone; color/value ignored. source/current_layer requires nontransparent target boundary; merged sampling can use the visible composite for source and destination reference. Transparent source or destination samples are excluded from the solved domain. Footprint plus 1px boundary at most 262144 pixels. Conjugate gradient max_iterations 1..2048 (default 512), RMS tolerance 1e-7..0.001 (default 0.00005); nonconvergence returns error without editing. Soft coverage and selection applied once, source samples unchanged outside it. Finite solved colors clamp to working RGB gamut at publication; source alpha blends over the target. Shared memory and cancellation throughout sampling/solve/publish; one atomic history item, not batchable. This is sampled gradient-domain healing; automatic spot matching is a separate command. 中文：修复画笔、源纹理、边界融合。",
         json!({"stroke":{"layer":{"name":"Background"},"points":[{"x":10.5,"y":10.5}],"size":4,"clone_source":{"source":[3.5,3.5]}},"max_iterations":512,"tolerance":0.00005})
     );
+    command!(
+        "retouch.spot_heal",
+        SpotHealStroke,
+        Mutate,
+        "污点修复笔触",
+        "Spot healing stroke",
+        "Automatically match nearby intact texture outside a round brush footprint, then apply retouch.heal Poisson boundary fusion. Nested stroke has a pixel target and no clone_source; brush/selection/locks/pressure/flow/opacity and atomic one-history semantics remain. Sample current_layer (default raw target) or merged visible composite. Search radius 1..512px (default 64), deterministic coarse translation grid with local refinement, at most 2048 offsets and 128 nontransparent boundary/32 interior samples; search decodes at most 1024 source tiles and caches eight. Source and destination footprint bounding rectangles plus boundary never overlap and source stays inside artboard. Score is boundary linear-P3 RGB variance after mean offset plus 5% mean-color error; nearest offset breaks numerical ties. Return chosen canvas source anchor, candidate count, RMS boundary error and healing diagnostics. Footprint plus 1px boundary <=262144 pixels; max_iterations/tolerance follow retouch.heal. Missing usable source, nonconvergence, cancellation or shared memory failure do not edit the document. This is proximity texture matching; content-aware PatchMatch synthesis is tracked separately. 中文：污点修复、自动近邻纹理匹配、边界融合。",
+        json!({"stroke":{"layer":{"name":"Background"},"points":[{"x":11.5,"y":8.5}],"size":2,"hardness":1},"search_radius":8})
+    );
+    for (id, zh, en) in [
+        ("retouch.dodge", "减淡笔触", "Dodge stroke"),
+        ("retouch.burn", "加深笔触", "Burn stroke"),
+    ] {
+        command!(
+            id,
+            TonalBrushStroke,
+            Mutate,
+            zh,
+            en,
+            "Local dodge/burn on an explicit unlocked pixel layer. Nested stroke has round brush coverage/pressure/flow/opacity/selection/locks and no clone_source; target=pixels, color/value ignored. exposure 0..1 (default .5), range shadows/midtones/highlights (default midtones). Range uses physical linear P3 Y and CIE L*: shadows=1-smoothstep(.05,.65,L), highlights=smoothstep(.35,.95,L), midtones=4L(1-L). Gain=2^(+/-2*exposure*rangeWeight). protect_tones=true (default) applies Y'=Y/(Y+(1-Y)/gain), preserves black/white endpoints and compresses chroma in the actual working-ICC gamut toward Y'; false applies/clamps linear RGB gain. Finite u16 coverage blends transformed color once; alpha and zero-coverage/transparent hidden samples remain exact. Actual working ICC and 8/16-bit retained, transient tile budget/cancellation and one atomic history item. 中文：减淡、加深、曝光量、阴影、中间调、高光、保护色调。",
+            json!({"stroke":{"layer":{"name":"Background"},"points":[{"x":8.5,"y":8.5}],"size":4,"hardness":1},"exposure":0.5,"range":"midtones","protect_tones":true})
+        );
+    }
+    command!(
+        "retouch.sponge",
+        SpongeStroke,
+        Mutate,
+        "海绵笔触",
+        "Sponge stroke",
+        "Local saturation/desaturation through one nested round brush stroke, explicit pixel target and no clone_source; color/value ignored. mode=saturate/desaturate (default desaturate), amount 0..1 (default .5), vibrance=true by default. Scale linear-P3 RGB chroma about physical Y by 1+/-strength; strength=amount/(1+4*maxAbsChroma) with vibrance, amount otherwise. Compress chroma in the actual working-ICC gamut toward Y (matrix/TRC fast path, unquantized ICC round-trip fallback), preserve physical luminance and exact source alpha; transparent/zero-coverage samples remain exact. Same selection/pressure/opacity/flow/locks, actual working ICC, cancellation/shared tile budget and one atomic history item as dodge/burn. 中文：海绵、增加饱和度、降低饱和度、自然饱和度。",
+        json!({"stroke":{"layer":{"name":"Background"},"points":[{"x":8.5,"y":8.5}],"size":4},"mode":"desaturate","amount":0.5,"vibrance":true})
+    );
     for item in &mut list {
         item.returns = match item.id {
+            "retouch.spot_heal" => schemars::schema_for!(SpotHealResult),
             "retouch.heal" => schemars::schema_for!(HealResult),
             "paint.sample_color" => schemars::schema_for!(SampleColorResult),
             "paint.fill" | "paint.bucket" | "paint.gradient" => schemars::schema_for!(BrushResult),
+            "retouch.dodge" | "retouch.burn" | "retouch.sponge" => {
+                schemars::schema_for!(BrushResult)
+            }
             "paint.stroke" | "paint.erase" | "retouch.clone" => schemars::schema_for!(BrushResult),
             "document.inspect" => schemars::schema_for!(Snapshot),
             "layer.list" => schemars::schema_for!(LayerListResult),
@@ -1014,7 +1050,15 @@ fn build_catalog() -> Vec<CommandSpec> {
         if item.id == "document.batch" || item.id == "file.place" {
             item.batchable = false;
         }
-        if matches!(item.id, "retouch.clone" | "retouch.heal") {
+        if matches!(
+            item.id,
+            "retouch.clone"
+                | "retouch.heal"
+                | "retouch.spot_heal"
+                | "retouch.dodge"
+                | "retouch.burn"
+                | "retouch.sponge"
+        ) {
             item.batchable = false;
         }
         if matches!(item.id, "paint.stroke" | "paint.erase") {

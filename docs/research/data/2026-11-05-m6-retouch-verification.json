@@ -1,0 +1,93 @@
+{
+  "recorded_at": "2026-11-05T08:33:54.849592+00:00",
+  "scope": "M6 sampled/proximity healing and dodge/burn/sponge local checkpoint; full Photoshop work remains open",
+  "source_sha256": {
+    "apps/macos/Strata/Canvas/CanvasBrushInput.swift": "a453c24f9f906249a8c06e48d75debf2ad0beb97a0231010cc17ef3d3027f341",
+    "apps/macos/Strata/Canvas/CanvasView.swift": "83b0cf59d5ca59cc813bc821245e4caf95514ba08b50f120bf668b7109b8a6c1",
+    "apps/macos/Strata/Workspace/BrushControls.swift": "460e8c9a2bb0117dce07f410749a0026799d2ad5ef304b0843bbb99e8f1c0f68",
+    "apps/macos/Strata/Workspace/WorkspaceModel.swift": "703e62d92710096e8515888d4097b83a00cce18392ff32c5a951a33234a57cd9",
+    "apps/macos/Strata/Workspace/WorkspaceViews.swift": "957403f5fd3828529389edaa8dfce76b49e934c830526c3af0abcfadbd058a94",
+    "apps/macos/StrataTests/BrushInputTests.swift": "5022ca9111e7160bd29210d49d5a7173e8b20a69031a00117bcc2f5cc48f8e6e",
+    "crates/strata-ai/tests/protocol.rs": "4adc44e73f49f991fb13ff7b2caa762c503579408ef8a8cfe0f728784e671da4",
+    "crates/strata-color/src/gamut.rs": "f0387a897b74e19a4f2112afb6b761d3c4cfb29f4e0841e64e51e4e60606ef7c",
+    "crates/strata-color/src/lib.rs": "0cda0ab3ad55cb408be95fee778ae034168eda65da6ab93cb2ee3ecf56aa4d7c",
+    "crates/strata-core/src/commands/brush.rs": "81370f28eebd500ec7ee4bba945ca9eb089d7bc7a8ff39bad07ad0167f30fbf8",
+    "crates/strata-core/src/commands/clone_source.rs": "65682da1d4c05d8579812a4d6f1309b9005be48c43f8bafe8fd228dceb932c3a",
+    "crates/strata-core/src/commands/executor.rs": "1d748b0b6440dc3f0f32a9fb224fa93aa857bccc1338b59710d646e41756a6ca",
+    "crates/strata-core/src/commands/heal.rs": "5cbea5a38f9e42a2fcda9709dd82cc8be97c4d4d6bf3eb646979e65302d9d456",
+    "crates/strata-core/src/commands/mod.rs": "bca35568ed6445a93a3730e2249a5c4eee76695f7d8218d0807fe0137150568b",
+    "crates/strata-core/src/commands/pixel_transform.rs": "d4769d8e95924c52b3d50fdc332c03d8a316434cf1ac9c33ce39c42f4bf87e79",
+    "crates/strata-core/src/commands/registry.rs": "3803160c923b2cd100274de62776c7cbdc635ee749c25cfd2290dce83d3315f7",
+    "crates/strata-core/src/commands/spot_heal.rs": "93d173060e70903d3b189fc13e4cb9af33c6f56295c913ad2a1d904310feb8c8",
+    "crates/strata-core/src/commands/tonal_brush.rs": "e085aa4ce25eb66056e8c8fad9da73e81d9cfa8162adea118f8ed2ed296acf13",
+    "crates/strata-core/tests/spot_heal.rs": "f3ab322287bca9f20c8c2a2b77c4680e6c952af67e05a623105be54d7507691a",
+    "crates/strata-core/tests/tonal_brush.rs": "267eb043f7d3e4547bd81fdd7b87e5f89503675bfe43a29f3893683080223fef",
+    "crates/strata-ffi/src/local.rs": "8bf89b4c8efb533703ada36d26e01e8499a8c07b51f76c61c9d17d346cfeb9af",
+    "crates/strata-render/tests/gpu.rs": "6ddbf7c6b3ba78c1def2bc70a06499da32b67f064f93a2052e3355a0bd0a9a88",
+    "tools/strata-devtool/src/main.rs": "aeafc82727fc6c69b83adae0b37ef00ca54f0f9cd23a99b811c6f4e41ebc0dd1"
+  },
+  "verification": [
+    {
+      "command": "RUST_TEST_THREADS=2 make test",
+      "rust_passed": 330,
+      "rust_ignored": 1,
+      "xctest_passed": 52,
+      "xctest_skipped": 1,
+      "xctest_total": 53,
+      "passed": true,
+      "log": "build/m6-retouch-full-test.log"
+    },
+    {
+      "command": "make test-gpu",
+      "require_gpu": true,
+      "passed_tests": 63,
+      "ignored_tests": 1,
+      "renderer_gpu_integration_tests": 26,
+      "passed": true,
+      "log": "build/m6-retouch-required-gpu.log"
+    },
+    {
+      "command": "make build CONFIGURATION=Release",
+      "arch": "arm64",
+      "macos_deployment_target": "14.0",
+      "independent_clean_build": false,
+      "passed": true,
+      "log": "build/m6-retouch-release.log"
+    },
+    {
+      "command": "make lint",
+      "passed": true,
+      "log": "build/m6-retouch-lint.log"
+    },
+    {
+      "command": "make commands",
+      "registered_commands": 100,
+      "all_isolated_examples_passed": true,
+      "log": "build/m6-retouch-commands.log"
+    }
+  ],
+  "skipped_network_test": "Routine gate has no explicit local live-model opt-in; no request sent.",
+  "asserted_reference_thresholds": {
+    "flat_spot_16bit_max_code_error": 8,
+    "periodic_spot_linear_rgb_max_error": 0.003,
+    "sponge_16bit_physical_y_max_error": 0.0001,
+    "neutral_dodge_code16": 41139,
+    "neutral_burn_code16": 24993,
+    "neutral_reference_code_tolerance": 16
+  },
+  "observed_running_strata_instances_after_tests": 0,
+  "manual_stroke_acceptance": "pending; system UI focus/input and long automation latency, single test instance closed without saving sample edits",
+  "interactive_24mp_performance": "pending; no displayed frame-rate measurement in this record",
+  "photo_quality_suite": "pending",
+  "known_blocked_ci": {
+    "head": "359921dad054d3f71538cdc67e1a7b609ada7b13",
+    "run_id": 41984728526,
+    "jobs": [
+      "linux",
+      "macos"
+    ],
+    "steps_per_job": 0,
+    "reason": "The job was not started because recent account payments have failed or your spending limit needs to be increased."
+  },
+  "ignored_onnx_test": "Explicit verified ONNX assets and local inference opt-in required; existing separate inference evidence is unchanged."
+}

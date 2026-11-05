@@ -19,6 +19,27 @@ pub fn tonal_curve_preview(points_json: String) -> Result<Vec<f32>, StrataError>
 
 #[uniffi::export]
 impl StrataEngine {
+    pub fn begin_tonal_brush(&self, layer_id: String, command: String) -> Result<(), StrataError> {
+        let layer = serde_json::from_value(json!({"id":layer_id})).map_err(render_error)?;
+        self.issue_tonal_preview()?;
+        let mut inner = self.lock()?;
+        crate::tonal_preview::restore(&mut inner)?;
+        inner.brush = Some(
+            inner
+                .editor
+                .begin_tonal_brush(layer, &command)
+                .map_err(command_error)?,
+        );
+        Ok(())
+    }
+    pub fn begin_spot_heal(&self, layer_id: String) -> Result<(), StrataError> {
+        let layer = serde_json::from_value(json!({"id":layer_id})).map_err(render_error)?;
+        self.issue_tonal_preview()?;
+        let mut inner = self.lock()?;
+        crate::tonal_preview::restore(&mut inner)?;
+        inner.brush = Some(inner.editor.begin_spot_heal(layer).map_err(command_error)?);
+        Ok(())
+    }
     pub fn begin_heal(&self, layer_id: String) -> Result<(), StrataError> {
         let layer = serde_json::from_value(json!({"id":layer_id})).map_err(render_error)?;
         self.issue_tonal_preview()?;
@@ -378,6 +399,100 @@ mod tests {
                 .end_paint(json!({"x":1,"y":1,"color":[0,1,0,1]}).to_string(), false)
                 .is_err()
         );
+        assert_eq!(
+            engine.lock().unwrap().editor.snapshot().history.len(),
+            history
+        );
+    }
+    #[test]
+    fn tonal_brush_commands_are_whitelisted_and_nested_gestures_are_revision_bound() {
+        for command in ["retouch.dodge", "retouch.burn", "retouch.sponge"] {
+            let engine = StrataEngine::new(Arc::new(Listener));
+            engine.dispatch("file.new".into(),json!({"width":16,"height":16,"bit_depth":16,"background":[20000,30000,40000,32768]}).to_string()).unwrap();
+            let id = engine
+                .lock()
+                .unwrap()
+                .editor
+                .snapshot()
+                .active_layer
+                .unwrap()
+                .to_string();
+            assert!(
+                engine
+                    .begin_tonal_brush(id.clone(), "paint.stroke".into())
+                    .is_err()
+            );
+            engine
+                .begin_tonal_brush(id.clone(), command.into())
+                .unwrap();
+            let mut payload = json!({"stroke":{"points":[{"x":8.5,"y":8.5}],"size":4}});
+            engine.end_brush(payload.to_string(), false).unwrap();
+            assert_eq!(
+                engine
+                    .lock()
+                    .unwrap()
+                    .editor
+                    .snapshot()
+                    .history
+                    .last()
+                    .unwrap()
+                    .command,
+                command
+            );
+            engine
+                .begin_tonal_brush(id.clone(), command.into())
+                .unwrap();
+            payload["stroke"]["target"] = json!("mask");
+            assert!(engine.end_brush(payload.to_string(), false).is_err());
+            payload["stroke"].as_object_mut().unwrap().remove("target");
+            engine.begin_tonal_brush(id, command.into()).unwrap();
+            engine.dispatch("select.all".into(), "{}".into()).unwrap();
+            let history = engine.lock().unwrap().editor.snapshot().history.len();
+            assert!(engine.end_brush(payload.to_string(), false).is_err());
+            assert_eq!(
+                engine.lock().unwrap().editor.snapshot().history.len(),
+                history
+            );
+        }
+    }
+    #[test]
+    fn automatic_spot_gesture_anchors_nested_target_and_rejects_stale_input() {
+        let engine = StrataEngine::new(Arc::new(Listener));
+        engine.dispatch("file.new".into(),json!({"width":16,"height":16,"bit_depth":16,"background":[20000,30000,40000,65535]}).to_string()).unwrap();
+        let id = engine
+            .lock()
+            .unwrap()
+            .editor
+            .snapshot()
+            .active_layer
+            .unwrap()
+            .to_string();
+        let payload = json!({"stroke":{"points":[{"x":10.5,"y":8.5}],"size":2,"hardness":1},"search_radius":8});
+        engine.begin_spot_heal(id.clone()).unwrap();
+        engine.end_brush("{}".into(), true).unwrap();
+        assert_eq!(engine.lock().unwrap().editor.snapshot().history.len(), 0);
+        engine.begin_spot_heal(id.clone()).unwrap();
+        engine.end_brush(payload.to_string(), false).unwrap();
+        assert_eq!(
+            engine
+                .lock()
+                .unwrap()
+                .editor
+                .snapshot()
+                .history
+                .last()
+                .unwrap()
+                .command,
+            "retouch.spot_heal"
+        );
+        let mut bad = payload.clone();
+        bad["stroke"]["target"] = json!("mask");
+        engine.begin_spot_heal(id.clone()).unwrap();
+        assert!(engine.end_brush(bad.to_string(), false).is_err());
+        engine.begin_spot_heal(id).unwrap();
+        engine.dispatch("select.all".into(), "{}".into()).unwrap();
+        let history = engine.lock().unwrap().editor.snapshot().history.len();
+        assert!(engine.end_brush(payload.to_string(), false).is_err());
         assert_eq!(
             engine.lock().unwrap().editor.snapshot().history.len(),
             history

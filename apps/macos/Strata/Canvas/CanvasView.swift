@@ -314,7 +314,9 @@ final class CanvasView: NSView {
     }
     func configureBrush(_ model: WorkspaceModel) {
         brushTool = model.tool.isBrush
-        cloneTool = [.clone,.heal].contains(model.tool)
+        let spot=model.tool == .heal && model.healMode == "spot"
+        let tonal=model.tool == .dodge
+        cloneTool = model.tool == .clone || model.tool == .heal && !spot
         cloneSource = cloneTool && model.cloneSource?.count == 2 ? NSPoint(x:model.cloneSource?[0] ?? 0,y:model.cloneSource?[1] ?? 0) : nil
         drawCloneMarker()
         if !brushTool { brushInput.cancel(); return }
@@ -326,11 +328,12 @@ final class CanvasView: NSView {
         let maskColor = (model.tool == .eraser ? model.backgroundColor : model.foregroundColor).usingColorSpace(model.workingColorSpace) ?? NSColor(srgbRed:1,green:1,blue:1,alpha:1)
         let maskValue = bounded(Double(maskColor.redComponent)*0.2126+Double(maskColor.greenComponent)*0.7152+Double(maskColor.blueComponent)*0.0722,0...1,1)
         brushPreviewColor = model.tool == .eraser ? NSColor.white.withAlphaComponent(0.5) : color
-        let configuration = CanvasBrushConfiguration(layer:model.selected?.id,erase:model.tool == .eraser,target:cloneTool ? "pixels" : model.brushTarget,
+        let configuration = CanvasBrushConfiguration(layer:model.selected?.id,erase:model.tool == .eraser,target:cloneTool || spot || tonal ? "pixels" : model.brushTarget,
             size:bounded(model.brushSize,0.5...4096,24),hardness:bounded(model.brushHardness/100,0...1,0.8),
             opacity:bounded(model.brushOpacity/100,0...1,1),flow:bounded(model.brushFlow/100,0...1,1),
             spacing:bounded(model.brushSpacing/100,0.01...2,0.2),color:rgba,
-            value:maskValue,pressureSize:model.brushPressureSize,pressureOpacity:model.brushPressureOpacity,clone:cloneTool,aligned:model.cloneAligned,cloneSource:model.cloneSource,cloneSample:model.cloneSample,heal:model.tool == .heal)
+            value:maskValue,pressureSize:model.brushPressureSize,pressureOpacity:model.brushPressureOpacity,clone:cloneTool,aligned:model.cloneAligned,cloneSource:model.cloneSource,cloneSample:model.cloneSample,heal:model.tool == .heal && !spot,spot:spot,spotSearchRadius:bounded(model.spotSearchRadius,1...512,64),
+            tonalCommand:tonal ? "retouch."+model.tonalBrushMode : nil,tonalRange:model.tonalBrushRange,tonalExposure:bounded(model.tonalBrushExposure/100,0...1,0.5),protectTones:model.tonalBrushProtect,spongeMode:model.spongeMode,spongeVibrance:model.spongeVibrance)
         brushInput.configure(configuration)
     }
     func configurePaint(_ model:WorkspaceModel){

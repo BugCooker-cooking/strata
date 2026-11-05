@@ -189,6 +189,10 @@ fn catalog_is_lazy_bilingual_bounded_and_has_no_unimplemented_commands() {
         ("蒙版绘制", "paint.stroke"),
         ("仿制图章", "retouch.clone"),
         ("修复画笔", "retouch.heal"),
+        ("污点修复", "retouch.spot_heal"),
+        ("减淡", "retouch.dodge"),
+        ("加深", "retouch.burn"),
+        ("海绵", "retouch.sponge"),
     ] {
         assert!(
             catalog::search(query, 32).unwrap()["matches"]

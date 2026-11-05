@@ -9,12 +9,15 @@ mod heal;
 mod local;
 mod new;
 mod paint;
+mod pixel_transform;
 mod raster;
 mod registry;
 mod resample;
 mod sample_selection;
 mod selection;
+mod spot_heal;
 mod tonal;
+mod tonal_brush;
 mod tree;
 pub use cancellation::WorkCancellation;
 pub use executor::{
@@ -301,6 +304,64 @@ pub struct HealResult {
     pub residual_rms: f64,
     pub method: String,
 }
+fn spot_radius() -> u32 {
+    64
+}
+params!(SpotHealStroke {
+    stroke: BrushStroke,
+    #[serde(default = "sample_current")]
+    sample: SelectionSample,
+    #[serde(default = "spot_radius")]
+    search_radius: u32,
+    #[serde(default = "heal_iterations")]
+    max_iterations: u32,
+    #[serde(default = "heal_tolerance")]
+    tolerance: f64
+});
+#[derive(Serialize, JsonSchema)]
+pub struct SpotHealResult {
+    pub layer_id: crate::LayerId,
+    pub source: Option<[f64; 2]>,
+    pub candidates: usize,
+    pub boundary_error: f64,
+    pub healing: Option<HealResult>,
+}
+#[derive(Clone, Copy, Debug, Default, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum BrushTonalRange {
+    Shadows,
+    #[default]
+    Midtones,
+    Highlights,
+}
+fn tonal_exposure() -> f64 {
+    0.5
+}
+params!(TonalBrushStroke {
+    stroke: BrushStroke,
+    #[serde(default)]
+    range: BrushTonalRange,
+    #[serde(default = "tonal_exposure")]
+    exposure: f64,
+    #[serde(default = "enabled")]
+    protect_tones: bool
+});
+#[derive(Clone, Copy, Debug, Default, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum SpongeMode {
+    Saturate,
+    #[default]
+    Desaturate,
+}
+params!(SpongeStroke {
+    stroke: BrushStroke,
+    #[serde(default)]
+    mode: SpongeMode,
+    #[serde(default = "tonal_exposure")]
+    amount: f64,
+    #[serde(default = "enabled")]
+    vibrance: bool
+});
 #[derive(Serialize, JsonSchema)]
 pub struct BrushResult {
     pub layer_id: crate::LayerId,
