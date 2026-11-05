@@ -3,6 +3,9 @@ import Foundation
 
 @MainActor
 enum NativeClipboard {
+    // 512 MiB image payload plus 16 MiB container/profile overhead. A typed
+    // constant avoids Swift 6.1's overload search for chained integer operators.
+    private static let maximumImageBytes: Int = 553_648_128
     private static let originType=NSPasteboard.PasteboardType("dev.strata-editor.clipboard-origin-v1")
     private struct Origin:Codable{let x:Int64;let y:Int64}
     static func write(_ transfer:ClipboardTransfer,pasteboard:NSPasteboard = .general)throws{
@@ -12,7 +15,7 @@ enum NativeClipboard {
     }
     static func read(engine:StrataEngine,turn:String?,pasteboard:NSPasteboard = .general)async throws->String{
         guard let data=pasteboard.data(forType:.tiff) ?? pasteboard.data(forType:.png)else{throw AIClientError.message("系统剪贴板中没有支持的图片。")}
-        guard data.count<=512*1024*1024+16*1024*1024 else{throw AIClientError.message("剪贴板图片超过大小限制。")}
+        guard data.count <= maximumImageBytes else{throw AIClientError.message("剪贴板图片超过大小限制。")}
         let originData = pasteboard.data(forType: originType)
         let origin: Origin? = originData.flatMap { bytes in
             try? JSONDecoder().decode(Origin.self, from: bytes)
