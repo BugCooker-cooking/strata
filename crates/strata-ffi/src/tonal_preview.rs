@@ -3,8 +3,10 @@ use crate::*;
 use std::sync::atomic::Ordering;
 use strata_core::commands::TonalInteraction;
 pub(crate) struct TonalPreview {
-    interaction: TonalInteraction,
-    backup: Option<strata_render::PreparedScene>,
+    pub(crate) interaction: TonalInteraction,
+    pub(crate) backup: Option<strata_render::PreparedScene>,
+    pub(crate) filter: Option<String>,
+    pub(crate) candidate: Option<crate::filter_preview::CachedFilter>,
 }
 fn cancelled() -> StrataError {
     StrataError::Cancelled {
@@ -35,10 +37,7 @@ impl StrataEngine {
     /// Main-thread safe: only publishes a monotonic sequence, never waits on
     /// composition. A worker must present this exact sequence to swap display.
     pub fn issue_tonal_preview(&self) -> Result<u64, StrataError> {
-        self.tonal_preview_sequence
-            .fetch_update(Ordering::AcqRel, Ordering::Acquire, |v| v.checked_add(1))
-            .map(|v| v + 1)
-            .map_err(|_| render_error("tonal preview sequence exhausted"))
+        self.advance_preview_sequence(None)
     }
     pub fn begin_tonal_preview(
         &self,
@@ -90,6 +89,8 @@ impl StrataEngine {
         inner.tonal_preview = Some(TonalPreview {
             interaction,
             backup,
+            filter: None,
+            candidate: None,
         });
         Ok(())
     }
@@ -101,8 +102,12 @@ impl StrataEngine {
         let (editor, interaction) = {
             let inner = self.lock()?;
             let preview = inner.tonal_preview.as_ref().ok_or_else(cancelled)?;
+            if preview.filter.is_some() {
+                return Err(cancelled());
+            }
             (inner.editor.clone(), preview.interaction.clone())
         };
+        let interaction = issued_interaction(self, &interaction, sequence)?;
         let candidate = editor
             .preview_tonal(&interaction, settings)
             .map_err(command_error)?;
@@ -144,7 +149,41 @@ impl StrataEngine {
         settings_json: String,
         cancel: bool,
     ) -> Result<(), StrataError> {
-        self.issue_tonal_preview()?;
+        self.finish_tonal_preview(settings_json, cancel, None)
+    }
+    pub fn end_tonal_preview_checked(
+        &self,
+        settings_json: String,
+        cancel: bool,
+        sequence: u64,
+    ) -> Result<(), StrataError> {
+        self.finish_tonal_preview(settings_json, cancel, Some(sequence))
+    }
+}
+impl StrataEngine {
+    pub(crate) fn advance_preview_sequence(
+        &self,
+        expected: Option<u64>,
+    ) -> Result<u64, StrataError> {
+        let work = self.preview_work.lock().map_err(render_error)?;
+        if expected.is_some_and(|v| v != self.tonal_preview_sequence.load(Ordering::Acquire)) {
+            return Err(cancelled());
+        }
+        let sequence = self
+            .tonal_preview_sequence
+            .fetch_update(Ordering::AcqRel, Ordering::Acquire, |v| v.checked_add(1))
+            .map(|v| v + 1)
+            .map_err(|_| render_error("preview sequence exhausted"))?;
+        work.cancel();
+        Ok(sequence)
+    }
+    fn finish_tonal_preview(
+        &self,
+        settings_json: String,
+        cancel: bool,
+        expected: Option<u64>,
+    ) -> Result<(), StrataError> {
+        let sequence = self.advance_preview_sequence(expected)?;
         {
             let mut inner = self.lock()?;
             let Some(preview) = inner.tonal_preview.take() else {
@@ -160,10 +199,14 @@ impl StrataEngine {
                 }
             } else {
                 let result = (|| {
+                    if preview.filter.is_some() {
+                        return Err(cancelled());
+                    }
                     let settings = settings(&settings_json)?;
+                    let scoped = issued_interaction(self, &preview.interaction, sequence)?;
                     let candidate = inner
                         .editor
-                        .preview_tonal(&preview.interaction, settings)
+                        .preview_tonal(&scoped, settings)
                         .map_err(command_error)?;
                     apply(&mut inner, candidate, "adjust.tonal.set", &json!({}))?;
                     Ok(())
@@ -181,6 +224,18 @@ impl StrataEngine {
         }
         self.deliver_events()
     }
+}
+
+pub(crate) fn issued_interaction(
+    engine: &StrataEngine,
+    interaction: &TonalInteraction,
+    sequence: u64,
+) -> Result<TonalInteraction, StrataError> {
+    let work = engine.preview_work.lock().map_err(render_error)?;
+    if engine.tonal_preview_sequence.load(Ordering::Acquire) != sequence {
+        return Err(cancelled());
+    }
+    Ok(interaction.with_work_cancellation(&work))
 }
 
 #[cfg(test)]

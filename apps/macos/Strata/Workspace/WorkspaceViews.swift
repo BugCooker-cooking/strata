@@ -111,6 +111,7 @@ struct WorkspaceInspector: View {
                     switch model.inspector {
                     case .properties: LayerProperties(model: model)
                     case .adjustments: AdjustmentPanel(model: model)
+                    case .filters: FilterPanel(model:model)
                     case .history: HistoryPanel(model: model)
                     }
                 }.frame(height: max(210, geometry.size.height * 0.47))

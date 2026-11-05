@@ -1,0 +1,85 @@
+{
+  "recorded_date_local": "2026-11-06",
+  "timezone": "Asia/Taipei",
+  "scope": "M6 basic filters and development AI-entrypoint audit; full editing scope remains open",
+  "source_sha256": {
+    "apps/macos/Strata/Workspace/FilterControls.swift": "44f6d1dc68ee6ae41101afda6998c30c17dc7f176ace00fc793b0efab61cd79f",
+    "apps/macos/Strata/Workspace/TonalPreviewModel.swift": "5fd1fd3aab66556df01371a4acd019a9c75b103e011c6b8ca9e42d711fbe84c9",
+    "apps/macos/Strata/Workspace/WorkspaceModel.swift": "f6d3102f55bb549c249a6e2f8ffce25a0a9d13f62be2e46321b3017ba5c1bc7c",
+    "apps/macos/Strata/Workspace/WorkspaceViews.swift": "c54325ae191561d4ba53ca1da83a63d6e80d3e26a601d7e8a44a754742b7b332",
+    "apps/macos/StrataTests/FilterPreviewTests.swift": "7f8bdfd9fe201a386dc5b61202db929413257db05839cf7b2367cfe4e47095e0",
+    "crates/strata-ai/tests/entrypoints.rs": "42de984ff5a5e2b99c99763d0749c4e8a522ef20b5af8bd6e6edcd7979097cb3",
+    "crates/strata-ai/tests/protocol.rs": "d66c22c93b02e8dc872fb0114560f2fbae31ca5b6fe3ab7063b43853c1c0aa12",
+    "crates/strata-ai/tests/replay.rs": "684af3d83aebaa46e734fc867d0ce45ccd0dc67488c7560a2fdf63a3eeef1f06",
+    "crates/strata-core/src/commands/executor.rs": "e9934fef2e2606d666eee0ff0d3d0191ef3c781b1d3f87a44b8a69041c128dec",
+    "crates/strata-core/src/commands/filters.rs": "580df2f09e818a606b35c0ae9f9811ea7f9a9dcb52934a3aeb3106cac2528144",
+    "crates/strata-core/src/commands/mod.rs": "f2872b50d7b7962094e56a7f7f807aef6986ab7652553ff9a9e5908b7a88fa8e",
+    "crates/strata-core/src/commands/pixel_transform.rs": "4355607ace8c656453bc2b7add8b60fe67d231ad9882d1f10cfb5769df41aa50",
+    "crates/strata-core/src/commands/registry.rs": "146eab24fe2474e7267e8376da0ca03bffc23deee22b88e08db6f4787918be78",
+    "crates/strata-core/tests/filters.rs": "dba406677a85eb5107de345826ebd5a68d6bf7583a3a88bafafad4c78ca0da4d",
+    "crates/strata-ffi/src/filter_preview.rs": "b87a5338377b14cf22f0041c8466617103755e5ea59aa91f0d93faa9de949530",
+    "crates/strata-ffi/src/lib.rs": "4b64732e112bfafec7420afb01b2e60eb3f1242d268f7c80d918e79c299f3dda",
+    "crates/strata-ffi/src/tonal_preview.rs": "14589c04a88523e13355528f18929507b30dec9267a6ff526e3758c97f12d52d",
+    "crates/strata-render/tests/gpu.rs": "88be9a59c0511be718120735c30cff61735b33df5df9f75bd9fe598c7c5f1e7d",
+    "scripts/ai-entrypoints.py": "0a9a04a63e60807cb618ab6a6c22f672e7192f47a50ebca28aab785d66e76992",
+    "tools/strata-devtool/src/filter_benchmark.rs": "f0847f9c1bdb6cd9a1f28d9a75335f8cc4802b70e3b9af195ad800e648160160",
+    "tools/strata-devtool/src/main.rs": "a88f61b4ec3590ede6e3e6bca018a107a27b5c1c3a3b3f829015b0f112089d23"
+  },
+  "local_verification": {
+    "full_rust": {
+      "passed": 346,
+      "ignored": 1,
+      "command": "RUST_TEST_THREADS=2 make test-core",
+      "log": "build/m6-filters-full-rust.log"
+    },
+    "required_gpu": {
+      "passed": 68,
+      "ignored": 1,
+      "command": "make test-gpu",
+      "log": "build/m6-filters-required-gpu.log"
+    },
+    "native_related_tests": {
+      "passed": 7,
+      "total": 7,
+      "log": "build/m6-filters-native.log"
+    },
+    "full_native_suite": "pending; retained live window has an externally changed unsaved document; no second test instance launched",
+    "release": {
+      "arch": "arm64",
+      "passed": true,
+      "independent_clean_build": false,
+      "log": "build/m6-filters-release.log"
+    },
+    "lint": {
+      "passed": true,
+      "log": "build/m6-filters-benchmark-lint.log"
+    },
+    "command_examples": {
+      "registered": 103,
+      "parameter_examples": 146,
+      "passed": true,
+      "log": "build/m6-filters-commands-final.log"
+    },
+    "cpu_24mp_report": "2026-11-05-m6-filters-24mp.json"
+  },
+  "ignored_test": "explicit verified ONNX assets and local inference opt-in required; existing independent inference evidence unchanged",
+  "ai_entrypoint_audit": {
+    "mapped_composite_rows": 67,
+    "inventory_composite_rows": 265,
+    "unmapped_implemented_rows": 0,
+    "partial_entrypoints": 4,
+    "unknown_native_literal_references": 0,
+    "untyped_root_returns": 0,
+    "final_complete": false,
+    "report": "ai-editing-entrypoint-audit.json"
+  },
+  "manual_acceptance": "not complete; CUA reported external application changes, sample-photo.jpg layer at x42/y25 with unsaved edits; window retained and user ownership clarification pending",
+  "performance_scope": "CPU command / tracked-pool memory only; no displayed or continuous-interaction frame-rate claim",
+  "cloud_builds": "prohibited by user; no workflow enable/dispatch/rerun/wait performed",
+  "input_data_sha256": {
+    "docs/research/ai-editing-entrypoints.json": "7259692696076c77858aab290d4662dc74897423bd51c88145179bcee533c4b6",
+    "docs/research/photoshop-feature-status.json": "ff6f8446407114d1eddbdf192384539109a8d4804e36145b2df5e6bd987761c6",
+    "docs/research/data/ai-editing-entrypoint-audit.json": "dd22e4bd8ba7197af36260598327fbe30953e415e5cdbf4511694693bfde8cde",
+    "docs/research/data/2026-11-05-m6-filters-24mp.json": "2c3295763bafb766fa8e92697bf41a949a6f8c4737e378ee8de04f5496f13fc7"
+  }
+}

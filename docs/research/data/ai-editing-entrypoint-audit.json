@@ -1,0 +1,4021 @@
+{
+  "scope": "Development audit; not a claim that all Photoshop editing is implemented or AI-verified",
+  "registered_commands": 103,
+  "registered_examples": 146,
+  "catalog_sha256": "29c7dbf689401630da9ca4446d6fa5b85359d93992d116963cb4e9e975a835cc",
+  "inventory_rows": 265,
+  "mapped_features": 67,
+  "unmapped_implemented_features": [],
+  "partial_entrypoints": [
+    "PS-01-894622b1ce",
+    "PS-04-cb66199f15",
+    "PS-04-853e6d30f3",
+    "PS-08-3ce0368d80"
+  ],
+  "unfinished_features": [
+    "PS-00-7d7224e709",
+    "PS-00-960e444e99",
+    "PS-00-4aa7af5b95",
+    "PS-01-894622b1ce",
+    "PS-01-265b9a61ab",
+    "PS-01-40267007aa",
+    "PS-01-261e177d1e",
+    "PS-01-ab934d783e",
+    "PS-01-b49b476915",
+    "PS-01-a69a5778e5",
+    "PS-01-a419a1eab8",
+    "PS-01-dd3fd3e0e8",
+    "PS-01-41c91ded13",
+    "PS-01-d7bfe7b505",
+    "PS-01-1b58fee46c",
+    "PS-01-adb05bd33d",
+    "PS-01-c35b70cb7c",
+    "PS-01-bdb7c564c5",
+    "PS-01-30d15e0488",
+    "PS-02-47df18296a",
+    "PS-02-fc9f1fdaa0",
+    "PS-02-24d3726654",
+    "PS-02-44ec922e45",
+    "PS-02-03ea5fd9e6",
+    "PS-02-bfa246feb1",
+    "PS-02-adcb808036",
+    "PS-02-f62f8ca281",
+    "PS-02-311ee1c4c5",
+    "PS-02-57907a69fc",
+    "PS-02-91854349e1",
+    "PS-02-21ab73cf70",
+    "PS-02-b2fd2e2a88",
+    "PS-02-bc773443d0",
+    "PS-03-ad24731ea8",
+    "PS-03-45c2eea14c",
+    "PS-03-5f9716e5d8",
+    "PS-03-84941ac6e8",
+    "PS-03-51294954aa",
+    "PS-03-0f4e217715",
+    "PS-03-691c261ce9",
+    "PS-03-c10dd16a58",
+    "PS-03-484489e467",
+    "PS-03-67a3559782",
+    "PS-03-3e1da0c6ef",
+    "PS-03-e0d8c7ed11",
+    "PS-03-692d64115b",
+    "PS-03-f31cf0825e",
+    "PS-03-73a8b2cf0b",
+    "PS-03-e44976409a",
+    "PS-03-6e64fa5ccc",
+    "PS-03-d47b3363b5",
+    "PS-04-cb66199f15",
+    "PS-04-af7f602330",
+    "PS-04-853e6d30f3",
+    "PS-04-6084cae48d",
+    "PS-04-e65a84f08f",
+    "PS-04-288c65e42f",
+    "PS-04-ef23225e49",
+    "PS-04-c9a10eae37",
+    "PS-04-9b3a04c666",
+    "PS-04-9383ee3abd",
+    "PS-04-dd95b3b697",
+    "PS-04-53f23afed6",
+    "PS-04-f22dbf0e07",
+    "PS-04-fc1ecbb499",
+    "PS-04-d31acdcaa9",
+    "PS-05-9bfbc83e75",
+    "PS-05-aa44dc16d9",
+    "PS-05-9ac4e17211",
+    "PS-05-38d4ee4918",
+    "PS-05-8d060c56cd",
+    "PS-05-2998b53723",
+    "PS-05-4ed8bb8e25",
+    "PS-05-60905d6faf",
+    "PS-05-f7f00647a1",
+    "PS-05-6a8c7914d1",
+    "PS-05-96d3b2c5d9",
+    "PS-06-3032971663",
+    "PS-06-2888ee744e",
+    "PS-06-7b4433741f",
+    "PS-06-ff679aec47",
+    "PS-06-77f246179b",
+    "PS-07-99d39b0e3f",
+    "PS-07-567e47777f",
+    "PS-07-9411b77a01",
+    "PS-07-a39f54a54c",
+    "PS-07-2ad3989bf6",
+    "PS-07-a2d1d27aed",
+    "PS-07-dfaf73f366",
+    "PS-07-a63d0d97e2",
+    "PS-07-ba6e326669",
+    "PS-08-86b51af036",
+    "PS-08-92b84304ee",
+    "PS-08-8aec3995bf",
+    "PS-08-f77e30ee1a",
+    "PS-08-94f49a1012",
+    "PS-08-1c4da8d02e",
+    "PS-08-c236d7a8cc",
+    "PS-08-d00f4ae949",
+    "PS-08-d5cde59fb9",
+    "PS-08-5bc77239a4",
+    "PS-08-2b199ba19e",
+    "PS-08-20a38a31c0",
+    "PS-08-8917363943",
+    "PS-09-7cc6b0bb65",
+    "PS-09-4f3d9835a7",
+    "PS-09-7d349372b5",
+    "PS-09-64f3d2a3eb",
+    "PS-09-073c032f33",
+    "PS-09-6891bcf56f",
+    "PS-09-cfef658a75",
+    "PS-09-bf3489a74b",
+    "PS-09-b8404e61aa",
+    "PS-09-d278290204",
+    "PS-09-71958254c4",
+    "PS-10-03bd81f36a",
+    "PS-10-10e03c578e",
+    "PS-10-c323ce2dc1",
+    "PS-10-4cd844c0cb",
+    "PS-10-a5da48d57a",
+    "PS-10-388913a7bc",
+    "PS-10-7b85bb5f1a",
+    "PS-10-96038cde01",
+    "PS-10-9ce22316bf",
+    "PS-10-14619cadb7",
+    "PS-10-4910186cb0",
+    "PS-10-9be49e6137",
+    "PS-10-344b92cabe",
+    "PS-10-75ea494817",
+    "PS-10-0672d98893",
+    "PS-10-d4877d09e6",
+    "PS-10-7c8555eca5",
+    "PS-10-c5d0281f10",
+    "PS-10-dca9e3ce4b",
+    "PS-10-1e9f8da0f7",
+    "PS-11-4490121dad",
+    "PS-11-a524877cb6",
+    "PS-11-cf9b897491",
+    "PS-11-c6c65f4de6",
+    "PS-11-0a97b13dc8",
+    "PS-11-4bfa8a3abe",
+    "PS-11-f3c09ca56f",
+    "PS-11-346810064b",
+    "PS-11-07a96c386e",
+    "PS-11-d0e9236cfa",
+    "PS-11-b2feb2a72d",
+    "PS-11-0907b4762e",
+    "PS-12-417500cf30",
+    "PS-12-a132c853ab",
+    "PS-12-595e7321ce",
+    "PS-12-cfd8ae8285",
+    "PS-12-2e23400f5e",
+    "PS-12-9bae2bd626",
+    "PS-12-afd1a689fb",
+    "PS-13-bbaac8cf76",
+    "PS-13-f7bdbf0b8e",
+    "PS-13-fc3a065bd4",
+    "PS-13-31102e180c",
+    "PS-13-41b283aec3",
+    "PS-13-f1de1e2621",
+    "PS-13-0529cd2d51",
+    "PS-13-4592c9e11f",
+    "PS-13-1b8faab964",
+    "PS-14-cf2715aeb6",
+    "PS-14-c9a6761937",
+    "PS-14-de2fd3ca59",
+    "PS-14-810f37be85",
+    "PS-14-15d282cc9a",
+    "PS-14-3e68cd79ce",
+    "PS-14-8ae0da2a42",
+    "PS-14-09e4a9ec7d",
+    "PS-14-918e81018b",
+    "PS-14-8430a881e8",
+    "PS-15-d3094c6954",
+    "PS-15-b99621b074",
+    "PS-15-c4509c8344",
+    "PS-15-117606acae",
+    "PS-16-468033d33b",
+    "PS-16-4f3db94f33",
+    "PS-16-b59d8280a5",
+    "PS-16-8de06204ac",
+    "PS-16-56a0bc682a",
+    "PS-16-e269e999cb",
+    "PS-17-86de52d178",
+    "PS-17-b487bf0eba",
+    "PS-17-01b402a5c6",
+    "PS-17-48bd1a145f",
+    "PS-17-8368e3ab8e",
+    "PS-18-5d4f709636",
+    "PS-18-1d67f7829a",
+    "PS-18-c9f7c41baa",
+    "PS-18-4f30ead3eb",
+    "PS-19-21fdf95781",
+    "PS-19-068a4aa8c2",
+    "PS-19-90afa613b4",
+    "PS-19-320004af59",
+    "PS-19-0af30ae366",
+    "PS-19-4f4a33e4db",
+    "PS-19-6e42c7e07e",
+    "PS-19-d9de9483c3",
+    "PS-19-ef0365d914"
+  ],
+  "unknown_native_command_references": {},
+  "untyped_command_returns": [],
+  "commands_without_feature_links": [
+    "color.convert",
+    "document.batch",
+    "document.histogram",
+    "document.inspect",
+    "edit.clear",
+    "edit.clipboard.write_status",
+    "edit.copy",
+    "edit.copy_merged",
+    "edit.cut",
+    "edit.paste",
+    "edit.paste_in_place",
+    "layer.list",
+    "layer.select",
+    "layer.set_position"
+  ],
+  "final_audit_complete": false,
+  "limits": [
+    "Native audit finds literal references; dynamic dispatch and private callbacks still need manual review.",
+    "Prompt search/describe and actual invoke/undo are checked in local Rust tests; this report alone is not a live-model quality test.",
+    "Composite inventory rows are not a feature-completion percentage."
+  ],
+  "features": [
+    {
+      "id": "PS-00-9768e5bc84",
+      "section": 0,
+      "category": "Strata 自有基础 `system.*` / `ai.*`",
+      "name": "命令总线 + 功能注册表",
+      "priority": "P0",
+      "source_line": 43,
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "infrastructure",
+        "coverage": "complete",
+        "commands": [],
+        "prompts": [],
+        "note": "通过元工具访问真实注册表，不是独立像素编辑。",
+        "meta_tools": [
+          "browse_catalog",
+          "search_catalog",
+          "describe_commands",
+          "invoke_command"
+        ]
+      }
+    },
+    {
+      "id": "PS-00-4282fbce73",
+      "section": 0,
+      "category": "Strata 自有基础 `system.*` / `ai.*`",
+      "name": "每个命令自带说明书",
+      "priority": "P0",
+      "source_line": 44,
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "infrastructure",
+        "coverage": "complete",
+        "commands": [],
+        "prompts": [],
+        "note": "返回实际 schema、权限和可执行示例。",
+        "meta_tools": [
+          "describe_commands"
+        ]
+      }
+    },
+    {
+      "id": "PS-00-6a15d3790f",
+      "section": 0,
+      "category": "Strata 自有基础 `system.*` / `ai.*`",
+      "name": "AI 接口层：浏览分类 / 读取说明 / 调用 / 查看画布与图层",
+      "priority": "P0",
+      "source_line": 45,
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "infrastructure",
+        "coverage": "complete",
+        "commands": [],
+        "prompts": [],
+        "note": "受宿主上下文和外发授权约束。",
+        "meta_tools": [
+          "browse_catalog",
+          "search_catalog",
+          "describe_commands",
+          "inspect_document",
+          "view_canvas",
+          "invoke_command",
+          "invoke_batch",
+          "ask_user"
+        ]
+      }
+    },
+    {
+      "id": "PS-00-a9af7235f5",
+      "section": 0,
+      "category": "Strata 自有基础 `system.*` / `ai.*`",
+      "name": "AI 聊天面板 + 模型接入",
+      "priority": "P0",
+      "source_line": 46,
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "host_managed",
+        "coverage": "complete",
+        "commands": [],
+        "prompts": [],
+        "note": "模型连接和密钥由可信宿主设置，不向 AI 暴露密钥读写。",
+        "meta_tools": []
+      }
+    },
+    {
+      "id": "PS-00-e5b005f04b",
+      "section": 0,
+      "category": "Strata 自有基础 `system.*` / `ai.*`",
+      "name": "操作权锁（AI 执行中 / 暂停 / 终止）",
+      "priority": "P0",
+      "source_line": 47,
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "host_managed",
+        "coverage": "complete",
+        "commands": [],
+        "prompts": [],
+        "note": "执行/暂停/停止由宿主拥有；AI 可请求暂停和澄清。",
+        "meta_tools": [
+          "ask_user"
+        ]
+      }
+    },
+    {
+      "id": "PS-00-aa907aaad8",
+      "section": 0,
+      "category": "Strata 自有基础 `system.*` / `ai.*`",
+      "name": "统一历史记录（标注来源，AI 回合可整组撤销）",
+      "priority": "P0",
+      "source_line": 48,
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "edit.undo",
+          "edit.redo",
+          "edit.undo_turn"
+        ],
+        "prompts": [
+          {
+            "text": "撤销上一轮 AI 的编辑。",
+            "query": "撤销本轮",
+            "command": "edit.undo_turn"
+          }
+        ],
+        "note": ""
+      }
+    },
+    {
+      "id": "PS-00-7a6d3fc6af",
+      "section": 0,
+      "category": "Strata 自有基础 `system.*` / `ai.*`",
+      "name": "无限画布",
+      "priority": "P0",
+      "source_line": 49,
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "view.pan",
+          "view.zoom",
+          "view.fit"
+        ],
+        "prompts": [
+          {
+            "text": "将画布向右平移 100 像素。",
+            "query": "平移画布",
+            "command": "view.pan"
+          }
+        ],
+        "note": ""
+      }
+    },
+    {
+      "id": "PS-00-81f5847182",
+      "section": 0,
+      "category": "Strata 自有基础 `system.*` / `ai.*`",
+      "name": "GPU 渲染管线 + 分块存储",
+      "priority": "P0",
+      "source_line": 50,
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "infrastructure",
+        "coverage": "complete",
+        "commands": [],
+        "prompts": [],
+        "note": "所有编辑调用共享底层，不要求模型管理缓存。",
+        "meta_tools": []
+      }
+    },
+    {
+      "id": "PS-00-a664122198",
+      "section": 0,
+      "category": "Strata 自有基础 `system.*` / `ai.*`",
+      "name": "Strata 工程文件格式",
+      "priority": "P0",
+      "source_line": 51,
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "file.save",
+          "file.save_as",
+          "file.open"
+        ],
+        "prompts": [
+          {
+            "text": "将当前文档另存为 Strata 工程。",
+            "query": "工程另存为",
+            "command": "file.save_as"
+          }
+        ],
+        "note": ""
+      }
+    },
+    {
+      "id": "PS-00-6f14bdb57f",
+      "section": 0,
+      "category": "Strata 自有基础 `system.*` / `ai.*`",
+      "name": "自动保存与崩溃恢复",
+      "priority": "P0",
+      "source_line": 52,
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "host_managed",
+        "coverage": "complete",
+        "commands": [
+          "file.recover"
+        ],
+        "prompts": [
+          {
+            "text": "恢复我选择的检查点。",
+            "query": "恢复未保存文档",
+            "command": "file.recover"
+          }
+        ],
+        "note": "自动检查点由宿主调度；恢复通过宿主文件选择授权。"
+      }
+    },
+    {
+      "id": "PS-00-7d7224e709",
+      "section": 0,
+      "category": "Strata 自有基础 `system.*` / `ai.*`",
+      "name": "中英文界面",
+      "priority": "P0",
+      "source_line": 53,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-00-960e444e99",
+      "section": 0,
+      "category": "Strata 自有基础 `system.*` / `ai.*`",
+      "name": "MCP Server",
+      "priority": "P1",
+      "source_line": 54,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-00-4aa7af5b95",
+      "section": 0,
+      "category": "Strata 自有基础 `system.*` / `ai.*`",
+      "name": "插件系统",
+      "priority": "P3",
+      "source_line": 55,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-01-51efedefef",
+      "section": 1,
+      "category": "文件 `file.*`",
+      "name": "新建文档（尺寸、分辨率、背景、预设）",
+      "priority": "P0",
+      "source_line": 61,
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "file.new"
+        ],
+        "prompts": [
+          {
+            "text": "新建 1920×1080 的 16 位 sRGB 文档。",
+            "query": "新建文档",
+            "command": "file.new"
+          }
+        ],
+        "note": ""
+      }
+    },
+    {
+      "id": "PS-01-9b14920078",
+      "section": 1,
+      "category": "文件 `file.*`",
+      "name": "打开 PNG / JPEG / WebP / TIFF / HEIC / GIF / BMP",
+      "priority": "P0",
+      "source_line": 62,
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "file.open"
+        ],
+        "prompts": [
+          {
+            "text": "打开我选择的照片。",
+            "query": "打开文件",
+            "command": "file.open"
+          }
+        ],
+        "note": ""
+      }
+    },
+    {
+      "id": "PS-01-b6d7cbc94d",
+      "section": 1,
+      "category": "文件 `file.*`",
+      "name": "最近打开",
+      "priority": "P0",
+      "source_line": 63,
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "file.recent.list"
+        ],
+        "prompts": [
+          {
+            "text": "查看本轮允许访问的最近文件。",
+            "query": "最近文件",
+            "command": "file.recent.list"
+          }
+        ],
+        "note": ""
+      }
+    },
+    {
+      "id": "PS-01-8f62b2552b",
+      "section": 1,
+      "category": "文件 `file.*`",
+      "name": "保存 / 另存为（Strata 格式）",
+      "priority": "P0",
+      "source_line": 64,
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "file.save",
+          "file.save_as"
+        ],
+        "prompts": [
+          {
+            "text": "将当前工程另存为新文件。",
+            "query": "工程另存为",
+            "command": "file.save_as"
+          }
+        ],
+        "note": ""
+      }
+    },
+    {
+      "id": "PS-01-894622b1ce",
+      "section": 1,
+      "category": "文件 `file.*`",
+      "name": "快速导出 / 导出为（格式、尺寸、质量）",
+      "priority": "P0",
+      "source_line": 65,
+      "implementation": "部分实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "partial",
+        "commands": [
+          "file.export"
+        ],
+        "prompts": [
+          {
+            "text": "导出宽度 2048 像素的 PNG。",
+            "query": "导出图片",
+            "command": "file.export"
+          }
+        ],
+        "note": "导出参数入口完整；快速导出预设本身尚未完成。"
+      }
+    },
+    {
+      "id": "PS-01-e7337088bf",
+      "section": 1,
+      "category": "文件 `file.*`",
+      "name": "置入图片为图层",
+      "priority": "P0",
+      "source_line": 66,
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "file.place"
+        ],
+        "prompts": [
+          {
+            "text": "把我选择的图片置入为新图层。",
+            "query": "置入图片",
+            "command": "file.place"
+          }
+        ],
+        "note": ""
+      }
+    },
+    {
+      "id": "PS-01-265b9a61ab",
+      "section": 1,
+      "category": "文件 `file.*`",
+      "name": "恢复到上次保存",
+      "priority": "P1",
+      "source_line": 67,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-01-40267007aa",
+      "section": 1,
+      "category": "文件 `file.*`",
+      "name": "PSD 导入",
+      "priority": "P1",
+      "source_line": 68,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-01-261e177d1e",
+      "section": 1,
+      "category": "文件 `file.*`",
+      "name": "PSD 导出",
+      "priority": "P1",
+      "source_line": 69,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-01-ab934d783e",
+      "section": 1,
+      "category": "文件 `file.*`",
+      "name": "打开 RAW",
+      "priority": "P2",
+      "source_line": 70,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-01-b49b476915",
+      "section": 1,
+      "category": "文件 `file.*`",
+      "name": "置入链接文件",
+      "priority": "P2",
+      "source_line": 71,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-01-a69a5778e5",
+      "section": 1,
+      "category": "文件 `file.*`",
+      "name": "图层 / 画板导出为文件",
+      "priority": "P2",
+      "source_line": 72,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-01-a419a1eab8",
+      "section": 1,
+      "category": "文件 `file.*`",
+      "name": "批处理、图像处理器",
+      "priority": "P2",
+      "source_line": 73,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-01-dd3fd3e0e8",
+      "section": 1,
+      "category": "文件 `file.*`",
+      "name": "将文件载入堆栈",
+      "priority": "P2",
+      "source_line": 74,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-01-41c91ded13",
+      "section": 1,
+      "category": "文件 `file.*`",
+      "name": "文件简介（EXIF / IPTC 元数据）",
+      "priority": "P2",
+      "source_line": 75,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-01-d7bfe7b505",
+      "section": 1,
+      "category": "文件 `file.*`",
+      "name": "打印",
+      "priority": "P2",
+      "source_line": 76,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-01-1b58fee46c",
+      "section": 1,
+      "category": "文件 `file.*`",
+      "name": "PDF 导入",
+      "priority": "P3",
+      "source_line": 77,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-01-adb05bd33d",
+      "section": 1,
+      "category": "文件 `file.*`",
+      "name": "全景合成、合并到 HDR",
+      "priority": "P3",
+      "source_line": 78,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-01-c35b70cb7c",
+      "section": 1,
+      "category": "文件 `file.*`",
+      "name": "打包、生成图像资源、变量与数据组",
+      "priority": "P3",
+      "source_line": 79,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-01-bdb7c564c5",
+      "section": 1,
+      "category": "文件 `file.*`",
+      "name": "联系表、快捷批处理、视频帧到图层、旧版存储为 Web",
+      "priority": "✗",
+      "source_line": 80,
+      "implementation": "重新核对",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-01-30d15e0488",
+      "section": 1,
+      "category": "文件 `file.*`",
+      "name": "云文档、库、协作项目",
+      "priority": "✗",
+      "source_line": 81,
+      "implementation": "重新核对",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-02-47df18296a",
+      "section": 2,
+      "category": "编辑 `edit.*`",
+      "name": "撤销 / 重做 / 历史记录面板",
+      "priority": "P0",
+      "source_line": 87,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-02-fc9f1fdaa0",
+      "section": 2,
+      "category": "编辑 `edit.*`",
+      "name": "历史快照",
+      "priority": "P1",
+      "source_line": 88,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-02-24d3726654",
+      "section": 2,
+      "category": "编辑 `edit.*`",
+      "name": "剪切 / 拷贝 / 合并拷贝 / 粘贴 / 原位粘贴 / 清除",
+      "priority": "P0",
+      "source_line": 89,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-02-44ec922e45",
+      "section": 2,
+      "category": "编辑 `edit.*`",
+      "name": "贴入 / 外部粘贴",
+      "priority": "P1",
+      "source_line": 90,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-02-03ea5fd9e6",
+      "section": 2,
+      "category": "编辑 `edit.*`",
+      "name": "填充：颜色",
+      "priority": "P0",
+      "source_line": 91,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-02-bfa246feb1",
+      "section": 2,
+      "category": "编辑 `edit.*`",
+      "name": "填充：内容识别",
+      "priority": "P1",
+      "source_line": 92,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-02-adcb808036",
+      "section": 2,
+      "category": "编辑 `edit.*`",
+      "name": "描边",
+      "priority": "P1",
+      "source_line": 93,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-02-f62f8ca281",
+      "section": 2,
+      "category": "编辑 `edit.*`",
+      "name": "渐隐",
+      "priority": "P2",
+      "source_line": 94,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-02-311ee1c4c5",
+      "section": 2,
+      "category": "编辑 `edit.*`",
+      "name": "定义画笔 / 图案 / 自定形状",
+      "priority": "P2",
+      "source_line": 95,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-02-57907a69fc",
+      "section": 2,
+      "category": "编辑 `edit.*`",
+      "name": "偏好设置",
+      "priority": "P0",
+      "source_line": 96,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-02-91854349e1",
+      "section": 2,
+      "category": "编辑 `edit.*`",
+      "name": "自定义快捷键 / 菜单 / 工具栏",
+      "priority": "P2",
+      "source_line": 97,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-02-21ab73cf70",
+      "section": 2,
+      "category": "编辑 `edit.*`",
+      "name": "功能搜索",
+      "priority": "P1",
+      "source_line": 98,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-02-b2fd2e2a88",
+      "section": 2,
+      "category": "编辑 `edit.*`",
+      "name": "清理缓存",
+      "priority": "P2",
+      "source_line": 99,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-02-bc773443d0",
+      "section": 2,
+      "category": "编辑 `edit.*`",
+      "name": "拼写检查、查找替换文本",
+      "priority": "P3",
+      "source_line": 100,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-03-ad24731ea8",
+      "section": 3,
+      "category": "图像 `image.*`",
+      "name": "图像大小（多种重采样算法）",
+      "priority": "P0",
+      "source_line": 106,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-03-45c2eea14c",
+      "section": 3,
+      "category": "图像 `image.*`",
+      "name": "画布大小",
+      "priority": "P0",
+      "source_line": 107,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-03-5f9716e5d8",
+      "section": 3,
+      "category": "图像 `image.*`",
+      "name": "图像旋转 / 翻转",
+      "priority": "P0",
+      "source_line": 108,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-03-84941ac6e8",
+      "section": 3,
+      "category": "图像 `image.*`",
+      "name": "显示全部",
+      "priority": "P0",
+      "source_line": 109,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-03-51294954aa",
+      "section": 3,
+      "category": "图像 `image.*`",
+      "name": "裁切（去透明边）",
+      "priority": "P1",
+      "source_line": 110,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-03-0f4e217715",
+      "section": 3,
+      "category": "图像 `image.*`",
+      "name": "复制文档",
+      "priority": "P1",
+      "source_line": 111,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-03-691c261ce9",
+      "section": 3,
+      "category": "图像 `image.*`",
+      "name": "自动色调 / 自动对比度 / 自动颜色",
+      "priority": "P0",
+      "source_line": 112,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-03-c10dd16a58",
+      "section": 3,
+      "category": "图像 `image.*`",
+      "name": "RGB 模式",
+      "priority": "P0",
+      "source_line": 113,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-03-484489e467",
+      "section": 3,
+      "category": "图像 `image.*`",
+      "name": "灰度模式",
+      "priority": "P1",
+      "source_line": 114,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-03-67a3559782",
+      "section": 3,
+      "category": "图像 `image.*`",
+      "name": "CMYK 模式",
+      "priority": "P2",
+      "source_line": 115,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-03-3e1da0c6ef",
+      "section": 3,
+      "category": "图像 `image.*`",
+      "name": "Lab / 索引色 / 双色调 / 位图",
+      "priority": "P3",
+      "source_line": 116,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-03-e0d8c7ed11",
+      "section": 3,
+      "category": "图像 `image.*`",
+      "name": "多通道",
+      "priority": "✗",
+      "source_line": 117,
+      "implementation": "重新核对",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-03-692d64115b",
+      "section": 3,
+      "category": "图像 `image.*`",
+      "name": "8 位 / 16 位",
+      "priority": "P0",
+      "source_line": 118,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-03-f31cf0825e",
+      "section": 3,
+      "category": "图像 `image.*`",
+      "name": "32 位（HDR）",
+      "priority": "P2",
+      "source_line": 119,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-03-73a8b2cf0b",
+      "section": 3,
+      "category": "图像 `image.*`",
+      "name": "应用图像",
+      "priority": "P2",
+      "source_line": 120,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-03-e44976409a",
+      "section": 3,
+      "category": "图像 `image.*`",
+      "name": "计算",
+      "priority": "P3",
+      "source_line": 121,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-03-6e64fa5ccc",
+      "section": 3,
+      "category": "图像 `image.*`",
+      "name": "分析与测量",
+      "priority": "P3",
+      "source_line": 122,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-03-d47b3363b5",
+      "section": 3,
+      "category": "图像 `image.*`",
+      "name": "陷印",
+      "priority": "✗",
+      "source_line": 123,
+      "implementation": "重新核对",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-04-430fc8e2db",
+      "section": 4,
+      "category": "图层 `layer.*`",
+      "name": "新建图层 / 通过拷贝 / 通过剪切 / 背景转图层",
+      "priority": "P0",
+      "source_line": 129,
+      "implementation": "已实现（M3 集成中）",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "layer.create",
+          "layer.via_copy",
+          "layer.via_cut",
+          "layer.background_to_layer"
+        ],
+        "prompts": [
+          {
+            "text": "把当前选区复制为新图层。",
+            "query": "通过拷贝新建图层",
+            "command": "layer.via_copy"
+          }
+        ],
+        "note": ""
+      }
+    },
+    {
+      "id": "PS-04-4e8bda1fd0",
+      "section": 4,
+      "category": "图层 `layer.*`",
+      "name": "复制 / 删除 / 重命名 / 颜色标签",
+      "priority": "P0",
+      "source_line": 130,
+      "implementation": "已实现（M3 集成中）",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "layer.duplicate",
+          "layer.delete",
+          "layer.rename",
+          "layer.set_color_label"
+        ],
+        "prompts": [
+          {
+            "text": "复制当前图层。",
+            "query": "复制图层",
+            "command": "layer.duplicate"
+          }
+        ],
+        "note": ""
+      }
+    },
+    {
+      "id": "PS-04-fe6945c814",
+      "section": 4,
+      "category": "图层 `layer.*`",
+      "name": "图层组（可嵌套）/ 取消编组",
+      "priority": "P0",
+      "source_line": 131,
+      "implementation": "已实现（M3 集成中）",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "layer.create_group",
+          "layer.group",
+          "layer.ungroup",
+          "layer.reparent",
+          "layer.set_pass_through"
+        ],
+        "prompts": [
+          {
+            "text": "将所选图层编组。",
+            "query": "编组",
+            "command": "layer.group"
+          }
+        ],
+        "note": ""
+      }
+    },
+    {
+      "id": "PS-04-54bcfbb2ac",
+      "section": 4,
+      "category": "图层 `layer.*`",
+      "name": "显示隐藏 / 锁定（透明像素、像素、位置、全部）",
+      "priority": "P0",
+      "source_line": 132,
+      "implementation": "已实现（M3 集成中）",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "layer.set_visibility",
+          "layer.set_locks"
+        ],
+        "prompts": [
+          {
+            "text": "隐藏当前图层。",
+            "query": "图层显隐",
+            "command": "layer.set_visibility"
+          }
+        ],
+        "note": ""
+      }
+    },
+    {
+      "id": "PS-04-a7fe5679e6",
+      "section": 4,
+      "category": "图层 `layer.*`",
+      "name": "不透明度 / 填充不透明度",
+      "priority": "P0",
+      "source_line": 133,
+      "implementation": "已实现（M3 集成中）",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "layer.set_opacity",
+          "layer.set_fill_opacity"
+        ],
+        "prompts": [
+          {
+            "text": "把当前图层不透明度设为 50%。",
+            "query": "图层不透明度",
+            "command": "layer.set_opacity"
+          }
+        ],
+        "note": ""
+      }
+    },
+    {
+      "id": "PS-04-bd9b0e9d03",
+      "section": 4,
+      "category": "图层 `layer.*`",
+      "name": "混合模式（27 种）",
+      "priority": "P0",
+      "source_line": 134,
+      "implementation": "已实现（M3 集成中）",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "layer.set_blend_mode"
+        ],
+        "prompts": [
+          {
+            "text": "把当前图层混合模式设为正片叠底。",
+            "query": "混合模式",
+            "command": "layer.set_blend_mode"
+          }
+        ],
+        "note": ""
+      }
+    },
+    {
+      "id": "PS-04-e5e334c943",
+      "section": 4,
+      "category": "图层 `layer.*`",
+      "name": "排列顺序 / 对齐 / 分布",
+      "priority": "P0",
+      "source_line": 135,
+      "implementation": "已实现（M3 集成中）",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "layer.move_order",
+          "layer.align",
+          "layer.distribute"
+        ],
+        "prompts": [
+          {
+            "text": "将所选图层水平居中对齐。",
+            "query": "对齐图层",
+            "command": "layer.align"
+          }
+        ],
+        "note": ""
+      }
+    },
+    {
+      "id": "PS-04-e77c27785e",
+      "section": 4,
+      "category": "图层 `layer.*`",
+      "name": "向下合并 / 合并可见 / 拼合图像 / 盖印",
+      "priority": "P0",
+      "source_line": 136,
+      "implementation": "已实现（M3 集成中）",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "layer.merge_down",
+          "layer.merge_visible",
+          "layer.flatten",
+          "layer.stamp_visible"
+        ],
+        "prompts": [
+          {
+            "text": "把可见合成盖印到新图层。",
+            "query": "盖印可见",
+            "command": "layer.stamp_visible"
+          }
+        ],
+        "note": ""
+      }
+    },
+    {
+      "id": "PS-04-d5e9c4039f",
+      "section": 4,
+      "category": "图层 `layer.*`",
+      "name": "图层蒙版（添加、编辑、停用、应用、反相）",
+      "priority": "P0",
+      "source_line": 137,
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "layer.mask.add",
+          "paint.stroke",
+          "paint.erase",
+          "layer.mask.set_enabled",
+          "layer.mask.apply",
+          "layer.mask.invert",
+          "layer.mask.remove"
+        ],
+        "prompts": [
+          {
+            "text": "从当前选区添加图层蒙版。",
+            "query": "添加图层蒙版",
+            "command": "layer.mask.add"
+          }
+        ],
+        "note": ""
+      }
+    },
+    {
+      "id": "PS-04-9101e755a1",
+      "section": 4,
+      "category": "图层 `layer.*`",
+      "name": "剪贴蒙版",
+      "priority": "P0",
+      "source_line": 138,
+      "implementation": "已实现（M3 集成中）",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "layer.set_clipping"
+        ],
+        "prompts": [
+          {
+            "text": "把当前图层设为剪贴图层。",
+            "query": "剪贴蒙版",
+            "command": "layer.set_clipping"
+          }
+        ],
+        "note": ""
+      }
+    },
+    {
+      "id": "PS-04-cb66199f15",
+      "section": 4,
+      "category": "图层 `layer.*`",
+      "name": "调整图层",
+      "priority": "P0",
+      "source_line": 139,
+      "implementation": "部分实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "partial",
+        "commands": [
+          "layer.add_adjustment",
+          "layer.add_hue_saturation",
+          "layer.add_tonal_adjustment",
+          "adjust.exposure.set",
+          "adjust.hue_saturation.set",
+          "adjust.tonal.set"
+        ],
+        "prompts": [
+          {
+            "text": "添加可编辑的色阶调整图层。",
+            "query": "新建调色调整层",
+            "command": "layer.add_tonal_adjustment"
+          }
+        ],
+        "note": "当前调整类型已接入，完整后续类型待实现。"
+      }
+    },
+    {
+      "id": "PS-04-755f2b287b",
+      "section": 4,
+      "category": "图层 `layer.*`",
+      "name": "填充图层：纯色 / 渐变",
+      "priority": "P0",
+      "source_line": 140,
+      "implementation": "已实现（M3 集成中）",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "layer.fill.solid",
+          "layer.fill.gradient",
+          "layer.fill.solid.set",
+          "layer.fill.gradient.set"
+        ],
+        "prompts": [
+          {
+            "text": "新建蓝色纯色填充图层。",
+            "query": "新建纯色填充",
+            "command": "layer.fill.solid"
+          }
+        ],
+        "note": ""
+      }
+    },
+    {
+      "id": "PS-04-af7f602330",
+      "section": 4,
+      "category": "图层 `layer.*`",
+      "name": "填充图层：图案",
+      "priority": "P2",
+      "source_line": 141,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-04-853e6d30f3",
+      "section": 4,
+      "category": "图层 `layer.*`",
+      "name": "栅格化",
+      "priority": "P0",
+      "source_line": 142,
+      "implementation": "部分实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "partial",
+        "commands": [
+          "layer.rasterize"
+        ],
+        "prompts": [
+          {
+            "text": "栅格化当前填充图层。",
+            "query": "栅格化",
+            "command": "layer.rasterize"
+          }
+        ],
+        "note": "当前支持类型已接入，文字/智能对象类型待后续实现。"
+      }
+    },
+    {
+      "id": "PS-04-d6c3930e2f",
+      "section": 4,
+      "category": "图层 `layer.*`",
+      "name": "图层样式：投影、描边、外发光、颜色叠加、渐变叠加",
+      "priority": "P0",
+      "source_line": 143,
+      "implementation": "已实现（M3 集成中）",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "layer.set_styles"
+        ],
+        "prompts": [
+          {
+            "text": "给当前图层添加投影和描边。",
+            "query": "图层样式",
+            "command": "layer.set_styles"
+          }
+        ],
+        "note": ""
+      }
+    },
+    {
+      "id": "PS-04-6084cae48d",
+      "section": 4,
+      "category": "图层 `layer.*`",
+      "name": "图层样式：内阴影、内发光、斜面浮雕、光泽、图案叠加；样式预设",
+      "priority": "P1",
+      "source_line": 144,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-04-e65a84f08f",
+      "section": 4,
+      "category": "图层 `layer.*`",
+      "name": "链接图层",
+      "priority": "P1",
+      "source_line": 145,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-04-288c65e42f",
+      "section": 4,
+      "category": "图层 `layer.*`",
+      "name": "混合颜色带（Blend If）",
+      "priority": "P1",
+      "source_line": 146,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-04-ef23225e49",
+      "section": 4,
+      "category": "图层 `layer.*`",
+      "name": "挖空",
+      "priority": "P3",
+      "source_line": 147,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-04-c9a10eae37",
+      "section": 4,
+      "category": "图层 `layer.*`",
+      "name": "智能对象：转换、编辑内容、替换内容、栅格化",
+      "priority": "P1",
+      "source_line": 148,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-04-9b3a04c666",
+      "section": 4,
+      "category": "图层 `layer.*`",
+      "name": "智能滤镜",
+      "priority": "P1",
+      "source_line": 149,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-04-9383ee3abd",
+      "section": 4,
+      "category": "图层 `layer.*`",
+      "name": "矢量蒙版",
+      "priority": "P1",
+      "source_line": 150,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-04-dd95b3b697",
+      "section": 4,
+      "category": "图层 `layer.*`",
+      "name": "图层筛选与查找",
+      "priority": "P1",
+      "source_line": 151,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-04-53f23afed6",
+      "section": 4,
+      "category": "图层 `layer.*`",
+      "name": "画板",
+      "priority": "P1",
+      "source_line": 152,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-04-f22dbf0e07",
+      "section": 4,
+      "category": "图层 `layer.*`",
+      "name": "图层复合",
+      "priority": "P2",
+      "source_line": 153,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-04-fc1ecbb499",
+      "section": 4,
+      "category": "图层 `layer.*`",
+      "name": "修边（去边、移除黑 / 白杂边）",
+      "priority": "P2",
+      "source_line": 154,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-04-d31acdcaa9",
+      "section": 4,
+      "category": "图层 `layer.*`",
+      "name": "视频图层",
+      "priority": "✗",
+      "source_line": 155,
+      "implementation": "重新核对",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-05-24f905f241",
+      "section": 5,
+      "category": "选择 `select.*`",
+      "name": "矩形 / 椭圆选框",
+      "priority": "P0",
+      "source_line": 161,
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "select.marquee",
+          "select.ellipse"
+        ],
+        "prompts": [
+          {
+            "text": "建立一个椭圆选区。",
+            "query": "椭圆选框",
+            "command": "select.ellipse"
+          }
+        ],
+        "note": ""
+      }
+    },
+    {
+      "id": "PS-05-8885dd3689",
+      "section": 5,
+      "category": "选择 `select.*`",
+      "name": "套索 / 多边形套索",
+      "priority": "P0",
+      "source_line": 162,
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "select.lasso",
+          "select.polygon"
+        ],
+        "prompts": [
+          {
+            "text": "用多边形圈选给定区域。",
+            "query": "多边形套索",
+            "command": "select.polygon"
+          }
+        ],
+        "note": ""
+      }
+    },
+    {
+      "id": "PS-05-d2a511da9e",
+      "section": 5,
+      "category": "选择 `select.*`",
+      "name": "魔棒",
+      "priority": "P0",
+      "source_line": 163,
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "select.wand"
+        ],
+        "prompts": [
+          {
+            "text": "用容差 24 的魔棒选择给定位置相近颜色。",
+            "query": "魔棒",
+            "command": "select.wand"
+          }
+        ],
+        "note": ""
+      }
+    },
+    {
+      "id": "PS-05-825f270266",
+      "section": 5,
+      "category": "选择 `select.*`",
+      "name": "快速选择",
+      "priority": "P0",
+      "source_line": 164,
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "select.quick"
+        ],
+        "prompts": [
+          {
+            "text": "根据前景与背景笔触进行快速选择。",
+            "query": "快速选择",
+            "command": "select.quick"
+          }
+        ],
+        "note": ""
+      }
+    },
+    {
+      "id": "PS-05-f88b2ecb2f",
+      "section": 5,
+      "category": "选择 `select.*`",
+      "name": "选择主体 🤖",
+      "priority": "P0",
+      "source_line": 165,
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "select.subject"
+        ],
+        "prompts": [
+          {
+            "text": "选择照片主体。",
+            "query": "选择主体",
+            "command": "select.subject"
+          }
+        ],
+        "note": ""
+      }
+    },
+    {
+      "id": "PS-05-c3053c1de1",
+      "section": 5,
+      "category": "选择 `select.*`",
+      "name": "全选 / 取消选择 / 重新选择 / 反选",
+      "priority": "P0",
+      "source_line": 166,
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "select.all",
+          "select.none",
+          "select.reselect",
+          "select.inverse"
+        ],
+        "prompts": [
+          {
+            "text": "反选当前选区。",
+            "query": "反选",
+            "command": "select.inverse"
+          }
+        ],
+        "note": ""
+      }
+    },
+    {
+      "id": "PS-05-a8345e1798",
+      "section": 5,
+      "category": "选择 `select.*`",
+      "name": "选区相加 / 相减 / 交叉",
+      "priority": "P0",
+      "source_line": 167,
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "select.marquee",
+          "select.ellipse",
+          "select.polygon",
+          "select.lasso"
+        ],
+        "prompts": [
+          {
+            "text": "把新矩形区域加入当前选区。",
+            "query": "矩形选区",
+            "command": "select.marquee"
+          }
+        ],
+        "note": ""
+      }
+    },
+    {
+      "id": "PS-05-2cd4b1dc43",
+      "section": 5,
+      "category": "选择 `select.*`",
+      "name": "羽化 / 扩展 / 收缩 / 平滑 / 边界",
+      "priority": "P0",
+      "source_line": 168,
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "select.feather",
+          "select.expand",
+          "select.contract",
+          "select.smooth",
+          "select.border"
+        ],
+        "prompts": [
+          {
+            "text": "把当前选区羽化 5 像素。",
+            "query": "羽化选区",
+            "command": "select.feather"
+          }
+        ],
+        "note": ""
+      }
+    },
+    {
+      "id": "PS-05-1f294f54d0",
+      "section": 5,
+      "category": "选择 `select.*`",
+      "name": "变换选区",
+      "priority": "P0",
+      "source_line": 169,
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "select.transform"
+        ],
+        "prompts": [
+          {
+            "text": "旋转并放大当前选区。",
+            "query": "变换选区",
+            "command": "select.transform"
+          }
+        ],
+        "note": ""
+      }
+    },
+    {
+      "id": "PS-05-9bfbc83e75",
+      "section": 5,
+      "category": "选择 `select.*`",
+      "name": "磁性套索",
+      "priority": "P1",
+      "source_line": 170,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-05-aa44dc16d9",
+      "section": 5,
+      "category": "选择 `select.*`",
+      "name": "对象选择 🤖",
+      "priority": "P1",
+      "source_line": 171,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-05-9ac4e17211",
+      "section": 5,
+      "category": "选择 `select.*`",
+      "name": "选择天空 🤖",
+      "priority": "P1",
+      "source_line": 172,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-05-38d4ee4918",
+      "section": 5,
+      "category": "选择 `select.*`",
+      "name": "按文字描述选择（如\"选中左边的人\"）🤖",
+      "priority": "P1",
+      "source_line": 173,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-05-8d060c56cd",
+      "section": 5,
+      "category": "选择 `select.*`",
+      "name": "扩大选取 / 选取相似",
+      "priority": "P1",
+      "source_line": 174,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-05-2998b53723",
+      "section": 5,
+      "category": "选择 `select.*`",
+      "name": "色彩范围",
+      "priority": "P1",
+      "source_line": 175,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-05-4ed8bb8e25",
+      "section": 5,
+      "category": "选择 `select.*`",
+      "name": "快速蒙版",
+      "priority": "P1",
+      "source_line": 176,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-05-60905d6faf",
+      "section": 5,
+      "category": "选择 `select.*`",
+      "name": "存储 / 载入选区（Alpha 通道）",
+      "priority": "P1",
+      "source_line": 177,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-05-f7f00647a1",
+      "section": 5,
+      "category": "选择 `select.*`",
+      "name": "选择并遮住（细化边缘，如头发）",
+      "priority": "P1",
+      "source_line": 178,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-05-6a8c7914d1",
+      "section": 5,
+      "category": "选择 `select.*`",
+      "name": "单行 / 单列选框",
+      "priority": "P3",
+      "source_line": 179,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-05-96d3b2c5d9",
+      "section": 5,
+      "category": "选择 `select.*`",
+      "name": "焦点区域",
+      "priority": "P3",
+      "source_line": 180,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-06-d51749f4f4",
+      "section": 6,
+      "category": "调整 `adjust.*`",
+      "name": "亮度 / 对比度",
+      "priority": "P0",
+      "source_line": 188,
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "layer.add_tonal_adjustment",
+          "adjust.tonal.set"
+        ],
+        "prompts": [
+          {
+            "text": "添加可编辑的亮度 / 对比度调整。",
+            "query": "新建调色调整层",
+            "command": "layer.add_tonal_adjustment"
+          }
+        ],
+        "note": "",
+        "variants": [
+          {
+            "command": "layer.add_tonal_adjustment",
+            "path": "adjustment.type",
+            "values": [
+              "brightness_contrast"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "PS-06-4341979e35",
+      "section": 6,
+      "category": "调整 `adjust.*`",
+      "name": "色阶",
+      "priority": "P0",
+      "source_line": 189,
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "layer.add_tonal_adjustment",
+          "adjust.tonal.set"
+        ],
+        "prompts": [
+          {
+            "text": "添加可编辑的色阶调整。",
+            "query": "新建调色调整层",
+            "command": "layer.add_tonal_adjustment"
+          }
+        ],
+        "note": "",
+        "variants": [
+          {
+            "command": "layer.add_tonal_adjustment",
+            "path": "adjustment.type",
+            "values": [
+              "levels"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "PS-06-937dc7bf30",
+      "section": 6,
+      "category": "调整 `adjust.*`",
+      "name": "曲线",
+      "priority": "P0",
+      "source_line": 190,
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "layer.add_tonal_adjustment",
+          "adjust.tonal.set"
+        ],
+        "prompts": [
+          {
+            "text": "添加可编辑的曲线调整。",
+            "query": "新建调色调整层",
+            "command": "layer.add_tonal_adjustment"
+          }
+        ],
+        "note": "",
+        "variants": [
+          {
+            "command": "layer.add_tonal_adjustment",
+            "path": "adjustment.type",
+            "values": [
+              "curves"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "PS-06-b941862025",
+      "section": 6,
+      "category": "调整 `adjust.*`",
+      "name": "曝光度",
+      "priority": "P0",
+      "source_line": 191,
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "layer.add_adjustment",
+          "adjust.exposure.set"
+        ],
+        "prompts": [
+          {
+            "text": "增加半档曝光。",
+            "query": "新建曝光调整层",
+            "command": "layer.add_adjustment"
+          }
+        ],
+        "note": ""
+      }
+    },
+    {
+      "id": "PS-06-e7e1ea6652",
+      "section": 6,
+      "category": "调整 `adjust.*`",
+      "name": "自然饱和度 + 色温 / 色调",
+      "priority": "P0",
+      "source_line": 192,
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "layer.add_tonal_adjustment",
+          "adjust.tonal.set"
+        ],
+        "prompts": [
+          {
+            "text": "添加可编辑的自然饱和度 + 色温 / 色调调整。",
+            "query": "新建调色调整层",
+            "command": "layer.add_tonal_adjustment"
+          }
+        ],
+        "note": "",
+        "variants": [
+          {
+            "command": "layer.add_tonal_adjustment",
+            "path": "adjustment.type",
+            "values": [
+              "vibrance",
+              "white_balance"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "PS-06-65bc8e9d6e",
+      "section": 6,
+      "category": "调整 `adjust.*`",
+      "name": "色相 / 饱和度",
+      "priority": "P0",
+      "source_line": 193,
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "layer.add_hue_saturation",
+          "adjust.hue_saturation.set"
+        ],
+        "prompts": [
+          {
+            "text": "降低当前图层的饱和度。",
+            "query": "新建色相饱和度调整",
+            "command": "layer.add_hue_saturation"
+          }
+        ],
+        "note": ""
+      }
+    },
+    {
+      "id": "PS-06-cdc392db20",
+      "section": 6,
+      "category": "调整 `adjust.*`",
+      "name": "色彩平衡",
+      "priority": "P0",
+      "source_line": 194,
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "layer.add_tonal_adjustment",
+          "adjust.tonal.set"
+        ],
+        "prompts": [
+          {
+            "text": "添加可编辑的色彩平衡调整。",
+            "query": "新建调色调整层",
+            "command": "layer.add_tonal_adjustment"
+          }
+        ],
+        "note": "",
+        "variants": [
+          {
+            "command": "layer.add_tonal_adjustment",
+            "path": "adjustment.type",
+            "values": [
+              "color_balance"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "PS-06-47d88357c5",
+      "section": 6,
+      "category": "调整 `adjust.*`",
+      "name": "黑白",
+      "priority": "P0",
+      "source_line": 195,
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "layer.add_tonal_adjustment",
+          "adjust.tonal.set"
+        ],
+        "prompts": [
+          {
+            "text": "添加可编辑的黑白调整。",
+            "query": "新建调色调整层",
+            "command": "layer.add_tonal_adjustment"
+          }
+        ],
+        "note": "",
+        "variants": [
+          {
+            "command": "layer.add_tonal_adjustment",
+            "path": "adjustment.type",
+            "values": [
+              "black_white"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "PS-06-2263716466",
+      "section": 6,
+      "category": "调整 `adjust.*`",
+      "name": "照片滤镜",
+      "priority": "P0",
+      "source_line": 196,
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "layer.add_tonal_adjustment",
+          "adjust.tonal.set"
+        ],
+        "prompts": [
+          {
+            "text": "添加可编辑的照片滤镜调整。",
+            "query": "新建调色调整层",
+            "command": "layer.add_tonal_adjustment"
+          }
+        ],
+        "note": "",
+        "variants": [
+          {
+            "command": "layer.add_tonal_adjustment",
+            "path": "adjustment.type",
+            "values": [
+              "photo_filter"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "PS-06-7fec4dc313",
+      "section": 6,
+      "category": "调整 `adjust.*`",
+      "name": "通道混合器",
+      "priority": "P0",
+      "source_line": 197,
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "layer.add_tonal_adjustment",
+          "adjust.tonal.set"
+        ],
+        "prompts": [
+          {
+            "text": "添加可编辑的通道混合器调整。",
+            "query": "新建调色调整层",
+            "command": "layer.add_tonal_adjustment"
+          }
+        ],
+        "note": "",
+        "variants": [
+          {
+            "command": "layer.add_tonal_adjustment",
+            "path": "adjustment.type",
+            "values": [
+              "channel_mixer"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "PS-06-39bbb078d5",
+      "section": 6,
+      "category": "调整 `adjust.*`",
+      "name": "反相 / 色调分离 / 阈值",
+      "priority": "P0",
+      "source_line": 198,
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "layer.add_tonal_adjustment",
+          "adjust.tonal.set"
+        ],
+        "prompts": [
+          {
+            "text": "添加可编辑的反相 / 色调分离 / 阈值调整。",
+            "query": "新建调色调整层",
+            "command": "layer.add_tonal_adjustment"
+          }
+        ],
+        "note": "",
+        "variants": [
+          {
+            "command": "layer.add_tonal_adjustment",
+            "path": "adjustment.type",
+            "values": [
+              "invert",
+              "posterize",
+              "threshold"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "PS-06-1769d6d1d6",
+      "section": 6,
+      "category": "调整 `adjust.*`",
+      "name": "渐变映射",
+      "priority": "P0",
+      "source_line": 199,
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "layer.add_tonal_adjustment",
+          "adjust.tonal.set"
+        ],
+        "prompts": [
+          {
+            "text": "添加可编辑的渐变映射调整。",
+            "query": "新建调色调整层",
+            "command": "layer.add_tonal_adjustment"
+          }
+        ],
+        "note": "",
+        "variants": [
+          {
+            "command": "layer.add_tonal_adjustment",
+            "path": "adjustment.type",
+            "values": [
+              "gradient_map"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "PS-06-63924bf039",
+      "section": 6,
+      "category": "调整 `adjust.*`",
+      "name": "可选颜色",
+      "priority": "P0",
+      "source_line": 200,
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "layer.add_tonal_adjustment",
+          "adjust.tonal.set"
+        ],
+        "prompts": [
+          {
+            "text": "添加可编辑的可选颜色调整。",
+            "query": "新建调色调整层",
+            "command": "layer.add_tonal_adjustment"
+          }
+        ],
+        "note": "",
+        "variants": [
+          {
+            "command": "layer.add_tonal_adjustment",
+            "path": "adjustment.type",
+            "values": [
+              "selective_color"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "PS-06-ef2316cc3c",
+      "section": 6,
+      "category": "调整 `adjust.*`",
+      "name": "阴影 / 高光",
+      "priority": "P0",
+      "source_line": 201,
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "layer.add_tonal_adjustment",
+          "adjust.tonal.set"
+        ],
+        "prompts": [
+          {
+            "text": "添加可编辑的阴影 / 高光调整。",
+            "query": "新建调色调整层",
+            "command": "layer.add_tonal_adjustment"
+          }
+        ],
+        "note": "",
+        "variants": [
+          {
+            "command": "layer.add_tonal_adjustment",
+            "path": "adjustment.type",
+            "values": [
+              "shadows_highlights"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "PS-06-be1d0be625",
+      "section": 6,
+      "category": "调整 `adjust.*`",
+      "name": "去色",
+      "priority": "P0",
+      "source_line": 202,
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "layer.add_tonal_adjustment",
+          "adjust.tonal.set"
+        ],
+        "prompts": [
+          {
+            "text": "添加可编辑的去色调整。",
+            "query": "新建调色调整层",
+            "command": "layer.add_tonal_adjustment"
+          }
+        ],
+        "note": "",
+        "variants": [
+          {
+            "command": "layer.add_tonal_adjustment",
+            "path": "adjustment.type",
+            "values": [
+              "desaturate"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "PS-06-3032971663",
+      "section": 6,
+      "category": "调整 `adjust.*`",
+      "name": "清晰度 / 去朦胧 / 纹理",
+      "priority": "P1",
+      "source_line": 203,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-06-2888ee744e",
+      "section": 6,
+      "category": "调整 `adjust.*`",
+      "name": "颜色查找（LUT）",
+      "priority": "P1",
+      "source_line": 204,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-06-7b4433741f",
+      "section": 6,
+      "category": "调整 `adjust.*`",
+      "name": "匹配颜色 / 替换颜色 / 色调均化",
+      "priority": "P1",
+      "source_line": 205,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-06-ff679aec47",
+      "section": 6,
+      "category": "调整 `adjust.*`",
+      "name": "调整预设",
+      "priority": "P1",
+      "source_line": 206,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-06-77f246179b",
+      "section": 6,
+      "category": "调整 `adjust.*`",
+      "name": "HDR 色调",
+      "priority": "P3",
+      "source_line": 207,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-07-7fd32754e9",
+      "section": 7,
+      "category": "修复与修饰 `retouch.*`",
+      "name": "污点修复画笔",
+      "priority": "P0",
+      "source_line": 213,
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "retouch.spot_heal"
+        ],
+        "prompts": [
+          {
+            "text": "自动修复给定笔触内的小污点。",
+            "query": "污点修复笔触",
+            "command": "retouch.spot_heal"
+          }
+        ],
+        "note": ""
+      }
+    },
+    {
+      "id": "PS-07-2eddb4a1cf",
+      "section": 7,
+      "category": "修复与修饰 `retouch.*`",
+      "name": "修复画笔",
+      "priority": "P0",
+      "source_line": 214,
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "retouch.heal"
+        ],
+        "prompts": [
+          {
+            "text": "用指定源点的纹理修复目标区域并匹配边界。",
+            "query": "修复画笔笔触",
+            "command": "retouch.heal"
+          }
+        ],
+        "note": ""
+      }
+    },
+    {
+      "id": "PS-07-ec6361e1f3",
+      "section": 7,
+      "category": "修复与修饰 `retouch.*`",
+      "name": "仿制图章",
+      "priority": "P0",
+      "source_line": 215,
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "retouch.clone"
+        ],
+        "prompts": [
+          {
+            "text": "从指定源点对齐仿制纹理。",
+            "query": "仿制图章笔触",
+            "command": "retouch.clone"
+          }
+        ],
+        "note": ""
+      }
+    },
+    {
+      "id": "PS-07-74865c42fd",
+      "section": 7,
+      "category": "修复与修饰 `retouch.*`",
+      "name": "减淡 / 加深 / 海绵",
+      "priority": "P0",
+      "source_line": 216,
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "retouch.dodge",
+          "retouch.burn",
+          "retouch.sponge"
+        ],
+        "prompts": [
+          {
+            "text": "用软笔刷轻微减淡中间调。",
+            "query": "减淡笔触",
+            "command": "retouch.dodge"
+          }
+        ],
+        "note": ""
+      }
+    },
+    {
+      "id": "PS-07-99d39b0e3f",
+      "section": 7,
+      "category": "修复与修饰 `retouch.*`",
+      "name": "修补工具",
+      "priority": "P1",
+      "source_line": 217,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-07-567e47777f",
+      "section": 7,
+      "category": "修复与修饰 `retouch.*`",
+      "name": "内容识别填充",
+      "priority": "P1",
+      "source_line": 218,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-07-9411b77a01",
+      "section": 7,
+      "category": "修复与修饰 `retouch.*`",
+      "name": "移除工具 🤖",
+      "priority": "P1",
+      "source_line": 219,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-07-a39f54a54c",
+      "section": 7,
+      "category": "修复与修饰 `retouch.*`",
+      "name": "红眼工具",
+      "priority": "P1",
+      "source_line": 220,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-07-2ad3989bf6",
+      "section": 7,
+      "category": "修复与修饰 `retouch.*`",
+      "name": "模糊 / 锐化 / 涂抹工具",
+      "priority": "P1",
+      "source_line": 221,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-07-a2d1d27aed",
+      "section": 7,
+      "category": "修复与修饰 `retouch.*`",
+      "name": "液化",
+      "priority": "P1",
+      "source_line": 222,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-07-dfaf73f366",
+      "section": 7,
+      "category": "修复与修饰 `retouch.*`",
+      "name": "内容识别移动",
+      "priority": "P2",
+      "source_line": 223,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-07-a63d0d97e2",
+      "section": 7,
+      "category": "修复与修饰 `retouch.*`",
+      "name": "仿制源面板",
+      "priority": "P2",
+      "source_line": 224,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-07-ba6e326669",
+      "section": 7,
+      "category": "修复与修饰 `retouch.*`",
+      "name": "图案图章",
+      "priority": "P3",
+      "source_line": 225,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-08-13d3081dfa",
+      "section": 8,
+      "category": "绘画 `paint.*`",
+      "name": "画笔（大小、硬度、不透明度、流量、间距、压感）",
+      "priority": "P0",
+      "source_line": 231,
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "paint.stroke"
+        ],
+        "prompts": [
+          {
+            "text": "用 24 像素软红色画笔绘制给定轨迹。",
+            "query": "画笔笔触",
+            "command": "paint.stroke"
+          }
+        ],
+        "note": ""
+      }
+    },
+    {
+      "id": "PS-08-05cf56410b",
+      "section": 8,
+      "category": "绘画 `paint.*`",
+      "name": "橡皮擦",
+      "priority": "P0",
+      "source_line": 232,
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "paint.erase"
+        ],
+        "prompts": [
+          {
+            "text": "用软橡皮擦擦除给定轨迹。",
+            "query": "橡皮擦笔触",
+            "command": "paint.erase"
+          }
+        ],
+        "note": ""
+      }
+    },
+    {
+      "id": "PS-08-af9951e405",
+      "section": 8,
+      "category": "绘画 `paint.*`",
+      "name": "油漆桶",
+      "priority": "P0",
+      "source_line": 233,
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "paint.bucket"
+        ],
+        "prompts": [
+          {
+            "text": "填充给定位置的相连区域。",
+            "query": "油漆桶",
+            "command": "paint.bucket"
+          }
+        ],
+        "note": ""
+      }
+    },
+    {
+      "id": "PS-08-739094bd86",
+      "section": 8,
+      "category": "绘画 `paint.*`",
+      "name": "渐变（线性 / 径向 / 角度 / 对称 / 菱形）",
+      "priority": "P0",
+      "source_line": 234,
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "paint.gradient"
+        ],
+        "prompts": [
+          {
+            "text": "在给定范围绘制径向渐变。",
+            "query": "渐变像素",
+            "command": "paint.gradient"
+          }
+        ],
+        "note": "",
+        "variants": [
+          {
+            "command": "paint.gradient",
+            "path": "shape",
+            "values": [
+              "linear",
+              "radial",
+              "angle",
+              "reflected",
+              "diamond"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "PS-08-6f11ed20eb",
+      "section": 8,
+      "category": "绘画 `paint.*`",
+      "name": "吸管",
+      "priority": "P0",
+      "source_line": 235,
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "paint.sample_color"
+        ],
+        "prompts": [
+          {
+            "text": "吸取给定位置的可见合成颜色。",
+            "query": "吸取颜色",
+            "command": "paint.sample_color"
+          }
+        ],
+        "note": ""
+      }
+    },
+    {
+      "id": "PS-08-3ce0368d80",
+      "section": 8,
+      "category": "绘画 `paint.*`",
+      "name": "拾色器、前景色 / 背景色",
+      "priority": "P0",
+      "source_line": 236,
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "partial",
+        "commands": [
+          "paint.sample_color",
+          "paint.stroke",
+          "paint.fill",
+          "paint.gradient"
+        ],
+        "prompts": [
+          {
+            "text": "吸取给定位置的颜色。",
+            "query": "吸取颜色",
+            "command": "paint.sample_color"
+          }
+        ],
+        "note": "AI 可显式传入绘制颜色；原生前景/背景色状态尚无独立 AI 设置命令。"
+      }
+    },
+    {
+      "id": "PS-08-86b51af036",
+      "section": 8,
+      "category": "绘画 `paint.*`",
+      "name": "颜色面板",
+      "priority": "P0",
+      "source_line": 237,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-08-92b84304ee",
+      "section": 8,
+      "category": "绘画 `paint.*`",
+      "name": "颜色取样器",
+      "priority": "P1",
+      "source_line": 238,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-08-8aec3995bf",
+      "section": 8,
+      "category": "绘画 `paint.*`",
+      "name": "色板",
+      "priority": "P1",
+      "source_line": 239,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-08-f77e30ee1a",
+      "section": 8,
+      "category": "绘画 `paint.*`",
+      "name": "铅笔",
+      "priority": "P1",
+      "source_line": 240,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-08-94f49a1012",
+      "section": 8,
+      "category": "绘画 `paint.*`",
+      "name": "画笔设置（形状动态、散布、纹理、双重画笔……）",
+      "priority": "P1",
+      "source_line": 241,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-08-1c4da8d02e",
+      "section": 8,
+      "category": "绘画 `paint.*`",
+      "name": "画笔 / 渐变预设管理",
+      "priority": "P1",
+      "source_line": 242,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-08-c236d7a8cc",
+      "section": 8,
+      "category": "绘画 `paint.*`",
+      "name": "图案预设管理",
+      "priority": "P2",
+      "source_line": 243,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-08-d00f4ae949",
+      "section": 8,
+      "category": "绘画 `paint.*`",
+      "name": "ABR 画笔导入",
+      "priority": "P2",
+      "source_line": 244,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-08-d5cde59fb9",
+      "section": 8,
+      "category": "绘画 `paint.*`",
+      "name": "背景橡皮擦 / 魔术橡皮擦",
+      "priority": "P2",
+      "source_line": 245,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-08-5bc77239a4",
+      "section": 8,
+      "category": "绘画 `paint.*`",
+      "name": "颜色替换",
+      "priority": "P2",
+      "source_line": 246,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-08-2b199ba19e",
+      "section": 8,
+      "category": "绘画 `paint.*`",
+      "name": "历史记录画笔",
+      "priority": "P2",
+      "source_line": 247,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-08-20a38a31c0",
+      "section": 8,
+      "category": "绘画 `paint.*`",
+      "name": "混合器画笔",
+      "priority": "P3",
+      "source_line": 248,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-08-8917363943",
+      "section": 8,
+      "category": "绘画 `paint.*`",
+      "name": "历史记录艺术画笔",
+      "priority": "✗",
+      "source_line": 249,
+      "implementation": "重新核对",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-09-7cc6b0bb65",
+      "section": 9,
+      "category": "变换与裁剪 `transform.*`",
+      "name": "移动工具（含吸附）",
+      "priority": "P0",
+      "source_line": 255,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-09-4f3d9835a7",
+      "section": 9,
+      "category": "变换与裁剪 `transform.*`",
+      "name": "自由变换：缩放 / 旋转 / 斜切 / 扭曲 / 透视 / 翻转",
+      "priority": "P0",
+      "source_line": 256,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-09-7d349372b5",
+      "section": 9,
+      "category": "变换与裁剪 `transform.*`",
+      "name": "裁剪工具（拉直、比例、是否删除裁剪像素）",
+      "priority": "P0",
+      "source_line": 257,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-09-64f3d2a3eb",
+      "section": 9,
+      "category": "变换与裁剪 `transform.*`",
+      "name": "变形",
+      "priority": "P1",
+      "source_line": 258,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-09-073c032f33",
+      "section": 9,
+      "category": "变换与裁剪 `transform.*`",
+      "name": "透视裁剪",
+      "priority": "P1",
+      "source_line": 259,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-09-6891bcf56f",
+      "section": 9,
+      "category": "变换与裁剪 `transform.*`",
+      "name": "操控变形",
+      "priority": "P2",
+      "source_line": 260,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-09-cfef658a75",
+      "section": 9,
+      "category": "变换与裁剪 `transform.*`",
+      "name": "透视变形",
+      "priority": "P2",
+      "source_line": 261,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-09-bf3489a74b",
+      "section": 9,
+      "category": "变换与裁剪 `transform.*`",
+      "name": "内容识别缩放",
+      "priority": "P2",
+      "source_line": 262,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-09-b8404e61aa",
+      "section": 9,
+      "category": "变换与裁剪 `transform.*`",
+      "name": "自动对齐图层",
+      "priority": "P2",
+      "source_line": 263,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-09-d278290204",
+      "section": 9,
+      "category": "变换与裁剪 `transform.*`",
+      "name": "自动混合图层",
+      "priority": "P3",
+      "source_line": 264,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-09-71958254c4",
+      "section": 9,
+      "category": "变换与裁剪 `transform.*`",
+      "name": "旋转对象 🤖（2026 新增）",
+      "priority": "P3",
+      "source_line": 265,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-10-0e134f5a85",
+      "section": 10,
+      "category": "滤镜 `filter.*`",
+      "name": "高斯模糊",
+      "priority": "P0",
+      "source_line": 271,
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "filter.gaussian_blur"
+        ],
+        "prompts": [
+          {
+            "text": "把当前像素图层做标准差 2px 的高斯模糊。",
+            "query": "高斯模糊",
+            "command": "filter.gaussian_blur"
+          }
+        ],
+        "note": ""
+      }
+    },
+    {
+      "id": "PS-10-5785be70cb",
+      "section": 10,
+      "category": "滤镜 `filter.*`",
+      "name": "USM 锐化",
+      "priority": "P0",
+      "source_line": 272,
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "filter.unsharp_mask"
+        ],
+        "prompts": [
+          {
+            "text": "对当前像素图层做数量 120%、标准差 1px 的 USM 锐化。",
+            "query": "USM 锐化",
+            "command": "filter.unsharp_mask"
+          }
+        ],
+        "note": ""
+      }
+    },
+    {
+      "id": "PS-10-395d09a3e1",
+      "section": 10,
+      "category": "滤镜 `filter.*`",
+      "name": "添加杂色",
+      "priority": "P0",
+      "source_line": 273,
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "filter.add_noise"
+        ],
+        "prompts": [
+          {
+            "text": "给当前像素图层添加 2% 单色高斯颗粒，种子为 42。",
+            "query": "添加杂色",
+            "command": "filter.add_noise"
+          }
+        ],
+        "note": "",
+        "variants": [
+          {
+            "command": "filter.add_noise",
+            "path": "distribution",
+            "values": [
+              "uniform",
+              "gaussian"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "PS-10-03bd81f36a",
+      "section": 10,
+      "category": "滤镜 `filter.*`",
+      "name": "智能锐化",
+      "priority": "P1",
+      "source_line": 274,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-10-10e03c578e",
+      "section": 10,
+      "category": "滤镜 `filter.*`",
+      "name": "高反差保留",
+      "priority": "P1",
+      "source_line": 275,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-10-c323ce2dc1",
+      "section": 10,
+      "category": "滤镜 `filter.*`",
+      "name": "减少杂色 / 中间值 / 蒙尘与划痕",
+      "priority": "P1",
+      "source_line": 276,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-10-4cd844c0cb",
+      "section": 10,
+      "category": "滤镜 `filter.*`",
+      "name": "动感模糊 / 表面模糊",
+      "priority": "P1",
+      "source_line": 277,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-10-a5da48d57a",
+      "section": 10,
+      "category": "滤镜 `filter.*`",
+      "name": "最大值 / 最小值",
+      "priority": "P1",
+      "source_line": 278,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-10-388913a7bc",
+      "section": 10,
+      "category": "滤镜 `filter.*`",
+      "name": "径向模糊 / 镜头模糊 / 方框模糊 / 平均",
+      "priority": "P2",
+      "source_line": 279,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-10-7b85bb5f1a",
+      "section": 10,
+      "category": "滤镜 `filter.*`",
+      "name": "模糊画廊：场景 / 光圈 / 移轴 / 路径 / 旋转",
+      "priority": "P2",
+      "source_line": 280,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-10-96038cde01",
+      "section": 10,
+      "category": "滤镜 `filter.*`",
+      "name": "镜头校正",
+      "priority": "P2",
+      "source_line": 281,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-10-9ce22316bf",
+      "section": 10,
+      "category": "滤镜 `filter.*`",
+      "name": "位移",
+      "priority": "P2",
+      "source_line": 282,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-10-14619cadb7",
+      "section": 10,
+      "category": "滤镜 `filter.*`",
+      "name": "马赛克",
+      "priority": "P2",
+      "source_line": 283,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-10-4910186cb0",
+      "section": 10,
+      "category": "滤镜 `filter.*`",
+      "name": "云彩",
+      "priority": "P2",
+      "source_line": 284,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-10-9be49e6137",
+      "section": 10,
+      "category": "滤镜 `filter.*`",
+      "name": "扭曲组：置换 / 挤压 / 极坐标 / 波纹 / 切变 / 球面化 / 旋转扭曲 / 波浪 / 水波",
+      "priority": "P3",
+      "source_line": 285,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-10-344b92cabe",
+      "section": 10,
+      "category": "滤镜 `filter.*`",
+      "name": "像素化组其余：彩色半调 / 晶格化 / 点状化 / 碎片 / 铜版雕刻",
+      "priority": "P3",
+      "source_line": 286,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-10-75ea494817",
+      "section": 10,
+      "category": "滤镜 `filter.*`",
+      "name": "渲染组：镜头光晕 / 光照效果 / 纤维 / 分层云彩",
+      "priority": "P3",
+      "source_line": 287,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-10-0672d98893",
+      "section": 10,
+      "category": "滤镜 `filter.*`",
+      "name": "风格化组：浮雕 / 查找边缘 / 油画 / 风 / 扩散 / 曝光过度 / 拼贴 / 凸出 / 等高线",
+      "priority": "P3",
+      "source_line": 288,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-10-d4877d09e6",
+      "section": 10,
+      "category": "滤镜 `filter.*`",
+      "name": "自定 / HSB/HSL",
+      "priority": "P3",
+      "source_line": 289,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-10-7c8555eca5",
+      "section": 10,
+      "category": "滤镜 `filter.*`",
+      "name": "自适应广角 / 消失点",
+      "priority": "P3",
+      "source_line": 290,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-10-c5d0281f10",
+      "section": 10,
+      "category": "滤镜 `filter.*`",
+      "name": "滤镜库（47 个旧式艺术滤镜）",
+      "priority": "P3",
+      "source_line": 291,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-10-dca9e3ce4b",
+      "section": 10,
+      "category": "滤镜 `filter.*`",
+      "name": "火焰 / 树 / 图片框",
+      "priority": "✗",
+      "source_line": 292,
+      "implementation": "重新核对",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-10-1e9f8da0f7",
+      "section": 10,
+      "category": "滤镜 `filter.*`",
+      "name": "防抖",
+      "priority": "✗",
+      "source_line": 293,
+      "implementation": "重新核对",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-11-4490121dad",
+      "section": 11,
+      "category": "文字 `type.*`",
+      "name": "横排文字（点文字 / 段落文字）",
+      "priority": "P0",
+      "source_line": 299,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-11-a524877cb6",
+      "section": 11,
+      "category": "文字 `type.*`",
+      "name": "字体、字号、颜色、行距、字距、对齐",
+      "priority": "P0",
+      "source_line": 300,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-11-cf9b897491",
+      "section": 11,
+      "category": "文字 `type.*`",
+      "name": "栅格化文字",
+      "priority": "P0",
+      "source_line": 301,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-11-c6c65f4de6",
+      "section": 11,
+      "category": "文字 `type.*`",
+      "name": "直排文字",
+      "priority": "P1",
+      "source_line": 302,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-11-0a97b13dc8",
+      "section": 11,
+      "category": "文字 `type.*`",
+      "name": "文字变形",
+      "priority": "P1",
+      "source_line": 303,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-11-4bfa8a3abe",
+      "section": 11,
+      "category": "文字 `type.*`",
+      "name": "路径文字",
+      "priority": "P2",
+      "source_line": 304,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-11-f3c09ca56f",
+      "section": 11,
+      "category": "文字 `type.*`",
+      "name": "字符样式 / 段落样式",
+      "priority": "P2",
+      "source_line": 305,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-11-346810064b",
+      "section": 11,
+      "category": "文字 `type.*`",
+      "name": "OpenType 特性",
+      "priority": "P2",
+      "source_line": 306,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-11-07a96c386e",
+      "section": 11,
+      "category": "文字 `type.*`",
+      "name": "文字转形状 / 创建工作路径",
+      "priority": "P2",
+      "source_line": 307,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-11-d0e9236cfa",
+      "section": 11,
+      "category": "文字 `type.*`",
+      "name": "文字蒙版工具",
+      "priority": "P2",
+      "source_line": 308,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-11-b2feb2a72d",
+      "section": 11,
+      "category": "文字 `type.*`",
+      "name": "字形面板",
+      "priority": "P3",
+      "source_line": 309,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-11-0907b4762e",
+      "section": 11,
+      "category": "文字 `type.*`",
+      "name": "匹配字体 🤖",
+      "priority": "P3",
+      "source_line": 310,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-12-417500cf30",
+      "section": 12,
+      "category": "矢量与路径 `path.*` / `shape.*`",
+      "name": "形状：矩形（含圆角）/ 椭圆 / 直线 / 多边形 / 三角形",
+      "priority": "P1",
+      "source_line": 316,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-12-a132c853ab",
+      "section": 12,
+      "category": "矢量与路径 `path.*` / `shape.*`",
+      "name": "钢笔 / 弯度钢笔 / 自由钢笔",
+      "priority": "P1",
+      "source_line": 317,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-12-595e7321ce",
+      "section": 12,
+      "category": "矢量与路径 `path.*` / `shape.*`",
+      "name": "添加 / 删除 / 转换锚点；路径选择 / 直接选择",
+      "priority": "P1",
+      "source_line": 318,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-12-cfd8ae8285",
+      "section": 12,
+      "category": "矢量与路径 `path.*` / `shape.*`",
+      "name": "路径面板、路径与选区互转",
+      "priority": "P1",
+      "source_line": 319,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-12-2e23400f5e",
+      "section": 12,
+      "category": "矢量与路径 `path.*` / `shape.*`",
+      "name": "形状组合（合并 / 减去 / 相交）",
+      "priority": "P2",
+      "source_line": 320,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-12-9bae2bd626",
+      "section": 12,
+      "category": "矢量与路径 `path.*` / `shape.*`",
+      "name": "自定形状",
+      "priority": "P2",
+      "source_line": 321,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-12-afd1a689fb",
+      "section": 12,
+      "category": "矢量与路径 `path.*` / `shape.*`",
+      "name": "SVG 导入导出",
+      "priority": "P2",
+      "source_line": 322,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-13-bbaac8cf76",
+      "section": 13,
+      "category": "RAW 照片显影 `raw.*`",
+      "name": "RAW 解码（主流相机）",
+      "priority": "P2",
+      "source_line": 330,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-13-f7bdbf0b8e",
+      "section": 13,
+      "category": "RAW 照片显影 `raw.*`",
+      "name": "基本面板：白平衡、曝光、对比、高光、阴影、白色、黑色、纹理、清晰度、去朦胧",
+      "priority": "P2",
+      "source_line": 331,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-13-fc3a065bd4",
+      "section": 13,
+      "category": "RAW 照片显影 `raw.*`",
+      "name": "曲线 / 混色器（HSL）/ 颜色分级",
+      "priority": "P2",
+      "source_line": 332,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-13-31102e180c",
+      "section": 13,
+      "category": "RAW 照片显影 `raw.*`",
+      "name": "细节：锐化、降噪",
+      "priority": "P2",
+      "source_line": 333,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-13-41b283aec3",
+      "section": 13,
+      "category": "RAW 照片显影 `raw.*`",
+      "name": "效果：颗粒、晕影",
+      "priority": "P2",
+      "source_line": 334,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-13-f1de1e2621",
+      "section": 13,
+      "category": "RAW 照片显影 `raw.*`",
+      "name": "预设",
+      "priority": "P2",
+      "source_line": 335,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-13-0529cd2d51",
+      "section": 13,
+      "category": "RAW 照片显影 `raw.*`",
+      "name": "光学：镜头配置文件、色差、暗角",
+      "priority": "P3",
+      "source_line": 336,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-13-4592c9e11f",
+      "section": 13,
+      "category": "RAW 照片显影 `raw.*`",
+      "name": "几何：Upright 透视校正",
+      "priority": "P3",
+      "source_line": 337,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-13-1b8faab964",
+      "section": 13,
+      "category": "RAW 照片显影 `raw.*`",
+      "name": "AI 蒙版（主体 / 天空 / 人物）🤖、AI 降噪 🤖、镜头模糊 🤖",
+      "priority": "P3",
+      "source_line": 338,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-14-cf2715aeb6",
+      "section": 14,
+      "category": "视图与导航 `view.*`",
+      "name": "缩放 / 抓手 / 适合屏幕 / 100%",
+      "priority": "P0",
+      "source_line": 344,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-14-c9a6761937",
+      "section": 14,
+      "category": "视图与导航 `view.*`",
+      "name": "多文档标签页",
+      "priority": "P0",
+      "source_line": 345,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-14-de2fd3ca59",
+      "section": 14,
+      "category": "视图与导航 `view.*`",
+      "name": "标尺 / 参考线 / 对齐吸附",
+      "priority": "P0",
+      "source_line": 346,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-14-810f37be85",
+      "section": 14,
+      "category": "视图与导航 `view.*`",
+      "name": "旋转视图",
+      "priority": "P1",
+      "source_line": 347,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-14-15d282cc9a",
+      "section": 14,
+      "category": "视图与导航 `view.*`",
+      "name": "智能参考线",
+      "priority": "P1",
+      "source_line": 348,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-14-3e68cd79ce",
+      "section": 14,
+      "category": "视图与导航 `view.*`",
+      "name": "网格 / 像素网格",
+      "priority": "P1",
+      "source_line": 349,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-14-8ae0da2a42",
+      "section": 14,
+      "category": "视图与导航 `view.*`",
+      "name": "导航器",
+      "priority": "P1",
+      "source_line": 350,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-14-09e4a9ec7d",
+      "section": 14,
+      "category": "视图与导航 `view.*`",
+      "name": "多窗口排列 / 屏幕模式",
+      "priority": "P2",
+      "source_line": 351,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-14-918e81018b",
+      "section": 14,
+      "category": "视图与导航 `view.*`",
+      "name": "校样颜色 / 色域警告",
+      "priority": "P2",
+      "source_line": 352,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-14-8430a881e8",
+      "section": 14,
+      "category": "视图与导航 `view.*`",
+      "name": "新建参考线版面",
+      "priority": "P3",
+      "source_line": 353,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-15-d3094c6954",
+      "section": 15,
+      "category": "通道 `channel.*`",
+      "name": "查看单个颜色通道",
+      "priority": "P1",
+      "source_line": 359,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-15-b99621b074",
+      "section": 15,
+      "category": "通道 `channel.*`",
+      "name": "Alpha 通道（存储选区）",
+      "priority": "P1",
+      "source_line": 360,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-15-c4509c8344",
+      "section": 15,
+      "category": "通道 `channel.*`",
+      "name": "复制通道、通道转选区",
+      "priority": "P1",
+      "source_line": 361,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-15-117606acae",
+      "section": 15,
+      "category": "通道 `channel.*`",
+      "name": "专色通道",
+      "priority": "P3",
+      "source_line": 362,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-16-468033d33b",
+      "section": 16,
+      "category": "色彩管理 `color.*`",
+      "name": "工作色彩空间 sRGB / Display P3",
+      "priority": "P0",
+      "source_line": 368,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-16-4f3db94f33",
+      "section": 16,
+      "category": "色彩管理 `color.*`",
+      "name": "读取并应用图片内嵌的 ICC 配置文件",
+      "priority": "P0",
+      "source_line": 369,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-16-b59d8280a5",
+      "section": 16,
+      "category": "色彩管理 `color.*`",
+      "name": "导出时嵌入 / 转换配置文件",
+      "priority": "P0",
+      "source_line": 370,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-16-8de06204ac",
+      "section": 16,
+      "category": "色彩管理 `color.*`",
+      "name": "指定 / 转换配置文件",
+      "priority": "P1",
+      "source_line": 371,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-16-56a0bc682a",
+      "section": 16,
+      "category": "色彩管理 `color.*`",
+      "name": "软打样",
+      "priority": "P2",
+      "source_line": 372,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-16-e269e999cb",
+      "section": 16,
+      "category": "色彩管理 `color.*`",
+      "name": "颜色设置（自定义 CMYK 等）",
+      "priority": "P2",
+      "source_line": 373,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-17-86de52d178",
+      "section": 17,
+      "category": "面板（未在上面出现的）",
+      "name": "属性",
+      "priority": "P0",
+      "source_line": 379,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-17-b487bf0eba",
+      "section": 17,
+      "category": "面板（未在上面出现的）",
+      "name": "信息、直方图",
+      "priority": "P1",
+      "source_line": 380,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-17-01b402a5c6",
+      "section": 17,
+      "category": "面板（未在上面出现的）",
+      "name": "动作、样式、图层复合、上下文任务栏",
+      "priority": "P2",
+      "source_line": 381,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-17-48bd1a145f",
+      "section": 17,
+      "category": "面板（未在上面出现的）",
+      "name": "工具预设、测量记录、注释",
+      "priority": "P3",
+      "source_line": 382,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-17-8368e3ab8e",
+      "section": 17,
+      "category": "面板（未在上面出现的）",
+      "name": "时间轴、库、评论、版本历史",
+      "priority": "✗",
+      "source_line": 383,
+      "implementation": "重新核对",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-18-5d4f709636",
+      "section": 18,
+      "category": "自动化 `action.*`",
+      "name": "脚本",
+      "priority": "P0",
+      "source_line": 389,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-18-1d67f7829a",
+      "section": 18,
+      "category": "自动化 `action.*`",
+      "name": "动作：录制 / 回放 / 编辑",
+      "priority": "P1",
+      "source_line": 390,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-18-c9f7c41baa",
+      "section": 18,
+      "category": "自动化 `action.*`",
+      "name": "批处理",
+      "priority": "P2",
+      "source_line": 391,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-18-4f30ead3eb",
+      "section": 18,
+      "category": "自动化 `action.*`",
+      "name": "插件（类似 Photoshop 的 UXP）",
+      "priority": "P3",
+      "source_line": 392,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-19-21fdf95781",
+      "section": 19,
+      "category": "Adobe 的 AI 功能 `gen.*` / `neural.*`",
+      "name": "移除背景 🤖",
+      "priority": "P1",
+      "source_line": 400,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-19-068a4aa8c2",
+      "section": 19,
+      "category": "Adobe 的 AI 功能 `gen.*` / `neural.*`",
+      "name": "生成式填充 🤖",
+      "priority": "P2",
+      "source_line": 401,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-19-90afa613b4",
+      "section": 19,
+      "category": "Adobe 的 AI 功能 `gen.*` / `neural.*`",
+      "name": "生成式扩展 🤖",
+      "priority": "P2",
+      "source_line": 402,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-19-320004af59",
+      "section": 19,
+      "category": "Adobe 的 AI 功能 `gen.*` / `neural.*`",
+      "name": "超分辨率 / 生成式放大 🤖",
+      "priority": "P2",
+      "source_line": 403,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-19-0af30ae366",
+      "section": 19,
+      "category": "Adobe 的 AI 功能 `gen.*` / `neural.*`",
+      "name": "天空替换 🤖",
+      "priority": "P2",
+      "source_line": 404,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-19-4f4a33e4db",
+      "section": 19,
+      "category": "Adobe 的 AI 功能 `gen.*` / `neural.*`",
+      "name": "生成图像 / 生成背景 / 生成相似 🤖",
+      "priority": "P3",
+      "source_line": 405,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-19-6e42c7e07e",
+      "section": 19,
+      "category": "Adobe 的 AI 功能 `gen.*` / `neural.*`",
+      "name": "协调（合成时自动匹配光照与色彩）🤖",
+      "priority": "P3",
+      "source_line": 406,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-19-d9de9483c3",
+      "section": 19,
+      "category": "Adobe 的 AI 功能 `gen.*` / `neural.*`",
+      "name": "移除干扰物（行人、电线）/ 反射去除 🤖",
+      "priority": "P3",
+      "source_line": 407,
+      "implementation": "待实现",
+      "entrypoint": null
+    },
+    {
+      "id": "PS-19-ef0365d914",
+      "section": 19,
+      "category": "Adobe 的 AI 功能 `gen.*` / `neural.*`",
+      "name": "Neural Filters：皮肤平滑、智能肖像、上色、超级缩放、JPEG 伪影去除、照片修复、风格转换、妆容迁移、景观混合器、深度模糊、色彩转移 🤖",
+      "priority": "P3",
+      "source_line": 408,
+      "implementation": "待实现",
+      "entrypoint": null
+    }
+  ]
+}

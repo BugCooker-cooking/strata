@@ -1,0 +1,130 @@
+{
+  "arch": "aarch64",
+  "bit_depth": 16,
+  "cpu_budget_bytes": 536870912,
+  "fixture": "fixed encoded Display P3 diagonal gradient with alpha .7..1 and a central hard round mark; sparse new document, one raw pixel layer",
+  "gpu_budget_bytes": 0,
+  "height": 4000,
+  "os": "macos",
+  "pixels": 24000000,
+  "profile": "release",
+  "results": [
+    {
+      "command": "filter.gaussian_blur",
+      "command_seconds": 15.009298875,
+      "memory_pool_after_command": {
+        "backing_read_bytes": 0,
+        "backing_write_bytes": 0,
+        "cpu_bytes": 413138944,
+        "cpu_cache_bytes": 0,
+        "cpu_cache_evictions": 0,
+        "disk_bytes": 0,
+        "evictions": 0,
+        "gpu_bytes": 0,
+        "gpu_evictions": 0,
+        "peak_cpu_bytes": 423749848,
+        "peak_disk_bytes": 0,
+        "peak_gpu_bytes": 0,
+        "reloads": 0,
+        "source_bytes": 413138944,
+        "source_evictions": 0,
+        "transient_bytes": 0
+      },
+      "one_history_item": true,
+      "params": {
+        "layer": {
+          "id": "1a6710f9-c886-4449-874a-2e6332adaec9"
+        },
+        "sigma": 1.5
+      },
+      "result": {
+        "layer_id": "1a6710f9-c886-4449-874a-2e6332adaec9",
+        "target": "pixels",
+        "touched_tiles": 375
+      },
+      "undo_restores_original_state": true,
+      "undo_seconds": 0.000026084
+    },
+    {
+      "command": "filter.unsharp_mask",
+      "command_seconds": 13.111305292,
+      "memory_pool_after_command": {
+        "backing_read_bytes": 0,
+        "backing_write_bytes": 0,
+        "cpu_bytes": 227016704,
+        "cpu_cache_bytes": 0,
+        "cpu_cache_evictions": 0,
+        "disk_bytes": 0,
+        "evictions": 0,
+        "gpu_bytes": 0,
+        "gpu_evictions": 0,
+        "peak_cpu_bytes": 240572600,
+        "peak_disk_bytes": 0,
+        "peak_gpu_bytes": 0,
+        "reloads": 0,
+        "source_bytes": 227016704,
+        "source_evictions": 0,
+        "transient_bytes": 0
+      },
+      "one_history_item": true,
+      "params": {
+        "amount": 1.2,
+        "layer": {
+          "id": "43f728fd-c7ae-46fb-98d8-46d60511111b"
+        },
+        "sigma": 1.0,
+        "threshold": 0.01
+      },
+      "result": {
+        "layer_id": "43f728fd-c7ae-46fb-98d8-46d60511111b",
+        "target": "pixels",
+        "touched_tiles": 20
+      },
+      "undo_restores_original_state": true,
+      "undo_seconds": 8.166e-6
+    },
+    {
+      "command": "filter.add_noise",
+      "command_seconds": 5.3877845,
+      "memory_pool_after_command": {
+        "backing_read_bytes": 0,
+        "backing_write_bytes": 0,
+        "cpu_bytes": 417857536,
+        "cpu_cache_bytes": 0,
+        "cpu_cache_evictions": 0,
+        "disk_bytes": 0,
+        "evictions": 0,
+        "gpu_bytes": 0,
+        "gpu_evictions": 0,
+        "peak_cpu_bytes": 427556864,
+        "peak_disk_bytes": 0,
+        "peak_gpu_bytes": 0,
+        "reloads": 0,
+        "source_bytes": 417857536,
+        "source_evictions": 0,
+        "transient_bytes": 0
+      },
+      "one_history_item": true,
+      "params": {
+        "amount": 0.02,
+        "distribution": "gaussian",
+        "layer": {
+          "id": "e4989382-2787-460d-ad3e-1652d810728a"
+        },
+        "monochrome": true,
+        "seed": 42
+      },
+      "result": {
+        "layer_id": "e4989382-2787-460d-ad3e-1652d810728a",
+        "target": "pixels",
+        "touched_tiles": 384
+      },
+      "undo_restores_original_state": true,
+      "undo_seconds": 0.000015125
+    }
+  ],
+  "runs_per_case": 1,
+  "scope": "single-run CPU command and tracked-pool memory trend; not process RSS, photo quality, native interactive latency, or displayed frame rate",
+  "width": 6000,
+  "working_space": "display_p3"
+}

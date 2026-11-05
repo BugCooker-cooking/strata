@@ -13,6 +13,7 @@ use strata_render::{Renderer, Viewport};
 uniffi::setup_scaffolding!();
 mod ai;
 mod clipboard;
+mod filter_preview;
 mod local;
 mod subject;
 mod tonal_preview;
@@ -175,6 +176,7 @@ pub struct StrataEngine {
     work_cancellation: strata_core::commands::WorkCancellation,
     active_ai_request: Mutex<Option<(uuid::Uuid, strata_core::commands::Request)>>,
     tonal_preview_sequence: std::sync::atomic::AtomicU64,
+    preview_work: Mutex<strata_core::commands::WorkCancellation>,
     listener: Arc<dyn EngineListener>,
     recovery: Mutex<Option<strata_io::recovery::RecoveryStore>>,
     ai: Mutex<Option<strata_ai::Session>>,
@@ -231,6 +233,7 @@ impl StrataEngine {
             work_cancellation,
             active_ai_request: Mutex::new(None),
             tonal_preview_sequence: std::sync::atomic::AtomicU64::new(0),
+            preview_work: Mutex::new(strata_core::commands::WorkCancellation::default()),
             listener,
             recovery: Mutex::new(None),
             ai: Mutex::new(None),

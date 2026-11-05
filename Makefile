@@ -54,3 +54,5 @@ verify-clean:
 commands:
 	cargo run --locked -p strata-devtool -- examples
 	bash scripts/check-command-docs.sh
+	cargo run --quiet --locked -p strata-devtool -- catalog > build/ai-command-catalog.current.json
+	python3 scripts/ai-entrypoints.py --catalog build/ai-command-catalog.current.json --check

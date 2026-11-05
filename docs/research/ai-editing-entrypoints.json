@@ -1,0 +1,1200 @@
+{
+  "version": 1,
+  "scope": "Current implemented capabilities; final full-Photoshop audit remains open",
+  "features": {
+    "PS-00-aa907aaad8": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "edit.undo",
+        "edit.redo",
+        "edit.undo_turn"
+      ],
+      "prompts": [
+        {
+          "text": "撤销上一轮 AI 的编辑。",
+          "query": "撤销本轮",
+          "command": "edit.undo_turn"
+        }
+      ],
+      "note": ""
+    },
+    "PS-00-7a6d3fc6af": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "view.pan",
+        "view.zoom",
+        "view.fit"
+      ],
+      "prompts": [
+        {
+          "text": "将画布向右平移 100 像素。",
+          "query": "平移画布",
+          "command": "view.pan"
+        }
+      ],
+      "note": ""
+    },
+    "PS-00-a664122198": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "file.save",
+        "file.save_as",
+        "file.open"
+      ],
+      "prompts": [
+        {
+          "text": "将当前文档另存为 Strata 工程。",
+          "query": "工程另存为",
+          "command": "file.save_as"
+        }
+      ],
+      "note": ""
+    },
+    "PS-01-51efedefef": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "file.new"
+      ],
+      "prompts": [
+        {
+          "text": "新建 1920×1080 的 16 位 sRGB 文档。",
+          "query": "新建文档",
+          "command": "file.new"
+        }
+      ],
+      "note": ""
+    },
+    "PS-01-9b14920078": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "file.open"
+      ],
+      "prompts": [
+        {
+          "text": "打开我选择的照片。",
+          "query": "打开文件",
+          "command": "file.open"
+        }
+      ],
+      "note": ""
+    },
+    "PS-01-b6d7cbc94d": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "file.recent.list"
+      ],
+      "prompts": [
+        {
+          "text": "查看本轮允许访问的最近文件。",
+          "query": "最近文件",
+          "command": "file.recent.list"
+        }
+      ],
+      "note": ""
+    },
+    "PS-01-8f62b2552b": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "file.save",
+        "file.save_as"
+      ],
+      "prompts": [
+        {
+          "text": "将当前工程另存为新文件。",
+          "query": "工程另存为",
+          "command": "file.save_as"
+        }
+      ],
+      "note": ""
+    },
+    "PS-01-894622b1ce": {
+      "scope": "editing",
+      "coverage": "partial",
+      "commands": [
+        "file.export"
+      ],
+      "prompts": [
+        {
+          "text": "导出宽度 2048 像素的 PNG。",
+          "query": "导出图片",
+          "command": "file.export"
+        }
+      ],
+      "note": "导出参数入口完整；快速导出预设本身尚未完成。"
+    },
+    "PS-01-e7337088bf": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "file.place"
+      ],
+      "prompts": [
+        {
+          "text": "把我选择的图片置入为新图层。",
+          "query": "置入图片",
+          "command": "file.place"
+        }
+      ],
+      "note": ""
+    },
+    "PS-04-430fc8e2db": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "layer.create",
+        "layer.via_copy",
+        "layer.via_cut",
+        "layer.background_to_layer"
+      ],
+      "prompts": [
+        {
+          "text": "把当前选区复制为新图层。",
+          "query": "通过拷贝新建图层",
+          "command": "layer.via_copy"
+        }
+      ],
+      "note": ""
+    },
+    "PS-04-4e8bda1fd0": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "layer.duplicate",
+        "layer.delete",
+        "layer.rename",
+        "layer.set_color_label"
+      ],
+      "prompts": [
+        {
+          "text": "复制当前图层。",
+          "query": "复制图层",
+          "command": "layer.duplicate"
+        }
+      ],
+      "note": ""
+    },
+    "PS-04-fe6945c814": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "layer.create_group",
+        "layer.group",
+        "layer.ungroup",
+        "layer.reparent",
+        "layer.set_pass_through"
+      ],
+      "prompts": [
+        {
+          "text": "将所选图层编组。",
+          "query": "编组",
+          "command": "layer.group"
+        }
+      ],
+      "note": ""
+    },
+    "PS-04-54bcfbb2ac": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "layer.set_visibility",
+        "layer.set_locks"
+      ],
+      "prompts": [
+        {
+          "text": "隐藏当前图层。",
+          "query": "图层显隐",
+          "command": "layer.set_visibility"
+        }
+      ],
+      "note": ""
+    },
+    "PS-04-a7fe5679e6": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "layer.set_opacity",
+        "layer.set_fill_opacity"
+      ],
+      "prompts": [
+        {
+          "text": "把当前图层不透明度设为 50%。",
+          "query": "图层不透明度",
+          "command": "layer.set_opacity"
+        }
+      ],
+      "note": ""
+    },
+    "PS-04-bd9b0e9d03": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "layer.set_blend_mode"
+      ],
+      "prompts": [
+        {
+          "text": "把当前图层混合模式设为正片叠底。",
+          "query": "混合模式",
+          "command": "layer.set_blend_mode"
+        }
+      ],
+      "note": ""
+    },
+    "PS-04-e5e334c943": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "layer.move_order",
+        "layer.align",
+        "layer.distribute"
+      ],
+      "prompts": [
+        {
+          "text": "将所选图层水平居中对齐。",
+          "query": "对齐图层",
+          "command": "layer.align"
+        }
+      ],
+      "note": ""
+    },
+    "PS-04-e77c27785e": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "layer.merge_down",
+        "layer.merge_visible",
+        "layer.flatten",
+        "layer.stamp_visible"
+      ],
+      "prompts": [
+        {
+          "text": "把可见合成盖印到新图层。",
+          "query": "盖印可见",
+          "command": "layer.stamp_visible"
+        }
+      ],
+      "note": ""
+    },
+    "PS-04-d5e9c4039f": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "layer.mask.add",
+        "paint.stroke",
+        "paint.erase",
+        "layer.mask.set_enabled",
+        "layer.mask.apply",
+        "layer.mask.invert",
+        "layer.mask.remove"
+      ],
+      "prompts": [
+        {
+          "text": "从当前选区添加图层蒙版。",
+          "query": "添加图层蒙版",
+          "command": "layer.mask.add"
+        }
+      ],
+      "note": ""
+    },
+    "PS-04-9101e755a1": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "layer.set_clipping"
+      ],
+      "prompts": [
+        {
+          "text": "把当前图层设为剪贴图层。",
+          "query": "剪贴蒙版",
+          "command": "layer.set_clipping"
+        }
+      ],
+      "note": ""
+    },
+    "PS-04-cb66199f15": {
+      "scope": "editing",
+      "coverage": "partial",
+      "commands": [
+        "layer.add_adjustment",
+        "layer.add_hue_saturation",
+        "layer.add_tonal_adjustment",
+        "adjust.exposure.set",
+        "adjust.hue_saturation.set",
+        "adjust.tonal.set"
+      ],
+      "prompts": [
+        {
+          "text": "添加可编辑的色阶调整图层。",
+          "query": "新建调色调整层",
+          "command": "layer.add_tonal_adjustment"
+        }
+      ],
+      "note": "当前调整类型已接入，完整后续类型待实现。"
+    },
+    "PS-04-755f2b287b": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "layer.fill.solid",
+        "layer.fill.gradient",
+        "layer.fill.solid.set",
+        "layer.fill.gradient.set"
+      ],
+      "prompts": [
+        {
+          "text": "新建蓝色纯色填充图层。",
+          "query": "新建纯色填充",
+          "command": "layer.fill.solid"
+        }
+      ],
+      "note": ""
+    },
+    "PS-04-853e6d30f3": {
+      "scope": "editing",
+      "coverage": "partial",
+      "commands": [
+        "layer.rasterize"
+      ],
+      "prompts": [
+        {
+          "text": "栅格化当前填充图层。",
+          "query": "栅格化",
+          "command": "layer.rasterize"
+        }
+      ],
+      "note": "当前支持类型已接入，文字/智能对象类型待后续实现。"
+    },
+    "PS-04-d6c3930e2f": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "layer.set_styles"
+      ],
+      "prompts": [
+        {
+          "text": "给当前图层添加投影和描边。",
+          "query": "图层样式",
+          "command": "layer.set_styles"
+        }
+      ],
+      "note": ""
+    },
+    "PS-05-24f905f241": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "select.marquee",
+        "select.ellipse"
+      ],
+      "prompts": [
+        {
+          "text": "建立一个椭圆选区。",
+          "query": "椭圆选框",
+          "command": "select.ellipse"
+        }
+      ],
+      "note": ""
+    },
+    "PS-05-8885dd3689": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "select.lasso",
+        "select.polygon"
+      ],
+      "prompts": [
+        {
+          "text": "用多边形圈选给定区域。",
+          "query": "多边形套索",
+          "command": "select.polygon"
+        }
+      ],
+      "note": ""
+    },
+    "PS-05-d2a511da9e": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "select.wand"
+      ],
+      "prompts": [
+        {
+          "text": "用容差 24 的魔棒选择给定位置相近颜色。",
+          "query": "魔棒",
+          "command": "select.wand"
+        }
+      ],
+      "note": ""
+    },
+    "PS-05-825f270266": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "select.quick"
+      ],
+      "prompts": [
+        {
+          "text": "根据前景与背景笔触进行快速选择。",
+          "query": "快速选择",
+          "command": "select.quick"
+        }
+      ],
+      "note": ""
+    },
+    "PS-05-f88b2ecb2f": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "select.subject"
+      ],
+      "prompts": [
+        {
+          "text": "选择照片主体。",
+          "query": "选择主体",
+          "command": "select.subject"
+        }
+      ],
+      "note": ""
+    },
+    "PS-05-c3053c1de1": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "select.all",
+        "select.none",
+        "select.reselect",
+        "select.inverse"
+      ],
+      "prompts": [
+        {
+          "text": "反选当前选区。",
+          "query": "反选",
+          "command": "select.inverse"
+        }
+      ],
+      "note": ""
+    },
+    "PS-05-a8345e1798": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "select.marquee",
+        "select.ellipse",
+        "select.polygon",
+        "select.lasso"
+      ],
+      "prompts": [
+        {
+          "text": "把新矩形区域加入当前选区。",
+          "query": "矩形选区",
+          "command": "select.marquee"
+        }
+      ],
+      "note": ""
+    },
+    "PS-05-2cd4b1dc43": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "select.feather",
+        "select.expand",
+        "select.contract",
+        "select.smooth",
+        "select.border"
+      ],
+      "prompts": [
+        {
+          "text": "把当前选区羽化 5 像素。",
+          "query": "羽化选区",
+          "command": "select.feather"
+        }
+      ],
+      "note": ""
+    },
+    "PS-05-1f294f54d0": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "select.transform"
+      ],
+      "prompts": [
+        {
+          "text": "旋转并放大当前选区。",
+          "query": "变换选区",
+          "command": "select.transform"
+        }
+      ],
+      "note": ""
+    },
+    "PS-06-b941862025": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "layer.add_adjustment",
+        "adjust.exposure.set"
+      ],
+      "prompts": [
+        {
+          "text": "增加半档曝光。",
+          "query": "新建曝光调整层",
+          "command": "layer.add_adjustment"
+        }
+      ],
+      "note": ""
+    },
+    "PS-06-65bc8e9d6e": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "layer.add_hue_saturation",
+        "adjust.hue_saturation.set"
+      ],
+      "prompts": [
+        {
+          "text": "降低当前图层的饱和度。",
+          "query": "新建色相饱和度调整",
+          "command": "layer.add_hue_saturation"
+        }
+      ],
+      "note": ""
+    },
+    "PS-07-7fd32754e9": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "retouch.spot_heal"
+      ],
+      "prompts": [
+        {
+          "text": "自动修复给定笔触内的小污点。",
+          "query": "污点修复笔触",
+          "command": "retouch.spot_heal"
+        }
+      ],
+      "note": ""
+    },
+    "PS-07-2eddb4a1cf": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "retouch.heal"
+      ],
+      "prompts": [
+        {
+          "text": "用指定源点的纹理修复目标区域并匹配边界。",
+          "query": "修复画笔笔触",
+          "command": "retouch.heal"
+        }
+      ],
+      "note": ""
+    },
+    "PS-07-ec6361e1f3": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "retouch.clone"
+      ],
+      "prompts": [
+        {
+          "text": "从指定源点对齐仿制纹理。",
+          "query": "仿制图章笔触",
+          "command": "retouch.clone"
+        }
+      ],
+      "note": ""
+    },
+    "PS-07-74865c42fd": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "retouch.dodge",
+        "retouch.burn",
+        "retouch.sponge"
+      ],
+      "prompts": [
+        {
+          "text": "用软笔刷轻微减淡中间调。",
+          "query": "减淡笔触",
+          "command": "retouch.dodge"
+        }
+      ],
+      "note": ""
+    },
+    "PS-08-13d3081dfa": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "paint.stroke"
+      ],
+      "prompts": [
+        {
+          "text": "用 24 像素软红色画笔绘制给定轨迹。",
+          "query": "画笔笔触",
+          "command": "paint.stroke"
+        }
+      ],
+      "note": ""
+    },
+    "PS-08-05cf56410b": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "paint.erase"
+      ],
+      "prompts": [
+        {
+          "text": "用软橡皮擦擦除给定轨迹。",
+          "query": "橡皮擦笔触",
+          "command": "paint.erase"
+        }
+      ],
+      "note": ""
+    },
+    "PS-08-af9951e405": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "paint.bucket"
+      ],
+      "prompts": [
+        {
+          "text": "填充给定位置的相连区域。",
+          "query": "油漆桶",
+          "command": "paint.bucket"
+        }
+      ],
+      "note": ""
+    },
+    "PS-08-739094bd86": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "paint.gradient"
+      ],
+      "prompts": [
+        {
+          "text": "在给定范围绘制径向渐变。",
+          "query": "渐变像素",
+          "command": "paint.gradient"
+        }
+      ],
+      "note": "",
+      "variants": [
+        {
+          "command": "paint.gradient",
+          "path": "shape",
+          "values": [
+            "linear",
+            "radial",
+            "angle",
+            "reflected",
+            "diamond"
+          ]
+        }
+      ]
+    },
+    "PS-08-6f11ed20eb": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "paint.sample_color"
+      ],
+      "prompts": [
+        {
+          "text": "吸取给定位置的可见合成颜色。",
+          "query": "吸取颜色",
+          "command": "paint.sample_color"
+        }
+      ],
+      "note": ""
+    },
+    "PS-08-3ce0368d80": {
+      "scope": "editing",
+      "coverage": "partial",
+      "commands": [
+        "paint.sample_color",
+        "paint.stroke",
+        "paint.fill",
+        "paint.gradient"
+      ],
+      "prompts": [
+        {
+          "text": "吸取给定位置的颜色。",
+          "query": "吸取颜色",
+          "command": "paint.sample_color"
+        }
+      ],
+      "note": "AI 可显式传入绘制颜色；原生前景/背景色状态尚无独立 AI 设置命令。"
+    },
+    "PS-10-0e134f5a85": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "filter.gaussian_blur"
+      ],
+      "prompts": [
+        {
+          "text": "把当前像素图层做标准差 2px 的高斯模糊。",
+          "query": "高斯模糊",
+          "command": "filter.gaussian_blur"
+        }
+      ],
+      "note": ""
+    },
+    "PS-10-5785be70cb": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "filter.unsharp_mask"
+      ],
+      "prompts": [
+        {
+          "text": "对当前像素图层做数量 120%、标准差 1px 的 USM 锐化。",
+          "query": "USM 锐化",
+          "command": "filter.unsharp_mask"
+        }
+      ],
+      "note": ""
+    },
+    "PS-10-395d09a3e1": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "filter.add_noise"
+      ],
+      "prompts": [
+        {
+          "text": "给当前像素图层添加 2% 单色高斯颗粒，种子为 42。",
+          "query": "添加杂色",
+          "command": "filter.add_noise"
+        }
+      ],
+      "note": "",
+      "variants": [
+        {
+          "command": "filter.add_noise",
+          "path": "distribution",
+          "values": [
+            "uniform",
+            "gaussian"
+          ]
+        }
+      ]
+    },
+    "PS-06-d51749f4f4": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "layer.add_tonal_adjustment",
+        "adjust.tonal.set"
+      ],
+      "prompts": [
+        {
+          "text": "添加可编辑的亮度 / 对比度调整。",
+          "query": "新建调色调整层",
+          "command": "layer.add_tonal_adjustment"
+        }
+      ],
+      "note": "",
+      "variants": [
+        {
+          "command": "layer.add_tonal_adjustment",
+          "path": "adjustment.type",
+          "values": [
+            "brightness_contrast"
+          ]
+        }
+      ]
+    },
+    "PS-06-4341979e35": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "layer.add_tonal_adjustment",
+        "adjust.tonal.set"
+      ],
+      "prompts": [
+        {
+          "text": "添加可编辑的色阶调整。",
+          "query": "新建调色调整层",
+          "command": "layer.add_tonal_adjustment"
+        }
+      ],
+      "note": "",
+      "variants": [
+        {
+          "command": "layer.add_tonal_adjustment",
+          "path": "adjustment.type",
+          "values": [
+            "levels"
+          ]
+        }
+      ]
+    },
+    "PS-06-937dc7bf30": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "layer.add_tonal_adjustment",
+        "adjust.tonal.set"
+      ],
+      "prompts": [
+        {
+          "text": "添加可编辑的曲线调整。",
+          "query": "新建调色调整层",
+          "command": "layer.add_tonal_adjustment"
+        }
+      ],
+      "note": "",
+      "variants": [
+        {
+          "command": "layer.add_tonal_adjustment",
+          "path": "adjustment.type",
+          "values": [
+            "curves"
+          ]
+        }
+      ]
+    },
+    "PS-06-e7e1ea6652": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "layer.add_tonal_adjustment",
+        "adjust.tonal.set"
+      ],
+      "prompts": [
+        {
+          "text": "添加可编辑的自然饱和度 + 色温 / 色调调整。",
+          "query": "新建调色调整层",
+          "command": "layer.add_tonal_adjustment"
+        }
+      ],
+      "note": "",
+      "variants": [
+        {
+          "command": "layer.add_tonal_adjustment",
+          "path": "adjustment.type",
+          "values": [
+            "vibrance",
+            "white_balance"
+          ]
+        }
+      ]
+    },
+    "PS-06-cdc392db20": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "layer.add_tonal_adjustment",
+        "adjust.tonal.set"
+      ],
+      "prompts": [
+        {
+          "text": "添加可编辑的色彩平衡调整。",
+          "query": "新建调色调整层",
+          "command": "layer.add_tonal_adjustment"
+        }
+      ],
+      "note": "",
+      "variants": [
+        {
+          "command": "layer.add_tonal_adjustment",
+          "path": "adjustment.type",
+          "values": [
+            "color_balance"
+          ]
+        }
+      ]
+    },
+    "PS-06-47d88357c5": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "layer.add_tonal_adjustment",
+        "adjust.tonal.set"
+      ],
+      "prompts": [
+        {
+          "text": "添加可编辑的黑白调整。",
+          "query": "新建调色调整层",
+          "command": "layer.add_tonal_adjustment"
+        }
+      ],
+      "note": "",
+      "variants": [
+        {
+          "command": "layer.add_tonal_adjustment",
+          "path": "adjustment.type",
+          "values": [
+            "black_white"
+          ]
+        }
+      ]
+    },
+    "PS-06-2263716466": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "layer.add_tonal_adjustment",
+        "adjust.tonal.set"
+      ],
+      "prompts": [
+        {
+          "text": "添加可编辑的照片滤镜调整。",
+          "query": "新建调色调整层",
+          "command": "layer.add_tonal_adjustment"
+        }
+      ],
+      "note": "",
+      "variants": [
+        {
+          "command": "layer.add_tonal_adjustment",
+          "path": "adjustment.type",
+          "values": [
+            "photo_filter"
+          ]
+        }
+      ]
+    },
+    "PS-06-7fec4dc313": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "layer.add_tonal_adjustment",
+        "adjust.tonal.set"
+      ],
+      "prompts": [
+        {
+          "text": "添加可编辑的通道混合器调整。",
+          "query": "新建调色调整层",
+          "command": "layer.add_tonal_adjustment"
+        }
+      ],
+      "note": "",
+      "variants": [
+        {
+          "command": "layer.add_tonal_adjustment",
+          "path": "adjustment.type",
+          "values": [
+            "channel_mixer"
+          ]
+        }
+      ]
+    },
+    "PS-06-39bbb078d5": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "layer.add_tonal_adjustment",
+        "adjust.tonal.set"
+      ],
+      "prompts": [
+        {
+          "text": "添加可编辑的反相 / 色调分离 / 阈值调整。",
+          "query": "新建调色调整层",
+          "command": "layer.add_tonal_adjustment"
+        }
+      ],
+      "note": "",
+      "variants": [
+        {
+          "command": "layer.add_tonal_adjustment",
+          "path": "adjustment.type",
+          "values": [
+            "invert",
+            "posterize",
+            "threshold"
+          ]
+        }
+      ]
+    },
+    "PS-06-1769d6d1d6": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "layer.add_tonal_adjustment",
+        "adjust.tonal.set"
+      ],
+      "prompts": [
+        {
+          "text": "添加可编辑的渐变映射调整。",
+          "query": "新建调色调整层",
+          "command": "layer.add_tonal_adjustment"
+        }
+      ],
+      "note": "",
+      "variants": [
+        {
+          "command": "layer.add_tonal_adjustment",
+          "path": "adjustment.type",
+          "values": [
+            "gradient_map"
+          ]
+        }
+      ]
+    },
+    "PS-06-63924bf039": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "layer.add_tonal_adjustment",
+        "adjust.tonal.set"
+      ],
+      "prompts": [
+        {
+          "text": "添加可编辑的可选颜色调整。",
+          "query": "新建调色调整层",
+          "command": "layer.add_tonal_adjustment"
+        }
+      ],
+      "note": "",
+      "variants": [
+        {
+          "command": "layer.add_tonal_adjustment",
+          "path": "adjustment.type",
+          "values": [
+            "selective_color"
+          ]
+        }
+      ]
+    },
+    "PS-06-ef2316cc3c": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "layer.add_tonal_adjustment",
+        "adjust.tonal.set"
+      ],
+      "prompts": [
+        {
+          "text": "添加可编辑的阴影 / 高光调整。",
+          "query": "新建调色调整层",
+          "command": "layer.add_tonal_adjustment"
+        }
+      ],
+      "note": "",
+      "variants": [
+        {
+          "command": "layer.add_tonal_adjustment",
+          "path": "adjustment.type",
+          "values": [
+            "shadows_highlights"
+          ]
+        }
+      ]
+    },
+    "PS-06-be1d0be625": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "layer.add_tonal_adjustment",
+        "adjust.tonal.set"
+      ],
+      "prompts": [
+        {
+          "text": "添加可编辑的去色调整。",
+          "query": "新建调色调整层",
+          "command": "layer.add_tonal_adjustment"
+        }
+      ],
+      "note": "",
+      "variants": [
+        {
+          "command": "layer.add_tonal_adjustment",
+          "path": "adjustment.type",
+          "values": [
+            "desaturate"
+          ]
+        }
+      ]
+    },
+    "PS-00-9768e5bc84": {
+      "scope": "infrastructure",
+      "coverage": "complete",
+      "commands": [],
+      "prompts": [],
+      "note": "通过元工具访问真实注册表，不是独立像素编辑。",
+      "meta_tools": [
+        "browse_catalog",
+        "search_catalog",
+        "describe_commands",
+        "invoke_command"
+      ]
+    },
+    "PS-00-4282fbce73": {
+      "scope": "infrastructure",
+      "coverage": "complete",
+      "commands": [],
+      "prompts": [],
+      "note": "返回实际 schema、权限和可执行示例。",
+      "meta_tools": [
+        "describe_commands"
+      ]
+    },
+    "PS-00-6a15d3790f": {
+      "scope": "infrastructure",
+      "coverage": "complete",
+      "commands": [],
+      "prompts": [],
+      "note": "受宿主上下文和外发授权约束。",
+      "meta_tools": [
+        "browse_catalog",
+        "search_catalog",
+        "describe_commands",
+        "inspect_document",
+        "view_canvas",
+        "invoke_command",
+        "invoke_batch",
+        "ask_user"
+      ]
+    },
+    "PS-00-a9af7235f5": {
+      "scope": "host_managed",
+      "coverage": "complete",
+      "commands": [],
+      "prompts": [],
+      "note": "模型连接和密钥由可信宿主设置，不向 AI 暴露密钥读写。",
+      "meta_tools": []
+    },
+    "PS-00-e5b005f04b": {
+      "scope": "host_managed",
+      "coverage": "complete",
+      "commands": [],
+      "prompts": [],
+      "note": "执行/暂停/停止由宿主拥有；AI 可请求暂停和澄清。",
+      "meta_tools": [
+        "ask_user"
+      ]
+    },
+    "PS-00-81f5847182": {
+      "scope": "infrastructure",
+      "coverage": "complete",
+      "commands": [],
+      "prompts": [],
+      "note": "所有编辑调用共享底层，不要求模型管理缓存。",
+      "meta_tools": []
+    },
+    "PS-00-6f14bdb57f": {
+      "scope": "host_managed",
+      "coverage": "complete",
+      "commands": [
+        "file.recover"
+      ],
+      "prompts": [
+        {
+          "text": "恢复我选择的检查点。",
+          "query": "恢复未保存文档",
+          "command": "file.recover"
+        }
+      ],
+      "note": "自动检查点由宿主调度；恢复通过宿主文件选择授权。"
+    }
+  }
+}

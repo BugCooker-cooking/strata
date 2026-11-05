@@ -167,7 +167,7 @@ fn catalog_is_lazy_bilingual_bounded_and_has_no_unimplemented_commands() {
             .contains("layer.create")
     );
     assert!(
-        !root["children"]
+        root["children"]
             .as_array()
             .unwrap()
             .iter()
@@ -193,6 +193,9 @@ fn catalog_is_lazy_bilingual_bounded_and_has_no_unimplemented_commands() {
         ("减淡", "retouch.dodge"),
         ("加深", "retouch.burn"),
         ("海绵", "retouch.sponge"),
+        ("高斯模糊", "filter.gaussian_blur"),
+        ("USM", "filter.unsharp_mask"),
+        ("颗粒", "filter.add_noise"),
     ] {
         assert!(
             catalog::search(query, 32).unwrap()["matches"]

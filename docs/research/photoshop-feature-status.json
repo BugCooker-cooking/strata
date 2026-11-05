@@ -532,11 +532,11 @@
     ]
   },
   "PS-08-13d3081dfa": {
-    "implementation": "基础已实现",
-    "acceptance": "圆形笔尖/参数/模拟压力已有证据；实时笔迹与实体压力待验收",
+    "implementation": "已实现",
+    "acceptance": "本机数值/原生专项已有证据；完整回归、手工与连续性能按对应进展记录",
     "evidence": [
       {
-        "label": "M6 绘画证据",
+        "label": "本机实现/验收记录",
         "path": "../research/2026-11-m6-paint-retouch-progress.md"
       }
     ]
@@ -628,6 +628,56 @@
       {
         "label": "M6 局部色调笔触",
         "path": "../research/2026-11-m6-paint-retouch-progress.md"
+      }
+    ]
+  },
+  "PS-06-b941862025": {
+    "implementation": "已实现",
+    "acceptance": "本机数值/原生专项已有证据；完整回归、手工与连续性能按对应进展记录",
+    "evidence": [
+      {
+        "label": "本机实现/验收记录",
+        "path": "../research/2026-11-m2b-local-editing-progress.md"
+      }
+    ]
+  },
+  "PS-06-65bc8e9d6e": {
+    "implementation": "已实现",
+    "acceptance": "本机数值/原生专项已有证据；完整回归、手工与连续性能按对应进展记录",
+    "evidence": [
+      {
+        "label": "本机实现/验收记录",
+        "path": "2026-11-05-m3-layers.md"
+      }
+    ]
+  },
+  "PS-10-0e134f5a85": {
+    "implementation": "已实现",
+    "acceptance": "本机数值/原生专项已有证据；完整回归、手工与连续性能按对应进展记录",
+    "evidence": [
+      {
+        "label": "M6 基础滤镜/预览",
+        "path": "../research/2026-11-m6-filters-progress.md"
+      }
+    ]
+  },
+  "PS-10-5785be70cb": {
+    "implementation": "已实现",
+    "acceptance": "本机数值/原生专项已有证据；完整回归、手工与连续性能按对应进展记录",
+    "evidence": [
+      {
+        "label": "M6 基础滤镜/预览",
+        "path": "../research/2026-11-m6-filters-progress.md"
+      }
+    ]
+  },
+  "PS-10-395d09a3e1": {
+    "implementation": "已实现",
+    "acceptance": "本机数值/原生专项已有证据；完整回归、手工与连续性能按对应进展记录",
+    "evidence": [
+      {
+        "label": "M6 基础滤镜/预览",
+        "path": "../research/2026-11-m6-filters-progress.md"
       }
     ]
   }

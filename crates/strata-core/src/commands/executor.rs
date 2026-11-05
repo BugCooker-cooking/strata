@@ -49,6 +49,7 @@ pub struct Request {
     issued: Instant,
     deadline: Instant,
     cancellation: Arc<AtomicBool>,
+    local_cancellation: Option<Arc<AtomicBool>>,
 }
 
 impl Request {
@@ -65,7 +66,12 @@ impl Request {
         self
     }
     fn expired(&self) -> bool {
-        Instant::now() >= self.deadline || self.cancellation.load(Ordering::Acquire)
+        Instant::now() >= self.deadline
+            || self.cancellation.load(Ordering::Acquire)
+            || self
+                .local_cancellation
+                .as_ref()
+                .is_some_and(|flag| flag.load(Ordering::Acquire))
     }
 }
 
@@ -90,6 +96,15 @@ pub struct TonalInteraction {
     request: Request,
     epoch: u64,
     layer: LayerId,
+}
+impl TonalInteraction {
+    /// A preview calculation may be superseded without revoking its original
+    /// document context or any unrelated editor request.
+    pub fn with_work_cancellation(&self, work: &super::WorkCancellation) -> Self {
+        let mut copy = self.clone();
+        copy.request.local_cancellation = Some(work.token());
+        copy
+    }
 }
 #[derive(Clone)]
 pub struct BrushInteraction {
@@ -378,6 +393,7 @@ impl Editor {
             issued: Instant::now(),
             deadline: Instant::now() + Duration::from_secs(3600),
             cancellation: self.cancellation.token(),
+            local_cancellation: None,
         }
     }
     pub fn begin_move(&self, layer: LayerRef) -> Result<MoveInteraction, CommandError> {
@@ -505,6 +521,59 @@ impl Editor {
             epoch: self.epoch,
             layer,
         })
+    }
+    pub fn begin_filter(
+        &self,
+        layer: LayerRef,
+        command: &str,
+    ) -> Result<TonalInteraction, CommandError> {
+        if !matches!(
+            command,
+            "filter.gaussian_blur" | "filter.unsharp_mask" | "filter.add_noise"
+        ) {
+            return Err(CommandError::Invalid(
+                "unsupported pixel filter preview".into(),
+            ));
+        }
+        self.authorize(&Source::User, command, CommandKind::Mutate)?;
+        let (layer, _) = super::pixel_transform::target(
+            self.document().ok_or(CommandError::NoDocument)?,
+            &layer,
+        )?;
+        Ok(TonalInteraction {
+            request: self.request(Source::User),
+            epoch: self.epoch,
+            layer,
+        })
+    }
+    pub fn preview_filter(
+        &self,
+        interaction: &TonalInteraction,
+        command: &str,
+        mut params: Value,
+    ) -> Result<PreparedCommand, CommandError> {
+        if !self.tonal_context_matches(interaction) {
+            return Err(CommandError::Stale);
+        }
+        if !matches!(
+            command,
+            "filter.gaussian_blur" | "filter.unsharp_mask" | "filter.add_noise"
+        ) {
+            return Err(CommandError::Invalid(
+                "unsupported pixel filter preview".into(),
+            ));
+        }
+        let fields = params
+            .as_object_mut()
+            .ok_or_else(|| CommandError::Invalid("filter parameters must be an object".into()))?;
+        let layer = json!({"id":interaction.layer});
+        if fields.get("layer").is_some_and(|value| *value != layer) {
+            return Err(CommandError::Invalid(
+                "filter preview target is anchored to its initial layer".into(),
+            ));
+        }
+        fields.insert("layer".into(), layer);
+        self.prepare(interaction.request.clone(), command, params)
     }
     pub fn begin_paint(
         &self,
@@ -990,6 +1059,10 @@ impl Editor {
                     super::selection::mutate_cancellable(doc, id, params.clone(), &|| {
                         request.expired()
                     })?
+                {
+                    (Action::Edit, result)
+                } else if let Some(result) =
+                    super::filters::mutate(doc, id, params.clone(), &|| request.expired())?
                 {
                     (Action::Edit, result)
                 } else if let Some(result) =

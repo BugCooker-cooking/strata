@@ -17,15 +17,11 @@ fn raw(buffer: &PixelBuffer, i: usize) -> [f64; 4] {
         PixelBuffer::Rgba16(v) => std::array::from_fn(|c| f64::from(v[i * 4 + c]) / 65535.0),
     }
 }
-pub(super) fn apply(
-    doc: &mut Document,
-    layer: LayerRef,
-    coverage: &TiledMask,
-    mut transform: impl FnMut([f32; 4], i64, i64) -> Result<[f32; 4], CommandError>,
-    cancel: &dyn Fn() -> bool,
-) -> Result<Value, CommandError> {
-    check(cancel)?;
-    let target = doc.resolve(&layer)?;
+pub(super) fn target(
+    doc: &Document,
+    layer: &LayerRef,
+) -> Result<(crate::LayerId, usize), CommandError> {
+    let target = doc.resolve(layer)?;
     let index = doc.layers().iter().position(|l| l.id() == target).unwrap();
     let info = doc.layers[index].info.clone();
     if !matches!(info.kind, LayerKind::Pixel)
@@ -38,6 +34,18 @@ pub(super) fn apply(
             "local transform needs an unlocked pixel layer and ancestors".into(),
         ));
     }
+    Ok((target, index))
+}
+pub(super) fn apply(
+    doc: &mut Document,
+    layer: LayerRef,
+    coverage: &TiledMask,
+    mut transform: impl FnMut([f32; 4], i64, i64) -> Result<[f32; 4], CommandError>,
+    cancel: &dyn Fn() -> bool,
+) -> Result<Value, CommandError> {
+    check(cancel)?;
+    let (target, index) = target(doc, &layer)?;
+    let info = doc.layers[index].info.clone();
     let result = |tiles| json!({"layer_id":target,"target":"pixels","touched_tiles":tiles});
     let Some(b) = coverage.content_bounds().map_err(DocumentError::from)? else {
         return Ok(result(0));

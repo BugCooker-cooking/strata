@@ -940,12 +940,44 @@ fn build_catalog() -> Vec<CommandSpec> {
         "Local saturation/desaturation through one nested round brush stroke, explicit pixel target and no clone_source; color/value ignored. mode=saturate/desaturate (default desaturate), amount 0..1 (default .5), vibrance=true by default. Scale linear-P3 RGB chroma about physical Y by 1+/-strength; strength=amount/(1+4*maxAbsChroma) with vibrance, amount otherwise. Compress chroma in the actual working-ICC gamut toward Y (matrix/TRC fast path, unquantized ICC round-trip fallback), preserve physical luminance and exact source alpha; transparent/zero-coverage samples remain exact. Same selection/pressure/opacity/flow/locks, actual working ICC, cancellation/shared tile budget and one atomic history item as dodge/burn. 中文：海绵、增加饱和度、降低饱和度、自然饱和度。",
         json!({"stroke":{"layer":{"name":"Background"},"points":[{"x":8.5,"y":8.5}],"size":4},"mode":"desaturate","amount":0.5,"vibrance":true})
     );
+    command!(
+        "filter.gaussian_blur",
+        GaussianBlur,
+        Mutate,
+        "高斯模糊",
+        "Gaussian blur",
+        "Blur an explicit unlocked pixel layer using an immutable input snapshot, true normalized separable Gaussian kernel, sigma 0.1..64 canvas pixels (default 2), radius ceil(3*sigma). Linear P3 premultiplied RGBA, double-precision accumulation; actual working ICC and 8/16-bit source retained. Clamp sampling at the artboard boundary; missing pixels inside artboard are transparent. Current u16 selection limits publication only, never the input halo; existing masks unchanged. Transparency lock keeps original alpha and excludes fully transparent target pixels. Cache one finite output tile; halo at most 640x640, per-tile/global scratch reservations and row cancellation. Zero-coverage samples preserve exact source codes. One atomic history edit; not batchable. 中文：高斯模糊、模糊背景、柔化、半径、标准差。",
+        json!({"layer":{"name":"Background"},"sigma":2})
+    );
+    command!(
+        "filter.unsharp_mask",
+        UnsharpMask,
+        Mutate,
+        "USM 锐化",
+        "Unsharp mask",
+        "Sharpen an explicit unlocked pixel layer from immutable input and the same alpha-normalized Gaussian low frequency as filter.gaussian_blur. sigma 0.1..64 (default 2), amount 0..5 (default 1), threshold 0..1 linear P3 RGB (default 0). If every channel absolute source-minus-blur delta is below threshold, preserve that pixel; otherwise add amount*delta and clamp linear P3 RGB 0..1 before working-ICC publication. Preserve source alpha exactly and ignore transparent hidden RGB. amount=0 is an exact identity. Selection limits writes, masks/locks/offsets/8-16-bit/cancellation/shared memory match Gaussian. Atomic one history edit, not batchable. Threshold is explicitly linear RGB, not an Adobe encoded threshold claim. 中文：USM、反差锐化、锐化、数量、阈值。",
+        json!({"layer":{"name":"Background"},"sigma":1,"amount":1.2,"threshold":0.01})
+    );
+    command!(
+        "filter.add_noise",
+        AddNoise,
+        Mutate,
+        "添加杂色",
+        "Add noise",
+        "Add deterministic noise to raw encoded working RGB on an explicit unlocked pixel layer. amount 0..1 (default .02): maximum absolute amplitude for distribution=uniform (default), standard deviation for gaussian. u32 seed (default 0), monochrome=false by default. Coordinate/channel SplitMix64 hashing and Box-Muller Gaussian, independent of tile traversal; monochrome shares the same encoded perturbation across RGB. Clip working RGB 0..1 then use floating actual ICC for linear-P3 coverage blend; no 8-bit intermediate. Preserve exact alpha, transparent hidden RGB and zero-selection codes. amount=0 exact identity; masks/locks/cancel/global tile budgets and one atomic history item. Not batchable. 中文：添加杂色、添加噪点、颗粒、胶片颗粒、均匀、高斯、单色、随机种子。",
+        json!({"layer":{"name":"Background"},"amount":0.02,"distribution":"gaussian","monochrome":true,"seed":42})
+    );
     for item in &mut list {
         item.returns = match item.id {
             "retouch.spot_heal" => schemars::schema_for!(SpotHealResult),
             "retouch.heal" => schemars::schema_for!(HealResult),
             "paint.sample_color" => schemars::schema_for!(SampleColorResult),
-            "paint.fill" | "paint.bucket" | "paint.gradient" => schemars::schema_for!(BrushResult),
+            "paint.fill"
+            | "paint.bucket"
+            | "paint.gradient"
+            | "filter.gaussian_blur"
+            | "filter.unsharp_mask"
+            | "filter.add_noise" => schemars::schema_for!(BrushResult),
             "retouch.dodge" | "retouch.burn" | "retouch.sponge" => {
                 schemars::schema_for!(BrushResult)
             }
@@ -1047,7 +1079,8 @@ fn build_catalog() -> Vec<CommandSpec> {
                     });
             }
         }
-        if item.id == "document.batch" || item.id == "file.place" {
+        if item.id == "document.batch" || item.id == "file.place" || item.id.starts_with("filter.")
+        {
             item.batchable = false;
         }
         if matches!(

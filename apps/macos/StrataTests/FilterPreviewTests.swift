@@ -1,0 +1,43 @@
+import Foundation
+import XCTest
+@testable import Strata
+
+final class FilterPreviewTests:XCTestCase{
+    @MainActor
+    private func configured()throws->(StrataEngine,TonalPreviewModel){
+        let engine=StrataEngine(listener:EngineEvents{_ in})
+        _ = try engine.dispatch(command:"file.new",paramsJson:commandJSON(["width":16,"height":16,"bit_depth":16,"background":[20000,30000,40000,32768]]))
+        _ = try engine.dispatch(command:"paint.gradient",paramsJson:commandJSON(["layer":["name":"Background"],"start":[0.5,0.5],"end":[15.5,15.5],"stops":[["at":0,"color":[0,0,0,1]],["at":1,"color":[1,1,1,1]]]]))
+        let preview=TonalPreviewModel(engine:engine);preview.bind(try EditorSnapshot.decode(engine.snapshotJson()));return(engine,preview)
+    }
+    @MainActor
+    private func idle(_ preview:TonalPreviewModel)async throws{for _ in 0..<400{try await Task.sleep(for:.milliseconds(10));if !preview.busy && !preview.applying{return}};XCTFail("Filter preview worker did not finish")}
+    @MainActor
+    func testEachFilterPreviewsWithoutHistoryAndAppliesOnce()async throws{
+        for (command,params) in [("filter.gaussian_blur",["sigma":1.2] as [String:Any]),("filter.unsharp_mask",["sigma":1.2,"amount":1.5]),("filter.add_noise",["amount":0.08,"seed":42])]{
+            let(engine,preview)=try configured();let before=try engine.snapshotJson();let old=try EditorSnapshot.decode(before)
+            preview.configureFilter(command);let parameters=try commandJSON(params);preview.setEnabled(true,settings:parameters);try await idle(preview)
+            XCTAssertEqual(try engine.snapshotJson(),before);XCTAssertTrue(preview.error.isEmpty,preview.error)
+            preview.apply(parameters);try await idle(preview);let after=try EditorSnapshot.decode(engine.snapshotJson());XCTAssertEqual(after.history.count,old.history.count+1);XCTAssertEqual(after.history.last?.command,command);XCTAssertTrue(preview.error.isEmpty,preview.error)
+            _ = try engine.dispatch(command:"edit.undo",paramsJson:"{}");XCTAssertEqual(try EditorSnapshot.decode(engine.snapshotJson()).historyCursor,old.historyCursor)
+        }
+    }
+    @MainActor
+    func testChangingModeAndContextCannotCommitAnOldPreview()async throws{
+        let(engine,preview)=try configured();let before=try engine.snapshotJson()
+        preview.configureFilter("filter.gaussian_blur");preview.setEnabled(true,settings:try commandJSON(["sigma":1]))
+        preview.configureFilter("filter.add_noise");preview.setEnabled(true,settings:try commandJSON(["amount":0.1,"seed":42]));try await idle(preview)
+        XCTAssertEqual(try engine.snapshotJson(),before);XCTAssertTrue(preview.error.isEmpty,preview.error)
+        preview.cancel();try await idle(preview);XCTAssertThrowsError(try engine.endFilterPreview(paramsJson:"{}",cancel:false))
+        preview.setEnabled(true,settings:try commandJSON(["amount":0.08]));_ = try engine.dispatch(command:"file.new",paramsJson:commandJSON(["width":4,"height":4,"bit_depth":16,"discard_changes":true]));preview.bind(try EditorSnapshot.decode(engine.snapshotJson()));try await idle(preview)
+        XCTAssertEqual(try EditorSnapshot.decode(engine.snapshotJson()).history.count,0)
+    }
+    @MainActor
+    func testCancellationBeforeApplyWorkerStartsCannotReviveTheFilter()async throws{
+        let(engine,preview)=try configured();preview.configureFilter("filter.gaussian_blur");let parameters=try commandJSON(["sigma":1.2]);let before=try engine.snapshotJson();preview.setEnabled(true,settings:parameters);try await idle(preview)
+        // Both actions occur before yielding the MainActor to the apply task.
+        // A cancellation after a completed commit must keep that committed edit.
+        preview.apply(parameters);preview.cancel();try await idle(preview)
+        XCTAssertEqual(try engine.snapshotJson(),before);XCTAssertThrowsError(try engine.endFilterPreview(paramsJson:parameters,cancel:false));XCTAssertFalse(preview.enabled)
+    }
+}

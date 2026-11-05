@@ -36,6 +36,9 @@ impl Host {
         editor.execute(request, id, params, |_| Ok(())).unwrap()
     }
     fn session(&self, mode: ExecutionMode) -> Session {
+        self.session_with_prompt(mode, "新建草稿并设置不透明度")
+    }
+    fn session_with_prompt(&self, mode: ExecutionMode, prompt: &str) -> Session {
         let config = config();
         let grant =
             ContextGrant::approved(&self.snapshot().unwrap(), &config, false, None).unwrap();
@@ -49,7 +52,7 @@ impl Host {
             },
             turn,
             &self.snapshot().unwrap(),
-            "新建草稿并设置不透明度".into(),
+            prompt.into(),
             vec![],
         )
         .unwrap()
@@ -145,6 +148,89 @@ fn result(step: Step) -> Value {
         panic!("expected tool")
     };
     result
+}
+
+#[test]
+fn filter_prompts_discover_describe_invoke_real_edits_and_undo_the_ai_turn() {
+    for (prompt, query, command, params) in [
+        (
+            "把当前像素图层做标准差 2px 的高斯模糊。",
+            "高斯模糊",
+            "filter.gaussian_blur",
+            json!({"sigma":2}),
+        ),
+        (
+            "给当前像素图层做 USM 锐化。",
+            "USM",
+            "filter.unsharp_mask",
+            json!({"sigma":1,"amount":1.2,"threshold":0.01}),
+        ),
+        (
+            "添加 2% 单色高斯颗粒，种子 42。",
+            "颗粒",
+            "filter.add_noise",
+            json!({"amount":0.02,"distribution":"gaussian","monochrome":true,"seed":42}),
+        ),
+    ] {
+        let host = Host::new();
+        host.user("paint.gradient",json!({"layer":{"name":"Background"},"start":[0.5,0.5],"end":[7.5,7.5],"stops":[{"at":0,"color":[0.1,0.2,0.3,1]},{"at":1,"color":[0.8,0.7,0.6,1]}]}));
+        let before = host
+            .editor
+            .lock()
+            .unwrap()
+            .document()
+            .unwrap()
+            .to_archive()
+            .unwrap();
+        let initial = host.snapshot().unwrap();
+        let mut session = host.session_with_prompt(ExecutionMode::Direct, prompt);
+        reply(
+            &mut session,
+            &host,
+            vec![
+                call("search", "search_catalog", json!({"query":query})),
+                call("describe", "describe_commands", json!({"ids":[command]})),
+            ],
+        );
+        assert!(
+            result(session.poll(&host).unwrap())["matches"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|m| m["id"] == command)
+        );
+        assert_eq!(
+            result(session.poll(&host).unwrap())["commands"][0]["id"],
+            command
+        );
+        let mut params = params;
+        params["layer"] = json!({"id":initial.active_layer});
+        reply(&mut session, &host, vec![invoke("apply", command, params)]);
+        let output = result(session.poll(&host).unwrap());
+        assert!(
+            output["result"]["touched_tiles"].as_u64().unwrap() > 0,
+            "{command}: {output}"
+        );
+        let state = host.snapshot().unwrap();
+        assert_eq!(state.history.len(), initial.history.len() + 1);
+        assert_eq!(
+            state.history.last().unwrap().turn_id,
+            Some(session.turn_id())
+        );
+        assert_eq!(state.history.last().unwrap().command, command);
+        host.editor.lock().unwrap().stop_turn();
+        host.user("edit.undo_turn", json!({"turn_id":session.turn_id()}));
+        assert!(
+            host.editor
+                .lock()
+                .unwrap()
+                .document()
+                .unwrap()
+                .to_archive()
+                .unwrap()
+                == before
+        );
+    }
 }
 
 #[test]

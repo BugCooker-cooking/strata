@@ -16939,6 +16939,403 @@ Permissions: `bound_document`
 }
 ```
 
+## `filter.gaussian_blur` — 高斯模糊
+
+Blur an explicit unlocked pixel layer using an immutable input snapshot, true normalized separable Gaussian kernel, sigma 0.1..64 canvas pixels (default 2), radius ceil(3*sigma). Linear P3 premultiplied RGBA, double-precision accumulation; actual working ICC and 8/16-bit source retained. Clamp sampling at the artboard boundary; missing pixels inside artboard are transparent. Current u16 selection limits publication only, never the input halo; existing masks unchanged. Transparency lock keeps original alpha and excludes fully transparent target pixels. Cache one finite output tile; halo at most 640x640, per-tile/global scratch reservations and row cancellation. Zero-coverage samples preserve exact source codes. One atomic history edit; not batchable. 中文：高斯模糊、模糊背景、柔化、半径、标准差。
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `false`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GaussianBlur",
+  "type": "object",
+  "properties": {
+    "layer": {
+      "$ref": "#/$defs/LayerRef"
+    },
+    "sigma": {
+      "type": "number",
+      "format": "double",
+      "default": 2.0,
+      "maximum": 64.0,
+      "minimum": 0.1
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "layer"
+  ],
+  "$defs": {
+    "LayerRef": {
+      "description": "Stable ID preferred. Duplicate names return candidates instead of guessing.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BrushResult",
+  "type": "object",
+  "properties": {
+    "layer_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "target": {
+      "$ref": "#/$defs/BrushTarget"
+    },
+    "touched_tiles": {
+      "type": "integer",
+      "format": "uint",
+      "minimum": 0
+    }
+  },
+  "required": [
+    "layer_id",
+    "target",
+    "touched_tiles"
+  ],
+  "$defs": {
+    "BrushTarget": {
+      "type": "string",
+      "enum": [
+        "pixels",
+        "mask"
+      ]
+    }
+  }
+}
+```
+
+### Examples
+
+```json
+{
+  "layer": {
+    "name": "Background"
+  },
+  "sigma": 2
+}
+```
+
+## `filter.unsharp_mask` — USM 锐化
+
+Sharpen an explicit unlocked pixel layer from immutable input and the same alpha-normalized Gaussian low frequency as filter.gaussian_blur. sigma 0.1..64 (default 2), amount 0..5 (default 1), threshold 0..1 linear P3 RGB (default 0). If every channel absolute source-minus-blur delta is below threshold, preserve that pixel; otherwise add amount*delta and clamp linear P3 RGB 0..1 before working-ICC publication. Preserve source alpha exactly and ignore transparent hidden RGB. amount=0 is an exact identity. Selection limits writes, masks/locks/offsets/8-16-bit/cancellation/shared memory match Gaussian. Atomic one history edit, not batchable. Threshold is explicitly linear RGB, not an Adobe encoded threshold claim. 中文：USM、反差锐化、锐化、数量、阈值。
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `false`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "UnsharpMask",
+  "type": "object",
+  "properties": {
+    "amount": {
+      "type": "number",
+      "format": "double",
+      "default": 1.0,
+      "maximum": 5.0,
+      "minimum": 0.0
+    },
+    "layer": {
+      "$ref": "#/$defs/LayerRef"
+    },
+    "sigma": {
+      "type": "number",
+      "format": "double",
+      "default": 2.0,
+      "maximum": 64.0,
+      "minimum": 0.1
+    },
+    "threshold": {
+      "type": "number",
+      "format": "double",
+      "default": 0.0,
+      "maximum": 1.0,
+      "minimum": 0.0
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "layer"
+  ],
+  "$defs": {
+    "LayerRef": {
+      "description": "Stable ID preferred. Duplicate names return candidates instead of guessing.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BrushResult",
+  "type": "object",
+  "properties": {
+    "layer_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "target": {
+      "$ref": "#/$defs/BrushTarget"
+    },
+    "touched_tiles": {
+      "type": "integer",
+      "format": "uint",
+      "minimum": 0
+    }
+  },
+  "required": [
+    "layer_id",
+    "target",
+    "touched_tiles"
+  ],
+  "$defs": {
+    "BrushTarget": {
+      "type": "string",
+      "enum": [
+        "pixels",
+        "mask"
+      ]
+    }
+  }
+}
+```
+
+### Examples
+
+```json
+{
+  "amount": 1.2,
+  "layer": {
+    "name": "Background"
+  },
+  "sigma": 1,
+  "threshold": 0.01
+}
+```
+
+## `filter.add_noise` — 添加杂色
+
+Add deterministic noise to raw encoded working RGB on an explicit unlocked pixel layer. amount 0..1 (default .02): maximum absolute amplitude for distribution=uniform (default), standard deviation for gaussian. u32 seed (default 0), monochrome=false by default. Coordinate/channel SplitMix64 hashing and Box-Muller Gaussian, independent of tile traversal; monochrome shares the same encoded perturbation across RGB. Clip working RGB 0..1 then use floating actual ICC for linear-P3 coverage blend; no 8-bit intermediate. Preserve exact alpha, transparent hidden RGB and zero-selection codes. amount=0 exact identity; masks/locks/cancel/global tile budgets and one atomic history item. Not batchable. 中文：添加杂色、添加噪点、颗粒、胶片颗粒、均匀、高斯、单色、随机种子。
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `false`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AddNoise",
+  "type": "object",
+  "properties": {
+    "amount": {
+      "type": "number",
+      "format": "double",
+      "default": 0.02,
+      "maximum": 1.0,
+      "minimum": 0.0
+    },
+    "distribution": {
+      "$ref": "#/$defs/NoiseDistribution",
+      "default": "uniform"
+    },
+    "layer": {
+      "$ref": "#/$defs/LayerRef"
+    },
+    "monochrome": {
+      "type": "boolean",
+      "default": false
+    },
+    "seed": {
+      "type": "integer",
+      "format": "uint32",
+      "default": 0,
+      "minimum": 0
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "layer"
+  ],
+  "$defs": {
+    "LayerRef": {
+      "description": "Stable ID preferred. Duplicate names return candidates instead of guessing.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ]
+        }
+      ]
+    },
+    "NoiseDistribution": {
+      "type": "string",
+      "enum": [
+        "uniform",
+        "gaussian"
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BrushResult",
+  "type": "object",
+  "properties": {
+    "layer_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "target": {
+      "$ref": "#/$defs/BrushTarget"
+    },
+    "touched_tiles": {
+      "type": "integer",
+      "format": "uint",
+      "minimum": 0
+    }
+  },
+  "required": [
+    "layer_id",
+    "target",
+    "touched_tiles"
+  ],
+  "$defs": {
+    "BrushTarget": {
+      "type": "string",
+      "enum": [
+        "pixels",
+        "mask"
+      ]
+    }
+  }
+}
+```
+
+### Examples
+
+```json
+{
+  "amount": 0.02,
+  "distribution": "gaussian",
+  "layer": {
+    "name": "Background"
+  },
+  "monochrome": true,
+  "seed": 42
+}
+```
+
 ## `color.convert` — 转换工作空间
 
 Convert source tiles at their original bit depth to srgb or display_p3. Alpha is preserved; undo restores exact original samples and ICC.

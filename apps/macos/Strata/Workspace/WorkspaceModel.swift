@@ -55,7 +55,7 @@ enum EditorTool: String, CaseIterable, Identifiable {
         .hand: ("抓手", "hand.draw", "H"), .zoom: ("缩放", "magnifyingglass", "Z")]
 }
 
-enum InspectorTab: String, CaseIterable { case properties = "属性", adjustments = "调整", history = "历史" }
+enum InspectorTab: String, CaseIterable { case properties = "属性", adjustments = "调整", filters = "滤镜", history = "历史" }
 
 /// One policy shared by panels, menu validation and keyboard actions. Core remains authoritative.
 struct WorkspacePermissions {
@@ -201,6 +201,7 @@ func commandTitle(_ command: String) -> String {
     commandTitles[command] ?? command
 }
 private let commandTitles: [String: String] = [
+     "filter.gaussian_blur":"高斯模糊", "filter.unsharp_mask":"USM 锐化", "filter.add_noise":"添加杂色",
      "layer.create": "新建图层", "layer.duplicate": "复制图层", "layer.delete": "删除图层", "layer.rename": "重命名图层",
      "layer.set_position": "移动图层", "layer.set_visibility": "图层显隐", "layer.set_opacity": "调整不透明度",
      "layer.set_blend_mode": "混合模式", "layer.move_order": "调整顺序", "color.convert": "转换色彩空间",
@@ -227,7 +228,7 @@ private let commandTitles: [String: String] = [
      "layer.rasterize":"栅格化","layer.mask.apply":"应用蒙版","layer.merge_down":"向下合并",
      "layer.merge_visible":"合并可见","layer.flatten":"拼合图像","layer.stamp_visible":"盖印可见","layer.set_clipping":"剪贴蒙版",
      "layer.set_pass_through":"组穿透模式", "layer.fill.solid.set":"修改纯色填充", "layer.fill.gradient.set":"修改渐变填充",
-     "adjust.hue_saturation.set":"调整色相/饱和度", "layer.styles.set":"修改图层样式",
+     "adjust.hue_saturation.set":"调整色相/饱和度", "layer.set_styles":"修改图层样式",
      "layer.align":"对齐图层", "layer.distribute":"分布图层", "layer.via_copy":"通过拷贝新建图层",
      "layer.via_cut":"通过剪切新建图层", "layer.background_to_layer":"背景转普通图层",
      "edit.copy":"拷贝像素", "edit.copy_merged":"合并拷贝", "edit.cut":"剪切像素",

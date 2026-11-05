@@ -893,6 +893,85 @@ fn dodge_burn_and_sponge_match_linear_cpu_over_canvas_and_keep_alpha() {
 }
 
 #[test]
+fn gaussian_unsharp_and_noise_display_match_linear_cpu_with_changed_alpha() {
+    let Some(mut renderer) = renderer() else {
+        return;
+    };
+    for command in [
+        "filter.gaussian_blur",
+        "filter.unsharp_mask",
+        "filter.add_noise",
+    ] {
+        let mut e = strata_core::Editor::new();
+        for (id, params) in [
+            (
+                "file.new",
+                serde_json::json!({"width":16,"height":16,"bit_depth":16,"working_space":"display_p3","background":[12000,32000,47000,32768]}),
+            ),
+            (
+                "paint.stroke",
+                serde_json::json!({"layer":{"name":"Background"},"points":[{"x":8.5,"y":8.5}],"size":4,"hardness":1,"color":[0.8,0.2,0.1,0.8]}),
+            ),
+        ] {
+            e.execute(e.request(strata_core::Source::Test), id, params, |_| Ok(()))
+                .unwrap();
+        }
+        let params = if command == "filter.add_noise" {
+            serde_json::json!({"layer":{"name":"Background"},"amount":0.08,"distribution":"gaussian","monochrome":true,"seed":42})
+        } else if command == "filter.unsharp_mask" {
+            serde_json::json!({"layer":{"name":"Background"},"sigma":0.8,"amount":1.2})
+        } else {
+            serde_json::json!({"layer":{"name":"Background"},"sigma":0.8})
+        };
+        e.execute(
+            e.request(strata_core::Source::Test),
+            command,
+            params,
+            |_| Ok(()),
+        )
+        .unwrap();
+        let doc = e.document().unwrap();
+        let scene = renderer.prepare_document(doc, false).unwrap();
+        renderer.commit_document(scene).unwrap();
+        renderer
+            .set_view(ViewTransform {
+                zoom: 3.0,
+                center_x: 8.0,
+                center_y: 8.0,
+            })
+            .unwrap();
+        renderer.render().unwrap();
+        let actual = renderer.read_offscreen_rgba().unwrap();
+        let reference = strata_core::composite::Compositor::new(1)
+            .tile(doc, strata_pixels::TileCoord::new(0, 0).unwrap())
+            .unwrap();
+        for (x, y) in [(2usize, 6usize), (6, 8), (8, 8), (10, 8), (13, 8)] {
+            let p = reference[y * 256 + x];
+            let shown = pixel(&actual, x * 3 + 9, y * 3 + 9);
+            for c in 0..3 {
+                let bg = f64::from(CANVAS_BG_SRGB[c]) / 255.0;
+                let bg = if bg <= 0.04045 {
+                    bg / 12.92
+                } else {
+                    ((bg + 0.055) / 1.055).powf(2.4)
+                };
+                let v = f64::from(p[c]) * f64::from(p[3]) + bg * (1.0 - f64::from(p[3]));
+                let v = if v <= 0.0031308 {
+                    12.92 * v
+                } else {
+                    1.055 * v.powf(1.0 / 2.4) - 0.055
+                };
+                let expected = (v.clamp(0.0, 1.0) * 255.0).round() as u8;
+                assert!(
+                    shown[c].abs_diff(expected) <= 3,
+                    "{command} {x},{y},{c}: {shown:?} != {expected}"
+                );
+            }
+        }
+    }
+}
+
+#[test]
 fn tiled_scene_preserves_source_and_has_no_mip_seam() {
     let Some(mut r) = renderer() else {
         return;

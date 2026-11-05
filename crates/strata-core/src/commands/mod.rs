@@ -4,6 +4,7 @@ mod cancellation;
 mod clone_source;
 mod executor;
 mod export;
+mod filters;
 mod generated;
 mod heal;
 mod local;
@@ -40,6 +41,52 @@ macro_rules! params {
     };
 }
 params!(Empty {});
+fn filter_sigma() -> f64 {
+    2.0
+}
+fn unsharp_amount() -> f64 {
+    1.0
+}
+fn noise_amount() -> f64 {
+    0.02
+}
+params!(GaussianBlur {
+    layer: LayerRef,
+    #[serde(default = "filter_sigma")]
+    #[schemars(range(min = 0.1, max = 64.0))]
+    sigma: f64
+});
+params!(UnsharpMask {
+    layer: LayerRef,
+    #[serde(default = "filter_sigma")]
+    #[schemars(range(min = 0.1, max = 64.0))]
+    sigma: f64,
+    #[serde(default = "unsharp_amount")]
+    #[schemars(range(min = 0.0, max = 5.0))]
+    amount: f64,
+    #[serde(default)]
+    #[schemars(range(min = 0.0, max = 1.0))]
+    threshold: f64
+});
+#[derive(Clone, Copy, Debug, Default, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum NoiseDistribution {
+    #[default]
+    Uniform,
+    Gaussian,
+}
+params!(AddNoise {
+    layer: LayerRef,
+    #[serde(default = "noise_amount")]
+    #[schemars(range(min = 0.0, max = 1.0))]
+    amount: f64,
+    #[serde(default)]
+    distribution: NoiseDistribution,
+    #[serde(default)]
+    monochrome: bool,
+    #[serde(default)]
+    seed: u32
+});
 #[derive(Serialize, JsonSchema)]
 pub struct ColorResult {
     pub working_space: String,
