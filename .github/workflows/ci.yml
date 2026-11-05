@@ -1,14 +1,13 @@
 name: Core and macOS checks
 on:
-  push:
-    branches: [main]
-  pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
 
-# Keep only the newest source revision for each PR/branch. Draft PRs still run
-# every required gate; superseded native builds should not consume the budget.
+# Dormant definition: the user requires local-only verification. This workflow
+# is also disabled in GitHub. Do not enable or dispatch it without new explicit
+# user authorization; pushes and PR updates must never start hosted builds.
 concurrency:
   group: strata-ci-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
