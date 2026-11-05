@@ -691,6 +691,86 @@ fn clone_stamp_display_matches_immutable_cpu_sample_after_edit() {
 }
 
 #[test]
+fn healing_texture_display_matches_cpu_boundary_solution() {
+    let Some(mut renderer) = renderer() else {
+        return;
+    };
+    let mut editor = strata_core::Editor::new();
+    editor
+        .execute(
+            editor.request(strata_core::Source::Test),
+            "file.new",
+            serde_json::json!({"width":16,"height":16,"bit_depth":16,"working_space":"display_p3"}),
+            |_| Ok(()),
+        )
+        .unwrap();
+    let pixels = (0..16)
+        .flat_map(|y| {
+            (0..16).flat_map(move |x| {
+                let v = if x < 8 {
+                    if (x + y) % 2 == 0 { 12000 } else { 24000 }
+                } else {
+                    44000
+                };
+                [v, v, v, 65535]
+            })
+        })
+        .collect();
+    let image = strata_core::ClipboardImage::new(
+        PixelBuffer::Rgba16(pixels),
+        16,
+        16,
+        0,
+        0,
+        editor.document().unwrap().working_icc().to_vec(),
+        &strata_pixels::memory::MemoryPool::global(),
+    )
+    .unwrap();
+    let token = editor
+        .grant_clipboard_image(image, strata_core::Source::Test)
+        .unwrap();
+    editor
+        .execute(
+            editor.request(strata_core::Source::Test),
+            "edit.paste_in_place",
+            serde_json::json!({"resource":token}),
+            |_| Ok(()),
+        )
+        .unwrap();
+    editor.execute(editor.request(strata_core::Source::Test),"retouch.heal",serde_json::json!({"stroke":{"layer":{"id":editor.snapshot().active_layer},"points":[{"x":11.5,"y":8.5}],"size":6,"hardness":1,"clone_source":{"source":[2.5,8.5]}}}),|_|Ok(())).unwrap();
+    let doc = editor.document().unwrap();
+    let PixelBuffer::Rgba16(expected) = doc.export_pixels().unwrap() else {
+        panic!()
+    };
+    assert!(
+        expected[(8 * 16 + 11) * 4].abs_diff(expected[(8 * 16 + 12) * 4]) > 1000,
+        "fixture lost healed source texture"
+    );
+    let scene = renderer.prepare_document(doc, false).unwrap();
+    renderer.commit_document(scene).unwrap();
+    renderer
+        .set_view(ViewTransform {
+            zoom: 3.0,
+            center_x: 8.0,
+            center_y: 8.0,
+        })
+        .unwrap();
+    renderer.render().unwrap();
+    let actual = renderer.read_offscreen_rgba().unwrap();
+    for (x, y) in [(2usize, 8usize), (9, 8), (11, 8), (12, 8), (14, 8)] {
+        let shown = pixel(&actual, x * 3 + 9, y * 3 + 9);
+        let i = (y * 16 + x) * 4;
+        for c in 0..3 {
+            let target = ((u32::from(expected[i + c]) + 128) / 257) as i32;
+            assert!(
+                (i32::from(shown[c]) - target).abs() <= 4,
+                "healing display {x},{y},{c}: {shown:?} != {target}"
+            );
+        }
+    }
+}
+
+#[test]
 fn tiled_scene_preserves_source_and_has_no_mip_seam() {
     let Some(mut r) = renderer() else {
         return;

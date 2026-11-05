@@ -151,4 +151,12 @@ impl CloneSampler {
         }
         Ok(result)
     }
+    pub fn destination_color(
+        &mut self,
+        x: f64,
+        y: f64,
+        cancel: &dyn Fn() -> bool,
+    ) -> Result<[f64; 4], CommandError> {
+        self.color(x - self.offset[0], y - self.offset[1], cancel)
+    }
 }

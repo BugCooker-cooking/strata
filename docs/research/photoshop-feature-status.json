@@ -600,5 +600,15 @@
         "path": "../research/2026-11-m6-paint-retouch-progress.md"
       }
     ]
+  },
+  "PS-07-2eddb4a1cf": {
+    "implementation": "已实现",
+    "acceptance": "本机核心/原生输入/Metal/Release 通过；手工笔触、连续性能与照片质量仍待验收",
+    "evidence": [
+      {
+        "label": "M6 采样修复",
+        "path": "../research/2026-11-m6-paint-retouch-progress.md"
+      }
+    ]
   }
 }

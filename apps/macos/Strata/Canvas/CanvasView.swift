@@ -314,7 +314,7 @@ final class CanvasView: NSView {
     }
     func configureBrush(_ model: WorkspaceModel) {
         brushTool = model.tool.isBrush
-        cloneTool = model.tool == .clone
+        cloneTool = [.clone,.heal].contains(model.tool)
         cloneSource = cloneTool && model.cloneSource?.count == 2 ? NSPoint(x:model.cloneSource?[0] ?? 0,y:model.cloneSource?[1] ?? 0) : nil
         drawCloneMarker()
         if !brushTool { brushInput.cancel(); return }
@@ -330,7 +330,7 @@ final class CanvasView: NSView {
             size:bounded(model.brushSize,0.5...4096,24),hardness:bounded(model.brushHardness/100,0...1,0.8),
             opacity:bounded(model.brushOpacity/100,0...1,1),flow:bounded(model.brushFlow/100,0...1,1),
             spacing:bounded(model.brushSpacing/100,0.01...2,0.2),color:rgba,
-            value:maskValue,pressureSize:model.brushPressureSize,pressureOpacity:model.brushPressureOpacity,clone:cloneTool,aligned:model.cloneAligned,cloneSource:model.cloneSource,cloneSample:model.cloneSample)
+            value:maskValue,pressureSize:model.brushPressureSize,pressureOpacity:model.brushPressureOpacity,clone:cloneTool,aligned:model.cloneAligned,cloneSource:model.cloneSource,cloneSample:model.cloneSample,heal:model.tool == .heal)
         brushInput.configure(configuration)
     }
     func configurePaint(_ model:WorkspaceModel){

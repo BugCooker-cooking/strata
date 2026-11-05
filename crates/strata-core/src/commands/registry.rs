@@ -899,8 +899,18 @@ fn build_catalog() -> Vec<CommandSpec> {
         "Clone from an immutable input snapshot during one pixel brush stroke. Required clone_source.source is canvas [x,y]; destination is the canvas anchor for fixed alignment, default first stroke point. Sampling maps target + source - destination, bilinear premultiplied linear P3 with out-of-artboard transparent; sample=current_layer uses raw target pixel layer, sample=merged uses the visible composite. Source colors never feed back from just-written target samples. Same size/hardness/opacity/flow/spacing/pressure/selection/transparency and ancestor lock semantics as paint.stroke. Pixel target only; color/value ignored, clone_source not allowed on ordinary brushes. At most 8192 points, bounded dab work and tile cache; shared budgets and cancellation apply. Atomic one history edit. 中文：仿制图章、取样点、对齐、所有图层取样。",
         json!({"layer":{"name":"Background"},"points":[{"x":10.5,"y":10.5}],"size":4,"clone_source":{"source":[3.5,3.5],"sample":"current_layer"}})
     );
+    command!(
+        "retouch.heal",
+        HealStroke,
+        Mutate,
+        "修复画笔笔触",
+        "Healing brush stroke",
+        "Transfer source texture while solving linear-P3 Poisson gradients against an immutable target Dirichlet boundary. Required stroke uses the same round brush/selection/pressure/opacity/flow/locks as paint.stroke, pixel target and explicit clone_source as retouch.clone; color/value ignored. source/current_layer requires nontransparent target boundary; merged sampling can use the visible composite for source and destination reference. Transparent source or destination samples are excluded from the solved domain. Footprint plus 1px boundary at most 262144 pixels. Conjugate gradient max_iterations 1..2048 (default 512), RMS tolerance 1e-7..0.001 (default 0.00005); nonconvergence returns error without editing. Soft coverage and selection applied once, source samples unchanged outside it. Finite solved colors clamp to working RGB gamut at publication; source alpha blends over the target. Shared memory and cancellation throughout sampling/solve/publish; one atomic history item, not batchable. This is sampled gradient-domain healing; automatic spot matching is a separate command. 中文：修复画笔、源纹理、边界融合。",
+        json!({"stroke":{"layer":{"name":"Background"},"points":[{"x":10.5,"y":10.5}],"size":4,"clone_source":{"source":[3.5,3.5]}},"max_iterations":512,"tolerance":0.00005})
+    );
     for item in &mut list {
         item.returns = match item.id {
+            "retouch.heal" => schemars::schema_for!(HealResult),
             "paint.sample_color" => schemars::schema_for!(SampleColorResult),
             "paint.fill" | "paint.bucket" | "paint.gradient" => schemars::schema_for!(BrushResult),
             "paint.stroke" | "paint.erase" | "retouch.clone" => schemars::schema_for!(BrushResult),
@@ -1004,7 +1014,7 @@ fn build_catalog() -> Vec<CommandSpec> {
         if item.id == "document.batch" || item.id == "file.place" {
             item.batchable = false;
         }
-        if matches!(item.id, "retouch.clone") {
+        if matches!(item.id, "retouch.clone" | "retouch.heal") {
             item.batchable = false;
         }
         if matches!(item.id, "paint.stroke" | "paint.erase") {

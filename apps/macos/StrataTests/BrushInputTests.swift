@@ -4,6 +4,21 @@ import XCTest
 
 final class BrushInputTests:XCTestCase{
     @MainActor
+    func testHealingBrushKeepsTargetToneAndCommitsOneNestedStroke()async throws{
+        let(engine,input)=try configured()
+        let state=try EditorSnapshot.decode(engine.snapshotJson()),id=try XCTUnwrap(state.activeLayer)
+        input.configure(CanvasBrushConfiguration(layer:id,size:6,hardness:1,clone:true,cloneSource:[2.5,8.5],heal:true))
+        var failures:[String]=[];input.onError={failures.append($0.localizedDescription)}
+        input.down(NSPoint(x:10.5,y:8.5),pressure:1);input.up(NSPoint(x:10.5,y:8.5),pressure:1);try await finish(input)
+        let healed=try EditorSnapshot.decode(engine.snapshotJson())
+        XCTAssertEqual(healed.history.count,1);XCTAssertEqual(healed.history.last?.command,"retouch.heal")
+        XCTAssertTrue(failures.isEmpty,failures.joined(separator:"; "))
+        let color=try AIJSON.decode(engine.sampleColor(paramsJson:commandJSON(["x":10,"y":8,"sample":"current_layer"]),revision:healed.revision))
+        XCTAssertEqual(color["color"].array[0].number ?? -1,20000.0/65535,accuracy:0.0001)
+        _ = try engine.dispatch(command:"edit.undo",paramsJson:"{}")
+        XCTAssertEqual(try EditorSnapshot.decode(engine.snapshotJson()).historyCursor,0)
+    }
+    @MainActor
     func testCloneNeedsSourceAndAlignedModeKeepsOffsetAcrossStrokes()async throws{
         for aligned in [false,true]{
             let engine=StrataEngine(listener:EngineEvents{_ in})

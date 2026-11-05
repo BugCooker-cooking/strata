@@ -144,7 +144,7 @@ pub(super) fn sample(doc: &Document, params: Value) -> Result<Value, CommandErro
         json!({"color":values.map(|v|v.clamp(0.0,1.0)),"bit_depth":doc.bit_depth(),"profile":doc.profile_name(),"sampled_pixels":count}),
     )
 }
-fn fill(
+pub(super) fn fill(
     doc: &mut Document,
     layer: LayerRef,
     opacity: f64,
@@ -169,17 +169,31 @@ fn fill(
         ));
     }
     let f = doc.frame();
-    let left =
-        f.x.checked_sub(info.x)
-            .ok_or(DocumentError::ResourceLimit)?;
-    let top =
-        f.y.checked_sub(info.y)
-            .ok_or(DocumentError::ResourceLimit)?;
-    let right = left
-        .checked_add(i64::from(f.width) - 1)
+    let (mut x, mut y) = (f.x, f.y);
+    let (mut right, mut bottom) = (f.x + i64::from(f.width), f.y + i64::from(f.height));
+    // Finite brush/bucket coverage must not turn a small retouch into an
+    // artboard-wide scan. Masks remain sampled in canvas coordinates below.
+    for mask in [region, doc.selection()].into_iter().flatten() {
+        let Some(bounds) = mask.content_bounds().map_err(DocumentError::from)? else {
+            return Ok(json!({"layer_id":target,"target":"pixels","touched_tiles":0}));
+        };
+        x = x.max(bounds.x);
+        y = y.max(bounds.y);
+        right = right.min(bounds.x + i64::from(bounds.width));
+        bottom = bottom.min(bounds.y + i64::from(bounds.height));
+    }
+    if x >= right || y >= bottom {
+        return Ok(json!({"layer_id":target,"target":"pixels","touched_tiles":0}));
+    }
+    let left = x.checked_sub(info.x).ok_or(DocumentError::ResourceLimit)?;
+    let top = y.checked_sub(info.y).ok_or(DocumentError::ResourceLimit)?;
+    let right = right
+        .checked_sub(info.x)
+        .and_then(|v| v.checked_sub(1))
         .ok_or(DocumentError::ResourceLimit)?;
-    let bottom = top
-        .checked_add(i64::from(f.height) - 1)
+    let bottom = bottom
+        .checked_sub(info.y)
+        .and_then(|v| v.checked_sub(1))
         .ok_or(DocumentError::ResourceLimit)?;
     let (first, _) = TileCoord::locate(left, top);
     let (last, _) = TileCoord::locate(right, bottom);

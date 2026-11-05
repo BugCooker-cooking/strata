@@ -603,6 +603,12 @@ impl Editor {
         interaction.command = "retouch.clone".into();
         Ok(interaction)
     }
+    pub fn begin_heal(&self, layer: LayerRef) -> Result<BrushInteraction, CommandError> {
+        self.authorize(&Source::User, "retouch.heal", CommandKind::Mutate)?;
+        let mut interaction = self.begin_brush(layer, BrushTarget::Pixels, false)?;
+        interaction.command = "retouch.heal".into();
+        Ok(interaction)
+    }
     pub fn prepare_brush(
         &self,
         interaction: &BrushInteraction,
@@ -611,7 +617,14 @@ impl Editor {
         if self.epoch != interaction.epoch {
             return Err(CommandError::Stale);
         }
-        let fields = params
+        let payload = if interaction.command == "retouch.heal" {
+            params.get_mut("stroke").ok_or_else(|| {
+                CommandError::Invalid("healing needs nested stroke parameters".into())
+            })?
+        } else {
+            &mut params
+        };
+        let fields = payload
             .as_object_mut()
             .ok_or_else(|| CommandError::Invalid("brush parameters must be an object".into()))?;
         let layer = json!({"id":interaction.layer});
@@ -949,6 +962,10 @@ impl Editor {
                     super::selection::mutate_cancellable(doc, id, params.clone(), &|| {
                         request.expired()
                     })?
+                {
+                    (Action::Edit, result)
+                } else if let Some(result) =
+                    super::heal::mutate(doc, id, params.clone(), &|| request.expired())?
                 {
                     (Action::Edit, result)
                 } else if let Some(result) =

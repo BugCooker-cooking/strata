@@ -55,7 +55,7 @@ struct ToolOptionsBar: View {
             Label(model.tool.title, systemImage: model.tool.symbol).fontWeight(.medium).frame(width: 100, alignment: .leading)
             Divider().frame(height: 16)
             switch model.tool {
-            case .brush,.eraser,.clone:
+            case .brush,.eraser,.clone,.heal:
                 BrushToolOptions(model:model)
             case .bucket,.gradient,.eyedropper:
                 PaintFillOptions(model:model)

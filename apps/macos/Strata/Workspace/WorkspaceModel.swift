@@ -38,9 +38,9 @@ enum EditorTool: String, CaseIterable, Identifiable {
     var title: String { Self.info[self]!.0 }
     var symbol: String { Self.info[self]!.1 }
     var key: String { Self.info[self]!.2 }
-    var available: Bool { [.move, .marquee, .lasso, .selection, .subject, .brush, .eraser, .clone, .bucket, .gradient, .eyedropper, .hand, .zoom].contains(self) }
+    var available: Bool { [.move, .marquee, .lasso, .selection, .subject, .brush, .eraser, .clone, .heal, .bucket, .gradient, .eyedropper, .hand, .zoom].contains(self) }
     var isPaint: Bool { isBrush || [.bucket,.gradient].contains(self) }
-    var isBrush: Bool { [.brush,.eraser,.clone].contains(self) }
+    var isBrush: Bool { [.brush,.eraser,.clone,.heal].contains(self) }
     var isSelection: Bool { [.marquee, .lasso, .selection].contains(self) }
     static let groups: [[EditorTool]] = [[.move], [.marquee, .lasso, .selection, .subject], [.crop, .eyedropper], [.heal, .clone, .brush, .eraser, .bucket, .gradient, .dodge], [.text, .pen, .shape], [.hand, .zoom]]
     private static let info: [EditorTool: (String, String, String)] = [
@@ -207,6 +207,7 @@ private let commandTitles: [String: String] = [
      "paint.stroke":"画笔笔触", "paint.erase":"橡皮擦笔触",
      "paint.fill":"填充像素", "paint.bucket":"油漆桶", "paint.gradient":"渐变像素", "paint.sample_color":"吸取颜色",
      "retouch.clone":"仿制图章笔触",
+     "retouch.heal":"修复画笔笔触",
      "layer.add_adjustment": "新建曝光调整层", "adjust.exposure.set": "调整曝光",
      "layer.mask.add": "添加蒙版", "layer.mask.invert": "反相蒙版",
      "layer.mask.set_enabled": "切换蒙版", "layer.mask.remove": "移除蒙版",

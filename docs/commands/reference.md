@@ -15378,6 +15378,306 @@ Permissions: `bound_document`
 }
 ```
 
+## `retouch.heal` — 修复画笔笔触
+
+Transfer source texture while solving linear-P3 Poisson gradients against an immutable target Dirichlet boundary. Required stroke uses the same round brush/selection/pressure/opacity/flow/locks as paint.stroke, pixel target and explicit clone_source as retouch.clone; color/value ignored. source/current_layer requires nontransparent target boundary; merged sampling can use the visible composite for source and destination reference. Transparent source or destination samples are excluded from the solved domain. Footprint plus 1px boundary at most 262144 pixels. Conjugate gradient max_iterations 1..2048 (default 512), RMS tolerance 1e-7..0.001 (default 0.00005); nonconvergence returns error without editing. Soft coverage and selection applied once, source samples unchanged outside it. Finite solved colors clamp to working RGB gamut at publication; source alpha blends over the target. Shared memory and cancellation throughout sampling/solve/publish; one atomic history item, not batchable. This is sampled gradient-domain healing; automatic spot matching is a separate command. 中文：修复画笔、源纹理、边界融合。
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `false`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "HealStroke",
+  "type": "object",
+  "properties": {
+    "max_iterations": {
+      "type": "integer",
+      "format": "uint32",
+      "default": 512,
+      "minimum": 0
+    },
+    "stroke": {
+      "$ref": "#/$defs/BrushStroke"
+    },
+    "tolerance": {
+      "type": "number",
+      "format": "double",
+      "default": 0.00005
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "stroke"
+  ],
+  "$defs": {
+    "BrushPoint": {
+      "type": "object",
+      "properties": {
+        "pressure": {
+          "type": "number",
+          "format": "double",
+          "default": 1.0
+        },
+        "x": {
+          "type": "number",
+          "format": "double"
+        },
+        "y": {
+          "type": "number",
+          "format": "double"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "x",
+        "y"
+      ]
+    },
+    "BrushStroke": {
+      "type": "object",
+      "properties": {
+        "clone_source": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CloneSource"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "color": {
+          "type": "array",
+          "default": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 4,
+          "minItems": 4
+        },
+        "flow": {
+          "type": "number",
+          "format": "double",
+          "default": 1.0
+        },
+        "hardness": {
+          "type": "number",
+          "format": "double",
+          "default": 0.8
+        },
+        "layer": {
+          "$ref": "#/$defs/LayerRef"
+        },
+        "opacity": {
+          "type": "number",
+          "format": "double",
+          "default": 1.0
+        },
+        "points": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/BrushPoint"
+          }
+        },
+        "pressure_opacity": {
+          "type": "boolean",
+          "default": true
+        },
+        "pressure_size": {
+          "type": "boolean",
+          "default": true
+        },
+        "size": {
+          "type": "number",
+          "format": "double",
+          "default": 24.0
+        },
+        "spacing": {
+          "type": "number",
+          "format": "double",
+          "default": 0.2
+        },
+        "target": {
+          "$ref": "#/$defs/BrushTarget",
+          "default": "pixels"
+        },
+        "value": {
+          "type": "number",
+          "format": "double",
+          "default": 1.0
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "layer",
+        "points"
+      ]
+    },
+    "BrushTarget": {
+      "type": "string",
+      "enum": [
+        "pixels",
+        "mask"
+      ]
+    },
+    "CloneSource": {
+      "type": "object",
+      "properties": {
+        "destination": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "default": null,
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 2,
+          "minItems": 2
+        },
+        "sample": {
+          "$ref": "#/$defs/SelectionSample",
+          "default": "current_layer"
+        },
+        "source": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 2,
+          "minItems": 2
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "source"
+      ]
+    },
+    "LayerRef": {
+      "description": "Stable ID preferred. Duplicate names return candidates instead of guessing.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ]
+        }
+      ]
+    },
+    "SelectionSample": {
+      "type": "string",
+      "enum": [
+        "merged",
+        "current_layer"
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "HealResult",
+  "type": "object",
+  "properties": {
+    "domain_pixels": {
+      "type": "integer",
+      "format": "uint",
+      "minimum": 0
+    },
+    "iterations": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0
+    },
+    "layer_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "method": {
+      "type": "string"
+    },
+    "residual_rms": {
+      "type": "number",
+      "format": "double"
+    }
+  },
+  "required": [
+    "layer_id",
+    "domain_pixels",
+    "iterations",
+    "residual_rms",
+    "method"
+  ]
+}
+```
+
+### Examples
+
+```json
+{
+  "max_iterations": 512,
+  "stroke": {
+    "clone_source": {
+      "source": [
+        3.5,
+        3.5
+      ]
+    },
+    "layer": {
+      "name": "Background"
+    },
+    "points": [
+      {
+        "x": 10.5,
+        "y": 10.5
+      }
+    ],
+    "size": 4
+  },
+  "tolerance": 0.00005
+}
+```
+
 ## `color.convert` — 转换工作空间
 
 Convert source tiles at their original bit depth to srgb or display_p3. Alpha is preserved; undo restores exact original samples and ICC.

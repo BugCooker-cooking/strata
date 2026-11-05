@@ -187,6 +187,8 @@ fn catalog_is_lazy_bilingual_bounded_and_has_no_unimplemented_commands() {
         ("油漆桶", "paint.bucket"),
         ("菱形", "paint.gradient"),
         ("蒙版绘制", "paint.stroke"),
+        ("仿制图章", "retouch.clone"),
+        ("修复画笔", "retouch.heal"),
     ] {
         assert!(
             catalog::search(query, 32).unwrap()["matches"]

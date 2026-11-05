@@ -19,6 +19,14 @@ pub fn tonal_curve_preview(points_json: String) -> Result<Vec<f32>, StrataError>
 
 #[uniffi::export]
 impl StrataEngine {
+    pub fn begin_heal(&self, layer_id: String) -> Result<(), StrataError> {
+        let layer = serde_json::from_value(json!({"id":layer_id})).map_err(render_error)?;
+        self.issue_tonal_preview()?;
+        let mut inner = self.lock()?;
+        crate::tonal_preview::restore(&mut inner)?;
+        inner.brush = Some(inner.editor.begin_heal(layer).map_err(command_error)?);
+        Ok(())
+    }
     pub fn begin_clone(&self, layer_id: String) -> Result<(), StrataError> {
         let layer = serde_json::from_value(json!({"id":layer_id})).map_err(render_error)?;
         self.issue_tonal_preview()?;
@@ -374,6 +382,52 @@ mod tests {
             engine.lock().unwrap().editor.snapshot().history.len(),
             history
         );
+    }
+    #[test]
+    fn healing_nested_gesture_cannot_retarget_or_commit_after_revision_change() {
+        let engine = StrataEngine::new(Arc::new(Listener));
+        engine
+            .dispatch(
+                "file.new".into(),
+                json!({"width":16,"height":16,"bit_depth":16}).to_string(),
+            )
+            .unwrap();
+        let id = engine
+            .lock()
+            .unwrap()
+            .editor
+            .snapshot()
+            .active_layer
+            .unwrap()
+            .to_string();
+        let stroke =
+            json!({"points":[{"x":10.5,"y":8.5}],"size":4,"clone_source":{"source":[2.5,8.5]}});
+        engine.begin_heal(id.clone()).unwrap();
+        engine.end_brush("{}".into(), true).unwrap();
+        assert_eq!(engine.lock().unwrap().editor.snapshot().history.len(), 0);
+        engine.begin_heal(id.clone()).unwrap();
+        let mut invalid = stroke.clone();
+        invalid["layer"] = json!({"name":"Background"});
+        assert!(
+            engine
+                .end_brush(json!({"stroke":invalid}).to_string(), false)
+                .is_err()
+        );
+        assert_eq!(engine.lock().unwrap().editor.snapshot().history.len(), 0);
+        engine.begin_heal(id.clone()).unwrap();
+        engine.dispatch("select.all".into(), "{}".into()).unwrap();
+        let history = engine.lock().unwrap().editor.snapshot().history.len();
+        assert!(
+            engine
+                .end_brush(json!({"stroke":stroke}).to_string(), false)
+                .is_err()
+        );
+        assert_eq!(
+            engine.lock().unwrap().editor.snapshot().history.len(),
+            history
+        );
+        engine.begin_heal(id).unwrap();
+        assert!(engine.end_brush(stroke.to_string(), false).is_err());
     }
     #[test]
     fn brush_gestures_anchor_target_and_reject_late_or_retargeted_commits() {

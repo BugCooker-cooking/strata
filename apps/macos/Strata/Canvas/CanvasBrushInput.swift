@@ -8,6 +8,7 @@ struct CanvasBrushConfiguration: Equatable {
     var color = [0.0,0.0,0.0,1.0], value = 1.0
     var pressureSize = true, pressureOpacity = true
     var clone = false, aligned = true, cloneSource: [Double]?, cloneSample = "current_layer"
+    var heal = false
 }
 @MainActor
 final class CanvasBrushInput {
@@ -33,7 +34,7 @@ final class CanvasBrushInput {
         do {
             if configuration.clone {
                 guard configuration.cloneSource != nil else{throw AIClientError.message("请先按住 ⌥ 单击画布设置仿制源点。")}
-                try engine.beginClone(layerId:layer)
+                if configuration.heal{try engine.beginHeal(layerId:layer)}else{try engine.beginClone(layerId:layer)}
                 activeDestination=configuration.aligned ? cloneDestination ?? point : point
             }else{try engine.beginBrush(layerId: layer, target: configuration.target, erase: configuration.erase)}
             active = true; points = [(point,pressure)]; onChanged?()
@@ -55,7 +56,7 @@ final class CanvasBrushInput {
                 "value":settings.value,"pressure_size":settings.pressureSize,"pressure_opacity":settings.pressureOpacity]
             let destination=activeDestination
             if settings.clone,let source=settings.cloneSource,let destination {parameters["clone_source"]=["source":source,"destination":[Double(destination.x),Double(destination.y)],"sample":settings.cloneSample]}
-            let encoded = try commandJSON(parameters), engine = engine
+            let encoded = try commandJSON(settings.heal ? ["stroke":parameters] : parameters), engine = engine
             active = false; running = true; onRunning?(true)
             Task { [weak self] in
                 let result: Result<Void,Error>

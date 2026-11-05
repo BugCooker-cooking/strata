@@ -5,6 +5,7 @@ mod clone_source;
 mod executor;
 mod export;
 mod generated;
+mod heal;
 mod local;
 mod new;
 mod paint;
@@ -279,6 +280,27 @@ fn sample_current() -> SelectionSample {
     SelectionSample::CurrentLayer
 }
 params!(CloneSource{source:[f64;2],#[serde(default)]destination:Option<[f64;2]>,#[serde(default="sample_current")]sample:SelectionSample});
+fn heal_iterations() -> u32 {
+    512
+}
+fn heal_tolerance() -> f64 {
+    0.00005
+}
+params!(HealStroke {
+    stroke: BrushStroke,
+    #[serde(default = "heal_iterations")]
+    max_iterations: u32,
+    #[serde(default = "heal_tolerance")]
+    tolerance: f64
+});
+#[derive(Serialize, JsonSchema)]
+pub struct HealResult {
+    pub layer_id: crate::LayerId,
+    pub domain_pixels: usize,
+    pub iterations: u32,
+    pub residual_rms: f64,
+    pub method: String,
+}
 #[derive(Serialize, JsonSchema)]
 pub struct BrushResult {
     pub layer_id: crate::LayerId,
