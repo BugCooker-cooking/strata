@@ -1,4 +1,5 @@
 mod arrange;
+mod brush;
 mod cancellation;
 mod executor;
 mod export;
@@ -14,8 +15,8 @@ mod tonal;
 mod tree;
 pub use cancellation::WorkCancellation;
 pub use executor::{
-    ClipboardImage, CommandError, Control, Editor, ExposureInteraction, HistoryInfo,
-    MarqueeInteraction, MoveInteraction, PreparedCommand, Request, Snapshot, Source,
+    BrushInteraction, ClipboardImage, CommandError, Control, Editor, ExposureInteraction,
+    HistoryInfo, MarqueeInteraction, MoveInteraction, PreparedCommand, Request, Snapshot, Source,
     TonalInteraction,
 };
 pub use registry::{CommandKind, CommandSpec, catalog};
@@ -229,6 +230,54 @@ params!(SetTonal {
     layer: LayerRef,
     adjustment: crate::TonalAdjustment
 });
+#[derive(Clone, Copy, Debug, Default, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum BrushTarget {
+    #[default]
+    Pixels,
+    Mask,
+}
+fn brush_size() -> f64 {
+    24.0
+}
+fn brush_hardness() -> f64 {
+    0.8
+}
+fn brush_spacing() -> f64 {
+    0.2
+}
+fn brush_full() -> f64 {
+    1.0
+}
+fn brush_color() -> [f64; 4] {
+    [0.0, 0.0, 0.0, 1.0]
+}
+params!(BrushPoint {
+    x: f64,
+    y: f64,
+    #[serde(default = "brush_full")]
+    pressure: f64
+});
+params!(BrushStroke{
+    layer:LayerRef,
+    #[serde(default)]target:BrushTarget,
+    points:Vec<BrushPoint>,
+    #[serde(default="brush_size")]size:f64,
+    #[serde(default="brush_hardness")]hardness:f64,
+    #[serde(default="brush_full")]opacity:f64,
+    #[serde(default="brush_full")]flow:f64,
+    #[serde(default="brush_spacing")]spacing:f64,
+    #[serde(default="brush_color")]color:[f64;4],
+    #[serde(default="brush_full")]value:f64,
+    #[serde(default="enabled")]pressure_size:bool,
+    #[serde(default="enabled")]pressure_opacity:bool
+});
+#[derive(Serialize, JsonSchema)]
+pub struct BrushResult {
+    pub layer_id: crate::LayerId,
+    pub target: BrushTarget,
+    pub touched_tiles: usize,
+}
 #[derive(Clone, Copy, Debug, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum SelectionSample {

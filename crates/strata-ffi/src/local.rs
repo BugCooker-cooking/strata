@@ -19,6 +19,47 @@ pub fn tonal_curve_preview(points_json: String) -> Result<Vec<f32>, StrataError>
 
 #[uniffi::export]
 impl StrataEngine {
+    pub fn begin_brush(
+        &self,
+        layer_id: String,
+        target: String,
+        erase: bool,
+    ) -> Result<(), StrataError> {
+        let layer = serde_json::from_value(json!({"id":layer_id})).map_err(render_error)?;
+        let target = serde_json::from_value(json!(target)).map_err(render_error)?;
+        self.issue_tonal_preview()?;
+        let mut inner = self.lock()?;
+        crate::tonal_preview::restore(&mut inner)?;
+        inner.brush = Some(
+            inner
+                .editor
+                .begin_brush(layer, target, erase)
+                .map_err(command_error)?,
+        );
+        Ok(())
+    }
+    pub fn end_brush(&self, params_json: String, cancel: bool) -> Result<(), StrataError> {
+        let (editor, interaction) = {
+            let mut inner = self.lock()?;
+            let interaction = inner
+                .brush
+                .take()
+                .ok_or_else(|| render_error("no brush gesture"))?;
+            (inner.editor.clone(), interaction)
+        };
+        if !cancel {
+            if params_json.len() > 1024 * 1024 {
+                return Err(render_error("brush parameters exceed limit"));
+            }
+            let params: Value = serde_json::from_str(&params_json).map_err(render_error)?;
+            let prepared = editor
+                .prepare_brush(&interaction, params.clone())
+                .map_err(command_error)?;
+            let mut inner = self.lock()?;
+            apply(&mut inner, prepared, interaction.command(), &params)?;
+        }
+        self.deliver_events()
+    }
     pub fn begin_marquee(&self) -> Result<(), StrataError> {
         self.issue_tonal_preview()?;
         let mut inner = self.lock()?;
@@ -224,6 +265,81 @@ mod tests {
     struct Listener;
     impl EngineListener for Listener {
         fn on_event(&self, _: EngineEventDto) {}
+    }
+    #[test]
+    fn brush_gestures_anchor_target_and_reject_late_or_retargeted_commits() {
+        let engine = StrataEngine::new(Arc::new(Listener));
+        engine
+            .dispatch(
+                "file.new".into(),
+                json!({"width":16,"height":16,"bit_depth":16}).to_string(),
+            )
+            .unwrap();
+        let id = engine
+            .lock()
+            .unwrap()
+            .editor
+            .snapshot()
+            .active_layer
+            .unwrap()
+            .to_string();
+        let parameters =
+            json!({"points":[{"x":4.5,"y":4.5},{"x":10.5,"y":10.5}],"size":4,"color":[1,0,0,1]})
+                .to_string();
+        engine
+            .begin_brush(id.clone(), "pixels".into(), false)
+            .unwrap();
+        engine.end_brush("{}".into(), true).unwrap();
+        assert_eq!(engine.lock().unwrap().editor.snapshot().history.len(), 0);
+        engine
+            .begin_brush(id.clone(), "pixels".into(), false)
+            .unwrap();
+        engine.end_brush(parameters.clone(), false).unwrap();
+        assert_eq!(engine.lock().unwrap().editor.snapshot().history.len(), 1);
+        engine
+            .begin_brush(id.clone(), "pixels".into(), true)
+            .unwrap();
+        engine.end_brush(parameters.clone(), false).unwrap();
+        assert_eq!(
+            engine
+                .lock()
+                .unwrap()
+                .editor
+                .snapshot()
+                .history
+                .last()
+                .unwrap()
+                .command,
+            "paint.erase"
+        );
+        engine
+            .begin_brush(id.clone(), "pixels".into(), false)
+            .unwrap();
+        engine
+            .dispatch(
+                "layer.rename".into(),
+                json!({"layer":{"id":id},"name":"renamed"}).to_string(),
+            )
+            .unwrap();
+        let history = engine.lock().unwrap().editor.snapshot().history.len();
+        assert!(engine.end_brush(parameters, false).is_err());
+        assert_eq!(
+            engine.lock().unwrap().editor.snapshot().history.len(),
+            history
+        );
+        engine.begin_brush(id, "pixels".into(), false).unwrap();
+        assert!(
+            engine
+                .end_brush(
+                    json!({"target":"mask","points":[{"x":4,"y":4}]}).to_string(),
+                    false
+                )
+                .is_err()
+        );
+        assert_eq!(
+            engine.lock().unwrap().editor.snapshot().history.len(),
+            history
+        );
     }
     #[test]
     fn cancelling_never_waits_for_the_editor_mutex_and_late_commit_stays_rejected() {

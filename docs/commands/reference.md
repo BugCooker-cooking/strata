@@ -13747,6 +13747,489 @@ Permissions: `bound_document`
 }
 ```
 
+## `paint.stroke` — 画笔笔触
+
+Paint one whole stroke on an explicit pixel layer or existing u16 mask. Points are finite canvas x/y and pressure 0..1 (default 1), at most 8192. Size 0.5..4096 canvas pixels; hardness/opacity/flow/value 0..1; spacing 0.01..2 diameters. Round tip, smooth soft falloff and antialiased boundary. Arc-length dab placement is independent of input event density; pressure_size scales diameter to at least 0.25px and pressure_opacity caps local accumulated coverage. Flow accumulates per dab, whole-stroke opacity caps the result. Color is normalized straight encoded document working RGBA. Pixel color blends in linear P3, preserving untouched source samples exactly; transparency lock preserves original alpha and excludes transparent pixels. Mask target blends toward normalized value, respects linked mask anchors and does not alter source pixels. Clip to artboard, current u16 selection, and existing mask bounds. Pixel/all and ancestor locks apply. At most one million dabs, 250 million bounded dab-pixel visits and 250 million tile-dab tests, shared transient/source budget and cancellation. Atomic, one history entry, not batchable. 中文：画笔、绘画、蒙版绘制、压感、流量、硬度、间距。
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `false`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BrushStroke",
+  "type": "object",
+  "properties": {
+    "color": {
+      "type": "array",
+      "default": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "items": {
+        "type": "number",
+        "format": "double"
+      },
+      "maxItems": 4,
+      "minItems": 4
+    },
+    "flow": {
+      "type": "number",
+      "format": "double",
+      "default": 1.0
+    },
+    "hardness": {
+      "type": "number",
+      "format": "double",
+      "default": 0.8
+    },
+    "layer": {
+      "$ref": "#/$defs/LayerRef"
+    },
+    "opacity": {
+      "type": "number",
+      "format": "double",
+      "default": 1.0
+    },
+    "points": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/BrushPoint"
+      }
+    },
+    "pressure_opacity": {
+      "type": "boolean",
+      "default": true
+    },
+    "pressure_size": {
+      "type": "boolean",
+      "default": true
+    },
+    "size": {
+      "type": "number",
+      "format": "double",
+      "default": 24.0
+    },
+    "spacing": {
+      "type": "number",
+      "format": "double",
+      "default": 0.2
+    },
+    "target": {
+      "$ref": "#/$defs/BrushTarget",
+      "default": "pixels"
+    },
+    "value": {
+      "type": "number",
+      "format": "double",
+      "default": 1.0
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "layer",
+    "points"
+  ],
+  "$defs": {
+    "BrushPoint": {
+      "type": "object",
+      "properties": {
+        "pressure": {
+          "type": "number",
+          "format": "double",
+          "default": 1.0
+        },
+        "x": {
+          "type": "number",
+          "format": "double"
+        },
+        "y": {
+          "type": "number",
+          "format": "double"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "x",
+        "y"
+      ]
+    },
+    "BrushTarget": {
+      "type": "string",
+      "enum": [
+        "pixels",
+        "mask"
+      ]
+    },
+    "LayerRef": {
+      "description": "Stable ID preferred. Duplicate names return candidates instead of guessing.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BrushResult",
+  "type": "object",
+  "properties": {
+    "layer_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "target": {
+      "$ref": "#/$defs/BrushTarget"
+    },
+    "touched_tiles": {
+      "type": "integer",
+      "format": "uint",
+      "minimum": 0
+    }
+  },
+  "required": [
+    "layer_id",
+    "target",
+    "touched_tiles"
+  ],
+  "$defs": {
+    "BrushTarget": {
+      "type": "string",
+      "enum": [
+        "pixels",
+        "mask"
+      ]
+    }
+  }
+}
+```
+
+### Examples
+
+```json
+{
+  "color": [
+    1,
+    0,
+    0,
+    1
+  ],
+  "flow": 0.5,
+  "hardness": 0.8,
+  "layer": {
+    "name": "Background"
+  },
+  "opacity": 0.7,
+  "points": [
+    {
+      "x": 3.5,
+      "y": 3.5
+    },
+    {
+      "pressure": 0.5,
+      "x": 10.5,
+      "y": 10.5
+    }
+  ],
+  "size": 4
+}
+```
+
+```json
+{
+  "layer": {
+    "name": "Background"
+  },
+  "opacity": 0.5,
+  "points": [
+    {
+      "pressure": 0.5,
+      "x": 8.5,
+      "y": 8.5
+    }
+  ],
+  "pressure_size": false,
+  "size": 4,
+  "target": "mask",
+  "value": 0.25
+}
+```
+
+## `paint.erase` — 橡皮擦笔触
+
+Erase one arc-length round brush stroke with the same strict geometry/pressure/coverage parameters as paint.stroke. Pixel target changes alpha only and keeps hidden RGB codes exactly; transparency lock rejects erasing. Mask target paints toward normalized value (default white=1); the native eraser uses background-color luminance. Color is ignored. Current selection, linked mask bounds, pixel/ancestor locks, cancellation, shared memory and work limits apply. Atomic one history entry; not batchable. 中文：橡皮擦、擦除、蒙版绘制。
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `false`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BrushStroke",
+  "type": "object",
+  "properties": {
+    "color": {
+      "type": "array",
+      "default": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "items": {
+        "type": "number",
+        "format": "double"
+      },
+      "maxItems": 4,
+      "minItems": 4
+    },
+    "flow": {
+      "type": "number",
+      "format": "double",
+      "default": 1.0
+    },
+    "hardness": {
+      "type": "number",
+      "format": "double",
+      "default": 0.8
+    },
+    "layer": {
+      "$ref": "#/$defs/LayerRef"
+    },
+    "opacity": {
+      "type": "number",
+      "format": "double",
+      "default": 1.0
+    },
+    "points": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/BrushPoint"
+      }
+    },
+    "pressure_opacity": {
+      "type": "boolean",
+      "default": true
+    },
+    "pressure_size": {
+      "type": "boolean",
+      "default": true
+    },
+    "size": {
+      "type": "number",
+      "format": "double",
+      "default": 24.0
+    },
+    "spacing": {
+      "type": "number",
+      "format": "double",
+      "default": 0.2
+    },
+    "target": {
+      "$ref": "#/$defs/BrushTarget",
+      "default": "pixels"
+    },
+    "value": {
+      "type": "number",
+      "format": "double",
+      "default": 1.0
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "layer",
+    "points"
+  ],
+  "$defs": {
+    "BrushPoint": {
+      "type": "object",
+      "properties": {
+        "pressure": {
+          "type": "number",
+          "format": "double",
+          "default": 1.0
+        },
+        "x": {
+          "type": "number",
+          "format": "double"
+        },
+        "y": {
+          "type": "number",
+          "format": "double"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "x",
+        "y"
+      ]
+    },
+    "BrushTarget": {
+      "type": "string",
+      "enum": [
+        "pixels",
+        "mask"
+      ]
+    },
+    "LayerRef": {
+      "description": "Stable ID preferred. Duplicate names return candidates instead of guessing.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BrushResult",
+  "type": "object",
+  "properties": {
+    "layer_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "target": {
+      "$ref": "#/$defs/BrushTarget"
+    },
+    "touched_tiles": {
+      "type": "integer",
+      "format": "uint",
+      "minimum": 0
+    }
+  },
+  "required": [
+    "layer_id",
+    "target",
+    "touched_tiles"
+  ],
+  "$defs": {
+    "BrushTarget": {
+      "type": "string",
+      "enum": [
+        "pixels",
+        "mask"
+      ]
+    }
+  }
+}
+```
+
+### Examples
+
+```json
+{
+  "layer": {
+    "name": "Background"
+  },
+  "opacity": 0.5,
+  "points": [
+    {
+      "x": 4.5,
+      "y": 4.5
+    },
+    {
+      "x": 11.5,
+      "y": 8.5
+    }
+  ],
+  "size": 4
+}
+```
+
+```json
+{
+  "layer": {
+    "name": "Background"
+  },
+  "opacity": 0.5,
+  "points": [
+    {
+      "pressure": 0.5,
+      "x": 8.5,
+      "y": 8.5
+    }
+  ],
+  "pressure_size": false,
+  "size": 4,
+  "target": "mask",
+  "value": 1.0
+}
+```
+
 ## `color.convert` — 转换工作空间
 
 Convert source tiles at their original bit depth to srgb or display_p3. Alpha is preserved; undo restores exact original samples and ICC.

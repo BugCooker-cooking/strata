@@ -37,15 +37,12 @@ struct ToolRail: View {
                         if index > 0 { Rectangle().fill(Color(nsColor: WorkspaceColors.border)).frame(height: 1).padding(.horizontal, 10) }
                         ForEach(group) { tool in
                             WorkspaceIconButton(title: "\(tool.title)\(tool.key.isEmpty ? "" : " (\(tool.key))")", symbol: tool.symbol,
-                                enabled: !model.busy && tool.available && (![EditorTool.move, .subject].contains(tool) || model.permissions.edits) && (!tool.isSelection || model.permissions.selectionEdits), selected: model.tool == tool) { model.selectTool(tool) }
+                                enabled: !model.busy && tool.available && (![EditorTool.move, .subject].contains(tool) || model.permissions.edits) && (!tool.isBrush || model.permissions.edits) && (!tool.isSelection || model.permissions.selectionEdits), selected: model.tool == tool) { model.selectTool(tool) }
                         }
                     }
                 }.padding(.top, 8)
             }
-            ZStack {
-                RoundedRectangle(cornerRadius: 3).fill(.white).frame(width: 18, height: 18).offset(x: 5, y: 5)
-                RoundedRectangle(cornerRadius: 3).fill(.black).frame(width: 18, height: 18).overlay(RoundedRectangle(cornerRadius: 3).stroke(.gray)).offset(x: -3, y: -3)
-            }.frame(height: 30).opacity(0.45).help("前景色 / 背景色 · 绘画功能尚未提供")
+            PaintColorControls(model:model)
             WorkspaceIconButton(title: "快速蒙版 (Q)", symbol: "rectangle.inset.filled", enabled: false)
         }.frame(width: 46).padding(.bottom, 6).background(Color(nsColor: WorkspaceColors.panel))
     }
@@ -58,6 +55,8 @@ struct ToolOptionsBar: View {
             Label(model.tool.title, systemImage: model.tool.symbol).fontWeight(.medium).frame(width: 100, alignment: .leading)
             Divider().frame(height: 16)
             switch model.tool {
+            case .brush,.eraser:
+                BrushToolOptions(model:model)
             case .marquee, .lasso, .selection:
                 SelectionToolOptions(model: model)
             case .move:

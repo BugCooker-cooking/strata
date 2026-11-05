@@ -149,6 +149,7 @@ struct Inner {
     marquee: Option<strata_core::commands::MarqueeInteraction>,
     exposure: Option<strata_core::commands::ExposureInteraction>,
     tonal_preview: Option<tonal_preview::TonalPreview>,
+    brush: Option<strata_core::commands::BrushInteraction>,
 }
 impl Default for Inner {
     fn default() -> Self {
@@ -162,6 +163,7 @@ impl Default for Inner {
             marquee: None,
             exposure: None,
             tonal_preview: None,
+            brush: None,
         }
     }
 }
@@ -506,6 +508,7 @@ impl StrataEngine {
         inner.marquee = None;
         inner.exposure = None;
         inner.tonal_preview = None;
+        inner.brush = None;
         inner.renderer = None;
         Ok(())
     }

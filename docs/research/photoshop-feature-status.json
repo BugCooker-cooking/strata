@@ -240,12 +240,16 @@
     ]
   },
   "PS-04-d5e9c4039f": {
-    "implementation": "部分实现",
-    "acceptance": "结构/应用已实现；蒙版画笔待 M6",
+    "implementation": "已实现",
+    "acceptance": "添加/编辑/停用/应用/反相已有核心及原生证据；扩展几何继续补充",
     "evidence": [
       {
-        "label": "M3 计划",
-        "path": "2026-11-05-m3-layers.md"
+        "label": "M3",
+        "path": "../research/2026-11-m3-layers-progress.md"
+      },
+      {
+        "label": "M6 蒙版绘制",
+        "path": "../research/2026-11-m6-paint-retouch-progress.md"
       }
     ]
   },
@@ -524,6 +528,36 @@
       {
         "label": "M5 调色进展",
         "path": "../research/2026-11-m5-adjustments-progress.md"
+      }
+    ]
+  },
+  "PS-08-13d3081dfa": {
+    "implementation": "基础已实现",
+    "acceptance": "圆形笔尖/参数/模拟压力已有证据；实时笔迹与实体压力待验收",
+    "evidence": [
+      {
+        "label": "M6 绘画证据",
+        "path": "../research/2026-11-m6-paint-retouch-progress.md"
+      }
+    ]
+  },
+  "PS-08-05cf56410b": {
+    "implementation": "已实现",
+    "acceptance": "本机像素/蒙版/锁/历史/Metal 证据；连续性能另记",
+    "evidence": [
+      {
+        "label": "M6 绘画证据",
+        "path": "../research/2026-11-m6-paint-retouch-progress.md"
+      }
+    ]
+  },
+  "PS-08-3ce0368d80": {
+    "implementation": "已实现",
+    "acceptance": "原生工作 ICC 拾色器和前景/背景色交换已有证据",
+    "evidence": [
+      {
+        "label": "M6 绘画证据",
+        "path": "../research/2026-11-m6-paint-retouch-progress.md"
       }
     ]
   }

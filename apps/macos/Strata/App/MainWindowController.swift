@@ -94,7 +94,10 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         canvas.onError = { [weak self] error in self?.showError(error) }
         canvas.onCommitted = { [weak self] in self?.refresh() }
         canvas.onSelectionRunning = { [weak self] running in self?.busy = running }
+        canvas.onBrushRunning = { [weak self] running in self?.busy = running }
         canvas.onToolKey = { [weak self] key in
+            if key == "X", let self { self.workspace.swapPaintColors(); return true }
+            if key == "D", let self { self.workspace.foregroundColor = .black; self.workspace.backgroundColor = .white; self.workspace.send(.tool(self.workspace.tool)); return true }
             guard let self, let tool = EditorTool.allCases.first(where: { $0.key == key && $0.available }) else { return false }
             self.workspace.selectTool(tool); return true
         }
@@ -207,7 +210,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         case .opacity(let value): layerCommand("layer.set_opacity", ["opacity": value])
         case .blend(let value): layerCommand("layer.set_blend_mode", ["blend_mode": value])
         case .position(let x, let y): layerCommand("layer.set_position", ["x": x, "y": y])
-        case .tool(let tool): workspace.tonalPreview?.cancel(); canvas.movesLayer = tool == .move; canvas.zoomTool = tool == .zoom; canvas.configureSelection(workspace); window?.makeFirstResponder(canvas)
+        case .tool(let tool): workspace.tonalPreview?.cancel(); canvas.movesLayer = tool == .move; canvas.zoomTool = tool == .zoom; canvas.configureSelection(workspace); canvas.configureBrush(workspace); window?.makeFirstResponder(canvas)
         case .assistant: toggleAssistant()
         case .panels: togglePanels()
         case .theme(let theme): onTheme?(theme)
@@ -238,6 +241,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         workspace.selectedLayers=workspace.selectedLayers.intersection(Set(snapshot.layers.map(\.id)))
         canvas.documentOrigin = NSPoint(x: CGFloat(snapshot.frame?.x ?? 0), y: CGFloat(snapshot.frame?.y ?? 0))
         canvas.isSelectionEnabled = workspace.permissions.selectionEdits
+        canvas.configureBrush(workspace)
         recovery?.observe(snapshot)
         if let path = engine.projectPath() { documentURL = URL(fileURLWithPath: path); fileName = documentURL!.lastPathComponent }
         workspace.fileName = fileName; window?.title = "\(fileName) — Strata"

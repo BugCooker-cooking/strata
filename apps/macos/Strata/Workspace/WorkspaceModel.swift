@@ -38,7 +38,8 @@ enum EditorTool: String, CaseIterable, Identifiable {
     var title: String { Self.info[self]!.0 }
     var symbol: String { Self.info[self]!.1 }
     var key: String { Self.info[self]!.2 }
-    var available: Bool { [.move, .marquee, .lasso, .selection, .subject, .hand, .zoom].contains(self) }
+    var available: Bool { [.move, .marquee, .lasso, .selection, .subject, .brush, .eraser, .hand, .zoom].contains(self) }
+    var isBrush: Bool { [.brush,.eraser].contains(self) }
     var isSelection: Bool { [.marquee, .lasso, .selection].contains(self) }
     static let groups: [[EditorTool]] = [[.move], [.marquee, .lasso, .selection, .subject], [.crop, .eyedropper], [.heal, .clone, .brush, .eraser, .gradient, .dodge], [.text, .pen, .shape], [.hand, .zoom]]
     private static let info: [EditorTool: (String, String, String)] = [
@@ -96,6 +97,16 @@ final class WorkspaceModel: ObservableObject {
     @Published var quickRadius = 8.0
     @Published var quickSmoothness = 8.0
     @Published var quickBackground = false
+    @Published var brushTarget = "pixels"
+    @Published var brushSize = 24.0
+    @Published var brushHardness = 80.0
+    @Published var brushOpacity = 100.0
+    @Published var brushFlow = 100.0
+    @Published var brushSpacing = 20.0
+    @Published var brushPressureSize = true
+    @Published var brushPressureOpacity = true
+    @Published var foregroundColor = NSColor.black
+    @Published var backgroundColor = NSColor.white
     @Published var histogram: [Double] = []
     @Published var workingColorSpace=NSColorSpace.sRGB
     @Published var collapsedGroups:Set<String>=[]
@@ -134,10 +145,11 @@ final class WorkspaceModel: ObservableObject {
     var canRedo: Bool { permissions.history && (snapshot?.historyCursor ?? 0) < (snapshot?.history.count ?? 0) }
     func send(_ action: WorkspaceAction) { self.action?(action) }
     func selectTool(_ tool: EditorTool) {
-        guard !busy, tool.available, tool != .move || permissions.edits, !tool.isSelection || permissions.selectionEdits else { return }
+        guard !busy, tool.available, tool != .move || permissions.edits, !tool.isBrush || permissions.edits, !tool.isSelection || permissions.selectionEdits else { return }
         if tool == .subject { if permissions.edits { send(.selectSubject) }; return }
         self.tool = tool; send(.tool(tool))
     }
+    func swapPaintColors() { let old = foregroundColor; foregroundColor = backgroundColor; backgroundColor = old; send(.tool(tool)) }
 }
 
 enum WorkspaceAction {
@@ -180,6 +192,7 @@ private let commandTitles: [String: String] = [
      "select.feather": "羽化选区", "select.expand": "扩展选区", "select.contract": "收缩选区",
      "select.smooth": "平滑选区", "select.border": "选区边界", "select.transform": "变换选区",
      "layer.add_tonal_adjustment":"新建调色调整层", "adjust.tonal.set":"修改调色参数",
+     "paint.stroke":"画笔笔触", "paint.erase":"橡皮擦笔触",
      "layer.add_adjustment": "新建曝光调整层", "adjust.exposure.set": "调整曝光",
      "layer.mask.add": "添加蒙版", "layer.mask.invert": "反相蒙版",
      "layer.mask.set_enabled": "切换蒙版", "layer.mask.remove": "移除蒙版",

@@ -54,7 +54,11 @@ impl StrataEngine {
         if inner.editor.revision() != revision {
             return Err(cancelled());
         }
-        if inner.interaction.is_some() || inner.marquee.is_some() || inner.exposure.is_some() {
+        if inner.interaction.is_some()
+            || inner.marquee.is_some()
+            || inner.exposure.is_some()
+            || inner.brush.is_some()
+        {
             return Err(StrataError::Command {
                 message: "finish the active canvas gesture before tonal preview".into(),
             });

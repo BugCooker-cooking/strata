@@ -91,6 +91,19 @@ pub struct TonalInteraction {
     epoch: u64,
     layer: LayerId,
 }
+#[derive(Clone)]
+pub struct BrushInteraction {
+    request: Request,
+    epoch: u64,
+    layer: LayerId,
+    target: BrushTarget,
+    command: String,
+}
+impl BrushInteraction {
+    pub fn command(&self) -> &str {
+        &self.command
+    }
+}
 
 #[derive(Debug, thiserror::Error)]
 pub enum CommandError {
@@ -481,6 +494,70 @@ impl Editor {
             layer,
         })
     }
+    pub fn begin_brush(
+        &self,
+        layer: LayerRef,
+        target: BrushTarget,
+        erase: bool,
+    ) -> Result<BrushInteraction, CommandError> {
+        let command = if erase { "paint.erase" } else { "paint.stroke" };
+        self.authorize(&Source::User, command, CommandKind::Mutate)?;
+        let doc = self.document().ok_or(CommandError::NoDocument)?;
+        let layer = doc.resolve(&layer)?;
+        let info = doc
+            .layers()
+            .iter()
+            .find(|l| l.id() == layer)
+            .expect("resolved layer")
+            .info();
+        if matches!(target, BrushTarget::Pixels) && !matches!(info.kind, crate::LayerKind::Pixel)
+            || matches!(target, BrushTarget::Mask) && info.mask.is_none()
+        {
+            return Err(CommandError::Invalid(
+                "choose a pixel layer or an existing layer mask for the brush".into(),
+            ));
+        }
+        if doc.layers().iter().any(|l| {
+            (l.id() == layer || doc.is_descendant(layer, l.id()))
+                && (l.info().locks.all || l.info().locks.pixels)
+        }) || erase && matches!(target, BrushTarget::Pixels) && info.locks.transparency
+        {
+            return Err(CommandError::Invalid(
+                "brush target or its parent is locked".into(),
+            ));
+        }
+        Ok(BrushInteraction {
+            request: self.request(Source::User),
+            epoch: self.epoch,
+            layer,
+            target,
+            command: command.into(),
+        })
+    }
+    pub fn prepare_brush(
+        &self,
+        interaction: &BrushInteraction,
+        mut params: Value,
+    ) -> Result<PreparedCommand, CommandError> {
+        if self.epoch != interaction.epoch {
+            return Err(CommandError::Stale);
+        }
+        let fields = params
+            .as_object_mut()
+            .ok_or_else(|| CommandError::Invalid("brush parameters must be an object".into()))?;
+        let layer = json!({"id":interaction.layer});
+        let target = json!(interaction.target);
+        if fields.get("layer").is_some_and(|value| *value != layer)
+            || fields.get("target").is_some_and(|value| *value != target)
+        {
+            return Err(CommandError::Invalid(
+                "brush gesture target is anchored at its first input".into(),
+            ));
+        }
+        fields.insert("layer".into(), layer);
+        fields.insert("target".into(), target);
+        self.prepare(interaction.request.clone(), &interaction.command, params)
+    }
     /// Context identity, independent of whether the request was explicitly
     /// cancelled. It is safe to restore a saved display only in this context.
     pub fn tonal_context_matches(&self, interaction: &TonalInteraction) -> bool {
@@ -796,6 +873,12 @@ impl Editor {
                     )
                 } else if let Some(result) =
                     super::selection::mutate_cancellable(doc, id, params.clone(), &|| {
+                        request.expired()
+                    })?
+                {
+                    (Action::Edit, result)
+                } else if let Some(result) =
+                    super::brush::mutate_cancellable(doc, id, params.clone(), &|| {
                         request.expired()
                     })?
                 {

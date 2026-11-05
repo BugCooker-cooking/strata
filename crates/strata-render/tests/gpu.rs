@@ -510,6 +510,68 @@ fn spatial_shadows_highlights_display_matches_cpu_and_cross_tile_reference() {
 }
 
 #[test]
+fn brush_eraser_and_mask_strokes_match_linear_cpu_composite_over_canvas() {
+    let Some(mut renderer) = renderer() else {
+        return;
+    };
+    for (command, target) in [
+        ("paint.stroke", "pixels"),
+        ("paint.erase", "pixels"),
+        ("paint.stroke", "mask"),
+        ("paint.erase", "mask"),
+    ] {
+        let mut editor = strata_core::Editor::new();
+        editor.execute(editor.request(strata_core::Source::Test),"file.new",serde_json::json!({"width":16,"height":16,"bit_depth":16,"working_space":"display_p3","background":[20000,30000,40000,65535]}),|_|Ok(())).unwrap();
+        if target == "mask" {
+            editor.execute(editor.request(strata_core::Source::Test),"layer.mask.add",serde_json::json!({"layer":{"name":"Background"},"source":if command=="paint.erase"{"black"}else{"white"}}),|_|Ok(())).unwrap();
+        }
+        editor.execute(editor.request(strata_core::Source::Test),command,serde_json::json!({"layer":{"name":"Background"},"target":target,"points":[{"x":8.5,"y":8.5}],"size":6,"hardness":0.5,"opacity":0.7,"flow":0.4,"color":[1,0.1,0.2,1],"value":if command=="paint.erase"{1}else{0}}),|_|Ok(())).unwrap();
+        let doc = editor.document().unwrap();
+        let scene = renderer.prepare_document(doc, false).unwrap();
+        renderer.commit_document(scene).unwrap();
+        renderer
+            .set_view(ViewTransform {
+                zoom: 3.0,
+                center_x: 8.0,
+                center_y: 8.0,
+            })
+            .unwrap();
+        renderer.render().unwrap();
+        let actual = renderer.read_offscreen_rgba().unwrap();
+        let reference = strata_core::composite::Compositor::new(1)
+            .tile(doc, strata_pixels::TileCoord::new(0, 0).unwrap())
+            .unwrap();
+        for (x, y) in [(2usize, 6usize), (8, 8), (10, 8), (13, 8)] {
+            let p = reference[y * 256 + x];
+            let mut expected = [0u8; 4];
+            expected[3] = 255;
+            for c in 0..3 {
+                let bg = f64::from(CANVAS_BG_SRGB[c]) / 255.0;
+                let bg = if bg <= 0.04045 {
+                    bg / 12.92
+                } else {
+                    ((bg + 0.055) / 1.055).powf(2.4)
+                };
+                let linear = f64::from(p[c]) * f64::from(p[3]) + bg * (1.0 - f64::from(p[3]));
+                let encoded = if linear <= 0.0031308 {
+                    linear * 12.92
+                } else {
+                    1.055 * linear.powf(1.0 / 2.4) - 0.055
+                };
+                expected[c] = (encoded.clamp(0.0, 1.0) * 255.0).round() as u8;
+            }
+            let shown = pixel(&actual, x * 3 + 9, y * 3 + 9);
+            for c in 0..4 {
+                assert!(
+                    shown[c].abs_diff(expected[c]) <= 2,
+                    "{command} {target} ({x},{y}) {shown:?} != {expected:?}"
+                );
+            }
+        }
+    }
+}
+
+#[test]
 fn tiled_scene_preserves_source_and_has_no_mip_seam() {
     let Some(mut r) = renderer() else {
         return;

@@ -16,8 +16,12 @@ final class CanvasView: NSView {
     private let marqueePreview = CAShapeLayer()
     private let foregroundPreview = CAShapeLayer()
     private let backgroundPreview = CAShapeLayer()
+    private let brushPreview = CAShapeLayer()
     private var selectionEdges: [SelectionEdge] = []
     private lazy var selectionInput = CanvasSelectionInput(engine: engine)
+    private lazy var brushInput = CanvasBrushInput(engine: engine)
+    private var brushTool = false
+    private var brushPreviewColor = NSColor.black
     var documentOrigin = NSPoint.zero
     private var selectionCommand: String?
     var isSelectionEnabled = true {
@@ -25,6 +29,7 @@ final class CanvasView: NSView {
     }
     var isWorkBusy = false
     var onSelectionRunning: ((Bool) -> Void)?
+    var onBrushRunning: ((Bool) -> Void)?
     private var benchmark: CanvasBenchmark?
     var onError: ((Error) -> Void)?
     var onCommitted: (() -> Void)?
@@ -34,7 +39,7 @@ final class CanvasView: NSView {
     var zoomTool = false
     private var pointerTracking: NSTrackingArea?
     var movesLayer = false
-    var isEditingEnabled = true
+    var isEditingEnabled = true { didSet { if !isEditingEnabled, !brushInput.running { brushInput.cancel() } } }
     var reportNextRestoredFrame = false
     var activeLayer: EditorSnapshot.Layer?
     private var layerDrag: (point: NSPoint, x: Int64, y: Int64, zoom: CGFloat)?
@@ -65,10 +70,16 @@ final class CanvasView: NSView {
             preview.fillColor = color.withAlphaComponent(0.3).cgColor
             layer?.addSublayer(preview)
         }
+        brushPreview.fillColor = nil; brushPreview.lineCap = .round; brushPreview.lineJoin = .round
+        layer?.addSublayer(brushPreview)
         selectionInput.onChanged = { [weak self] in self?.drawMarqueePreview() }
         selectionInput.onRunning = { [weak self] running in self?.onSelectionRunning?(running) }
         selectionInput.onCommitted = { [weak self] in self?.markDirty(); self?.onCommitted?() }
         selectionInput.onError = { [weak self] error in self?.onError?(error) }
+        brushInput.onChanged = { [weak self] in self?.drawBrushPreview() }
+        brushInput.onRunning = { [weak self] running in self?.onBrushRunning?(running) }
+        brushInput.onCommitted = { [weak self] in self?.markDirty(); self?.onCommitted?() }
+        brushInput.onError = { [weak self] error in self?.onError?(error) }
         setAccessibilityLabel("图像画布；滚动或拖动平移，捏合缩放")
         addSubview(stats)
         stats.translatesAutoresizingMaskIntoConstraints = false
@@ -113,6 +124,7 @@ final class CanvasView: NSView {
     /// Must run before the view/window releases its layer. Stops callbacks first.
     func shutdown() {
         cancelMarquee()
+        brushInput.cancel()
         selectionAnts.removeAllAnimations()
         benchmark?.cancel(BenchmarkFailure("Canvas detached before benchmark completed"))
         frameLink?.invalidate()
@@ -229,6 +241,7 @@ final class CanvasView: NSView {
         selectionBase.path = path; selectionAnts.path = path
         selectionBase.isHidden = selectionEdges.isEmpty; selectionAnts.isHidden = selectionEdges.isEmpty
         drawMarqueePreview()
+        drawBrushPreview()
     }
     func setSelectionOutline(_ edges: [SelectionEdge]) {
         selectionEdges = edges
@@ -281,6 +294,37 @@ final class CanvasView: NSView {
             radius: bounded(model.quickRadius, 0.5...256, fallback: 8), smoothness: bounded(model.quickSmoothness, 0...100, fallback: 8)))
         selectionInput.paintBackground = model.quickBackground
     }
+    func configureBrush(_ model: WorkspaceModel) {
+        brushTool = model.tool.isBrush
+        if !brushTool { brushInput.cancel(); return }
+        let color = model.foregroundColor.usingColorSpace(model.workingColorSpace) ?? NSColor(srgbRed:0,green:0,blue:0,alpha:1)
+        func bounded(_ value: Double, _ range: ClosedRange<Double>, _ fallback: Double) -> Double {
+            value.isFinite ? min(range.upperBound,max(range.lowerBound,value)) : fallback
+        }
+        let rgba = [Double(color.redComponent),Double(color.greenComponent),Double(color.blueComponent),Double(color.alphaComponent)].map { bounded($0,0...1,0) }
+        let maskColor = (model.tool == .eraser ? model.backgroundColor : model.foregroundColor).usingColorSpace(model.workingColorSpace) ?? NSColor(srgbRed:1,green:1,blue:1,alpha:1)
+        let maskValue = bounded(Double(maskColor.redComponent)*0.2126+Double(maskColor.greenComponent)*0.7152+Double(maskColor.blueComponent)*0.0722,0...1,1)
+        brushPreviewColor = model.tool == .eraser ? NSColor.white.withAlphaComponent(0.5) : color
+        let configuration = CanvasBrushConfiguration(layer:model.selected?.id,erase:model.tool == .eraser,target:model.brushTarget,
+            size:bounded(model.brushSize,0.5...4096,24),hardness:bounded(model.brushHardness/100,0...1,0.8),
+            opacity:bounded(model.brushOpacity/100,0...1,1),flow:bounded(model.brushFlow/100,0...1,1),
+            spacing:bounded(model.brushSpacing/100,0.01...2,0.2),color:rgba,
+            value:maskValue,pressureSize:model.brushPressureSize,pressureOpacity:model.brushPressureOpacity)
+        brushInput.configure(configuration)
+    }
+    private func drawBrushPreview() {
+        guard let source = brushInput.path(), let frame = engine.artboardOverlay() else { brushPreview.path = nil; return }
+        let zoom = CGFloat(engine.canvasZoom())/scale
+        var transform = CGAffineTransform(a:zoom,b:0,c:0,d:zoom,tx:CGFloat(frame.x)/scale-documentOrigin.x*zoom,ty:CGFloat(frame.y)/scale-documentOrigin.y*zoom)
+        CATransaction.begin();CATransaction.setDisableActions(true)
+        brushPreview.path = source.copy(using:&transform)
+        brushPreview.lineWidth = brushInput.configuration.size*zoom
+        brushPreview.strokeColor = brushPreviewColor.withAlphaComponent(brushInput.configuration.opacity*0.6).cgColor
+        CATransaction.commit()
+    }
+    private func brushPressure(_ event: NSEvent) -> Double {
+        event.subtype == .tabletPoint ? min(1,max(0,Double(event.pressure))) : 1
+    }
 
     override func scrollWheel(with event: NSEvent) {
         benchmark?.cancel(BenchmarkFailure("User input interrupted benchmark"))
@@ -298,6 +342,10 @@ final class CanvasView: NSView {
         guard !isWorkBusy else { return }
         benchmark?.cancel(BenchmarkFailure("User input interrupted benchmark"))
         window?.makeFirstResponder(self)
+        if brushTool {
+            guard isEditingEnabled, let point = documentPoint(convert(event.locationInWindow,from:nil)) else { return }
+            brushInput.down(point,pressure:brushPressure(event)); return
+        }
         if selectionCommand != nil {
             guard isSelectionEnabled, let point = documentPoint(convert(event.locationInWindow, from: nil)) else { return }
             selectionInput.down(point, modifiers: event.modifierFlags, clicks: event.clickCount)
@@ -316,6 +364,7 @@ final class CanvasView: NSView {
 
     override func mouseDragged(with event: NSEvent) {
         let point = convert(event.locationInWindow, from: nil)
+        if brushTool { if let point = documentPoint(point) { brushInput.drag(point,pressure:brushPressure(event)) }; return }
         if selectionCommand != nil {
             if let current = documentPoint(point) { selectionInput.drag(current) }
             return
@@ -335,6 +384,7 @@ final class CanvasView: NSView {
     }
 
     override func mouseUp(with event: NSEvent) {
+        if brushTool { if let point = documentPoint(convert(event.locationInWindow,from:nil)) { brushInput.up(point,pressure:brushPressure(event)) }; return }
         if selectionCommand != nil {
             if let point = documentPoint(convert(event.locationInWindow, from: nil)) { selectionInput.up(point) }
             return
@@ -345,7 +395,7 @@ final class CanvasView: NSView {
         catch { onError?(error) }
     }
     override func keyDown(with event: NSEvent) {
-        if event.keyCode == 53 { cancelLayerDrag(); cancelMarquee() }
+        if event.keyCode == 53 { cancelLayerDrag(); cancelMarquee(); brushInput.cancel() }
         else if event.keyCode == 36, selectionInput.confirm() { return }
         else if !event.modifierFlags.contains(.command), !event.modifierFlags.contains(.control),
                 let key = event.charactersIgnoringModifiers?.uppercased(), onToolKey?(key) == true { return }

@@ -78,6 +78,13 @@ fn examples() -> Result<(), Box<dyn Error>> {
             };
             let mut args = example.clone();
             match spec.id {
+                "paint.stroke" | "paint.erase" if args["target"] == "mask" => {
+                    run(
+                        &mut editor,
+                        "layer.mask.add",
+                        json!({"layer":{"name":"Background"},"source":"white"}),
+                    )?;
+                }
                 "adjust.tonal.set" => {
                     run(
                         &mut editor,
