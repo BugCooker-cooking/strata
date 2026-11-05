@@ -282,6 +282,10 @@ impl Editor {
     pub fn set_subject_selector(&mut self, selector: Arc<dyn crate::SubjectSelector>) {
         self.selector = Some(selector);
     }
+    pub fn clear_subject_selector(&mut self) {
+        self.cancel_pending_work();
+        self.selector = None;
+    }
     pub fn with_memory_pool(pool: strata_pixels::memory::MemoryPool) -> Self {
         Self {
             pool,
@@ -379,10 +383,31 @@ impl Editor {
         interaction: &MarqueeInteraction,
         params: Value,
     ) -> Result<PreparedCommand, CommandError> {
+        self.prepare_selection(interaction, "select.marquee", params)
+    }
+    pub fn prepare_selection(
+        &self,
+        interaction: &MarqueeInteraction,
+        command: &str,
+        params: Value,
+    ) -> Result<PreparedCommand, CommandError> {
+        if !matches!(
+            command,
+            "select.marquee"
+                | "select.ellipse"
+                | "select.polygon"
+                | "select.lasso"
+                | "select.wand"
+                | "select.quick"
+        ) {
+            return Err(CommandError::Invalid(
+                "not a supported selection gesture".into(),
+            ));
+        }
         if interaction.epoch != self.epoch {
             return Err(CommandError::Stale);
         }
-        self.prepare(interaction.request.clone(), "select.marquee", params)
+        self.prepare(interaction.request.clone(), command, params)
     }
     pub fn begin_exposure(&self, layer: LayerRef) -> Result<ExposureInteraction, CommandError> {
         self.authorize(&Source::User, "adjust.exposure.set", CommandKind::Mutate)?;
@@ -526,6 +551,7 @@ impl Editor {
                             | "select.none"
                             | "select.inverse"
                     )
+                    || id.starts_with("select.") && id != "select.subject"
             }
             (Source::Ai { turn_id: a }, Control::Running { turn_id: b }) => a == b,
             (Source::Ai { turn_id: a }, Control::Paused { turn_id: b }) => {
@@ -692,6 +718,9 @@ impl Editor {
                             result.diagnostics
                         )));
                     }
+                    if let Some(current) = &doc.selection {
+                        doc.previous_selection = Some(current.clone());
+                    }
                     doc.selection = Some(super::local::combine(
                         doc,
                         doc.selection.as_ref(),
@@ -702,6 +731,12 @@ impl Editor {
                         Action::Edit,
                         json!({"selection":doc.selection().map(strata_pixels::TiledMask::layout),"diagnostics":result.diagnostics}),
                     )
+                } else if let Some(result) =
+                    super::selection::mutate_cancellable(doc, id, params.clone(), &|| {
+                        request.expired()
+                    })?
+                {
+                    (Action::Edit, result)
                 } else if id == "file.place" {
                     let (resource, result) = self.prepare_place(&request, doc, params.clone())?;
                     (Action::Place(resource), result)
@@ -1139,6 +1174,9 @@ pub(super) fn mutate(doc: &mut Document, id: &str, params: Value) -> Result<Valu
         }
     }
     if let Some(result) = super::local::mutate(doc, id, params.clone())? {
+        return Ok(result);
+    }
+    if let Some(result) = super::selection::mutate(doc, id, params.clone())? {
         return Ok(result);
     }
     if let Some(result) = super::tree::mutate(doc, id, params.clone())? {

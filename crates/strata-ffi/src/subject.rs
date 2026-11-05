@@ -170,6 +170,10 @@ impl StrataEngine {
         self.lock()?.editor.cancel_pending_work();
         Ok(())
     }
+    pub fn clear_subject_model(&self) -> Result<(), StrataError> {
+        self.lock()?.editor.clear_subject_selector();
+        Ok(())
+    }
 }
 impl SubjectSelector for NativeSubject {
     fn select(

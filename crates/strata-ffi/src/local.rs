@@ -17,20 +17,35 @@ impl StrataEngine {
         Ok(())
     }
     pub fn end_marquee(&self, params_json: String, cancel: bool) -> Result<(), StrataError> {
-        {
+        self.end_selection("select.marquee".into(), params_json, cancel)
+    }
+    /// Prepare outside the host lock so canvas scrolling and cancellation stay
+    /// responsive during graph cuts. The gesture's original revision is checked
+    /// again at commit, even if the worker finishes after user/AI state changes.
+    pub fn end_selection(
+        &self,
+        command: String,
+        params_json: String,
+        cancel: bool,
+    ) -> Result<(), StrataError> {
+        let (snapshot, interaction) = {
             let mut inner = self.lock()?;
             let interaction = inner
                 .marquee
                 .take()
                 .ok_or_else(|| render_error("no marquee gesture"))?;
-            if !cancel {
-                let params: Value = serde_json::from_str(&params_json).map_err(render_error)?;
-                let prepared = inner
-                    .editor
-                    .prepare_marquee(&interaction, params.clone())
-                    .map_err(command_error)?;
-                apply(&mut inner, prepared, "select.marquee", &params)?;
+            (inner.editor.clone(), interaction)
+        };
+        if !cancel {
+            if params_json.len() > 1024 * 1024 {
+                return Err(render_error("selection parameters exceed limit"));
             }
+            let params: Value = serde_json::from_str(&params_json).map_err(render_error)?;
+            let prepared = snapshot
+                .prepare_selection(&interaction, &command, params.clone())
+                .map_err(command_error)?;
+            let mut inner = self.lock()?;
+            apply(&mut inner, prepared, &command, &params)?;
         }
         self.deliver_events()
     }
@@ -197,6 +212,50 @@ mod tests {
     struct Listener;
     impl EngineListener for Listener {
         fn on_event(&self, _: EngineEventDto) {}
+    }
+    #[test]
+    fn selection_gestures_reject_late_commits_wrong_commands_and_cancellation() {
+        let engine = StrataEngine::new(Arc::new(Listener));
+        engine
+            .dispatch(
+                "file.new".into(),
+                json!({"width":16,"height":16,"bit_depth":16}).to_string(),
+            )
+            .unwrap();
+        let params = json!({"x":2,"y":2,"width":8,"height":8}).to_string();
+        engine.begin_marquee().unwrap();
+        engine.dispatch("select.all".into(), "{}".into()).unwrap();
+        let history = engine.lock().unwrap().editor.snapshot().history.len();
+        assert!(
+            engine
+                .end_selection("select.ellipse".into(), params.clone(), false)
+                .is_err()
+        );
+        assert_eq!(
+            engine.lock().unwrap().editor.snapshot().history.len(),
+            history
+        );
+        engine.begin_marquee().unwrap();
+        assert!(
+            engine
+                .end_selection("layer.delete".into(), "{}".into(), false)
+                .is_err()
+        );
+        engine.begin_marquee().unwrap();
+        engine.cancel_pending_work().unwrap();
+        assert!(
+            engine
+                .end_selection("select.ellipse".into(), params.clone(), false)
+                .is_err()
+        );
+        engine.begin_marquee().unwrap();
+        engine
+            .end_selection("select.ellipse".into(), params, false)
+            .unwrap();
+        assert_eq!(
+            engine.lock().unwrap().editor.snapshot().history.len(),
+            history + 1
+        );
     }
     #[test]
     fn marquee_and_exposure_gestures_commit_once_and_cancel_without_history() {

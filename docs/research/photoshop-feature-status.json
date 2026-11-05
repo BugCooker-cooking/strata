@@ -300,32 +300,96 @@
     ]
   },
   "PS-05-24f905f241": {
-    "implementation": "部分实现",
-    "acceptance": "矩形/主体基础已实现；完整选区待 M4",
+    "implementation": "已实现",
+    "acceptance": "本机核心/原生证据；真实模型与固定性能门槛另记",
     "evidence": [
       {
-        "label": "M2b",
-        "path": "../research/2026-11-m2b-local-editing-progress.md"
+        "label": "M4 实现与验证",
+        "path": "../research/2026-11-m4-selection-progress.md"
       }
     ]
   },
   "PS-05-f88b2ecb2f": {
-    "implementation": "部分实现",
-    "acceptance": "矩形/主体基础已实现；完整选区待 M4",
+    "implementation": "已实现",
+    "acceptance": "本机推理/模型管理；困难质量集待验收",
     "evidence": [
       {
         "label": "M2b",
         "path": "../research/2026-11-m2b-local-editing-progress.md"
+      },
+      {
+        "label": "M4 模型管理",
+        "path": "../research/2026-11-m4-selection-progress.md"
       }
     ]
   },
   "PS-05-c3053c1de1": {
-    "implementation": "部分实现",
-    "acceptance": "矩形/主体基础已实现；完整选区待 M4",
+    "implementation": "已实现",
+    "acceptance": "本机核心/原生证据；真实模型与固定性能门槛另记",
     "evidence": [
       {
-        "label": "M2b",
-        "path": "../research/2026-11-m2b-local-editing-progress.md"
+        "label": "M4 实现与验证",
+        "path": "../research/2026-11-m4-selection-progress.md"
+      }
+    ]
+  },
+  "PS-05-8885dd3689": {
+    "implementation": "已实现",
+    "acceptance": "本机核心/原生证据；真实模型与固定性能门槛另记",
+    "evidence": [
+      {
+        "label": "M4 实现与验证",
+        "path": "../research/2026-11-m4-selection-progress.md"
+      }
+    ]
+  },
+  "PS-05-d2a511da9e": {
+    "implementation": "已实现",
+    "acceptance": "本机核心/原生证据；真实模型与固定性能门槛另记",
+    "evidence": [
+      {
+        "label": "M4 实现与验证",
+        "path": "../research/2026-11-m4-selection-progress.md"
+      }
+    ]
+  },
+  "PS-05-825f270266": {
+    "implementation": "已实现",
+    "acceptance": "本机核心/原生证据；真实模型与固定性能门槛另记",
+    "evidence": [
+      {
+        "label": "M4 实现与验证",
+        "path": "../research/2026-11-m4-selection-progress.md"
+      }
+    ]
+  },
+  "PS-05-a8345e1798": {
+    "implementation": "已实现",
+    "acceptance": "本机核心/原生证据；真实模型与固定性能门槛另记",
+    "evidence": [
+      {
+        "label": "M4 实现与验证",
+        "path": "../research/2026-11-m4-selection-progress.md"
+      }
+    ]
+  },
+  "PS-05-2cd4b1dc43": {
+    "implementation": "已实现",
+    "acceptance": "本机核心/原生证据；真实模型与固定性能门槛另记",
+    "evidence": [
+      {
+        "label": "M4 实现与验证",
+        "path": "../research/2026-11-m4-selection-progress.md"
+      }
+    ]
+  },
+  "PS-05-1f294f54d0": {
+    "implementation": "已实现",
+    "acceptance": "本机核心/原生证据；真实模型与固定性能门槛另记",
+    "evidence": [
+      {
+        "label": "M4 实现与验证",
+        "path": "../research/2026-11-m4-selection-progress.md"
       }
     ]
   }

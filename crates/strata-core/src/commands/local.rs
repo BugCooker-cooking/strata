@@ -17,7 +17,7 @@ fn bounds(doc: &Document) -> CoverageRect {
         height: doc.frame.height,
     }
 }
-fn uniform(doc: &Document, value: u16) -> Result<TiledMask, CommandError> {
+pub(super) fn uniform(doc: &Document, value: u16) -> Result<TiledMask, CommandError> {
     TiledMask::new(
         MaskLayout {
             bounds: bounds(doc),
@@ -64,6 +64,18 @@ pub(super) fn combine(
     b: TiledMask,
     mode: SelectionMode,
 ) -> Result<TiledMask, CommandError> {
+    combine_cancellable(doc, a, b, mode, &|| false)
+}
+pub(super) fn combine_cancellable(
+    doc: &Document,
+    a: Option<&TiledMask>,
+    b: TiledMask,
+    mode: SelectionMode,
+    cancel: &dyn Fn() -> bool,
+) -> Result<TiledMask, CommandError> {
+    if cancel() {
+        return Err(CommandError::Expired);
+    }
     if matches!(mode, SelectionMode::Replace) {
         return Ok(b);
     }
@@ -76,6 +88,9 @@ pub(super) fn combine(
     let mut out = uniform(doc, operation(base(a), base(&b), mode))?;
     let coords: BTreeSet<_> = a.tile_coords().chain(b.tile_coords()).copied().collect();
     for coord in coords {
+        if cancel() {
+            return Err(CommandError::Expired);
+        }
         let _scratch = doc
             .memory_pool()
             .reserve(MemoryKind::Transient, 256 * 256 * 2 * 3)
@@ -150,6 +165,15 @@ pub(super) fn mutate(
     params: Value,
 ) -> Result<Option<Value>, CommandError> {
     if id.starts_with("select.") {
+        if !matches!(
+            id,
+            "select.marquee" | "select.all" | "select.none" | "select.inverse"
+        ) {
+            return Ok(None);
+        }
+        if let Some(current) = &doc.selection {
+            doc.previous_selection = Some(current.clone());
+        }
         match id {
             "select.marquee" => {
                 let p: Marquee = parse(params)?;

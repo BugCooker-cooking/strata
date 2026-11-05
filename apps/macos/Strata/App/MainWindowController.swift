@@ -88,6 +88,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         }
         canvas.onError = { [weak self] error in self?.showError(error) }
         canvas.onCommitted = { [weak self] in self?.refresh() }
+        canvas.onSelectionRunning = { [weak self] running in self?.busy = running }
         canvas.onToolKey = { [weak self] key in
             guard let self, let tool = EditorTool.allCases.first(where: { $0.key == key && $0.available }) else { return false }
             self.workspace.selectTool(tool); return true
@@ -156,6 +157,10 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         case .cancelWork: try? engine.cancelPendingWork()
         case .prepareSubjectModel:
             guard let window else { return }; SubjectModelStore.shared.ensureInstalled(window: window, engine: engine) {}
+        case .importSubjectModel:
+            guard workspace.permissions.edits, let window else { return }; SubjectModelStore.shared.importModel(window: window, engine: engine)
+        case .removeSubjectModel:
+            guard workspace.permissions.edits, let window else { return }; SubjectModelStore.shared.removeModel(window: window)
         case .selectSubject:
             guard workspace.permissions.edits, let window else { return }
             SubjectModelStore.shared.ensureInstalled(window: window, engine: engine) { [weak self] in
@@ -197,7 +202,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         case .opacity(let value): layerCommand("layer.set_opacity", ["opacity": value])
         case .blend(let value): layerCommand("layer.set_blend_mode", ["blend_mode": value])
         case .position(let x, let y): layerCommand("layer.set_position", ["x": x, "y": y])
-        case .tool(let tool): canvas.movesLayer = tool == .move; canvas.zoomTool = tool == .zoom; canvas.marqueeTool = tool == .marquee; canvas.selectionMode = workspace.selectionMode; window?.makeFirstResponder(canvas)
+        case .tool(let tool): canvas.movesLayer = tool == .move; canvas.zoomTool = tool == .zoom; canvas.configureSelection(workspace); window?.makeFirstResponder(canvas)
         case .assistant: toggleAssistant()
         case .panels: togglePanels()
         case .theme(let theme): onTheme?(theme)
@@ -227,7 +232,6 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         workspace.selectedLayers=workspace.selectedLayers.intersection(Set(snapshot.layers.map(\.id)))
         canvas.documentOrigin = NSPoint(x: CGFloat(snapshot.frame?.x ?? 0), y: CGFloat(snapshot.frame?.y ?? 0))
         canvas.isSelectionEnabled = workspace.permissions.selectionEdits
-        canvas.selectionMode = workspace.selectionMode
         recovery?.observe(snapshot)
         if let path = engine.projectPath() { documentURL = URL(fileURLWithPath: path); fileName = documentURL!.lastPathComponent }
         workspace.fileName = fileName; window?.title = "\(fileName) — Strata"

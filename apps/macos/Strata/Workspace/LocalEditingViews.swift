@@ -14,7 +14,24 @@ struct SubjectModelCard: View {
                 Button("下载主体模型…") { model.send(.prepareSubjectModel) }
             }
             if !store.error.isEmpty { Text(store.error).font(.system(size: 10)).foregroundStyle(Color(nsColor: WorkspaceColors.danger)).textSelection(.enabled) }
-            Text("U²-Net-P · Apache-2.0 / MIT · 本机推理").font(.system(size: 9)).foregroundStyle(Color(nsColor: WorkspaceColors.muted))
+            Picker("推理后端", selection: Binding(get: { store.backend }, set: { store.selectBackend($0) })) {
+                Text("CPU").tag("cpu"); Text("Core ML").tag("core_ml")
+            }.disabled(store.downloading || !model.permissions.edits)
+            HStack {
+                Button("导入模型…") { model.send(.importSubjectModel) }
+                if store.installed { Button("移除缓存…") { model.send(.removeSubjectModel) } }
+            }.disabled(store.downloading || !model.permissions.edits)
+            if let asset = try? SubjectModelAsset.current() {
+                DisclosureGroup("版本与许可") {
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text("\(asset.id) · \(asset.version)")
+                        Text(asset.license)
+                        Text("SHA-256\n\(asset.sha256)").textSelection(.enabled)
+                        if let source = URL(string: asset.source) { Link("模型来源", destination: source) }
+                        Text("仅接受此受支持版本。模型与图片均在本机处理。")
+                    }.font(.system(size: 9)).foregroundStyle(Color(nsColor: WorkspaceColors.muted))
+                }
+            }
         }.padding(10).background(RoundedRectangle(cornerRadius: 7).fill(Color(nsColor: WorkspaceColors.raised)))
     }
 }

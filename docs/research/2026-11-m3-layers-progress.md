@@ -26,5 +26,6 @@
 ## 尚待验收与后续
 
 - M3 两模型四类任务的网络验收在钥匙串读取处被系统等待，已终止旧测试并实现后台限时读取；真实调用未开始的运行不算通过。
-- M3 最新增量的远程 Linux/macOS CI、独立干净构建及固定多层性能；实现分支尚未更新默认分支。
+- M3 在 `9a0a989` 的远程 Linux/macOS CI 均通过，含 macOS XCTest 与 arm64 Release 构建：[运行 41954427779](https://github.com/BugCooker-cooking/strata/actions/runs/41954427779)。修复 Xcode 16.4 对未显式类型的大小上限算式的类型检查超时；本机另有 2 项原生剪贴板回归通过。
+- 独立干净构建及固定多层性能继续追踪；实现分支尚未合并默认分支。草稿 PR 为 [#1](https://github.com/BugCooker-cooking/strata/pull/1)。
 - 蒙版画笔仍属 M6；其余调色类型属 M5；文字样式与栅格化在 M7 集成，未据当前图层框架提前宣称完成。

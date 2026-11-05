@@ -3,6 +3,7 @@ use serde_json::{Value, json};
 mod dataset;
 mod documentation;
 mod memory_stress;
+mod selection_benchmark;
 mod validation;
 use std::{collections::HashMap, error::Error, path::Path};
 use strata_core::{Editor, Source, commands::catalog};
@@ -76,6 +77,22 @@ fn examples() -> Result<(), Box<dyn Error>> {
             };
             let mut args = example.clone();
             match spec.id {
+                "select.reselect" => {
+                    run(
+                        &mut editor,
+                        "select.marquee",
+                        json!({"x":2,"y":2,"width":8,"height":8}),
+                    )?;
+                    run(&mut editor, "select.none", json!({}))?;
+                }
+                "select.feather" | "select.expand" | "select.contract" | "select.smooth"
+                | "select.border" | "select.transform" => {
+                    run(
+                        &mut editor,
+                        "select.marquee",
+                        json!({"x":2,"y":2,"width":8,"height":8}),
+                    )?;
+                }
                 "layer.set_pass_through" => {
                     run(&mut editor, "layer.create_group", json!({"name":"Group"}))?;
                 }
@@ -312,6 +329,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         Some("run") => script(Path::new(args.get(2).ok_or("missing script path")?))?,
         Some("demo") => println!("{}", serde_json::to_string_pretty(&validation::demo(Path::new(args.get(2).ok_or("missing new output directory")?))?)?),
         Some("capacity") => println!("{}", serde_json::to_string_pretty(&validation::capacity()?)?),
+        Some("selection-benchmark") => selection_benchmark::run(Path::new(args.get(2).ok_or("missing new report path")?))?,
         Some("memory-stress") => {
             let width = args.get(3).map(|s| s.parse()).transpose()?.unwrap_or(8000);
             let height = args.get(4).map(|s| s.parse()).transpose()?.unwrap_or(6250);
@@ -326,7 +344,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             println!("{}",json!({"path":path,"width":width,"height":height,"layers":layers,"bit_depth":depth,"seed":dataset::SEED}));
         }
         Some("verify-exports") => println!("{}", serde_json::to_string_pretty(&validation::verify_exports(Path::new(args.get(2).ok_or("missing project")?), &args[3..])?)?),
-        _ => return Err("usage: strata-devtool catalog | examples | docs NEW_MARKDOWN | run SCRIPT.json | demo NEW_DIRECTORY | capacity | fixture-project NEW_PROJECT WIDTH HEIGHT LAYERS DEPTH | memory-stress NEW_DIRECTORY [WIDTH HEIGHT LAYERS] | verify-exports PROJECT IMAGE...".into()),
+        _ => return Err("usage: strata-devtool catalog | examples | docs NEW_MARKDOWN | run SCRIPT.json | demo NEW_DIRECTORY | capacity | selection-benchmark NEW_REPORT | fixture-project NEW_PROJECT WIDTH HEIGHT LAYERS DEPTH | memory-stress NEW_DIRECTORY [WIDTH HEIGHT LAYERS] | verify-exports PROJECT IMAGE...".into()),
     }
     Ok(())
 }

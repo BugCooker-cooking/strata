@@ -47,6 +47,7 @@ pub struct Frame {
 #[derive(Clone, Debug)]
 pub struct Document {
     pub(crate) selection: Option<TiledMask>,
+    pub(crate) previous_selection: Option<TiledMask>,
     pub(crate) resolution_dpi: u32,
     pub(crate) preset: Option<String>,
     pub(crate) pool: strata_pixels::memory::MemoryPool,
@@ -86,6 +87,9 @@ impl Document {
     pub fn selection(&self) -> Option<&TiledMask> {
         self.selection.as_ref()
     }
+    pub fn previous_selection(&self) -> Option<&TiledMask> {
+        self.previous_selection.as_ref()
+    }
     pub fn source_bytes(&self) -> u64 {
         self.source_blocks().map(|(_, bytes)| bytes).sum()
     }
@@ -105,6 +109,7 @@ impl Document {
             .iter()
             .filter_map(|layer| layer.mask.as_ref())
             .chain(self.selection.iter())
+            .chain(self.previous_selection.iter())
             .flat_map(|mask| {
                 mask.tile_coords().filter_map(move |coord| {
                     mask.tile_version(*coord)
@@ -438,6 +443,22 @@ impl Document {
                 .checked_add(selection.referenced_bytes())
                 .ok_or(DocumentError::ResourceLimit)?;
         }
+        if let Some(selection) = &self.previous_selection {
+            let bounds = selection.layout().bounds;
+            if (bounds.x, bounds.y, bounds.width, bounds.height)
+                != (
+                    self.frame.x,
+                    self.frame.y,
+                    self.frame.width,
+                    self.frame.height,
+                )
+            {
+                return Err(DocumentError::Invalid("previous selection bounds".into()));
+            }
+            bytes = bytes
+                .checked_add(selection.referenced_bytes())
+                .ok_or(DocumentError::ResourceLimit)?;
+        }
         if bytes > MAX_DOCUMENT_BYTES
             || self
                 .format
@@ -500,6 +521,7 @@ impl DocumentCandidate {
         let active = Some(layer.id());
         let doc = Document {
             selection: None,
+            previous_selection: None,
             resolution_dpi: default_resolution_dpi(),
             preset: None,
             pool,

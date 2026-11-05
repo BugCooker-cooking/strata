@@ -14,12 +14,16 @@ final class CanvasView: NSView {
     private let selectionBase = CAShapeLayer()
     private let selectionAnts = CAShapeLayer()
     private let marqueePreview = CAShapeLayer()
+    private let foregroundPreview = CAShapeLayer()
+    private let backgroundPreview = CAShapeLayer()
     private var selectionEdges: [SelectionEdge] = []
-    private var marqueeDrag: (start: NSPoint, current: NSPoint, mode: String)?
+    private lazy var selectionInput = CanvasSelectionInput(engine: engine)
     var documentOrigin = NSPoint.zero
-    var marqueeTool = false
-    var isSelectionEnabled = true
-    var selectionMode = "replace"
+    private var selectionCommand: String?
+    var isSelectionEnabled = true {
+        didSet { if !isSelectionEnabled, !selectionInput.running { selectionInput.cancel() } }
+    }
+    var onSelectionRunning: ((Bool) -> Void)?
     private var benchmark: CanvasBenchmark?
     var onError: ((Error) -> Void)?
     var onCommitted: (() -> Void)?
@@ -56,6 +60,14 @@ final class CanvasView: NSView {
         selectionBase.strokeColor = NSColor.white.cgColor
         selectionAnts.strokeColor = NSColor.black.cgColor; selectionAnts.lineDashPattern = [4, 4]
         marqueePreview.strokeColor = NSColor.white.cgColor; marqueePreview.lineDashPattern = [4, 4]
+        for (preview, color) in [(foregroundPreview, NSColor.systemGreen), (backgroundPreview, NSColor.systemRed)] {
+            preview.fillColor = color.withAlphaComponent(0.3).cgColor
+            layer?.addSublayer(preview)
+        }
+        selectionInput.onChanged = { [weak self] in self?.drawMarqueePreview() }
+        selectionInput.onRunning = { [weak self] running in self?.onSelectionRunning?(running) }
+        selectionInput.onCommitted = { [weak self] in self?.markDirty(); self?.onCommitted?() }
+        selectionInput.onError = { [weak self] error in self?.onError?(error) }
         setAccessibilityLabel("图像画布；滚动或拖动平移，捏合缩放")
         addSubview(stats)
         stats.translatesAutoresizingMaskIntoConstraints = false
@@ -215,6 +227,7 @@ final class CanvasView: NSView {
         }
         selectionBase.path = path; selectionAnts.path = path
         selectionBase.isHidden = selectionEdges.isEmpty; selectionAnts.isHidden = selectionEdges.isEmpty
+        drawMarqueePreview()
     }
     func setSelectionOutline(_ edges: [SelectionEdge]) {
         selectionEdges = edges
@@ -235,17 +248,37 @@ final class CanvasView: NSView {
                        y: documentOrigin.y + (point.y * scale - CGFloat(frame.y)) / zoom)
     }
     private func drawMarqueePreview() {
-        guard let drag = marqueeDrag, let frame = engine.artboardOverlay() else { marqueePreview.path = nil; return }
+        guard let frame = engine.artboardOverlay() else { return }
         let zoom = CGFloat(engine.canvasZoom()) / scale
-        let origin = CGPoint(x: CGFloat(frame.x) / scale + (min(drag.start.x, drag.current.x) - documentOrigin.x) * zoom,
-                             y: CGFloat(frame.y) / scale + (min(drag.start.y, drag.current.y) - documentOrigin.y) * zoom)
-        let rect = CGRect(origin: origin, size: CGSize(width: abs(drag.start.x - drag.current.x) * zoom, height: abs(drag.start.y - drag.current.y) * zoom))
-        CATransaction.begin(); CATransaction.setDisableActions(true); marqueePreview.path = CGPath(rect: rect, transform: nil); CATransaction.commit()
+        var transform = CGAffineTransform(a: zoom, b: 0, c: 0, d: zoom,
+            tx: CGFloat(frame.x) / scale - documentOrigin.x * zoom, ty: CGFloat(frame.y) / scale - documentOrigin.y * zoom)
+        let paths = selectionInput.paths()
+        CATransaction.begin(); CATransaction.setDisableActions(true)
+        marqueePreview.path = paths.0?.copy(using: &transform)
+        foregroundPreview.path = paths.1?.copy(using: &transform)
+        backgroundPreview.path = paths.2?.copy(using: &transform)
+        CATransaction.commit()
     }
     private func cancelMarquee() {
-        guard marqueeDrag != nil else { return }
-        try? engine.endMarquee(paramsJson: "{}", cancel: true)
-        marqueeDrag = nil; marqueePreview.path = nil; lastDrag = nil
+        selectionInput.cancel(); lastDrag = nil
+    }
+    func configureSelection(_ model: WorkspaceModel) {
+        let command: String?
+        switch model.tool {
+        case .marquee: command = model.marqueeShape == "ellipse" ? "select.ellipse" : "select.marquee"
+        case .lasso: command = model.lassoShape == "polygon" ? "select.polygon" : "select.lasso"
+        case .selection: command = model.selectionShape == "wand" ? "select.wand" : "select.quick"
+        default: command = nil
+        }
+        if command == nil { selectionInput.cancel() }
+        selectionCommand = command
+        func bounded(_ value: Double, _ range: ClosedRange<Double>, fallback: Double) -> Double {
+            value.isFinite ? min(range.upperBound, max(range.lowerBound, value)) : fallback
+        }
+        selectionInput.configure(CanvasSelectionConfiguration(command: command ?? "select.marquee", mode: model.selectionMode,
+            sample: model.selectionSample, tolerance: Int(bounded(model.wandTolerance, 0...255, fallback: 32)), contiguous: model.wandContiguous,
+            radius: bounded(model.quickRadius, 0.5...256, fallback: 8), smoothness: bounded(model.quickSmoothness, 0...100, fallback: 8)))
+        selectionInput.paintBackground = model.quickBackground
     }
 
     override func scrollWheel(with event: NSEvent) {
@@ -263,14 +296,9 @@ final class CanvasView: NSView {
     override func mouseDown(with event: NSEvent) {
         benchmark?.cancel(BenchmarkFailure("User input interrupted benchmark"))
         window?.makeFirstResponder(self)
-        if marqueeTool {
+        if selectionCommand != nil {
             guard isSelectionEnabled, let point = documentPoint(convert(event.locationInWindow, from: nil)) else { return }
-            do {
-                try engine.beginMarquee()
-                let shift = event.modifierFlags.contains(.shift), option = event.modifierFlags.contains(.option)
-                let mode = shift && option ? "intersect" : shift ? "add" : option ? "subtract" : selectionMode
-                marqueeDrag = (point, point, mode)
-            } catch { onError?(error) }
+            selectionInput.down(point, modifiers: event.modifierFlags, clicks: event.clickCount)
             return
         }
         if zoomTool {
@@ -286,8 +314,8 @@ final class CanvasView: NSView {
 
     override func mouseDragged(with event: NSEvent) {
         let point = convert(event.locationInWindow, from: nil)
-        if marqueeDrag != nil {
-            if let current = documentPoint(point) { marqueeDrag?.current = current; drawMarqueePreview() }
+        if selectionCommand != nil {
+            if let current = documentPoint(point) { selectionInput.drag(current) }
             return
         }
         if let drag = layerDrag {
@@ -305,16 +333,8 @@ final class CanvasView: NSView {
     }
 
     override func mouseUp(with event: NSEvent) {
-        if let drag = marqueeDrag {
-            defer { marqueeDrag = nil; marqueePreview.path = nil; lastDrag = nil }
-            guard let x = Int64(exactly: min(drag.start.x, drag.current.x).rounded(.down)),
-                  let y = Int64(exactly: min(drag.start.y, drag.current.y).rounded(.down)),
-                  let width = UInt32(exactly: abs(drag.current.x - drag.start.x).rounded(.up)),
-                  let height = UInt32(exactly: abs(drag.current.y - drag.start.y).rounded(.up)), width > 0, height > 0 else { try? engine.endMarquee(paramsJson: "{}", cancel: true); return }
-            do {
-                try engine.endMarquee(paramsJson: commandJSON(["x": x, "y": y, "width": width, "height": height, "mode": drag.mode]), cancel: false)
-                markDirty(); onCommitted?()
-            } catch { onError?(error) }
+        if selectionCommand != nil {
+            if let point = documentPoint(convert(event.locationInWindow, from: nil)) { selectionInput.up(point) }
             return
         }
         defer { lastDrag = nil; layerDrag = nil; layerPosition = nil }
@@ -324,6 +344,7 @@ final class CanvasView: NSView {
     }
     override func keyDown(with event: NSEvent) {
         if event.keyCode == 53 { cancelLayerDrag(); cancelMarquee() }
+        else if event.keyCode == 36, selectionInput.confirm() { return }
         else if !event.modifierFlags.contains(.command), !event.modifierFlags.contains(.control),
                 let key = event.charactersIgnoringModifiers?.uppercased(), onToolKey?(key) == true { return }
         else { super.keyDown(with: event) }
@@ -334,7 +355,11 @@ final class CanvasView: NSView {
         let area = NSTrackingArea(rect: .zero, options: [.mouseMoved, .activeInKeyWindow, .inVisibleRect], owner: self)
         addTrackingArea(area); pointerTracking = area
     }
-    override func mouseMoved(with event: NSEvent) { onPointerMoved?(convert(event.locationInWindow, from: nil)) }
+    override func mouseMoved(with event: NSEvent) {
+        let point = convert(event.locationInWindow, from: nil)
+        if let document = documentPoint(point) { selectionInput.hover(document) }
+        onPointerMoved?(point)
+    }
     func panByPoints(dx: CGFloat, dy: CGFloat) { pan(dx: dx, dy: dy) }
     func actualSize() { zoomBy(1 / CGFloat(engine.canvasZoom())) }
     private func cancelLayerDrag() {

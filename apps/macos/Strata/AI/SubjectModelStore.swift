@@ -10,6 +10,42 @@ struct SubjectModelAsset: Decodable, Sendable {
     }
 }
 
+/// Stage beside the destination so publishing uses one atomic rename. Bound
+/// the copy as well as the final digest; a source may change while importing.
+enum SubjectModelInstallation {
+    static func stage(source: URL, destination: URL, maximumBytes: UInt64) throws -> URL {
+        let attributes = try source.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey])
+        guard attributes.isRegularFile == true, attributes.isSymbolicLink != true else { throw AIClientError.message("请选择普通 ONNX 模型文件。") }
+        let directory = destination.deletingLastPathComponent()
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let temporary = directory.appendingPathComponent("import-\(UUID().uuidString).download")
+        var complete = false
+        defer { if !complete { try? FileManager.default.removeItem(at: temporary) } }
+        guard FileManager.default.createFile(atPath: temporary.path, contents: nil, attributes: [.posixPermissions: 0o600]) else { throw AIClientError.message("无法创建模型导入文件。") }
+        let input = try FileHandle(forReadingFrom: source), output = try FileHandle(forWritingTo: temporary)
+        defer { try? input.close(); try? output.close() }
+        var total: UInt64 = 0
+        while let data = try input.read(upToCount: 65536), !data.isEmpty {
+            total += UInt64(data.count)
+            guard total <= maximumBytes else { throw AIClientError.message("模型文件超过支持的大小限制。") }
+            try output.write(contentsOf: data)
+        }
+        try output.synchronize()
+        try verifySubjectModel(path: temporary.path)
+        complete = true
+        return temporary
+    }
+    static func publish(_ temporary: URL, to destination: URL) throws {
+        if FileManager.default.fileExists(atPath: destination.path) { _ = try FileManager.default.replaceItemAt(destination, withItemAt: temporary) }
+        else { try FileManager.default.moveItem(at: temporary, to: destination) }
+    }
+}
+
+private final class SubjectEngineReference {
+    weak var engine: StrataEngine?
+    init(_ engine: StrataEngine) { self.engine = engine }
+}
+
 @MainActor
 final class SubjectModelStore: ObservableObject {
     static let shared = SubjectModelStore()
@@ -17,15 +53,18 @@ final class SubjectModelStore: ObservableObject {
     @Published private(set) var downloading = false
     @Published private(set) var progress = 0.0
     @Published private(set) var status = "主体模型尚未下载"
+    @Published private(set) var backend = "cpu"
     @Published var error = ""
     private var download: Task<Void, Never>?
     private var waiters: [@MainActor () -> Void] = []
+    private var engines: [SubjectEngineReference] = []
     private(set) var modelURL: URL?
     init() {
+        backend = UserDefaults.standard.string(forKey: "subject.backend") == "core_ml" ? "core_ml" : "cpu"
         do {
             let root = try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
             modelURL = root.appendingPathComponent("Strata/Models/u2netp-rembg-v0.0.0.onnx")
-            if let modelURL, (try? verifySubjectModel(path: modelURL.path)) != nil { installed = true; status = "U²-Net-P · CPU · 已安装" }
+            if let modelURL, (try? verifySubjectModel(path: modelURL.path)) != nil { installed = true; installedStatus() }
         } catch { self.error = error.localizedDescription }
     }
     func configure(_ engine: StrataEngine) throws {
@@ -34,7 +73,54 @@ final class SubjectModelStore: ObservableObject {
             throw AIClientError.message("本地推理运行库未打包，请重新构建应用。")
         }
         let hash = try String(contentsOf: fingerprint, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines)
-        try engine.configureSubjectModel(runtimePath: library.path, runtimeHash: hash, modelPath: modelURL.path, backend: "cpu")
+        try engine.configureSubjectModel(runtimePath: library.path, runtimeHash: hash, modelPath: modelURL.path, backend: backend)
+        engines.removeAll { $0.engine == nil }
+        if !engines.contains(where: { $0.engine === engine }) { engines.append(SubjectEngineReference(engine)) }
+    }
+    private func installedStatus() { status = "U²-Net-P · \(backend == "cpu" ? "CPU" : "Core ML") · 已校验并缓存" }
+    func selectBackend(_ value: String) {
+        guard !downloading, ["cpu", "core_ml"].contains(value) else { return }
+        backend = value; UserDefaults.standard.set(value, forKey: "subject.backend")
+        do { for reference in engines { if let engine = reference.engine { try configure(engine) } }; if installed { installedStatus() }; error = "" }
+        catch { self.error = error.localizedDescription }
+    }
+    func importModel(window: NSWindow, engine: StrataEngine) {
+        guard !downloading else { return }
+        let panel = NSOpenPanel(); panel.title = "导入支持的 U²-Net-P 模型"; panel.allowsMultipleSelection = false; panel.canChooseDirectories = false
+        panel.message = "仅接受受支持版本及 SHA-256 完全匹配的模型；替换失败将保留当前缓存。"
+        panel.beginSheetModal(for: window) { [weak self] response in
+            guard response == .OK, let source = panel.url else { return }
+            self?.startImport(source, engine: engine)
+        }
+    }
+    private func startImport(_ source: URL, engine: StrataEngine) {
+        guard !downloading, let modelURL, let asset = try? SubjectModelAsset.current() else { return }
+        downloading = true; progress = 0; error = ""; status = "正在导入并校验模型…"
+        download = Task { [weak self] in
+            guard let self else { return }
+            var temporary: URL?
+            defer { self.downloading = false; self.download = nil; if let temporary { try? FileManager.default.removeItem(at: temporary) } }
+            do {
+                let staged = try await aiEngineWork { try SubjectModelInstallation.stage(source: source, destination: modelURL, maximumBytes: asset.maxBytes) }
+                temporary = staged; try Task.checkCancellation()
+                try SubjectModelInstallation.publish(staged, to: modelURL)
+                self.installed = true; self.progress = 1; self.installedStatus(); try self.configure(engine)
+            } catch { self.error = Task.isCancelled ? "" : error.localizedDescription; self.status = self.installed ? "导入未完成；原缓存保留" : "模型导入未完成" }
+        }
+    }
+    func removeModel(window: NSWindow) {
+        guard installed, !downloading, let modelURL else { return }
+        let alert = NSAlert(); alert.messageText = "移除主体模型缓存？"
+        alert.informativeText = "取消正在准备的本地任务并释放已加载的主体模型。图片、选区和历史会保留；以后可以重新下载或导入。"
+        alert.addButton(withTitle: "移除缓存"); alert.addButton(withTitle: "取消")
+        alert.beginSheetModal(for: window) { [weak self] response in
+            guard response == .alertFirstButtonReturn, let self else { return }
+            do {
+                for reference in self.engines { try reference.engine?.clearSubjectModel() }
+                try FileManager.default.removeItem(at: modelURL)
+                self.installed = false; self.status = "主体模型缓存已移除"; self.error = ""
+            } catch { self.error = error.localizedDescription }
+        }
     }
     func ensureInstalled(window: NSWindow, engine: StrataEngine, completion: @escaping @MainActor () -> Void) {
         if installed {
@@ -83,9 +169,8 @@ final class SubjectModelStore: ObservableObject {
                 try file.synchronize(); try Task.checkCancellation()
                 try await aiEngineWork { try verifySubjectModel(path: temporary.path) }
                 try Task.checkCancellation()
-                if FileManager.default.fileExists(atPath: modelURL.path) { _ = try FileManager.default.replaceItemAt(modelURL, withItemAt: temporary) }
-                else { try FileManager.default.moveItem(at: temporary, to: modelURL) }
-                self.installed = true; self.progress = 1; self.status = "U²-Net-P · CPU · 已安装"
+                try SubjectModelInstallation.publish(temporary, to: modelURL)
+                self.installed = true; self.progress = 1; self.installedStatus()
                 try self.configure(engine)
                 let callbacks = self.waiters; self.waiters = []; callbacks.forEach { $0() }
             } catch is CancellationError { self.status = "模型下载已取消"; self.waiters = [] }

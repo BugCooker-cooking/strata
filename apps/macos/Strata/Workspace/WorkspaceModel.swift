@@ -38,7 +38,8 @@ enum EditorTool: String, CaseIterable, Identifiable {
     var title: String { Self.info[self]!.0 }
     var symbol: String { Self.info[self]!.1 }
     var key: String { Self.info[self]!.2 }
-    var available: Bool { [.move, .marquee, .subject, .hand, .zoom].contains(self) }
+    var available: Bool { [.move, .marquee, .lasso, .selection, .subject, .hand, .zoom].contains(self) }
+    var isSelection: Bool { [.marquee, .lasso, .selection].contains(self) }
     static let groups: [[EditorTool]] = [[.move], [.marquee, .lasso, .selection, .subject], [.crop, .eyedropper], [.heal, .clone, .brush, .eraser, .gradient, .dodge], [.text, .pen, .shape], [.hand, .zoom]]
     private static let info: [EditorTool: (String, String, String)] = [
         .move: ("移动", "cursorarrow", "V"), .marquee: ("矩形选框", "rectangle.dashed", "M"),
@@ -85,6 +86,15 @@ final class WorkspaceModel: ObservableObject {
     @Published var recoveryError = ""
     @Published var tool = EditorTool.hand
     @Published var selectionMode = "replace"
+    @Published var marqueeShape = "rectangle"
+    @Published var lassoShape = "freehand"
+    @Published var selectionShape = "quick"
+    @Published var selectionSample = "merged"
+    @Published var wandTolerance = 32.0
+    @Published var wandContiguous = true
+    @Published var quickRadius = 8.0
+    @Published var quickSmoothness = 8.0
+    @Published var quickBackground = false
     @Published var histogram: [Double] = []
     @Published var workingColorSpace=NSColorSpace.sRGB
     @Published var collapsedGroups:Set<String>=[]
@@ -123,7 +133,7 @@ final class WorkspaceModel: ObservableObject {
     var canRedo: Bool { permissions.history && (snapshot?.historyCursor ?? 0) < (snapshot?.history.count ?? 0) }
     func send(_ action: WorkspaceAction) { self.action?(action) }
     func selectTool(_ tool: EditorTool) {
-        guard tool.available, tool != .move || permissions.edits, tool != .marquee || permissions.selectionEdits else { return }
+        guard tool.available, tool != .move || permissions.edits, !tool.isSelection || permissions.selectionEdits else { return }
         if tool == .subject { if permissions.edits { send(.selectSubject) }; return }
         self.tool = tool; send(.tool(tool))
     }
@@ -135,6 +145,7 @@ enum WorkspaceAction {
     case cancelWork
     case selectSubject
     case prepareSubjectModel
+    case importSubjectModel, removeSubjectModel
     case command(String, [String: Any])
     case exposureBegin, exposurePreview(Double), exposureEnd(Double, Bool)
     case new, open, place, save, export, undo, redo, fit, zoom(Double), actualSize
@@ -154,12 +165,19 @@ extension EditorSnapshot.History {
 }
 
 func commandTitle(_ command: String) -> String {
-    ["layer.create": "新建图层", "layer.duplicate": "复制图层", "layer.delete": "删除图层", "layer.rename": "重命名图层",
+    commandTitles[command] ?? command
+}
+private let commandTitles: [String: String] = [
+     "layer.create": "新建图层", "layer.duplicate": "复制图层", "layer.delete": "删除图层", "layer.rename": "重命名图层",
      "layer.set_position": "移动图层", "layer.set_visibility": "图层显隐", "layer.set_opacity": "调整不透明度",
      "layer.set_blend_mode": "混合模式", "layer.move_order": "调整顺序", "color.convert": "转换色彩空间",
      "batch": "批量编辑", "document.batch": "批量编辑", "file.save": "保存工程", "file.save_as": "另存工程", "file.export": "导出图片",
      "file.place": "置入图片", "select.subject": "选择主体", "select.marquee": "矩形选区",
      "select.all": "全选", "select.none": "取消选择", "select.inverse": "反选",
+     "select.ellipse": "椭圆选区", "select.polygon": "多边形套索", "select.lasso": "自由套索",
+     "select.wand": "魔棒选区", "select.quick": "快速选择", "select.reselect": "重新选择",
+     "select.feather": "羽化选区", "select.expand": "扩展选区", "select.contract": "收缩选区",
+     "select.smooth": "平滑选区", "select.border": "选区边界", "select.transform": "变换选区",
      "layer.add_adjustment": "新建曝光调整层", "adjust.exposure.set": "调整曝光",
      "layer.mask.add": "添加蒙版", "layer.mask.invert": "反相蒙版",
      "layer.mask.set_enabled": "切换蒙版", "layer.mask.remove": "移除蒙版",
@@ -167,5 +185,11 @@ func commandTitle(_ command: String) -> String {
      "layer.group":"编组","layer.create_group":"新建组","layer.ungroup":"取消编组","layer.reparent":"移动到组",
      "layer.fill.solid":"纯色填充","layer.fill.gradient":"渐变填充","layer.add_hue_saturation":"色相/饱和度调整",
      "layer.rasterize":"栅格化","layer.mask.apply":"应用蒙版","layer.merge_down":"向下合并",
-     "layer.merge_visible":"合并可见","layer.flatten":"拼合图像","layer.stamp_visible":"盖印可见","layer.set_clipping":"剪贴蒙版"] [command] ?? command
-}
+     "layer.merge_visible":"合并可见","layer.flatten":"拼合图像","layer.stamp_visible":"盖印可见","layer.set_clipping":"剪贴蒙版",
+     "layer.set_pass_through":"组穿透模式", "layer.fill.solid.set":"修改纯色填充", "layer.fill.gradient.set":"修改渐变填充",
+     "adjust.hue_saturation.set":"调整色相/饱和度", "layer.styles.set":"修改图层样式",
+     "layer.align":"对齐图层", "layer.distribute":"分布图层", "layer.via_copy":"通过拷贝新建图层",
+     "layer.via_cut":"通过剪切新建图层", "layer.background_to_layer":"背景转普通图层",
+     "edit.copy":"拷贝像素", "edit.copy_merged":"合并拷贝", "edit.cut":"剪切像素",
+     "edit.paste":"粘贴像素", "edit.paste_in_place":"原位粘贴", "edit.clear":"清除像素"
+]

@@ -37,7 +37,7 @@ struct ToolRail: View {
                         if index > 0 { Rectangle().fill(Color(nsColor: WorkspaceColors.border)).frame(height: 1).padding(.horizontal, 10) }
                         ForEach(group) { tool in
                             WorkspaceIconButton(title: "\(tool.title)\(tool.key.isEmpty ? "" : " (\(tool.key))")", symbol: tool.symbol,
-                                enabled: tool.available && (![EditorTool.move, .subject].contains(tool) || model.permissions.edits) && (tool != .marquee || model.permissions.selectionEdits), selected: model.tool == tool) { model.selectTool(tool) }
+                                enabled: tool.available && (![EditorTool.move, .subject].contains(tool) || model.permissions.edits) && (!tool.isSelection || model.permissions.selectionEdits), selected: model.tool == tool) { model.selectTool(tool) }
                         }
                     }
                 }.padding(.top, 8)
@@ -58,14 +58,8 @@ struct ToolOptionsBar: View {
             Label(model.tool.title, systemImage: model.tool.symbol).fontWeight(.medium).frame(width: 100, alignment: .leading)
             Divider().frame(height: 16)
             switch model.tool {
-            case .marquee:
-                Picker("选区运算", selection: Binding(get: { model.selectionMode }, set: { model.selectionMode = $0; model.send(.tool(.marquee)) })) {
-                    Text("新建").tag("replace"); Text("相加").tag("add"); Text("相减").tag("subtract"); Text("交叉").tag("intersect")
-                }.labelsHidden().frame(width: 100).disabled(!model.permissions.selectionEdits)
-                Button("全选") { model.send(.command("select.all", [:])) }.disabled(!model.permissions.selectionEdits)
-                Button("取消") { model.send(.command("select.none", [:])) }.disabled(!model.permissions.selectionEdits)
-                Button("反选") { model.send(.command("select.inverse", [:])) }.disabled(!model.permissions.selectionEdits)
-                Text("⇧ 相加 · ⌥ 相减 · Esc 取消拖动").foregroundStyle(Color(nsColor: WorkspaceColors.secondary))
+            case .marquee, .lasso, .selection:
+                SelectionToolOptions(model: model)
             case .move:
                 Text("当前图层").foregroundStyle(Color(nsColor: WorkspaceColors.secondary))
                 Text(model.selected?.name ?? "未选择").lineLimit(1).frame(maxWidth: 180, alignment: .leading)

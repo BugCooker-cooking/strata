@@ -286,6 +286,7 @@ fn copy(doc: &Document, target: Option<LayerId>) -> Result<ClipboardImage, Comma
     snapshot.frame.width = bounds.width;
     snapshot.frame.height = bounds.height;
     snapshot.selection = None;
+    snapshot.previous_selection = None;
     let bytes = doc
         .format
         .byte_count(bounds.width, bounds.height)

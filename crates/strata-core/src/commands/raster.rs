@@ -117,6 +117,7 @@ fn raster(doc: &Document) -> Result<Raster, CommandError> {
     snapshot.frame.width = width;
     snapshot.frame.height = height;
     snapshot.selection = None;
+    snapshot.previous_selection = None;
     let pixels = snapshot.export_pixels()?;
     Ok(Raster {
         pixels,

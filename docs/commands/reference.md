@@ -8480,6 +8480,1639 @@ Permissions: `bound_document`
 }
 ```
 
+## `select.ellipse` — 椭圆选框
+
+Select an antialiased ellipse in a canvas pixel rectangle, using 16-bit 4x4 edge coverage. Mode replace/add/subtract/intersect; artboard clips the result. Cancellable, not batchable.
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `false`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Marquee",
+  "type": "object",
+  "properties": {
+    "height": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0
+    },
+    "mode": {
+      "$ref": "#/$defs/SelectionMode",
+      "default": "replace"
+    },
+    "width": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0
+    },
+    "x": {
+      "type": "integer",
+      "format": "int64"
+    },
+    "y": {
+      "type": "integer",
+      "format": "int64"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "x",
+    "y",
+    "width",
+    "height"
+  ],
+  "$defs": {
+    "SelectionMode": {
+      "type": "string",
+      "enum": [
+        "replace",
+        "add",
+        "subtract",
+        "intersect"
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SelectionResult",
+  "type": "object",
+  "properties": {
+    "selection": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/MaskLayout"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "CoverageRect": {
+      "type": "object",
+      "properties": {
+        "height": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "width": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "x": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "y": {
+          "type": "integer",
+          "format": "int64"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "x",
+        "y",
+        "width",
+        "height"
+      ]
+    },
+    "MaskLayout": {
+      "type": "object",
+      "properties": {
+        "bounds": {
+          "$ref": "#/$defs/CoverageRect"
+        },
+        "default_coverage": {
+          "type": "integer",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0
+        },
+        "inverted": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "bounds",
+        "default_coverage",
+        "inverted"
+      ]
+    }
+  }
+}
+```
+
+### Examples
+
+```json
+{
+  "height": 8,
+  "mode": "replace",
+  "width": 8,
+  "x": 2,
+  "y": 2
+}
+```
+
+## `select.polygon` — 多边形套索
+
+Close a finite 3..4096-point polygon using the even-odd fill rule and 4x4 coverage, in canvas coordinates. Self intersections are supported. Cancellable and bounded by artboard.
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `false`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PolygonSelection",
+  "type": "object",
+  "properties": {
+    "mode": {
+      "$ref": "#/$defs/SelectionMode",
+      "default": "replace"
+    },
+    "points": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": {
+          "type": "number",
+          "format": "double"
+        },
+        "maxItems": 2,
+        "minItems": 2
+      }
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "points"
+  ],
+  "$defs": {
+    "SelectionMode": {
+      "type": "string",
+      "enum": [
+        "replace",
+        "add",
+        "subtract",
+        "intersect"
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SelectionResult",
+  "type": "object",
+  "properties": {
+    "selection": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/MaskLayout"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "CoverageRect": {
+      "type": "object",
+      "properties": {
+        "height": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "width": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "x": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "y": {
+          "type": "integer",
+          "format": "int64"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "x",
+        "y",
+        "width",
+        "height"
+      ]
+    },
+    "MaskLayout": {
+      "type": "object",
+      "properties": {
+        "bounds": {
+          "$ref": "#/$defs/CoverageRect"
+        },
+        "default_coverage": {
+          "type": "integer",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0
+        },
+        "inverted": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "bounds",
+        "default_coverage",
+        "inverted"
+      ]
+    }
+  }
+}
+```
+
+### Examples
+
+```json
+{
+  "points": [
+    [
+      1,
+      1
+    ],
+    [
+      12,
+      1
+    ],
+    [
+      8,
+      12
+    ]
+  ]
+}
+```
+
+## `select.lasso` — 自由套索
+
+Commit one closed freehand point path as an antialiased even-odd polygon selection. Same bounded coverage and operations as select.polygon.
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `false`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PolygonSelection",
+  "type": "object",
+  "properties": {
+    "mode": {
+      "$ref": "#/$defs/SelectionMode",
+      "default": "replace"
+    },
+    "points": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": {
+          "type": "number",
+          "format": "double"
+        },
+        "maxItems": 2,
+        "minItems": 2
+      }
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "points"
+  ],
+  "$defs": {
+    "SelectionMode": {
+      "type": "string",
+      "enum": [
+        "replace",
+        "add",
+        "subtract",
+        "intersect"
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SelectionResult",
+  "type": "object",
+  "properties": {
+    "selection": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/MaskLayout"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "CoverageRect": {
+      "type": "object",
+      "properties": {
+        "height": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "width": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "x": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "y": {
+          "type": "integer",
+          "format": "int64"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "x",
+        "y",
+        "width",
+        "height"
+      ]
+    },
+    "MaskLayout": {
+      "type": "object",
+      "properties": {
+        "bounds": {
+          "$ref": "#/$defs/CoverageRect"
+        },
+        "default_coverage": {
+          "type": "integer",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0
+        },
+        "inverted": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "bounds",
+        "default_coverage",
+        "inverted"
+      ]
+    }
+  }
+}
+```
+
+### Examples
+
+```json
+{
+  "points": [
+    [
+      1,
+      1
+    ],
+    [
+      8,
+      2
+    ],
+    [
+      12,
+      8
+    ],
+    [
+      3,
+      12
+    ]
+  ]
+}
+```
+
+## `select.reselect` — 重新选择
+
+Restore the last nonempty selection snapshot after deselect or replacement. Selection history is document-scoped, undoable and persisted without changing source image samples.
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `true`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Empty",
+  "type": "object",
+  "additionalProperties": false
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SelectionResult",
+  "type": "object",
+  "properties": {
+    "selection": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/MaskLayout"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "CoverageRect": {
+      "type": "object",
+      "properties": {
+        "height": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "width": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "x": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "y": {
+          "type": "integer",
+          "format": "int64"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "x",
+        "y",
+        "width",
+        "height"
+      ]
+    },
+    "MaskLayout": {
+      "type": "object",
+      "properties": {
+        "bounds": {
+          "$ref": "#/$defs/CoverageRect"
+        },
+        "default_coverage": {
+          "type": "integer",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0
+        },
+        "inverted": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "bounds",
+        "default_coverage",
+        "inverted"
+      ]
+    }
+  }
+}
+```
+
+### Examples
+
+```json
+{}
+```
+
+## `select.feather` — 羽化选区
+
+Gaussian feather sigma radius 0..256 pixels; exact separable kernel through sigma 8, variance-matched three-box approximation for larger radii. Outside-artboard coverage is zero. Cancellable; dense scratch must fit the shared budget.
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `false`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SelectionRadius",
+  "type": "object",
+  "properties": {
+    "radius": {
+      "type": "number",
+      "format": "double"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "radius"
+  ]
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SelectionResult",
+  "type": "object",
+  "properties": {
+    "selection": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/MaskLayout"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "CoverageRect": {
+      "type": "object",
+      "properties": {
+        "height": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "width": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "x": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "y": {
+          "type": "integer",
+          "format": "int64"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "x",
+        "y",
+        "width",
+        "height"
+      ]
+    },
+    "MaskLayout": {
+      "type": "object",
+      "properties": {
+        "bounds": {
+          "$ref": "#/$defs/CoverageRect"
+        },
+        "default_coverage": {
+          "type": "integer",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0
+        },
+        "inverted": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "bounds",
+        "default_coverage",
+        "inverted"
+      ]
+    }
+  }
+}
+```
+
+### Examples
+
+```json
+{
+  "radius": 2
+}
+```
+
+## `select.expand` — 扩展选区
+
+Expand the 50% coverage contour by Euclidean radius 0..256 with a soft boundary; preserve stronger original coverage. Artboard bounds remain fixed.
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `false`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SelectionRadius",
+  "type": "object",
+  "properties": {
+    "radius": {
+      "type": "number",
+      "format": "double"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "radius"
+  ]
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SelectionResult",
+  "type": "object",
+  "properties": {
+    "selection": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/MaskLayout"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "CoverageRect": {
+      "type": "object",
+      "properties": {
+        "height": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "width": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "x": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "y": {
+          "type": "integer",
+          "format": "int64"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "x",
+        "y",
+        "width",
+        "height"
+      ]
+    },
+    "MaskLayout": {
+      "type": "object",
+      "properties": {
+        "bounds": {
+          "$ref": "#/$defs/CoverageRect"
+        },
+        "default_coverage": {
+          "type": "integer",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0
+        },
+        "inverted": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "bounds",
+        "default_coverage",
+        "inverted"
+      ]
+    }
+  }
+}
+```
+
+### Examples
+
+```json
+{
+  "radius": 2
+}
+```
+
+## `select.contract` — 收缩选区
+
+Contract the 50% coverage contour by Euclidean radius 0..256, treating outside-artboard samples as empty. Preserve weaker original coverage.
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `false`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SelectionRadius",
+  "type": "object",
+  "properties": {
+    "radius": {
+      "type": "number",
+      "format": "double"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "radius"
+  ]
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SelectionResult",
+  "type": "object",
+  "properties": {
+    "selection": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/MaskLayout"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "CoverageRect": {
+      "type": "object",
+      "properties": {
+        "height": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "width": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "x": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "y": {
+          "type": "integer",
+          "format": "int64"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "x",
+        "y",
+        "width",
+        "height"
+      ]
+    },
+    "MaskLayout": {
+      "type": "object",
+      "properties": {
+        "bounds": {
+          "$ref": "#/$defs/CoverageRect"
+        },
+        "default_coverage": {
+          "type": "integer",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0
+        },
+        "inverted": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "bounds",
+        "default_coverage",
+        "inverted"
+      ]
+    }
+  }
+}
+```
+
+### Examples
+
+```json
+{
+  "radius": 1
+}
+```
+
+## `select.smooth` — 平滑选区
+
+Smooth coverage using Gaussian sigma radius/2 and a 25%..75% soft threshold, radius 0..256. Radius zero preserves exact coverage.
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `false`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SelectionRadius",
+  "type": "object",
+  "properties": {
+    "radius": {
+      "type": "number",
+      "format": "double"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "radius"
+  ]
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SelectionResult",
+  "type": "object",
+  "properties": {
+    "selection": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/MaskLayout"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "CoverageRect": {
+      "type": "object",
+      "properties": {
+        "height": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "width": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "x": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "y": {
+          "type": "integer",
+          "format": "int64"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "x",
+        "y",
+        "width",
+        "height"
+      ]
+    },
+    "MaskLayout": {
+      "type": "object",
+      "properties": {
+        "bounds": {
+          "$ref": "#/$defs/CoverageRect"
+        },
+        "default_coverage": {
+          "type": "integer",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0
+        },
+        "inverted": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "bounds",
+        "default_coverage",
+        "inverted"
+      ]
+    }
+  }
+}
+```
+
+### Examples
+
+```json
+{
+  "radius": 2
+}
+```
+
+## `select.border` — 选区边界
+
+Create an antialiased border of the given full width around the selection's 50% contour, using Euclidean inside/outside distance. Width 0..256; zero returns empty.
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `false`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SelectionRadius",
+  "type": "object",
+  "properties": {
+    "radius": {
+      "type": "number",
+      "format": "double"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "radius"
+  ]
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SelectionResult",
+  "type": "object",
+  "properties": {
+    "selection": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/MaskLayout"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "CoverageRect": {
+      "type": "object",
+      "properties": {
+        "height": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "width": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "x": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "y": {
+          "type": "integer",
+          "format": "int64"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "x",
+        "y",
+        "width",
+        "height"
+      ]
+    },
+    "MaskLayout": {
+      "type": "object",
+      "properties": {
+        "bounds": {
+          "$ref": "#/$defs/CoverageRect"
+        },
+        "default_coverage": {
+          "type": "integer",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0
+        },
+        "inverted": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "bounds",
+        "default_coverage",
+        "inverted"
+      ]
+    }
+  }
+}
+```
+
+### Examples
+
+```json
+{
+  "radius": 2
+}
+```
+
+## `select.transform` — 变换选区
+
+Apply affine [a,b,c,d,tx,ty] to coverage only, with inverse mapping of pixel centers and bilinear interpolation. Matrix must be finite/invertible; source pixels stay untouched.
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `false`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TransformSelection",
+  "type": "object",
+  "properties": {
+    "matrix": {
+      "type": "array",
+      "items": {
+        "type": "number",
+        "format": "double"
+      },
+      "maxItems": 6,
+      "minItems": 6
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "matrix"
+  ]
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SelectionResult",
+  "type": "object",
+  "properties": {
+    "selection": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/MaskLayout"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "CoverageRect": {
+      "type": "object",
+      "properties": {
+        "height": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "width": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "x": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "y": {
+          "type": "integer",
+          "format": "int64"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "x",
+        "y",
+        "width",
+        "height"
+      ]
+    },
+    "MaskLayout": {
+      "type": "object",
+      "properties": {
+        "bounds": {
+          "$ref": "#/$defs/CoverageRect"
+        },
+        "default_coverage": {
+          "type": "integer",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0
+        },
+        "inverted": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "bounds",
+        "default_coverage",
+        "inverted"
+      ]
+    }
+  }
+}
+```
+
+### Examples
+
+```json
+{
+  "matrix": [
+    1,
+    0,
+    0,
+    1,
+    2,
+    3
+  ]
+}
+```
+
+## `select.wand` — 魔棒
+
+Select colors within an 8-bit-scaled maximum RGBA-channel tolerance (0..255). Sample visible merged working-space color or raw current pixel layer; transparent RGB is ignored. Contiguous uses four-connected flood fill. Seed is in artboard canvas pixels; all four selection modes, cancellation and shared scratch budget apply.
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `false`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "WandSelection",
+  "type": "object",
+  "properties": {
+    "contiguous": {
+      "type": "boolean",
+      "default": true
+    },
+    "mode": {
+      "$ref": "#/$defs/SelectionMode",
+      "default": "replace"
+    },
+    "sample": {
+      "$ref": "#/$defs/SelectionSample",
+      "default": "merged"
+    },
+    "tolerance": {
+      "type": "integer",
+      "format": "uint8",
+      "default": 32,
+      "maximum": 255,
+      "minimum": 0
+    },
+    "x": {
+      "type": "integer",
+      "format": "int64"
+    },
+    "y": {
+      "type": "integer",
+      "format": "int64"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "x",
+    "y"
+  ],
+  "$defs": {
+    "SelectionMode": {
+      "type": "string",
+      "enum": [
+        "replace",
+        "add",
+        "subtract",
+        "intersect"
+      ]
+    },
+    "SelectionSample": {
+      "type": "string",
+      "enum": [
+        "merged",
+        "current_layer"
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SelectionResult",
+  "type": "object",
+  "properties": {
+    "selection": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/MaskLayout"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "CoverageRect": {
+      "type": "object",
+      "properties": {
+        "height": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "width": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "x": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "y": {
+          "type": "integer",
+          "format": "int64"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "x",
+        "y",
+        "width",
+        "height"
+      ]
+    },
+    "MaskLayout": {
+      "type": "object",
+      "properties": {
+        "bounds": {
+          "$ref": "#/$defs/CoverageRect"
+        },
+        "default_coverage": {
+          "type": "integer",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0
+        },
+        "inverted": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "bounds",
+        "default_coverage",
+        "inverted"
+      ]
+    }
+  }
+}
+```
+
+### Examples
+
+```json
+{
+  "contiguous": true,
+  "sample": "merged",
+  "tolerance": 32,
+  "x": 4,
+  "y": 4
+}
+```
+
+## `select.quick` — 快速选择
+
+Seeded Gaussian color graph cut on a pixel-center preview of at most 256 pixels on the longest edge. Foreground/background are canvas-coordinate brush points, radius 0.5..256 pixels, smoothness 0..100. Without background strokes, unmarked preview borders supply background. Conflicting preview seeds are rejected. Bilinear upsampling produces u16 coverage. Sample merged or raw current pixel layer; source pixels stay unchanged. Cancellable and not batchable; this is traditional segmentation, not semantic ML.
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `false`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "QuickSelection",
+  "type": "object",
+  "properties": {
+    "background": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "array",
+        "items": {
+          "type": "number",
+          "format": "double"
+        },
+        "maxItems": 2,
+        "minItems": 2
+      }
+    },
+    "foreground": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": {
+          "type": "number",
+          "format": "double"
+        },
+        "maxItems": 2,
+        "minItems": 2
+      }
+    },
+    "mode": {
+      "$ref": "#/$defs/SelectionMode",
+      "default": "replace"
+    },
+    "radius": {
+      "type": "number",
+      "format": "double",
+      "default": 8.0
+    },
+    "sample": {
+      "$ref": "#/$defs/SelectionSample",
+      "default": "merged"
+    },
+    "smoothness": {
+      "type": "number",
+      "format": "double",
+      "default": 8.0
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "foreground"
+  ],
+  "$defs": {
+    "SelectionMode": {
+      "type": "string",
+      "enum": [
+        "replace",
+        "add",
+        "subtract",
+        "intersect"
+      ]
+    },
+    "SelectionSample": {
+      "type": "string",
+      "enum": [
+        "merged",
+        "current_layer"
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SelectionResult",
+  "type": "object",
+  "properties": {
+    "selection": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/MaskLayout"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "CoverageRect": {
+      "type": "object",
+      "properties": {
+        "height": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "width": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "x": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "y": {
+          "type": "integer",
+          "format": "int64"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "x",
+        "y",
+        "width",
+        "height"
+      ]
+    },
+    "MaskLayout": {
+      "type": "object",
+      "properties": {
+        "bounds": {
+          "$ref": "#/$defs/CoverageRect"
+        },
+        "default_coverage": {
+          "type": "integer",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0
+        },
+        "inverted": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "bounds",
+        "default_coverage",
+        "inverted"
+      ]
+    }
+  }
+}
+```
+
+### Examples
+
+```json
+{
+  "background": [
+    [
+      1,
+      1
+    ]
+  ],
+  "foreground": [
+    [
+      8,
+      8
+    ]
+  ],
+  "radius": 1,
+  "sample": "current_layer"
+}
+```
+
 ## `color.convert` — 转换工作空间
 
 Convert source tiles at their original bit depth to srgb or display_p3. Alpha is preserved; undo restores exact original samples and ICC.

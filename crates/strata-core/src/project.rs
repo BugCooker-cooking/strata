@@ -11,6 +11,8 @@ use strata_pixels::{MaskLayout, PixelBuffer, PixelFormat, TileCoord, TiledMask, 
 struct Manifest {
     #[serde(default)]
     selection: Option<MaskLayout>,
+    #[serde(default)]
+    previous_selection: Option<MaskLayout>,
     #[serde(default = "crate::document::default_resolution_dpi")]
     resolution_dpi: u32,
     #[serde(default)]
@@ -32,9 +34,10 @@ impl Document {
         self.validate()?;
         let metadata = serde_json::to_value(Manifest {
             selection: self.selection.as_ref().map(TiledMask::layout),
+            previous_selection: self.previous_selection.as_ref().map(TiledMask::layout),
             resolution_dpi: self.resolution_dpi,
             preset: self.preset.clone(),
-            version: 2,
+            version: 3,
             id: self.id,
             state: self.state,
             frame: self.frame.clone(),
@@ -86,7 +89,7 @@ impl Document {
     ) -> Result<Self, DocumentError> {
         let meta: Manifest =
             serde_json::from_value(metadata).map_err(|e| DocumentError::Invalid(e.to_string()))?;
-        if !matches!(meta.version, 0..=2)
+        if !matches!(meta.version, 0..=3)
             || meta.layers.len() > crate::MAX_LAYERS
             || meta.working_icc.len() > 4 * 1024 * 1024
             || meta
@@ -108,6 +111,11 @@ impl Document {
         {
             return Err(DocumentError::Invalid(
                 "v0 manifest contains newer feature metadata".into(),
+            ));
+        }
+        if meta.version < 3 && meta.previous_selection.is_some() {
+            return Err(DocumentError::Invalid(
+                "previous selection requires manifest version 3".into(),
             ));
         }
         if meta.version < 2
@@ -155,6 +163,10 @@ impl Document {
             })
             .collect::<Result<Vec<_>, DocumentError>>()?;
         let doc = Self {
+            previous_selection: meta
+                .previous_selection
+                .map(|layout| TiledMask::new(layout, mask_tile_limit(), pool.clone()))
+                .transpose()?,
             selection: meta
                 .selection
                 .map(|layout| TiledMask::new(layout, mask_tile_limit(), pool.clone()))
@@ -181,7 +193,9 @@ impl Document {
             if tile.bit_depth != 16 || tile.bytes.len() != 256 * 256 * 2 {
                 return Err(DocumentError::Invalid("coverage encoding".into()));
             }
-            let mask = if tile.layer == "selection" {
+            let mask = if tile.layer == "previous_selection" {
+                self.previous_selection.as_mut()
+            } else if tile.layer == "selection" {
                 self.selection.as_mut()
             } else if let Some(id) = tile.layer.strip_prefix("mask:") {
                 self.layers
@@ -309,6 +323,9 @@ impl strata_io::project::ProjectSource for Document {
         }
         if let Some(selection) = &self.selection {
             write_mask("selection".into(), selection, &self.pool, visit)?;
+        }
+        if let Some(selection) = &self.previous_selection {
+            write_mask("previous_selection".into(), selection, &self.pool, visit)?;
         }
         Ok(())
     }

@@ -704,6 +704,114 @@ fn build_catalog() -> Vec<CommandSpec> {
         "Choose normal pass-through or isolated group compositing. Pass-through evaluates child blend/adjustment effects against the parent backdrop, then interpolates with the group mask/opacity. Non-normal group blend or group styles use isolated compositing.",
         json!({"layer":{"name":"Group"},"pass_through":false})
     );
+    command!(
+        "select.ellipse",
+        Marquee,
+        Mutate,
+        "椭圆选框",
+        "Elliptical marquee",
+        "Select an antialiased ellipse in a canvas pixel rectangle, using 16-bit 4x4 edge coverage. Mode replace/add/subtract/intersect; artboard clips the result. Cancellable, not batchable.",
+        json!({"x":2,"y":2,"width":8,"height":8,"mode":"replace"})
+    );
+    command!(
+        "select.polygon",
+        PolygonSelection,
+        Mutate,
+        "多边形套索",
+        "Polygon selection",
+        "Close a finite 3..4096-point polygon using the even-odd fill rule and 4x4 coverage, in canvas coordinates. Self intersections are supported. Cancellable and bounded by artboard.",
+        json!({"points":[[1,1],[12,1],[8,12]]})
+    );
+    command!(
+        "select.lasso",
+        PolygonSelection,
+        Mutate,
+        "自由套索",
+        "Freehand lasso",
+        "Commit one closed freehand point path as an antialiased even-odd polygon selection. Same bounded coverage and operations as select.polygon.",
+        json!({"points":[[1,1],[8,2],[12,8],[3,12]]})
+    );
+    command!(
+        "select.reselect",
+        Empty,
+        Mutate,
+        "重新选择",
+        "Reselect",
+        "Restore the last nonempty selection snapshot after deselect or replacement. Selection history is document-scoped, undoable and persisted without changing source image samples.",
+        json!({})
+    );
+    command!(
+        "select.feather",
+        SelectionRadius,
+        Mutate,
+        "羽化选区",
+        "Feather selection",
+        "Gaussian feather sigma radius 0..256 pixels; exact separable kernel through sigma 8, variance-matched three-box approximation for larger radii. Outside-artboard coverage is zero. Cancellable; dense scratch must fit the shared budget.",
+        json!({"radius":2})
+    );
+    command!(
+        "select.expand",
+        SelectionRadius,
+        Mutate,
+        "扩展选区",
+        "Expand selection",
+        "Expand the 50% coverage contour by Euclidean radius 0..256 with a soft boundary; preserve stronger original coverage. Artboard bounds remain fixed.",
+        json!({"radius":2})
+    );
+    command!(
+        "select.contract",
+        SelectionRadius,
+        Mutate,
+        "收缩选区",
+        "Contract selection",
+        "Contract the 50% coverage contour by Euclidean radius 0..256, treating outside-artboard samples as empty. Preserve weaker original coverage.",
+        json!({"radius":1})
+    );
+    command!(
+        "select.smooth",
+        SelectionRadius,
+        Mutate,
+        "平滑选区",
+        "Smooth selection",
+        "Smooth coverage using Gaussian sigma radius/2 and a 25%..75% soft threshold, radius 0..256. Radius zero preserves exact coverage.",
+        json!({"radius":2})
+    );
+    command!(
+        "select.border",
+        SelectionRadius,
+        Mutate,
+        "选区边界",
+        "Selection border",
+        "Create an antialiased border of the given full width around the selection's 50% contour, using Euclidean inside/outside distance. Width 0..256; zero returns empty.",
+        json!({"radius":2})
+    );
+    command!(
+        "select.transform",
+        TransformSelection,
+        Mutate,
+        "变换选区",
+        "Transform selection",
+        "Apply affine [a,b,c,d,tx,ty] to coverage only, with inverse mapping of pixel centers and bilinear interpolation. Matrix must be finite/invertible; source pixels stay untouched.",
+        json!({"matrix":[1,0,0,1,2,3]})
+    );
+    command!(
+        "select.wand",
+        WandSelection,
+        Mutate,
+        "魔棒",
+        "Magic wand",
+        "Select colors within an 8-bit-scaled maximum RGBA-channel tolerance (0..255). Sample visible merged working-space color or raw current pixel layer; transparent RGB is ignored. Contiguous uses four-connected flood fill. Seed is in artboard canvas pixels; all four selection modes, cancellation and shared scratch budget apply.",
+        json!({"x":4,"y":4,"tolerance":32,"contiguous":true,"sample":"merged"})
+    );
+    command!(
+        "select.quick",
+        QuickSelection,
+        Mutate,
+        "快速选择",
+        "Quick selection",
+        "Seeded Gaussian color graph cut on a pixel-center preview of at most 256 pixels on the longest edge. Foreground/background are canvas-coordinate brush points, radius 0.5..256 pixels, smoothness 0..100. Without background strokes, unmarked preview borders supply background. Conflicting preview seeds are rejected. Bilinear upsampling produces u16 coverage. Sample merged or raw current pixel layer; source pixels stay unchanged. Cancellable and not batchable; this is traditional segmentation, not semantic ML.",
+        json!({"foreground":[[8,8]],"background":[[1,1]],"radius":1,"sample":"current_layer"})
+    );
     for item in &mut list {
         item.returns = match item.id {
             "document.inspect" => schemars::schema_for!(Snapshot),
@@ -713,6 +821,11 @@ fn build_catalog() -> Vec<CommandSpec> {
             "layer.align" | "layer.distribute" => schemars::schema_for!(MultiLayerResult),
             "document.histogram" => schemars::schema_for!(HistogramResult),
             "select.subject" => schemars::schema_for!(SubjectResult),
+            "select.ellipse" | "select.polygon" | "select.lasso" | "select.reselect"
+            | "select.feather" | "select.expand" | "select.contract" | "select.smooth"
+            | "select.border" | "select.transform" | "select.wand" | "select.quick" => {
+                schemars::schema_for!(SelectionResult)
+            }
             "select.marquee" | "select.all" | "select.none" | "select.inverse" => {
                 schemars::schema_for!(SelectionResult)
             }
@@ -767,6 +880,22 @@ fn build_catalog() -> Vec<CommandSpec> {
         if item.id == "select.subject" {
             item.batchable = false;
             item.permissions.push("verified_local_subject_model");
+        }
+        if matches!(
+            item.id,
+            "select.ellipse"
+                | "select.polygon"
+                | "select.lasso"
+                | "select.feather"
+                | "select.expand"
+                | "select.contract"
+                | "select.smooth"
+                | "select.border"
+                | "select.transform"
+                | "select.wand"
+                | "select.quick"
+        ) {
+            item.batchable = false;
         }
         if item.id == "file.recent.list" {
             item.batchable = false;

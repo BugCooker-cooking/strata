@@ -7,6 +7,8 @@ mod new;
 mod raster;
 mod registry;
 mod resample;
+mod sample_selection;
+mod selection;
 mod tree;
 pub use executor::{
     ClipboardImage, CommandError, Control, Editor, ExposureInteraction, HistoryInfo,
@@ -211,6 +213,48 @@ params!(Marquee {
     height: u32,
     #[serde(default)]
     mode: SelectionMode
+});
+params!(PolygonSelection{points:Vec<[f64;2]>,#[serde(default)]mode:SelectionMode});
+params!(SelectionRadius { radius: f64 });
+params!(TransformSelection { matrix: [f64; 6] });
+#[derive(Clone, Copy, Debug, Default, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum SelectionSample {
+    #[default]
+    Merged,
+    CurrentLayer,
+}
+fn wand_tolerance() -> u8 {
+    32
+}
+fn enabled() -> bool {
+    true
+}
+fn brush_radius() -> f64 {
+    8.0
+}
+fn selection_smoothness() -> f64 {
+    8.0
+}
+params!(WandSelection {
+    x: i64,
+    y: i64,
+    #[serde(default = "wand_tolerance")]
+    tolerance: u8,
+    #[serde(default = "enabled")]
+    contiguous: bool,
+    #[serde(default)]
+    sample: SelectionSample,
+    #[serde(default)]
+    mode: SelectionMode
+});
+params!(QuickSelection {
+    foreground: Vec<[f64; 2]>,
+    #[serde(default)] background: Vec<[f64; 2]>,
+    #[serde(default = "brush_radius")] radius: f64,
+    #[serde(default = "selection_smoothness")] smoothness: f64,
+    #[serde(default)] sample: SelectionSample,
+    #[serde(default)] mode: SelectionMode
 });
 params!(AddMask {
     layer: LayerRef,
