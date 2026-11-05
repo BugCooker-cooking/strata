@@ -13,8 +13,15 @@ enum NativeClipboard {
     static func read(engine:StrataEngine,turn:String?,pasteboard:NSPasteboard = .general)async throws->String{
         guard let data=pasteboard.data(forType:.tiff) ?? pasteboard.data(forType:.png)else{throw AIClientError.message("系统剪贴板中没有支持的图片。")}
         guard data.count<=512*1024*1024+16*1024*1024 else{throw AIClientError.message("剪贴板图片超过大小限制。")}
-        let origin=pasteboard.data(forType:originType).flatMap{try? JSONDecoder().decode(Origin.self,from:$0)}
-        return try await aiEngineWork{try engine.clipboardImport(data:data,originX:origin?.x ?? 0,originY:origin?.y ?? 0,turnId:turn)}
+        let originData = pasteboard.data(forType: originType)
+        let origin: Origin? = originData.flatMap { bytes in
+            try? JSONDecoder().decode(Origin.self, from: bytes)
+        }
+        let originX: Int64 = origin?.x ?? 0
+        let originY: Int64 = origin?.y ?? 0
+        return try await aiEngineWork { () throws -> String in
+            try engine.clipboardImport(data: data, originX: originX, originY: originY, turnId: turn)
+        }
     }
 }
 extension MainWindowController {
