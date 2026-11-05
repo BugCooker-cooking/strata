@@ -178,6 +178,7 @@ private let commandTitles: [String: String] = [
      "select.wand": "魔棒选区", "select.quick": "快速选择", "select.reselect": "重新选择",
      "select.feather": "羽化选区", "select.expand": "扩展选区", "select.contract": "收缩选区",
      "select.smooth": "平滑选区", "select.border": "选区边界", "select.transform": "变换选区",
+     "layer.add_tonal_adjustment":"新建调色调整层", "adjust.tonal.set":"修改调色参数",
      "layer.add_adjustment": "新建曝光调整层", "adjust.exposure.set": "调整曝光",
      "layer.mask.add": "添加蒙版", "layer.mask.invert": "反相蒙版",
      "layer.mask.set_enabled": "切换蒙版", "layer.mask.remove": "移除蒙版",

@@ -265,12 +265,7 @@ impl Document {
         for layer in &self.layers {
             let info = &layer.info;
             info.styles.validate(self.bit_depth())?;
-            if !info.styles.is_empty()
-                && matches!(
-                    info.kind,
-                    crate::LayerKind::Exposure { .. } | crate::LayerKind::HueSaturation { .. }
-                )
-            {
+            if !info.styles.is_empty() && info.kind.is_adjustment() {
                 return Err(DocumentError::Invalid(
                     "layer styles require pixel, fill or group content".into(),
                 ));
@@ -292,12 +287,7 @@ impl Document {
                     .take_while(|l| l.id() != info.id)
                     .filter(|l| l.info.parent == info.parent && !l.info.clipped)
                     .last();
-                if base.is_none_or(|l| {
-                    matches!(
-                        l.info.kind,
-                        crate::LayerKind::Exposure { .. } | crate::LayerKind::HueSaturation { .. }
-                    )
-                }) {
+                if base.is_none_or(|l| l.info.kind.is_adjustment()) {
                     return Err(DocumentError::Invalid("clipping chain requires a lower pixel, fill or group base in the same parent".into()));
                 }
             }
@@ -327,6 +317,7 @@ impl Document {
                 self.format != PixelFormat::Rgba8 || color.iter().all(|c| *c <= 255)
             };
             match &info.kind {
+                crate::LayerKind::Adjustment { adjustment } => adjustment.validate()?,
                 crate::LayerKind::Solid { color } if !colors_valid(color) => {
                     return Err(DocumentError::Invalid(
                         "fill exceeds document bit depth".into(),
@@ -383,6 +374,11 @@ impl Document {
             {
                 return Err(DocumentError::Invalid(
                     "exposure layer parameters or pixel payload".into(),
+                ));
+            }
+            if info.kind.is_adjustment() && layer.pixels.tile_count() != 0 {
+                return Err(DocumentError::Invalid(
+                    "adjustment layers cannot contain source pixel blocks".into(),
                 ));
             }
             match (&info.mask, &layer.mask) {

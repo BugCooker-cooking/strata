@@ -812,6 +812,24 @@ fn build_catalog() -> Vec<CommandSpec> {
         "Seeded Gaussian color graph cut on a pixel-center preview of at most 256 pixels on the longest edge. Foreground/background are canvas-coordinate brush points, radius 0.5..256 pixels, smoothness 0..100. Without background strokes, unmarked preview borders supply background. Conflicting preview seeds are rejected. Bilinear upsampling produces u16 coverage. Sample merged or raw current pixel layer; source pixels stay unchanged. Cancellable and not batchable; this is traditional segmentation, not semantic ML.",
         json!({"foreground":[[8,8]],"background":[[1,1]],"radius":1,"sample":"current_layer"})
     );
+    command!(
+        "layer.add_tonal_adjustment",
+        AddTonal,
+        Mutate,
+        "新建调色调整层",
+        "Add tonal adjustment",
+        "Create a brightness_contrast, levels or curves adjustment with the current selection as mask (white if none). All math uses floating encoded document working RGB; source samples and alpha remain untouched. brightness/contrast are -100..100; brightness adds /100 and contrast scales about 0.5 (negative gain 1+c, positive gain 1/(1-c), +100 hard threshold). Levels applies master then R/G/B ranges, normalized endpoints and gamma 0.1..10. Curves applies master then R/G/B shape-preserving PCHIP curves; 2..64 points in 0..1, first x=0, last x=1, strictly increasing x; nonmonotonic y allowed. Defaults are exact identity. One history item, saved in manifest v4.",
+        json!({"name":"Levels","adjustment":{"type":"levels","master":{"gamma":1.2}}})
+    );
+    command!(
+        "adjust.tonal.set",
+        SetTonal,
+        Mutate,
+        "设置调色调整层",
+        "Set tonal adjustment",
+        "Replace complete tonal settings of an existing adjustment layer without changing its type. Same strict normalized parameters as layer.add_tonal_adjustment. Omitted fields reset to identity; specify the complete intended settings. Masks, alpha and original source samples are preserved; lock and ancestor checks apply.",
+        json!({"layer":{"name":"Levels"},"adjustment":{"type":"levels","master":{"input_black":0.1,"input_white":0.9,"gamma":1.1}}})
+    );
     for item in &mut list {
         item.returns = match item.id {
             "document.inspect" => schemars::schema_for!(Snapshot),
@@ -873,6 +891,18 @@ fn build_catalog() -> Vec<CommandSpec> {
             item.examples.extend([
             json!({"preset":"a4_300dpi","bit_depth":16,"background":[65535,65535,65535,65535],"working_space":"display_p3"}),
             json!({"width":128,"height":96,"bit_depth":8,"resolution_dpi":150,"background":[10,20,30,128]})]);
+        }
+        if item.id == "layer.add_tonal_adjustment" {
+            item.examples.extend([
+                json!({"name":"Brightness","adjustment":{"type":"brightness_contrast","brightness":10,"contrast":5}}),
+                json!({"name":"Curves","adjustment":{"type":"curves","master":[[0,0],[0.5,0.65],[1,1]]}}),
+            ]);
+        }
+        if item.id == "adjust.tonal.set" {
+            item.examples.extend([
+                json!({"layer":{"name":"Brightness"},"adjustment":{"type":"brightness_contrast","brightness":-5,"contrast":10}}),
+                json!({"layer":{"name":"Curves"},"adjustment":{"type":"curves","master":[[0,0],[0.3,0.4],[0.7,0.8],[1,1]]}}),
+            ]);
         }
         if item.id == "document.batch" || item.id == "file.place" {
             item.batchable = false;

@@ -37,7 +37,7 @@ impl Document {
             previous_selection: self.previous_selection.as_ref().map(TiledMask::layout),
             resolution_dpi: self.resolution_dpi,
             preset: self.preset.clone(),
-            version: 3,
+            version: 4,
             id: self.id,
             state: self.state,
             frame: self.frame.clone(),
@@ -89,7 +89,7 @@ impl Document {
     ) -> Result<Self, DocumentError> {
         let meta: Manifest =
             serde_json::from_value(metadata).map_err(|e| DocumentError::Invalid(e.to_string()))?;
-        if !matches!(meta.version, 0..=3)
+        if !matches!(meta.version, 0..=4)
             || meta.layers.len() > crate::MAX_LAYERS
             || meta.working_icc.len() > 4 * 1024 * 1024
             || meta
@@ -116,6 +116,16 @@ impl Document {
         if meta.version < 3 && meta.previous_selection.is_some() {
             return Err(DocumentError::Invalid(
                 "previous selection requires manifest version 3".into(),
+            ));
+        }
+        if meta.version < 4
+            && meta
+                .layers
+                .iter()
+                .any(|l| matches!(l.kind, crate::LayerKind::Adjustment { .. }))
+        {
+            return Err(DocumentError::Invalid(
+                "tonal adjustments require manifest version 4".into(),
             ));
         }
         if meta.version < 2

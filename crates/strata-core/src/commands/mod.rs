@@ -9,6 +9,7 @@ mod registry;
 mod resample;
 mod sample_selection;
 mod selection;
+mod tonal;
 mod tree;
 pub use executor::{
     ClipboardImage, CommandError, Control, Editor, ExposureInteraction, HistoryInfo,
@@ -217,6 +218,14 @@ params!(Marquee {
 params!(PolygonSelection{points:Vec<[f64;2]>,#[serde(default)]mode:SelectionMode});
 params!(SelectionRadius { radius: f64 });
 params!(TransformSelection { matrix: [f64; 6] });
+params!(AddTonal {
+    name: String,
+    adjustment: crate::TonalAdjustment
+});
+params!(SetTonal {
+    layer: LayerRef,
+    adjustment: crate::TonalAdjustment
+});
 #[derive(Clone, Copy, Debug, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum SelectionSample {

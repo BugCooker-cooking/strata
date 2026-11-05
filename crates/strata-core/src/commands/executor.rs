@@ -1185,6 +1185,9 @@ pub(super) fn mutate(doc: &mut Document, id: &str, params: Value) -> Result<Valu
     if let Some(result) = super::generated::mutate(doc, id, params.clone())? {
         return Ok(result);
     }
+    if let Some(result) = super::tonal::mutate(doc, id, params.clone())? {
+        return Ok(result);
+    }
     if let Some(result) = super::raster::mutate(doc, id, params.clone())? {
         return Ok(result);
     }

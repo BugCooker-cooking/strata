@@ -265,6 +265,64 @@ fn linear_rgb8_table(icc: &[u8]) -> Result<Option<Arc<LinearRgb8Table>>, ColorEr
     Ok(Some(table))
 }
 
+/// Unquantized working-space values for adjustment layers. Alpha is copied
+/// exactly; callers reserve their batch buffers in the document memory pool.
+pub fn linear_p3_to_working(source: &[[f32; 4]], icc: &[u8]) -> Result<Vec<[f32; 4]>, ColorError> {
+    floating_transform(source, icc, true)
+}
+pub fn working_to_linear_p3(source: &[[f32; 4]], icc: &[u8]) -> Result<Vec<[f32; 4]>, ColorError> {
+    floating_transform(source, icc, false)
+}
+struct WorkingTransforms {
+    icc: Vec<u8>,
+    encode: LinearTransform,
+    decode: LinearTransform,
+}
+fn floating_transform(
+    source: &[[f32; 4]],
+    icc: &[u8],
+    encode: bool,
+) -> Result<Vec<[f32; 4]>, ColorError> {
+    thread_local! { static WORKING: RefCell<Option<WorkingTransforms>> = const { RefCell::new(None) }; }
+    let mut result = vec![[0.0; 4]; source.len()];
+    // One pair per worker, keyed by actual ICC bytes. Reusing it avoids profile
+    // parsing and LCMS pipeline construction for each 256-pixel composite tile.
+    WORKING.with(|cached| -> Result<(), ColorError> {
+        let mut cached = cached.borrow_mut();
+        if cached.as_ref().is_none_or(|t| t.icc != icc) {
+            let linear = linear_p3_profile()?;
+            let working = Profile::new_icc(icc).map_err(transform_error)?;
+            let create = |input: &Profile, output: &Profile| {
+                LinearTransform::new_flags(
+                    input,
+                    PixelFormat::RGBA_FLT,
+                    output,
+                    PixelFormat::RGBA_FLT,
+                    Intent::RelativeColorimetric,
+                    Flags::NO_OPTIMIZE | Flags::COPY_ALPHA,
+                )
+                .map_err(transform_error)
+            };
+            *cached = Some(WorkingTransforms {
+                icc: icc.to_vec(),
+                encode: create(&linear, &working)?,
+                decode: create(&working, &linear)?,
+            });
+        }
+        let transforms = cached.as_ref().expect("working transforms initialized");
+        (if encode {
+            &transforms.encode
+        } else {
+            &transforms.decode
+        })
+        .transform_pixels(source, &mut result);
+        Ok(())
+    })?;
+    for (out, input) in result.iter_mut().zip(source) {
+        out[3] = input[3];
+    }
+    Ok(result)
+}
 /// Convert straight linear composition to the chosen output ICC at document depth.
 pub fn from_linear_p3(
     source: &[[f32; 4]],

@@ -28,6 +28,17 @@ pub enum LayerKind {
         saturation: f64,
         lightness: f64,
     },
+    Adjustment {
+        adjustment: crate::TonalAdjustment,
+    },
+}
+impl LayerKind {
+    pub fn is_adjustment(&self) -> bool {
+        matches!(
+            self,
+            Self::Exposure { .. } | Self::HueSaturation { .. } | Self::Adjustment { .. }
+        )
+    }
 }
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]

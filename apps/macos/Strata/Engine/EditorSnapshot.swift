@@ -8,6 +8,7 @@ struct EditorSnapshot: Decodable, Sendable {
             let kind:String;let stops:Double?
             let color:[UInt16]?;let start:[UInt16]?;let end:[UInt16]?;let angle:Double?;let scale:Double?;let radial:Bool?
             let hue:Double?;let saturation:Double?;let lightness:Double?
+            let adjustment:AIJSON?
         }
         struct Mask: Decodable, Sendable { let enabled: Bool }
         struct Locks: Decodable, Sendable { let transparency:Bool;let pixels:Bool;let position:Bool;let all:Bool }
@@ -20,8 +21,9 @@ struct EditorSnapshot: Decodable, Sendable {
         let styles:AIJSON?
         var exposure: Double? { kind?.kind == "exposure" ? kind?.stops : nil }
         var isGroup:Bool{kind?.kind=="group"}
+        var isAdjustment:Bool{["exposure","hue_saturation","adjustment"].contains(kind?.kind ?? "")}
         var title:String{
-            switch kind?.kind{case "group":"图层组";case "exposure":"曝光调整图层";case "solid":"纯色填充";case "gradient":"渐变填充";case "hue_saturation":"色相/饱和度调整";default:"像素图层"}
+            switch kind?.kind{case "group":"图层组";case "exposure":"曝光调整图层";case "solid":"纯色填充";case "gradient":"渐变填充";case "hue_saturation":"色相/饱和度调整";case "adjustment":tonalTitle(kind?.adjustment?["type"].string ?? "");default:"像素图层"}
         }
     }
     struct History: Decodable, Sendable { let command: String; let source: String; let turnId: String? }

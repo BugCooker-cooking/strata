@@ -255,10 +255,7 @@ fn copy(doc: &Document, target: Option<LayerId>) -> Result<ClipboardImage, Comma
             .iter_mut()
             .find(|l| l.id() == target)
             .ok_or(DocumentError::LayerNotFound)?;
-        if matches!(
-            layer.info.kind,
-            crate::LayerKind::Exposure { .. } | crate::LayerKind::HueSaturation { .. }
-        ) {
+        if layer.info.kind.is_adjustment() {
             return Err(CommandError::Invalid(
                 "copy an adjustment with copy_merged to include its backdrop".into(),
             ));

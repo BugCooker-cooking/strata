@@ -163,10 +163,7 @@ pub(super) fn mutate(
         if matches!(original.kind, LayerKind::Pixel) {
             return Ok(Some(json!({"layer_id":target})));
         }
-        if matches!(
-            original.kind,
-            LayerKind::Exposure { .. } | LayerKind::HueSaturation { .. }
-        ) {
+        if original.kind.is_adjustment() {
             if !p.bake_backdrop {
                 return Err(CommandError::Invalid("an adjustment needs its lower input stack. Explicitly approve bake_backdrop=true to consolidate that input and this adjustment into one pixel layer, preserving undo.".into()));
             }

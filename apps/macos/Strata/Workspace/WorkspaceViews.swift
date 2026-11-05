@@ -141,14 +141,15 @@ private struct LayerProperties: View {
                     BlendOpacityControls(model: model)
                     LayerMetadataControls(model:model)
                     if layer.exposure != nil { ExposureControls(model: model) }
+                    if layer.kind?.kind == "adjustment" { TonalAdjustmentControls(model:model) }
                     if ["solid","gradient","hue_saturation"].contains(layer.kind?.kind ?? ""){GeneratedLayerControls(model:model)}
-                    if !["exposure","hue_saturation"].contains(layer.kind?.kind ?? ""){LayerStyleControls(model:model)}
+                    if !layer.isAdjustment{LayerStyleControls(model:model)}
                     if let mask = layer.mask {
                         Divider(); caption("像素蒙版")
                         Toggle("启用蒙版", isOn: Binding(get: { mask.enabled }, set: { model.send(.command("layer.mask.set_enabled", ["layer": ["id": layer.id], "enabled": $0])) })).disabled(!model.permissions.edits)
                         HStack {
                             Button("反相") { model.send(.command("layer.mask.invert", ["layer": ["id": layer.id]])) }
-                            Button(layer.kind?.kind=="pixel" ? "应用" : "应用并栅格化"){model.send(.command("layer.mask.apply",["layer":["id":layer.id],"bake_backdrop":["exposure","hue_saturation"].contains(layer.kind?.kind ?? "")]))}
+                            Button(layer.kind?.kind=="pixel" ? "应用" : "应用并栅格化"){model.send(.command("layer.mask.apply",["layer":["id":layer.id],"bake_backdrop":layer.isAdjustment]))}
                             Button("移除") { model.send(.command("layer.mask.remove", ["layer": ["id": layer.id]])) }
                         }.disabled(!model.permissions.edits)
                     }
@@ -212,16 +213,17 @@ private struct AdjustmentPanel: View {
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 14) {
                     ForEach(entries, id: \.0) { item in
                         VStack(spacing: 7) {
-                            WorkspaceIconButton(title: item.0, symbol: item.1, enabled: ["曝光","色相 / 饱和度"].contains(item.0) && model.hasDocument && model.permissions.edits) {
+                            WorkspaceIconButton(title: item.0, symbol: item.1, enabled: ["曝光","色相 / 饱和度","亮度 / 对比度","色阶","曲线"].contains(item.0) && model.hasDocument && model.permissions.edits) {
                                 if item.0=="曝光"{model.send(.command("layer.add_adjustment", ["name": "曝光", "type": "exposure", "stops": 0.5, "mask": model.snapshot?.selection == nil ? "white" : "from_selection"]))}
-                                else{model.send(.command("layer.add_hue_saturation",["name":"色相/饱和度"]))}
+                                else if item.0=="色相 / 饱和度"{model.send(.command("layer.add_hue_saturation",["name":"色相/饱和度"]))}
+                                else {let type = item.0=="曲线" ? "curves" : item.0=="色阶" ? "levels" : "brightness_contrast";model.send(.command("layer.add_tonal_adjustment",["name":item.0,"adjustment":["type":type]]))}
                                 model.inspector = .properties
                             }
                             Text(item.0).font(.system(size: 10)).lineLimit(2).multilineTextAlignment(.center)
                         }
                     }
                 }
-                Text("曝光调整使用当前选区作为蒙版；没有选区时作用于整张画板。其余调整继续开发中。")
+                Text("调整使用当前选区作为蒙版；没有选区时作用于整个合成图。原始图层像素保持可编辑。")
                     .font(.system(size: 11)).foregroundStyle(Color(nsColor: WorkspaceColors.secondary)).fixedSize(horizontal: false, vertical: true)
                 if let subject = model.subjectModel { SubjectModelCard(store: subject, model: model) }
             }.padding(12)
@@ -310,7 +312,7 @@ private struct LayerPanel: View {
                                 if layer.kind?.kind=="pixel"{Button("背景转普通图层"){model.send(.command("layer.background_to_layer",["layer":["id":layer.id]]))}.disabled(!model.permissions.edits)}
                                 Button("将所选图层编组"){model.send(.groupSelected)}.disabled(!model.permissions.edits)
                                 Button(layer.clipped == true ? "释放剪贴蒙版" : "创建剪贴蒙版"){model.send(.command("layer.set_clipping",["layer":["id":layer.id],"clipped":layer.clipped != true]))}.disabled(!model.permissions.edits)
-                                Button(["exposure","hue_saturation"].contains(layer.kind?.kind ?? "") ? "栅格化并合并下方输入" : "栅格化"){model.send(.command("layer.rasterize",["layer":["id":layer.id],"bake_backdrop":["exposure","hue_saturation"].contains(layer.kind?.kind ?? "")]))}.disabled(!model.permissions.edits || layer.kind?.kind=="pixel")
+                                Button(layer.isAdjustment ? "栅格化并合并下方输入" : "栅格化"){model.send(.command("layer.rasterize",["layer":["id":layer.id],"bake_backdrop":layer.isAdjustment]))}.disabled(!model.permissions.edits || layer.kind?.kind=="pixel")
                                 Button("向下合并"){model.send(.command("layer.merge_down",["layer":["id":layer.id]]))}.disabled(!model.permissions.edits)
                                 Button("合并可见"){model.send(.command("layer.merge_visible",[:]))}.disabled(!model.permissions.edits)
                                 Button("拼合图像"){model.send(.command("layer.flatten",[:]))}.disabled(!model.permissions.edits)

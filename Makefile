@@ -2,6 +2,12 @@
 CONFIGURATION ?= Debug
 DERIVED_DATA ?= build/DerivedData
 BUILD_JOBS ?= 2
+export CARGO_BUILD_JOBS ?= $(BUILD_JOBS)
+# Keep native C dependencies on the same deployment target as the Xcode Rust
+# build. Switching between CLI tests and Xcode should not rebuild their archives.
+ifeq ($(shell uname -s),Darwin)
+export MACOSX_DEPLOYMENT_TARGET ?= 14.0
+endif
 XCODE_ARGS = -jobs $(BUILD_JOBS) -project apps/macos/Strata.xcodeproj -scheme Strata -configuration $(CONFIGURATION) -destination 'platform=macOS,arch=arm64' -derivedDataPath $(DERIVED_DATA)
 
 rust:

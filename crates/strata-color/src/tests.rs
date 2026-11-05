@@ -97,6 +97,30 @@ fn rgba16_identity_preserves_adjacent_values_and_alpha() {
 }
 
 #[test]
+fn unquantized_working_roundtrip_preserves_alpha_and_adjacent_16bit_values() {
+    for space in ["srgb", "display_p3"] {
+        let icc = working_profile(space).unwrap();
+        let working = vec![
+            [32768.0 / 65535.0, 32769.0 / 65535.0, 50001.0 / 65535.0, 0.0],
+            [0.001, 0.4, 0.99, 0.1234567],
+            [1.0, 1.0, 1.0, 1.0],
+        ];
+        let linear = working_to_linear_p3(&working, &icc).unwrap();
+        let result = linear_p3_to_working(&linear, &icc).unwrap();
+        for (actual, expected) in result.iter().zip(&working) {
+            assert_eq!(actual[3], expected[3]);
+            for c in 0..3 {
+                assert!((actual[c] - expected[c]).abs() < 4.0 / 65535.0);
+            }
+        }
+        assert!(
+            result[0][1] > result[0][0],
+            "{space} erased adjacent 16bit codes"
+        );
+    }
+}
+
+#[test]
 fn rgba16_transform_matches_float_reference() {
     use lcms2::{Flags, Intent, PixelFormat, Profile, Transform};
     let source_profile = Profile::new_srgb();

@@ -861,6 +861,23 @@ Permissions: `bound_document`
             "saturation",
             "lightness"
           ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "adjustment": {
+              "$ref": "#/$defs/TonalAdjustment"
+            },
+            "kind": {
+              "type": "string",
+              "const": "adjustment"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "adjustment"
+          ]
         }
       ]
     },
@@ -970,6 +987,37 @@ Permissions: `bound_document`
             }
           ],
           "default": null
+        }
+      },
+      "additionalProperties": false
+    },
+    "LevelRange": {
+      "type": "object",
+      "properties": {
+        "gamma": {
+          "type": "number",
+          "format": "double",
+          "default": 1.0
+        },
+        "input_black": {
+          "type": "number",
+          "format": "double",
+          "default": 0.0
+        },
+        "input_white": {
+          "type": "number",
+          "format": "double",
+          "default": 1.0
+        },
+        "output_black": {
+          "type": "number",
+          "format": "double",
+          "default": 0.0
+        },
+        "output_white": {
+          "type": "number",
+          "format": "double",
+          "default": 1.0
         }
       },
       "additionalProperties": false
@@ -1104,6 +1152,171 @@ Permissions: `bound_document`
         "outside",
         "inside",
         "center"
+      ]
+    },
+    "TonalAdjustment": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "brightness": {
+              "type": "number",
+              "format": "double",
+              "default": 0.0
+            },
+            "contrast": {
+              "type": "number",
+              "format": "double",
+              "default": 0.0
+            },
+            "type": {
+              "type": "string",
+              "const": "brightness_contrast"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "channels": {
+              "type": "array",
+              "default": [
+                {
+                  "gamma": 1.0,
+                  "input_black": 0.0,
+                  "input_white": 1.0,
+                  "output_black": 0.0,
+                  "output_white": 1.0
+                },
+                {
+                  "gamma": 1.0,
+                  "input_black": 0.0,
+                  "input_white": 1.0,
+                  "output_black": 0.0,
+                  "output_white": 1.0
+                },
+                {
+                  "gamma": 1.0,
+                  "input_black": 0.0,
+                  "input_white": 1.0,
+                  "output_black": 0.0,
+                  "output_white": 1.0
+                }
+              ],
+              "items": {
+                "$ref": "#/$defs/LevelRange"
+              },
+              "maxItems": 3,
+              "minItems": 3
+            },
+            "master": {
+              "$ref": "#/$defs/LevelRange",
+              "default": {
+                "gamma": 1.0,
+                "input_black": 0.0,
+                "input_white": 1.0,
+                "output_black": 0.0,
+                "output_white": 1.0
+              }
+            },
+            "type": {
+              "type": "string",
+              "const": "levels"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "channels": {
+              "type": "array",
+              "default": [
+                [
+                  [
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    1.0,
+                    1.0
+                  ]
+                ],
+                [
+                  [
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    1.0,
+                    1.0
+                  ]
+                ],
+                [
+                  [
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    1.0,
+                    1.0
+                  ]
+                ]
+              ],
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number",
+                    "format": "double"
+                  },
+                  "maxItems": 2,
+                  "minItems": 2
+                }
+              },
+              "maxItems": 3,
+              "minItems": 3
+            },
+            "master": {
+              "type": "array",
+              "default": [
+                [
+                  0.0,
+                  0.0
+                ],
+                [
+                  1.0,
+                  1.0
+                ]
+              ],
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "number",
+                  "format": "double"
+                },
+                "maxItems": 2,
+                "minItems": 2
+              }
+            },
+            "type": {
+              "type": "string",
+              "const": "curves"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        }
       ]
     }
   }
@@ -1670,6 +1883,23 @@ Permissions: `bound_document`
             "saturation",
             "lightness"
           ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "adjustment": {
+              "$ref": "#/$defs/TonalAdjustment"
+            },
+            "kind": {
+              "type": "string",
+              "const": "adjustment"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "adjustment"
+          ]
         }
       ]
     },
@@ -1779,6 +2009,37 @@ Permissions: `bound_document`
             }
           ],
           "default": null
+        }
+      },
+      "additionalProperties": false
+    },
+    "LevelRange": {
+      "type": "object",
+      "properties": {
+        "gamma": {
+          "type": "number",
+          "format": "double",
+          "default": 1.0
+        },
+        "input_black": {
+          "type": "number",
+          "format": "double",
+          "default": 0.0
+        },
+        "input_white": {
+          "type": "number",
+          "format": "double",
+          "default": 1.0
+        },
+        "output_black": {
+          "type": "number",
+          "format": "double",
+          "default": 0.0
+        },
+        "output_white": {
+          "type": "number",
+          "format": "double",
+          "default": 1.0
         }
       },
       "additionalProperties": false
@@ -1905,6 +2166,171 @@ Permissions: `bound_document`
         "outside",
         "inside",
         "center"
+      ]
+    },
+    "TonalAdjustment": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "brightness": {
+              "type": "number",
+              "format": "double",
+              "default": 0.0
+            },
+            "contrast": {
+              "type": "number",
+              "format": "double",
+              "default": 0.0
+            },
+            "type": {
+              "type": "string",
+              "const": "brightness_contrast"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "channels": {
+              "type": "array",
+              "default": [
+                {
+                  "gamma": 1.0,
+                  "input_black": 0.0,
+                  "input_white": 1.0,
+                  "output_black": 0.0,
+                  "output_white": 1.0
+                },
+                {
+                  "gamma": 1.0,
+                  "input_black": 0.0,
+                  "input_white": 1.0,
+                  "output_black": 0.0,
+                  "output_white": 1.0
+                },
+                {
+                  "gamma": 1.0,
+                  "input_black": 0.0,
+                  "input_white": 1.0,
+                  "output_black": 0.0,
+                  "output_white": 1.0
+                }
+              ],
+              "items": {
+                "$ref": "#/$defs/LevelRange"
+              },
+              "maxItems": 3,
+              "minItems": 3
+            },
+            "master": {
+              "$ref": "#/$defs/LevelRange",
+              "default": {
+                "gamma": 1.0,
+                "input_black": 0.0,
+                "input_white": 1.0,
+                "output_black": 0.0,
+                "output_white": 1.0
+              }
+            },
+            "type": {
+              "type": "string",
+              "const": "levels"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "channels": {
+              "type": "array",
+              "default": [
+                [
+                  [
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    1.0,
+                    1.0
+                  ]
+                ],
+                [
+                  [
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    1.0,
+                    1.0
+                  ]
+                ],
+                [
+                  [
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    1.0,
+                    1.0
+                  ]
+                ]
+              ],
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number",
+                    "format": "double"
+                  },
+                  "maxItems": 2,
+                  "minItems": 2
+                }
+              },
+              "maxItems": 3,
+              "minItems": 3
+            },
+            "master": {
+              "type": "array",
+              "default": [
+                [
+                  0.0,
+                  0.0
+                ],
+                [
+                  1.0,
+                  1.0
+                ]
+              ],
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "number",
+                  "format": "double"
+                },
+                "maxItems": 2,
+                "minItems": 2
+              }
+            },
+            "type": {
+              "type": "string",
+              "const": "curves"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        }
       ]
     }
   }
@@ -10110,6 +10536,648 @@ Permissions: `bound_document`
   ],
   "radius": 1,
   "sample": "current_layer"
+}
+```
+
+## `layer.add_tonal_adjustment` — 新建调色调整层
+
+Create a brightness_contrast, levels or curves adjustment with the current selection as mask (white if none). All math uses floating encoded document working RGB; source samples and alpha remain untouched. brightness/contrast are -100..100; brightness adds /100 and contrast scales about 0.5 (negative gain 1+c, positive gain 1/(1-c), +100 hard threshold). Levels applies master then R/G/B ranges, normalized endpoints and gamma 0.1..10. Curves applies master then R/G/B shape-preserving PCHIP curves; 2..64 points in 0..1, first x=0, last x=1, strictly increasing x; nonmonotonic y allowed. Defaults are exact identity. One history item, saved in manifest v4.
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `true`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AddTonal",
+  "type": "object",
+  "properties": {
+    "adjustment": {
+      "$ref": "#/$defs/TonalAdjustment"
+    },
+    "name": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "name",
+    "adjustment"
+  ],
+  "$defs": {
+    "LevelRange": {
+      "type": "object",
+      "properties": {
+        "gamma": {
+          "type": "number",
+          "format": "double",
+          "default": 1.0
+        },
+        "input_black": {
+          "type": "number",
+          "format": "double",
+          "default": 0.0
+        },
+        "input_white": {
+          "type": "number",
+          "format": "double",
+          "default": 1.0
+        },
+        "output_black": {
+          "type": "number",
+          "format": "double",
+          "default": 0.0
+        },
+        "output_white": {
+          "type": "number",
+          "format": "double",
+          "default": 1.0
+        }
+      },
+      "additionalProperties": false
+    },
+    "TonalAdjustment": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "brightness": {
+              "type": "number",
+              "format": "double",
+              "default": 0.0
+            },
+            "contrast": {
+              "type": "number",
+              "format": "double",
+              "default": 0.0
+            },
+            "type": {
+              "type": "string",
+              "const": "brightness_contrast"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "channels": {
+              "type": "array",
+              "default": [
+                {
+                  "gamma": 1.0,
+                  "input_black": 0.0,
+                  "input_white": 1.0,
+                  "output_black": 0.0,
+                  "output_white": 1.0
+                },
+                {
+                  "gamma": 1.0,
+                  "input_black": 0.0,
+                  "input_white": 1.0,
+                  "output_black": 0.0,
+                  "output_white": 1.0
+                },
+                {
+                  "gamma": 1.0,
+                  "input_black": 0.0,
+                  "input_white": 1.0,
+                  "output_black": 0.0,
+                  "output_white": 1.0
+                }
+              ],
+              "items": {
+                "$ref": "#/$defs/LevelRange"
+              },
+              "maxItems": 3,
+              "minItems": 3
+            },
+            "master": {
+              "$ref": "#/$defs/LevelRange",
+              "default": {
+                "gamma": 1.0,
+                "input_black": 0.0,
+                "input_white": 1.0,
+                "output_black": 0.0,
+                "output_white": 1.0
+              }
+            },
+            "type": {
+              "type": "string",
+              "const": "levels"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "channels": {
+              "type": "array",
+              "default": [
+                [
+                  [
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    1.0,
+                    1.0
+                  ]
+                ],
+                [
+                  [
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    1.0,
+                    1.0
+                  ]
+                ],
+                [
+                  [
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    1.0,
+                    1.0
+                  ]
+                ]
+              ],
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number",
+                    "format": "double"
+                  },
+                  "maxItems": 2,
+                  "minItems": 2
+                }
+              },
+              "maxItems": 3,
+              "minItems": 3
+            },
+            "master": {
+              "type": "array",
+              "default": [
+                [
+                  0.0,
+                  0.0
+                ],
+                [
+                  1.0,
+                  1.0
+                ]
+              ],
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "number",
+                  "format": "double"
+                },
+                "maxItems": 2,
+                "minItems": 2
+              }
+            },
+            "type": {
+              "type": "string",
+              "const": "curves"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LayerResult",
+  "type": "object",
+  "properties": {
+    "layer_id": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "required": [
+    "layer_id"
+  ]
+}
+```
+
+### Examples
+
+```json
+{
+  "adjustment": {
+    "master": {
+      "gamma": 1.2
+    },
+    "type": "levels"
+  },
+  "name": "Levels"
+}
+```
+
+```json
+{
+  "adjustment": {
+    "brightness": 10,
+    "contrast": 5,
+    "type": "brightness_contrast"
+  },
+  "name": "Brightness"
+}
+```
+
+```json
+{
+  "adjustment": {
+    "master": [
+      [
+        0,
+        0
+      ],
+      [
+        0.5,
+        0.65
+      ],
+      [
+        1,
+        1
+      ]
+    ],
+    "type": "curves"
+  },
+  "name": "Curves"
+}
+```
+
+## `adjust.tonal.set` — 设置调色调整层
+
+Replace complete tonal settings of an existing adjustment layer without changing its type. Same strict normalized parameters as layer.add_tonal_adjustment. Omitted fields reset to identity; specify the complete intended settings. Masks, alpha and original source samples are preserved; lock and ancestor checks apply.
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `true`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SetTonal",
+  "type": "object",
+  "properties": {
+    "adjustment": {
+      "$ref": "#/$defs/TonalAdjustment"
+    },
+    "layer": {
+      "$ref": "#/$defs/LayerRef"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "layer",
+    "adjustment"
+  ],
+  "$defs": {
+    "LayerRef": {
+      "description": "Stable ID preferred. Duplicate names return candidates instead of guessing.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ]
+        }
+      ]
+    },
+    "LevelRange": {
+      "type": "object",
+      "properties": {
+        "gamma": {
+          "type": "number",
+          "format": "double",
+          "default": 1.0
+        },
+        "input_black": {
+          "type": "number",
+          "format": "double",
+          "default": 0.0
+        },
+        "input_white": {
+          "type": "number",
+          "format": "double",
+          "default": 1.0
+        },
+        "output_black": {
+          "type": "number",
+          "format": "double",
+          "default": 0.0
+        },
+        "output_white": {
+          "type": "number",
+          "format": "double",
+          "default": 1.0
+        }
+      },
+      "additionalProperties": false
+    },
+    "TonalAdjustment": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "brightness": {
+              "type": "number",
+              "format": "double",
+              "default": 0.0
+            },
+            "contrast": {
+              "type": "number",
+              "format": "double",
+              "default": 0.0
+            },
+            "type": {
+              "type": "string",
+              "const": "brightness_contrast"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "channels": {
+              "type": "array",
+              "default": [
+                {
+                  "gamma": 1.0,
+                  "input_black": 0.0,
+                  "input_white": 1.0,
+                  "output_black": 0.0,
+                  "output_white": 1.0
+                },
+                {
+                  "gamma": 1.0,
+                  "input_black": 0.0,
+                  "input_white": 1.0,
+                  "output_black": 0.0,
+                  "output_white": 1.0
+                },
+                {
+                  "gamma": 1.0,
+                  "input_black": 0.0,
+                  "input_white": 1.0,
+                  "output_black": 0.0,
+                  "output_white": 1.0
+                }
+              ],
+              "items": {
+                "$ref": "#/$defs/LevelRange"
+              },
+              "maxItems": 3,
+              "minItems": 3
+            },
+            "master": {
+              "$ref": "#/$defs/LevelRange",
+              "default": {
+                "gamma": 1.0,
+                "input_black": 0.0,
+                "input_white": 1.0,
+                "output_black": 0.0,
+                "output_white": 1.0
+              }
+            },
+            "type": {
+              "type": "string",
+              "const": "levels"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "channels": {
+              "type": "array",
+              "default": [
+                [
+                  [
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    1.0,
+                    1.0
+                  ]
+                ],
+                [
+                  [
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    1.0,
+                    1.0
+                  ]
+                ],
+                [
+                  [
+                    0.0,
+                    0.0
+                  ],
+                  [
+                    1.0,
+                    1.0
+                  ]
+                ]
+              ],
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number",
+                    "format": "double"
+                  },
+                  "maxItems": 2,
+                  "minItems": 2
+                }
+              },
+              "maxItems": 3,
+              "minItems": 3
+            },
+            "master": {
+              "type": "array",
+              "default": [
+                [
+                  0.0,
+                  0.0
+                ],
+                [
+                  1.0,
+                  1.0
+                ]
+              ],
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "number",
+                  "format": "double"
+                },
+                "maxItems": 2,
+                "minItems": 2
+              }
+            },
+            "type": {
+              "type": "string",
+              "const": "curves"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LayerResult",
+  "type": "object",
+  "properties": {
+    "layer_id": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "required": [
+    "layer_id"
+  ]
+}
+```
+
+### Examples
+
+```json
+{
+  "adjustment": {
+    "master": {
+      "gamma": 1.1,
+      "input_black": 0.1,
+      "input_white": 0.9
+    },
+    "type": "levels"
+  },
+  "layer": {
+    "name": "Levels"
+  }
+}
+```
+
+```json
+{
+  "adjustment": {
+    "brightness": -5,
+    "contrast": 10,
+    "type": "brightness_contrast"
+  },
+  "layer": {
+    "name": "Brightness"
+  }
+}
+```
+
+```json
+{
+  "adjustment": {
+    "master": [
+      [
+        0,
+        0
+      ],
+      [
+        0.3,
+        0.4
+      ],
+      [
+        0.7,
+        0.8
+      ],
+      [
+        1,
+        1
+      ]
+    ],
+    "type": "curves"
+  },
+  "layer": {
+    "name": "Curves"
+  }
 }
 ```
 

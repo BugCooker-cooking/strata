@@ -1,4 +1,5 @@
 //! Portable document truth, command execution, history and failure-safe files.
+mod adjustments;
 mod blending;
 pub mod commands;
 pub mod composite;
@@ -9,6 +10,7 @@ mod project;
 mod recovery;
 pub mod styles;
 mod subject;
+pub use adjustments::{LevelRange, TonalAdjustment};
 pub use commands::{ClipboardImage, Editor, Source};
 pub use document::{
     Document, DocumentCandidate, DocumentError, Frame, MAX_DOCUMENT_BYTES, MAX_FLAT_IMAGE_BYTES,

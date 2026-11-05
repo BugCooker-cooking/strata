@@ -8,6 +8,14 @@ pub struct SelectionEdge {
     pub x2: f32,
     pub y2: f32,
 }
+#[uniffi::export]
+pub fn tonal_curve_preview(points_json: String) -> Result<Vec<f32>, StrataError> {
+    if points_json.len() > 16384 {
+        return Err(render_error("curve preview parameter limit"));
+    }
+    let points: Vec<[f64; 2]> = serde_json::from_str(&points_json).map_err(render_error)?;
+    strata_core::TonalAdjustment::curve_samples(&points, 257).map_err(render_error)
+}
 
 #[uniffi::export]
 impl StrataEngine {

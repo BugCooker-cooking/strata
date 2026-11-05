@@ -192,6 +192,11 @@ fn fingerprint(doc: &Document, coord: TileCoord, layers: usize) -> u64 {
                 stops.to_bits().hash(&mut hash);
             }
             match &layer.info.kind {
+                LayerKind::Adjustment { adjustment } => {
+                    serde_json::to_vec(adjustment)
+                        .expect("validated tonal parameters")
+                        .hash(&mut hash);
+                }
                 LayerKind::Solid { color } => color.hash(&mut hash),
                 LayerKind::Gradient {
                     start,
@@ -440,6 +445,52 @@ fn compose_sequence(
             continue;
         }
         let mask = layer_mask_tile(layer, ox, oy)?;
+        if let LayerKind::Adjustment { adjustment } = &layer.info.kind {
+            if adjustment.is_identity() && layer.info.blend_mode == BlendMode::Normal {
+                continue;
+            }
+            let _scratch = doc
+                .memory_pool()
+                .reserve(MemoryKind::Transient, 256 * 256 * 64)?;
+            let source = out.iter().map(|v| v.map(|c| c as f32)).collect::<Vec<_>>();
+            let mut working = strata_color::linear_p3_to_working(&source, doc.working_icc())?;
+            let prepared = adjustment.prepare();
+            for p in &mut working {
+                let value = prepared.color([f64::from(p[0]), f64::from(p[1]), f64::from(p[2])]);
+                for c in 0..3 {
+                    p[c] = value[c] as f32;
+                }
+            }
+            let result = strata_color::working_to_linear_p3(&working, doc.working_icc())?;
+            for (index, pixel) in out.iter_mut().enumerate() {
+                let back = [pixel[0], pixel[1], pixel[2]];
+                let front = [
+                    f64::from(result[index][0]),
+                    f64::from(result[index][1]),
+                    f64::from(result[index][2]),
+                ];
+                let mixed = crate::blending::color(back, front, layer.info.blend_mode);
+                let mut amount = f64::from(mask.as_ref().map_or(65535, |m| m[index])) / 65535.0
+                    * layer.info.opacity
+                    * layer.info.fill_opacity;
+                if layer.info.blend_mode == BlendMode::Dissolve {
+                    amount = if dissolve_noise(
+                        layer.id(),
+                        ox + (index % 256) as i64,
+                        oy + (index / 256) as i64,
+                    ) < amount
+                    {
+                        1.0
+                    } else {
+                        0.0
+                    };
+                }
+                for c in 0..3 {
+                    pixel[c] += (mixed[c] - back[c]) * amount;
+                }
+            }
+            continue;
+        }
         if let LayerKind::HueSaturation {
             hue,
             saturation,
@@ -701,7 +752,8 @@ impl Document {
         let visible: Vec<_> = self
             .layers
             .iter()
-            .filter(|l| l.info.visible && l.info.opacity > 0.0)
+            .filter(|l| l.info.visible && l.info.opacity > 0.0
+                && !matches!(&l.info.kind,LayerKind::Adjustment{adjustment}if adjustment.is_identity() && l.info.blend_mode==BlendMode::Normal))
             .collect();
         if visible.len() == 1
             && visible[0].info.parent.is_none()

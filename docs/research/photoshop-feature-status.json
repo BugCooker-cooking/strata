@@ -392,5 +392,35 @@
         "path": "../research/2026-11-m4-selection-progress.md"
       }
     ]
+  },
+  "PS-06-d51749f4f4": {
+    "implementation": "已实现",
+    "acceptance": "本机核心/原生/Metal 证据；实时预览、性能与模型任务另记",
+    "evidence": [
+      {
+        "label": "M5 进展",
+        "path": "../research/2026-11-m5-adjustments-progress.md"
+      }
+    ]
+  },
+  "PS-06-4341979e35": {
+    "implementation": "已实现",
+    "acceptance": "本机核心/原生/Metal 证据；实时预览、性能与模型任务另记",
+    "evidence": [
+      {
+        "label": "M5 进展",
+        "path": "../research/2026-11-m5-adjustments-progress.md"
+      }
+    ]
+  },
+  "PS-06-937dc7bf30": {
+    "implementation": "已实现",
+    "acceptance": "本机核心/原生/Metal 证据；实时预览、性能与模型任务另记",
+    "evidence": [
+      {
+        "label": "M5 进展",
+        "path": "../research/2026-11-m5-adjustments-progress.md"
+      }
+    ]
   }
 }

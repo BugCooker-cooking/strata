@@ -276,6 +276,93 @@ fn group_fill_and_style_display_match_cpu_reference_at_sample_centers() {
 }
 
 #[test]
+fn tonal_adjustment_display_matches_cpu_and_parameter_updates_invalidate_tiles() {
+    let Some(mut renderer) = renderer() else {
+        return;
+    };
+    for (initial, changed) in [
+        (
+            serde_json::json!({"type":"brightness_contrast","brightness":10}),
+            serde_json::json!({"type":"brightness_contrast","brightness":-10}),
+        ),
+        (
+            serde_json::json!({"type":"levels","master":{"gamma":1.4}}),
+            serde_json::json!({"type":"levels","master":{"gamma":0.7}}),
+        ),
+        (
+            serde_json::json!({"type":"curves","master":[[0,0],[0.5,0.7],[1,1]]}),
+            serde_json::json!({"type":"curves","master":[[0,0],[0.5,0.3],[1,1]]}),
+        ),
+    ] {
+        let mut editor = strata_core::Editor::new();
+        for (id, args) in [
+            (
+                "file.new",
+                serde_json::json!({"width":16,"height":16,"bit_depth":16}),
+            ),
+            (
+                "layer.fill.gradient",
+                serde_json::json!({"name":"gradient","start":[8000,8000,8000,65535],"end":[50000,50000,50000,65535]}),
+            ),
+            (
+                "select.marquee",
+                serde_json::json!({"x":0,"y":0,"width":8,"height":16}),
+            ),
+            (
+                "layer.add_tonal_adjustment",
+                serde_json::json!({"name":"tone","adjustment":initial}),
+            ),
+        ] {
+            editor
+                .execute(editor.request(strata_core::Source::Test), id, args, |_| {
+                    Ok(())
+                })
+                .unwrap();
+        }
+        for settings in [None, Some(changed)] {
+            if let Some(settings) = settings {
+                editor
+                    .execute(
+                        editor.request(strata_core::Source::Test),
+                        "adjust.tonal.set",
+                        serde_json::json!({"layer":{"name":"tone"},"adjustment":settings}),
+                        |_| Ok(()),
+                    )
+                    .unwrap();
+            }
+            let scene = renderer
+                .prepare_document(editor.document().unwrap(), false)
+                .unwrap();
+            renderer.commit_document(scene).unwrap();
+            renderer
+                .set_view(ViewTransform {
+                    zoom: 3.0,
+                    center_x: 8.0,
+                    center_y: 8.0,
+                })
+                .unwrap();
+            renderer.render().unwrap();
+            let actual = renderer.read_offscreen_rgba().unwrap();
+            let PixelBuffer::Rgba16(expected) = editor.document().unwrap().export_pixels().unwrap()
+            else {
+                panic!()
+            };
+            for (x, y) in [(2usize, 6usize), (6, 6), (10, 6), (14, 6)] {
+                let shown = pixel(&actual, x * 3 + 9, y * 3 + 9);
+                let offset = (y * 16 + x) * 4;
+                for c in 0..3 {
+                    let target = ((u32::from(expected[offset + c]) + 128) / 257) as i32;
+                    assert!(
+                        (i32::from(shown[c]) - target).abs() <= 4,
+                        "{x},{y},{c}: {shown:?} expected {target}"
+                    );
+                }
+            }
+        }
+    }
+}
+
+#[test]
 fn tiled_scene_preserves_source_and_has_no_mip_seam() {
     let Some(mut r) = renderer() else {
         return;
