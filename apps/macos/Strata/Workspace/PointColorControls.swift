@@ -76,6 +76,7 @@ struct PointColorControls:View {
                 Button("应用调整"){commit()}.disabled(!dirty)
                 Button("重置"){let type=draft.type;draft=PointColorDraft();draft.type=type;rangeIndex=0;mixerRow=0;stopIndex=0}
             }
+            if let preview=model.tonalPreview {TonalPreviewControls(preview:preview,parameters:try? commandJSON(draft.parameters))}
             Text(dirty ? "参数尚未应用；应用后可撤销。" : "参数已保存到调整层。").font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))
         }.textFieldStyle(.roundedBorder).disabled(!model.permissions.edits || model.selected?.locks?.all == true)
             .onAppear(perform:sync).onChange(of:model.selected?.id){_,_ in sync()}
@@ -159,5 +160,5 @@ struct PointColorControls:View {
         }),supportsOpacity:false).accessibilityLabel(title)
     }
     private func sync(){draft=PointColorDraft(model.selected?.kind?.adjustment);rangeIndex=0;mixerRow=0;stopIndex=0}
-    private func commit(){guard let layer=model.selected else{return};model.send(.command("adjust.tonal.set",["layer":["id":layer.id],"adjustment":draft.parameters]))}
+    private func commit(){guard let layer=model.selected else{return};if let preview=model.tonalPreview,preview.enabled,let parameters=try? commandJSON(draft.parameters){preview.apply(parameters);return};model.send(.command("adjust.tonal.set",["layer":["id":layer.id],"adjustment":draft.parameters]))}
 }

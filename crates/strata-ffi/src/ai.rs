@@ -109,9 +109,11 @@ impl StrataEngine {
         let config: ProviderConfig = serde_json::from_str(&config_json).map_err(ai_error)?;
         let options: SessionOptions = serde_json::from_str(&options_json).map_err(ai_error)?;
         let prior: Vec<Message> = serde_json::from_str(&prior_json).map_err(ai_error)?;
+        self.issue_tonal_preview()?;
         let mut slot = self.ai.lock().map_err(ai_error)?;
         {
             let mut inner = self.lock()?;
+            tonal_preview::restore(&mut inner)?;
             let grant =
                 ContextGrant::approved(&inner.editor.snapshot(), &config, share_canvas, None)
                     .map_err(ai_error)?;

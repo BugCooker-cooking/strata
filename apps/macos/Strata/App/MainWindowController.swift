@@ -22,7 +22,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
     var state: EditorSnapshot? { workspace.snapshot }
     var selected: EditorSnapshot.Layer? { workspace.selected }
     var busy = false {
-        didSet { workspace.busy = busy; canvas.isWorkBusy = busy; canvas.isEditingEnabled = workspace.permissions.edits; canvas.isSelectionEnabled = workspace.permissions.selectionEdits; window?.toolbar?.validateVisibleItems() }
+        didSet { workspace.busy = busy; canvas.isWorkBusy = busy || (workspace.tonalPreview?.busy ?? false); canvas.isEditingEnabled = workspace.permissions.edits; canvas.isSelectionEnabled = workspace.permissions.selectionEdits; window?.toolbar?.validateVisibleItems() }
     }
     var onNewTab: (() -> Void)?
     var onOpenURL: ((URL) -> Void)?
@@ -41,6 +41,11 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         self.engine = engine; canvas = CanvasView(engine: engine); assistant = AssistantModel(engine: engine)
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1512, height: 930), styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
         super.init(window: window)
+        let preview = TonalPreviewModel(engine: engine)
+        workspace.tonalPreview = preview
+        preview.onBusy = { [weak self] running in guard let self else { return }; self.canvas.isWorkBusy = self.busy || running }
+        preview.onApplying = { [weak self] applying in self?.busy = applying }
+        preview.onFrame = { [weak self] in guard let self else { return }; self.canvas.markDirty(); if !self.busy { self.refresh() } }
         window.title = "Strata"; window.titleVisibility = .hidden
         window.minSize = NSSize(width: 1280, height: 720); window.toolbarStyle = .unifiedCompact
         window.isReleasedWhenClosed = false; window.delegate = self
@@ -202,7 +207,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         case .opacity(let value): layerCommand("layer.set_opacity", ["opacity": value])
         case .blend(let value): layerCommand("layer.set_blend_mode", ["blend_mode": value])
         case .position(let x, let y): layerCommand("layer.set_position", ["x": x, "y": y])
-        case .tool(let tool): canvas.movesLayer = tool == .move; canvas.zoomTool = tool == .zoom; canvas.configureSelection(workspace); window?.makeFirstResponder(canvas)
+        case .tool(let tool): workspace.tonalPreview?.cancel(); canvas.movesLayer = tool == .move; canvas.zoomTool = tool == .zoom; canvas.configureSelection(workspace); window?.makeFirstResponder(canvas)
         case .assistant: toggleAssistant()
         case .panels: togglePanels()
         case .theme(let theme): onTheme?(theme)
@@ -228,6 +233,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         assistant.bind(document: snapshot.documentId, inheritedTurn: snapshot.control?.turnId)
         let oldControl = state?.control?.kind
         workspace.snapshot = snapshot; window?.isDocumentEdited = snapshot.dirty
+        workspace.tonalPreview?.bind(snapshot)
         if let space=NSColorSpace(iccProfileData:Data(engine.workingProfileIcc())){workspace.workingColorSpace=space}
         workspace.selectedLayers=workspace.selectedLayers.intersection(Set(snapshot.layers.map(\.id)))
         canvas.documentOrigin = NSPoint(x: CGFloat(snapshot.frame?.x ?? 0), y: CGFloat(snapshot.frame?.y ?? 0))
@@ -287,6 +293,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
     }
     func perform(_ command: String, _ params: [String: Any], completion: (@MainActor @Sendable (Bool) -> Void)? = nil) {
         guard !busy else { completion?(false); return }
+        workspace.tonalPreview?.cancel()
         canvas.cancelBenchmarkForDocumentChange()
         do {
             let encoded = try commandJSON(params); busy = true; let engine = engine
@@ -324,7 +331,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
     }
     @objc func stopAI() { if assistant.running { assistant.stop() } else if busy { try? engine.cancelPendingWork() } }
     func requestTermination(_ completion: @escaping @MainActor @Sendable (Bool) -> Void) { if assistant.running { assistant.stop() }; if busy { completion(false) } else { confirmDiscard(completion) } }
-    func windowWillClose(_ notification: Notification) { if assistant.running { assistant.stop() }; recovery?.stop(discard: true); canvas.shutdown(); onClosed?() }
+    func windowWillClose(_ notification: Notification) { workspace.tonalPreview?.cancel(); if assistant.running { assistant.stop() }; recovery?.stop(discard: true); canvas.shutdown(); onClosed?() }
     func windowDidBecomeMain(_ notification: Notification) { onBecameMain?() }
     func windowDidMiniaturize(_ notification: Notification) {
         if ProcessInfo.processInfo.arguments.contains("--window-lifecycle-log") {

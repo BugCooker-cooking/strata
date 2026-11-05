@@ -15,6 +15,7 @@ mod ai;
 mod clipboard;
 mod local;
 mod subject;
+mod tonal_preview;
 pub use clipboard::ClipboardTransfer;
 pub use local::SelectionEdge;
 mod thumbnails;
@@ -147,6 +148,7 @@ struct Inner {
     interaction: Option<MoveInteraction>,
     marquee: Option<strata_core::commands::MarqueeInteraction>,
     exposure: Option<strata_core::commands::ExposureInteraction>,
+    tonal_preview: Option<tonal_preview::TonalPreview>,
 }
 impl Default for Inner {
     fn default() -> Self {
@@ -159,6 +161,7 @@ impl Default for Inner {
             interaction: None,
             marquee: None,
             exposure: None,
+            tonal_preview: None,
         }
     }
 }
@@ -167,6 +170,7 @@ pub struct StrataEngine {
     inner: Mutex<Inner>,
     work_cancellation: strata_core::commands::WorkCancellation,
     active_ai_request: Mutex<Option<(uuid::Uuid, strata_core::commands::Request)>>,
+    tonal_preview_sequence: std::sync::atomic::AtomicU64,
     listener: Arc<dyn EngineListener>,
     recovery: Mutex<Option<strata_io::recovery::RecoveryStore>>,
     ai: Mutex<Option<strata_ai::Session>>,
@@ -222,6 +226,7 @@ impl StrataEngine {
             inner: Mutex::new(inner),
             work_cancellation,
             active_ai_request: Mutex::new(None),
+            tonal_preview_sequence: std::sync::atomic::AtomicU64::new(0),
             listener,
             recovery: Mutex::new(None),
             ai: Mutex::new(None),
@@ -388,6 +393,15 @@ impl StrataEngine {
                 .map_err(command_error)?;
             return apply(&mut inner, prepared, &command, &params).map(|r| r.to_string());
         }
+        if strata_core::commands::catalog()
+            .iter()
+            .find(|s| s.id == command)
+            .is_some_and(|s| s.kind != strata_core::commands::CommandKind::Query)
+        {
+            self.issue_tonal_preview()?;
+            let mut inner = self.lock()?;
+            tonal_preview::restore(&mut inner)?;
+        }
         let (snapshot, request, generation) = {
             let mut inner = self.lock()?;
             if command == "file.open" {
@@ -459,6 +473,7 @@ impl StrataEngine {
         metal_layer_ptr: u64,
         viewport: CanvasViewport,
     ) -> Result<(), StrataError> {
+        self.issue_tonal_preview()?;
         #[cfg(target_os = "macos")]
         {
             // SAFETY: native CanvasView owns and retains CAMetalLayer until detach.
@@ -470,6 +485,7 @@ impl StrataEngine {
             }
             .map_err(render_error)?;
             let mut inner = self.lock()?;
+            tonal_preview::restore(&mut inner)?;
             if let Some(doc) = inner.editor.document() {
                 let prepared = renderer.prepare_document(doc, true).map_err(render_error)?;
                 renderer.commit_document(prepared).map_err(render_error)?;
@@ -484,10 +500,12 @@ impl StrataEngine {
         }
     }
     pub fn detach_canvas(&self) -> Result<(), StrataError> {
+        self.issue_tonal_preview()?;
         let mut inner = self.lock()?;
         inner.interaction = None;
         inner.marquee = None;
         inner.exposure = None;
+        inner.tonal_preview = None;
         inner.renderer = None;
         Ok(())
     }
@@ -518,11 +536,13 @@ impl StrataEngine {
         self.dispatch("view.fit".into(), "{}".into()).map(|_| ())
     }
     pub fn begin_layer_move(&self, layer_id: String) -> Result<(), StrataError> {
+        self.issue_tonal_preview()?;
         let reference =
             serde_json::from_value(json!({"id":layer_id})).map_err(|e| StrataError::Command {
                 message: e.to_string(),
             })?;
         let mut inner = self.lock()?;
+        tonal_preview::restore(&mut inner)?;
         inner.interaction = Some(inner.editor.begin_move(reference).map_err(command_error)?);
         Ok(())
     }

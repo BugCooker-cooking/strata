@@ -16,6 +16,7 @@ pub use cancellation::WorkCancellation;
 pub use executor::{
     ClipboardImage, CommandError, Control, Editor, ExposureInteraction, HistoryInfo,
     MarqueeInteraction, MoveInteraction, PreparedCommand, Request, Snapshot, Source,
+    TonalInteraction,
 };
 pub use registry::{CommandKind, CommandSpec, catalog};
 

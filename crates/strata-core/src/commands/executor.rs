@@ -85,6 +85,12 @@ pub struct ExposureInteraction {
     epoch: u64,
     layer: LayerId,
 }
+#[derive(Clone)]
+pub struct TonalInteraction {
+    request: Request,
+    epoch: u64,
+    layer: LayerId,
+}
 
 #[derive(Debug, thiserror::Error)]
 pub enum CommandError {
@@ -447,6 +453,55 @@ impl Editor {
             interaction.request.clone(),
             "adjust.exposure.set",
             json!({"layer":{"id":interaction.layer},"stops":stops}),
+        )
+    }
+    pub fn begin_tonal(&self, layer: LayerRef) -> Result<TonalInteraction, CommandError> {
+        self.authorize(&Source::User, "adjust.tonal.set", CommandKind::Mutate)?;
+        let doc = self.document().ok_or(CommandError::NoDocument)?;
+        let layer = doc.resolve(&layer)?;
+        if !doc.layers().iter().any(|l| {
+            l.id() == layer && matches!(l.info().kind, crate::LayerKind::Adjustment { .. })
+        }) {
+            return Err(CommandError::Invalid(
+                "target must be a tonal adjustment layer".into(),
+            ));
+        }
+        if doc
+            .layers()
+            .iter()
+            .any(|l| l.info().locks.all && (l.id() == layer || doc.is_descendant(layer, l.id())))
+        {
+            return Err(CommandError::Invalid(
+                "tonal preview target or its parent is locked".into(),
+            ));
+        }
+        Ok(TonalInteraction {
+            request: self.request(Source::User),
+            epoch: self.epoch,
+            layer,
+        })
+    }
+    /// Context identity, independent of whether the request was explicitly
+    /// cancelled. It is safe to restore a saved display only in this context.
+    pub fn tonal_context_matches(&self, interaction: &TonalInteraction) -> bool {
+        interaction.epoch == self.epoch
+            && interaction.request.session == self.session
+            && interaction.request.document == self.document().map(Document::id)
+            && interaction.request.revision == self.revision
+            && self.control == Control::User
+    }
+    pub fn preview_tonal(
+        &self,
+        interaction: &TonalInteraction,
+        settings: crate::TonalAdjustment,
+    ) -> Result<PreparedCommand, CommandError> {
+        if !self.tonal_context_matches(interaction) {
+            return Err(CommandError::Stale);
+        }
+        self.prepare(
+            interaction.request.clone(),
+            "adjust.tonal.set",
+            json!({"layer":{"id":interaction.layer},"adjustment":settings}),
         )
     }
     pub fn snapshot(&self) -> Snapshot {

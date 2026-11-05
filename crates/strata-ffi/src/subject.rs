@@ -171,7 +171,10 @@ impl StrataEngine {
         Ok(())
     }
     pub fn clear_subject_model(&self) -> Result<(), StrataError> {
-        self.lock()?.editor.clear_subject_selector();
+        self.issue_tonal_preview()?;
+        let mut inner = self.lock()?;
+        crate::tonal_preview::restore(&mut inner)?;
+        inner.editor.clear_subject_selector();
         Ok(())
     }
 }

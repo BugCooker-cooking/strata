@@ -586,6 +586,15 @@ impl Renderer {
         self.image = None;
         Ok(())
     }
+    pub fn restore_preview_scene(
+        &mut self,
+        mut scene: super::scene::PreparedScene,
+    ) -> Result<(), RenderError> {
+        // Keep navigation performed while previewing; the retained scene's
+        // immutable texture cache remains valid and requires no recomposition.
+        scene.view = self.view;
+        self.commit_document(scene)
+    }
 
     pub fn read_offscreen_rgba(&self) -> Result<Vec<u8>, RenderError> {
         let Target::Offscreen(texture) = &self.target else {

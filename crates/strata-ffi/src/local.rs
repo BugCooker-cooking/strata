@@ -20,7 +20,9 @@ pub fn tonal_curve_preview(points_json: String) -> Result<Vec<f32>, StrataError>
 #[uniffi::export]
 impl StrataEngine {
     pub fn begin_marquee(&self) -> Result<(), StrataError> {
+        self.issue_tonal_preview()?;
         let mut inner = self.lock()?;
+        crate::tonal_preview::restore(&mut inner)?;
         inner.marquee = Some(inner.editor.begin_marquee().map_err(command_error)?);
         Ok(())
     }
@@ -59,7 +61,9 @@ impl StrataEngine {
     }
     pub fn begin_exposure(&self, layer_id: String) -> Result<(), StrataError> {
         let layer = serde_json::from_value(json!({"id":layer_id})).map_err(render_error)?;
+        self.issue_tonal_preview()?;
         let mut inner = self.lock()?;
+        crate::tonal_preview::restore(&mut inner)?;
         inner.exposure = Some(inner.editor.begin_exposure(layer).map_err(command_error)?);
         Ok(())
     }
