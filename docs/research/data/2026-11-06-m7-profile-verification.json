@@ -1,0 +1,33 @@
+{
+  "date_local": "2026-11-06",
+  "timezone": "Asia/Taipei",
+  "base_checkpoint": "84e0c4b",
+  "scope": "Built-in RGB profile assignment and cancellable conversion; geometry/text and arbitrary ICC/CMYK remain open",
+  "source_sha256": {
+    "apps/macos/Strata/App/AppDelegate.swift": "2d555a2ced08f5dc5a892a28ea8bd0af1adcfd18a261dc8157f4d5a4a74bc9ef",
+    "apps/macos/Strata/App/MainWindowController.swift": "02961adc8446b7ee2d5f94130dd5fde3c26871b758c3b9c9b825784afc7622f3",
+    "apps/macos/Strata/Workspace/WorkspaceModel.swift": "9b879c65035d8e0cb6e9e97cf771b26f4f3e8ade1dcea3513035f666271c6c99",
+    "crates/strata-ai/tests/protocol.rs": "0cb507e2466d3f07619d2f1587a0240d77b3bdd75bb493ce2af98a60fe764648",
+    "crates/strata-ai/tests/replay.rs": "0425af516e77a737de6aa14ea712b867dc02ddbe8a4dd0cb6586ccee3dfbc5a9",
+    "crates/strata-core/src/commands/executor.rs": "3e675c201a075ed78df959b8bd5ca460e14c6ee12da7ed965f45033a6f5093e0",
+    "crates/strata-core/src/commands/mod.rs": "9fb260d2f4084b48de2ca888066ee3ffd0d471d45d37e82a8f91ff4caf2ac500",
+    "crates/strata-core/src/commands/profiles.rs": "0afb50733fa0cd872e50b1c1f75eaf309c82623bdae7708fb0b4a074681ccfe2",
+    "crates/strata-core/src/commands/registry.rs": "bc0d16373926c2e711c003ecbf43820a1a7934c11ed84e047726e794818d55c5",
+    "crates/strata-core/tests/profile_assignment.rs": "9af4fe39956d3de0d536282bb0268e794b82351ec30d1e30329656e6f84bbbdf",
+    "crates/strata-render/tests/gpu.rs": "9dbe20ccfcecd2f64eacc936d375a99f1c957958a18780a7ca3fd62e92604897"
+  },
+  "verification": {
+    "profile_core_tests": 4,
+    "related_file_tests": 6,
+    "related_blend_tests": 5,
+    "ai_contract_tests": 26,
+    "required_metal_numeric_tests": 1,
+    "release_arm64": true,
+    "lint": true,
+    "commands": 104,
+    "ai_mapped_composite_rows": 71,
+    "final_ai_audit_complete": false
+  },
+  "native_full_and_manual": "pending; preserve the externally modified sample window, no second instance launched",
+  "cloud_builds": "disabled and not used"
+}

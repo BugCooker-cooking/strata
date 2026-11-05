@@ -11,6 +11,7 @@ mod local;
 mod new;
 mod paint;
 mod pixel_transform;
+mod profiles;
 mod raster;
 mod registry;
 mod resample;
@@ -91,7 +92,19 @@ params!(AddNoise {
 pub struct ColorResult {
     pub working_space: String,
 }
-params!(ConvertColor { space: String });
+params!(ConvertColor {
+    #[schemars(with = "ProfileSpace")]
+    space: String
+});
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum ProfileSpace {
+    Srgb,
+    DisplayP3,
+}
+params!(AssignProfile {
+    space: ProfileSpace
+});
 #[derive(Serialize, JsonSchema)]
 pub struct LayerResult {
     pub layer_id: crate::LayerId,

@@ -680,5 +680,45 @@
         "path": "../research/2026-11-m6-filters-progress.md"
       }
     ]
+  },
+  "PS-16-468033d33b": {
+    "implementation": "已实现",
+    "acceptance": "M0/M1 已有本机 ICC/位深/导出证据；持续回归",
+    "evidence": [
+      {
+        "label": "M1 色彩与文件闭环",
+        "path": "2026-11-03-m1-closure.md"
+      }
+    ]
+  },
+  "PS-16-4f3db94f33": {
+    "implementation": "已实现",
+    "acceptance": "M0/M1 已有本机 ICC/位深/导出证据；持续回归",
+    "evidence": [
+      {
+        "label": "M1 色彩与文件闭环",
+        "path": "2026-11-03-m1-closure.md"
+      }
+    ]
+  },
+  "PS-16-b59d8280a5": {
+    "implementation": "已实现",
+    "acceptance": "M0/M1 已有本机 ICC/位深/导出证据；持续回归",
+    "evidence": [
+      {
+        "label": "M1 色彩与文件闭环",
+        "path": "2026-11-03-m1-closure.md"
+      }
+    ]
+  },
+  "PS-16-8de06204ac": {
+    "implementation": "部分实现",
+    "acceptance": "内置 sRGB/P3 指定/转换已实现；任意 ICC/CMYK 设置仍待后续",
+    "evidence": [
+      {
+        "label": "M7 配置指定/转换",
+        "path": "../research/2026-11-m7-color-progress.md"
+      }
+    ]
   }
 }

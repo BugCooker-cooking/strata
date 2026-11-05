@@ -1195,6 +1195,79 @@
         }
       ],
       "note": "自动检查点由宿主调度；恢复通过宿主文件选择授权。"
+    },
+    "PS-16-468033d33b": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "file.new",
+        "color.convert",
+        "color.assign"
+      ],
+      "prompts": [
+        {
+          "text": "新建 Display P3 工作空间的文档。",
+          "query": "新建文档",
+          "command": "file.new"
+        }
+      ],
+      "note": ""
+    },
+    "PS-16-4f3db94f33": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "file.open"
+      ],
+      "prompts": [
+        {
+          "text": "打开我选择的带 ICC 配置文件照片。",
+          "query": "打开文件",
+          "command": "file.open"
+        }
+      ],
+      "note": ""
+    },
+    "PS-16-b59d8280a5": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "file.export"
+      ],
+      "prompts": [
+        {
+          "text": "导出时转换并嵌入 Display P3 配置文件。",
+          "query": "导出图片",
+          "command": "file.export"
+        }
+      ],
+      "note": ""
+    },
+    "PS-16-8de06204ac": {
+      "scope": "editing",
+      "coverage": "partial",
+      "commands": [
+        "color.assign",
+        "color.convert"
+      ],
+      "prompts": [
+        {
+          "text": "指定 Display P3 并保留 RGB 数值，不转换像素。",
+          "query": "指定配置文件",
+          "command": "color.assign"
+        }
+      ],
+      "note": "当前指定支持两种内置 RGB 预设；任意 ICC 文件与 CMYK 设置待后续。",
+      "variants": [
+        {
+          "command": "color.assign",
+          "path": "space",
+          "values": [
+            "srgb",
+            "display_p3"
+          ]
+        }
+      ]
     }
   }
 }

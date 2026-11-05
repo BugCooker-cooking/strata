@@ -2,9 +2,9 @@
 
 当前开发期审计快照。完整编辑功能与最终 AI 审计仍未闭环；不得把注册数量当作全部功能覆盖。
 
-真实注册命令 103；参数示例 146；综合功能 265；已有映射 67。
+真实注册命令 104；参数示例 147；综合功能 265；已有映射 71。
 
-已实现但未映射 0；部分入口 4；原生未知命令引用 0；未类型化返回 0。
+已实现但未映射 0；部分入口 5；原生未知命令引用 0；未类型化返回 0。
 
 配置/密钥及基础设施的宿主管理理由单列；纯 UI 状态不能隐瞒为已具备独立 AI 设置命令。
 
@@ -251,10 +251,10 @@
 | PS-15-b99621b074 | Alpha 通道（存储选区） | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-15-c4509c8344 | 复制通道、通道转选区 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-15-117606acae | 专色通道 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
-| PS-16-468033d33b | 工作色彩空间 sRGB / Display P3 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
-| PS-16-4f3db94f33 | 读取并应用图片内嵌的 ICC 配置文件 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
-| PS-16-b59d8280a5 | 导出时嵌入 / 转换配置文件 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
-| PS-16-8de06204ac | 指定 / 转换配置文件 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
+| PS-16-468033d33b | 工作色彩空间 sRGB / Display P3 | 已实现 | 已映射 | `file.new`、`color.convert`、`color.assign` · 新建 Display P3 工作空间的文档。 |
+| PS-16-4f3db94f33 | 读取并应用图片内嵌的 ICC 配置文件 | 已实现 | 已映射 | `file.open` · 打开我选择的带 ICC 配置文件照片。 |
+| PS-16-b59d8280a5 | 导出时嵌入 / 转换配置文件 | 已实现 | 已映射 | `file.export` · 导出时转换并嵌入 Display P3 配置文件。 |
+| PS-16-8de06204ac | 指定 / 转换配置文件 | 部分实现 | 部分入口 | `color.assign`、`color.convert` · 指定 Display P3 并保留 RGB 数值，不转换像素。 · 当前指定支持两种内置 RGB 预设；任意 ICC 文件与 CMYK 设置待后续。 |
 | PS-16-56a0bc682a | 软打样 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-16-e269e999cb | 颜色设置（自定义 CMYK 等） | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-17-86de52d178 | 属性 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
@@ -278,8 +278,8 @@
 
 ## 仍需核对
 
-- 部分入口：PS-01-894622b1ce、PS-04-cb66199f15、PS-04-853e6d30f3、PS-08-3ce0368d80
+- 部分入口：PS-01-894622b1ce、PS-04-cb66199f15、PS-04-853e6d30f3、PS-08-3ce0368d80、PS-16-8de06204ac
 - 未类型化返回：无
-- 未关联功能条目的命令：`color.convert`、`document.batch`、`document.histogram`、`document.inspect`、`edit.clear`、`edit.clipboard.write_status`、`edit.copy`、`edit.copy_merged`、`edit.cut`、`edit.paste`、`edit.paste_in_place`、`layer.list`、`layer.select`、`layer.set_position`
+- 未关联功能条目的命令：`document.batch`、`document.histogram`、`document.inspect`、`edit.clear`、`edit.clipboard.write_status`、`edit.copy`、`edit.copy_merged`、`edit.cut`、`edit.paste`、`edit.paste_in_place`、`layer.list`、`layer.select`、`layer.set_position`
 - 动态拼接及纯宿主回调仍需人工逐项复核；已有提示映射不能代替最终模型端到端验收。
 - `--require-complete` 才是最终严格门槛；开发期检查只保证引用有效及报告同步。

@@ -204,7 +204,7 @@ private let commandTitles: [String: String] = [
      "filter.gaussian_blur":"高斯模糊", "filter.unsharp_mask":"USM 锐化", "filter.add_noise":"添加杂色",
      "layer.create": "新建图层", "layer.duplicate": "复制图层", "layer.delete": "删除图层", "layer.rename": "重命名图层",
      "layer.set_position": "移动图层", "layer.set_visibility": "图层显隐", "layer.set_opacity": "调整不透明度",
-     "layer.set_blend_mode": "混合模式", "layer.move_order": "调整顺序", "color.convert": "转换色彩空间",
+     "layer.set_blend_mode": "混合模式", "layer.move_order": "调整顺序", "color.convert": "转换色彩空间", "color.assign":"指定色彩配置",
      "batch": "批量编辑", "document.batch": "批量编辑", "file.save": "保存工程", "file.save_as": "另存工程", "file.export": "导出图片",
      "file.place": "置入图片", "select.subject": "选择主体", "select.marquee": "矩形选区",
      "select.all": "全选", "select.none": "取消选择", "select.inverse": "反选",

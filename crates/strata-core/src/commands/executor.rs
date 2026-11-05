@@ -1062,6 +1062,10 @@ impl Editor {
                 {
                     (Action::Edit, result)
                 } else if let Some(result) =
+                    super::profiles::mutate(doc, id, params.clone(), &|| request.expired())?
+                {
+                    (Action::Edit, result)
+                } else if let Some(result) =
                     super::filters::mutate(doc, id, params.clone(), &|| request.expired())?
                 {
                     (Action::Edit, result)
@@ -1554,73 +1558,6 @@ pub(super) fn mutate(doc: &mut Document, id: &str, params: Value) -> Result<Valu
         return Err(CommandError::Invalid(
             "cannot insert into a locked group".into(),
         ));
-    }
-    if id == "color.convert" {
-        let p: ConvertColor = parse(params)?;
-        let icc = strata_color::working_profile(&p.space).map_err(DocumentError::from)?;
-        let pool = doc.memory_pool();
-        for layer in &mut doc.layers {
-            let convert_sample = |color: [u16; 4]| -> Result<[u16; 4], CommandError> {
-                let source = if doc.format == PixelFormat::Rgba8 {
-                    PixelBuffer::Rgba8(color.map(|v| v as u8).to_vec())
-                } else {
-                    PixelBuffer::Rgba16(color.to_vec())
-                };
-                let converted =
-                    strata_color::convert_to_profile(&source, 1, 1, &doc.working_icc, &icc)
-                        .map_err(DocumentError::from)?;
-                Ok(match converted {
-                    PixelBuffer::Rgba8(v) => [
-                        u16::from(v[0]),
-                        u16::from(v[1]),
-                        u16::from(v[2]),
-                        u16::from(v[3]),
-                    ],
-                    PixelBuffer::Rgba16(v) => [v[0], v[1], v[2], v[3]],
-                })
-            };
-            match &mut layer.info.kind {
-                crate::LayerKind::Solid { color } => *color = convert_sample(*color)?,
-                crate::LayerKind::Gradient { start, end, .. } => {
-                    *start = convert_sample(*start)?;
-                    *end = convert_sample(*end)?;
-                }
-                _ => {}
-            }
-            if let Some(style) = &mut layer.info.styles.drop_shadow {
-                style.color = convert_sample(style.color)?;
-            }
-            if let Some(style) = &mut layer.info.styles.stroke {
-                style.color = convert_sample(style.color)?;
-            }
-            if let Some(style) = &mut layer.info.styles.outer_glow {
-                style.color = convert_sample(style.color)?;
-            }
-            if let Some(style) = &mut layer.info.styles.color_overlay {
-                style.color = convert_sample(style.color)?;
-            }
-            if let Some(style) = &mut layer.info.styles.gradient_overlay {
-                style.start = convert_sample(style.start)?;
-                style.end = convert_sample(style.end)?;
-            }
-            let mut converted =
-                TiledPixels::with_pool(doc.format, tile_limit(doc.format), pool.clone());
-            for (coord, tile) in layer.pixels.tiles() {
-                let tile = tile.map_err(DocumentError::from)?;
-                let pixels =
-                    strata_color::convert_to_profile(&tile, 256, 256, &doc.working_icc, &icc)
-                        .map_err(DocumentError::from)?;
-                converted
-                    .insert_tile(*coord, pixels)
-                    .map_err(DocumentError::from)?;
-            }
-            layer.pixels = converted;
-        }
-        let profile = strata_color::resolve_profile(Some(&icc)).map_err(DocumentError::from)?;
-        doc.working_icc = icc;
-        doc.profile_name = profile.name;
-        doc.profile_fallback = false;
-        return Ok(json!({"working_space":p.space}));
     }
     if id == "layer.create" {
         let p: CreateLayer = parse(params)?;

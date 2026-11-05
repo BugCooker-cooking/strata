@@ -151,6 +151,87 @@ fn result(step: Step) -> Value {
 }
 
 #[test]
+fn assigning_profile_through_ai_keeps_codes_and_has_one_reversible_turn() {
+    let host = Host::new();
+    host.user(
+        "paint.fill",
+        json!({"layer":{"name":"Background"},"color":[0.8,0.2,0.1,0.5]}),
+    );
+    let before = host
+        .editor
+        .lock()
+        .unwrap()
+        .document()
+        .unwrap()
+        .to_archive()
+        .unwrap();
+    let mut session = host.session_with_prompt(
+        ExecutionMode::Direct,
+        "指定 Display P3 配置文件，保留 RGB 数值，不要转换像素。",
+    );
+    reply(
+        &mut session,
+        &host,
+        vec![
+            call("search", "search_catalog", json!({"query":"指定配置文件"})),
+            call(
+                "describe",
+                "describe_commands",
+                json!({"ids":["color.assign"]}),
+            ),
+        ],
+    );
+    assert!(
+        result(session.poll(&host).unwrap())["matches"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|m| m["id"] == "color.assign")
+    );
+    assert_eq!(
+        result(session.poll(&host).unwrap())["commands"][0]["id"],
+        "color.assign"
+    );
+    reply(
+        &mut session,
+        &host,
+        vec![invoke(
+            "assign",
+            "color.assign",
+            json!({"space":"display_p3"}),
+        )],
+    );
+    assert_eq!(
+        result(session.poll(&host).unwrap())["result"]["working_space"],
+        "display_p3"
+    );
+    let after = host
+        .editor
+        .lock()
+        .unwrap()
+        .document()
+        .unwrap()
+        .to_archive()
+        .unwrap();
+    assert!(after.tiles == before.tiles);
+    assert_ne!(
+        after.metadata["working_icc"],
+        before.metadata["working_icc"]
+    );
+    host.editor.lock().unwrap().stop_turn();
+    host.user("edit.undo_turn", json!({"turn_id":session.turn_id()}));
+    assert!(
+        host.editor
+            .lock()
+            .unwrap()
+            .document()
+            .unwrap()
+            .to_archive()
+            .unwrap()
+            == before
+    );
+}
+#[test]
 fn filter_prompts_discover_describe_invoke_real_edits_and_undo_the_ai_turn() {
     for (prompt, query, command, params) in [
         (

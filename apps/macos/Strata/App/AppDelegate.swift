@@ -268,7 +268,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         let viewItem = NSMenuItem(title: "视图", action: nil, keyEquivalent: ""); viewItem.submenu = view; bar.addItem(viewItem)
         let color = NSMenu(title: "色彩")
-        for (title, action) in [("转换工作空间为 sRGB", #selector(MainWindowController.convertToSRGB)), ("转换工作空间为 Display P3", #selector(MainWindowController.convertToP3))] {
+        for (title, action) in [("指定 sRGB（保留数值）",#selector(MainWindowController.assignSRGB)),("指定 Display P3（保留数值）",#selector(MainWindowController.assignP3)),("转换为 sRGB（保持颜色）", #selector(MainWindowController.convertToSRGB)), ("转换为 Display P3（保持颜色）", #selector(MainWindowController.convertToP3))] {
             let item = color.addItem(withTitle: title, action: action, keyEquivalent: ""); item.target = controller
         }
         let colorItem = NSMenuItem(title: "色彩", action: nil, keyEquivalent: ""); colorItem.submenu = color; bar.addItem(colorItem)

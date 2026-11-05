@@ -17336,11 +17336,77 @@ Permissions: `bound_document`
 }
 ```
 
+## `color.assign` — 指定文档配置文件
+
+Assign srgb or display_p3 interpretation without converting any integer pixel samples, hidden RGB, generated fill/style color codes, masks, depth, geometry or original source ICC. Appearance changes because identical RGB codes are interpreted in the newly assigned working profile. This is distinct from color.convert, which changes samples to preserve appearance. Pixel/transparency/position locks are allowed because source codes are unchanged; all-locked layers reject document reinterpretation. Undo restores exact old ICC/metadata; project save/reopen keeps the assigned profile. Cancellable, budgeted, one atomic history edit, not batchable. Currently supports the two built-in RGB working presets, not arbitrary ICC file assignment or CMYK. 中文：指定配置文件、保留 RGB 数值、重新解释颜色、不要转换像素。
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `false`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AssignProfile",
+  "type": "object",
+  "properties": {
+    "space": {
+      "$ref": "#/$defs/ProfileSpace"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "space"
+  ],
+  "$defs": {
+    "ProfileSpace": {
+      "type": "string",
+      "enum": [
+        "srgb",
+        "display_p3"
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ColorResult",
+  "type": "object",
+  "properties": {
+    "working_space": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "working_space"
+  ]
+}
+```
+
+### Examples
+
+```json
+{
+  "space": "display_p3"
+}
+```
+
 ## `color.convert` — 转换工作空间
 
-Convert source tiles at their original bit depth to srgb or display_p3. Alpha is preserved; undo restores exact original samples and ICC.
+Convert source tiles and generated fill/style colors at their original bit depth to srgb or display_p3, preserving appearance and exact alpha. Pixel/all locks reject conversion; masks stay unchanged. Unlike color.assign this changes RGB codes. Per-layer/tile cancellation and shared scratch budgets; one undoable edit restores exact original samples and ICC. Not batchable. 中文：转换配置文件、转换工作空间、保持颜色。
 
-Kind: `Mutate` · Undoable: `true` · Batchable: `true`
+Kind: `Mutate` · Undoable: `true` · Batchable: `false`
 
 Effects: `document.write`
 
@@ -17357,13 +17423,22 @@ Permissions: `bound_document`
   "type": "object",
   "properties": {
     "space": {
-      "type": "string"
+      "$ref": "#/$defs/ProfileSpace"
     }
   },
   "additionalProperties": false,
   "required": [
     "space"
-  ]
+  ],
+  "$defs": {
+    "ProfileSpace": {
+      "type": "string",
+      "enum": [
+        "srgb",
+        "display_p3"
+      ]
+    }
+  }
 }
 ```
 

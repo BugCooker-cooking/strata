@@ -1135,19 +1135,33 @@ fn build_catalog() -> Vec<CommandSpec> {
             item.permissions = vec!["host_recent_visibility"];
         }
     }
-    // This command changes source working samples and is undoable, unlike a
-    // display profile change. Keep it explicit in the catalog and native UI.
+    command!(
+        "color.assign",
+        AssignProfile,
+        Mutate,
+        "指定文档配置文件",
+        "Assign document profile",
+        "Assign srgb or display_p3 interpretation without converting any integer pixel samples, hidden RGB, generated fill/style color codes, masks, depth, geometry or original source ICC. Appearance changes because identical RGB codes are interpreted in the newly assigned working profile. This is distinct from color.convert, which changes samples to preserve appearance. Pixel/transparency/position locks are allowed because source codes are unchanged; all-locked layers reject document reinterpretation. Undo restores exact old ICC/metadata; project save/reopen keeps the assigned profile. Cancellable, budgeted, one atomic history edit, not batchable. Currently supports the two built-in RGB working presets, not arbitrary ICC file assignment or CMYK. 中文：指定配置文件、保留 RGB 数值、重新解释颜色、不要转换像素。",
+        json!({"space":"display_p3"})
+    );
+    if let Some(last) = list.last_mut() {
+        last.returns = schemars::schema_for!(ColorResult);
+        last.batchable = false;
+    }
+    // Conversion changes source codes to preserve appearance. Keep the
+    // assignment/conversion choice explicit in the catalog and native UI.
     command!(
         "color.convert",
         ConvertColor,
         Mutate,
         "转换工作空间",
         "Convert working space",
-        "Convert source tiles at their original bit depth to srgb or display_p3. Alpha is preserved; undo restores exact original samples and ICC.",
+        "Convert source tiles and generated fill/style colors at their original bit depth to srgb or display_p3, preserving appearance and exact alpha. Pixel/all locks reject conversion; masks stay unchanged. Unlike color.assign this changes RGB codes. Per-layer/tile cancellation and shared scratch budgets; one undoable edit restores exact original samples and ICC. Not batchable. 中文：转换配置文件、转换工作空间、保持颜色。",
         json!({"space":"display_p3"})
     );
     if let Some(last) = list.last_mut() {
         last.returns = schemars::schema_for!(ColorResult);
+        last.batchable = false;
     }
     list
 }

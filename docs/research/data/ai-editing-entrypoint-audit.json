@@ -1,16 +1,17 @@
 {
   "scope": "Development audit; not a claim that all Photoshop editing is implemented or AI-verified",
-  "registered_commands": 103,
-  "registered_examples": 146,
-  "catalog_sha256": "29c7dbf689401630da9ca4446d6fa5b85359d93992d116963cb4e9e975a835cc",
+  "registered_commands": 104,
+  "registered_examples": 147,
+  "catalog_sha256": "22802100c63a673ab0393f42b960c8b0cd60a2324c4e4153f203d22d94588588",
   "inventory_rows": 265,
-  "mapped_features": 67,
+  "mapped_features": 71,
   "unmapped_implemented_features": [],
   "partial_entrypoints": [
     "PS-01-894622b1ce",
     "PS-04-cb66199f15",
     "PS-04-853e6d30f3",
-    "PS-08-3ce0368d80"
+    "PS-08-3ce0368d80",
+    "PS-16-8de06204ac"
   ],
   "unfinished_features": [
     "PS-00-7d7224e709",
@@ -190,9 +191,6 @@
     "PS-15-b99621b074",
     "PS-15-c4509c8344",
     "PS-15-117606acae",
-    "PS-16-468033d33b",
-    "PS-16-4f3db94f33",
-    "PS-16-b59d8280a5",
     "PS-16-8de06204ac",
     "PS-16-56a0bc682a",
     "PS-16-e269e999cb",
@@ -218,7 +216,6 @@
   "unknown_native_command_references": {},
   "untyped_command_returns": [],
   "commands_without_feature_links": [
-    "color.convert",
     "document.batch",
     "document.histogram",
     "document.inspect",
@@ -3784,8 +3781,24 @@
       "name": "工作色彩空间 sRGB / Display P3",
       "priority": "P0",
       "source_line": 368,
-      "implementation": "待实现",
-      "entrypoint": null
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "file.new",
+          "color.convert",
+          "color.assign"
+        ],
+        "prompts": [
+          {
+            "text": "新建 Display P3 工作空间的文档。",
+            "query": "新建文档",
+            "command": "file.new"
+          }
+        ],
+        "note": ""
+      }
     },
     {
       "id": "PS-16-4f3db94f33",
@@ -3794,8 +3807,22 @@
       "name": "读取并应用图片内嵌的 ICC 配置文件",
       "priority": "P0",
       "source_line": 369,
-      "implementation": "待实现",
-      "entrypoint": null
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "file.open"
+        ],
+        "prompts": [
+          {
+            "text": "打开我选择的带 ICC 配置文件照片。",
+            "query": "打开文件",
+            "command": "file.open"
+          }
+        ],
+        "note": ""
+      }
     },
     {
       "id": "PS-16-b59d8280a5",
@@ -3804,8 +3831,22 @@
       "name": "导出时嵌入 / 转换配置文件",
       "priority": "P0",
       "source_line": 370,
-      "implementation": "待实现",
-      "entrypoint": null
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "file.export"
+        ],
+        "prompts": [
+          {
+            "text": "导出时转换并嵌入 Display P3 配置文件。",
+            "query": "导出图片",
+            "command": "file.export"
+          }
+        ],
+        "note": ""
+      }
     },
     {
       "id": "PS-16-8de06204ac",
@@ -3814,8 +3855,33 @@
       "name": "指定 / 转换配置文件",
       "priority": "P1",
       "source_line": 371,
-      "implementation": "待实现",
-      "entrypoint": null
+      "implementation": "部分实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "partial",
+        "commands": [
+          "color.assign",
+          "color.convert"
+        ],
+        "prompts": [
+          {
+            "text": "指定 Display P3 并保留 RGB 数值，不转换像素。",
+            "query": "指定配置文件",
+            "command": "color.assign"
+          }
+        ],
+        "note": "当前指定支持两种内置 RGB 预设；任意 ICC 文件与 CMYK 设置待后续。",
+        "variants": [
+          {
+            "command": "color.assign",
+            "path": "space",
+            "values": [
+              "srgb",
+              "display_p3"
+            ]
+          }
+        ]
+      }
     },
     {
       "id": "PS-16-56a0bc682a",

@@ -972,6 +972,81 @@ fn gaussian_unsharp_and_noise_display_match_linear_cpu_with_changed_alpha() {
 }
 
 #[test]
+fn profile_assignment_invalidates_color_caches_without_changing_source_tiles() {
+    let Some(mut renderer) = renderer() else {
+        return;
+    };
+    let mut e = strata_core::Editor::new();
+    e.execute(e.request(strata_core::Source::Test),"file.new",serde_json::json!({"width":16,"height":16,"bit_depth":16,"working_space":"srgb","background":[65535,0,0,32768]}),|_|Ok(())).unwrap();
+    let coordinate = strata_pixels::TileCoord::new(0, 0).unwrap();
+    let version = e.document().unwrap().layers()[0]
+        .pixels()
+        .tile_version(coordinate);
+    let original = e.document().unwrap().to_archive().unwrap();
+    let scene = renderer
+        .prepare_document(e.document().unwrap(), false)
+        .unwrap();
+    renderer.commit_document(scene).unwrap();
+    renderer
+        .set_view(ViewTransform {
+            zoom: 3.0,
+            center_x: 8.0,
+            center_y: 8.0,
+        })
+        .unwrap();
+    renderer.render().unwrap();
+    let before = renderer.read_offscreen_rgba().unwrap();
+    e.execute(
+        e.request(strata_core::Source::Test),
+        "color.assign",
+        serde_json::json!({"space":"display_p3"}),
+        |_| Ok(()),
+    )
+    .unwrap();
+    let doc = e.document().unwrap();
+    assert_eq!(doc.layers()[0].pixels().tile_version(coordinate), version);
+    assert!(doc.to_archive().unwrap().tiles == original.tiles);
+    let scene = renderer.prepare_document(doc, false).unwrap();
+    renderer.commit_document(scene).unwrap();
+    renderer.render().unwrap();
+    let after = renderer.read_offscreen_rgba().unwrap();
+    assert!(after != before);
+    let reference = strata_core::composite::Compositor::new(1)
+        .tile(doc, coordinate)
+        .unwrap()[8 * 256 + 8];
+    let shown = pixel(&after, 8 * 3 + 9, 8 * 3 + 9);
+    for c in 0..3 {
+        let bg = f64::from(CANVAS_BG_SRGB[c]) / 255.0;
+        let bg = if bg <= 0.04045 {
+            bg / 12.92
+        } else {
+            ((bg + 0.055) / 1.055).powf(2.4)
+        };
+        let v = f64::from(reference[c]) * f64::from(reference[3])
+            + bg * (1.0 - f64::from(reference[3]));
+        let v = if v <= 0.0031308 {
+            12.92 * v
+        } else {
+            1.055 * v.powf(1.0 / 2.4) - 0.055
+        };
+        assert!(shown[c].abs_diff((v.clamp(0.0, 1.0) * 255.0).round() as u8) <= 3);
+    }
+    e.execute(
+        e.request(strata_core::Source::Test),
+        "edit.undo",
+        serde_json::json!({}),
+        |_| Ok(()),
+    )
+    .unwrap();
+    let scene = renderer
+        .prepare_document(e.document().unwrap(), false)
+        .unwrap();
+    renderer.commit_document(scene).unwrap();
+    renderer.render().unwrap();
+    assert!(renderer.read_offscreen_rgba().unwrap() == before);
+}
+
+#[test]
 fn tiled_scene_preserves_source_and_has_no_mip_seam() {
     let Some(mut r) = renderer() else {
         return;
