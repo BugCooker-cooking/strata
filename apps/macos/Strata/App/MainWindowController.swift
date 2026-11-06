@@ -159,6 +159,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         case #selector(stopAI): assistant.running || busy
         case #selector(undo): canUndo
         case #selector(redo): canRedo
+        case #selector(convertToEightBit): workspace.permissions.edits && workspace.hasDocument && state?.bitDepth != 8
+        case #selector(convertToSixteenBit): workspace.permissions.edits && workspace.hasDocument && state?.bitDepth != 16
         case #selector(saveDocument), #selector(saveAs), #selector(exportDocument), #selector(placeImage), #selector(convertToSRGB), #selector(convertToP3),#selector(assignSRGB),#selector(assignP3): workspace.permissions.edits && workspace.hasDocument
         case #selector(openImage), #selector(newTab), #selector(openRecent(_:)): !busy
         default: true
@@ -376,6 +378,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
     private var canRedo: Bool { textEditor.map { $0.undoManager?.canRedo == true } ?? workspace.canRedo }
     @objc func undo() { if let textEditor { textEditor.undoManager?.undo() } else if workspace.canUndo { perform("edit.undo", [:]) } }
     @objc func redo() { if let textEditor { textEditor.undoManager?.redo() } else if workspace.canRedo { perform("edit.redo", [:]) } }
+    @objc func convertToEightBit(){perform("image.convert_bit_depth",["bit_depth":8])}
+    @objc func convertToSixteenBit(){perform("image.convert_bit_depth",["bit_depth":16])}
     @objc func convertToSRGB() { perform("color.convert", ["space": "srgb"]) }
     @objc func convertToP3() { perform("color.convert", ["space": "display_p3"]) }
     @objc func assignSRGB(){perform("color.assign",["space":"srgb"])}

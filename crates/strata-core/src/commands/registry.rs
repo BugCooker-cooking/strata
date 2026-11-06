@@ -1102,11 +1102,21 @@ fn build_catalog() -> Vec<CommandSpec> {
         "Straighten all pixel layers and unstyled groups in one atomic history step using reference.type=angle (clockwise angle_degrees +/-45) or line (distinct start/end canvas points, align horizontal/vertical). A reference line computes the shortest unoriented correction toward the requested axis; choose the other axis if correction exceeds45 degrees. Points must be finite inside +/-1e12 and at least1e-6 pixel apart. crop=true(default) uses the rotated original artboard, not visible-content alpha, to compute an analytical largest centered continuous inscribed rectangle, then rounds its edges inward and verifies inverse corners. Bilinear uses an additional half-source-pixel inset so an originally opaque image cannot gain transparent corner interpolation; integer alignment may conservatively remove extra edge pixels. An image too narrow for a nonempty safe integer rectangle rejects before sampling; set crop=false to retain the expanded rotation artboard. No content-aware filling, deletion or implicit rasterization. Same immutable resampler/limits/locks/partial-type restrictions as image.rotate; preserve layer IDs/tree/depth/ICC, hidden/off-artboard sources, enabled flags and layer/group/current/previous masks. Source content outside the cropped frame remains stored; selection binds to final frame. Exactly zero correction is unchanged-state no-op, even with crop=true. Native numeric and canvas-dragged reference lines use the same strict parameters/output as AI, with pixels.replace approval for AI. A native line stages only a guide, binds the original document/revision/control epoch and operation-specific ownership token, and applies on Enter or its button; Escape, tool/document/revision/control changes cancel it without revoking newer AI work. Horizontal/vertical, crop and interpolation remain adjustable before confirmation. One undo restores rotation and crop. Generated fills/adjustments/styles/text arbitrary geometry remains open. 中文：拉直、水平线校正、垂直线校正、按两点参考线拉直、画布拖线拉直、参考线草稿、回车应用、Esc取消、校正地平线、自动裁掉旋转空角、保留像素裁剪。",
         json!({"reference":{"type":"angle","angle_degrees":5},"crop":true,"interpolation":"bilinear"})
     );
+    command!(
+        "image.convert_bit_depth",
+        ConvertBitDepth,
+        Mutate,
+        "转换文档位深",
+        "Convert document bit depth",
+        "Convert the entire layered RGB document between bit_depth=8 and16 without flattening, resampling, changing its ICC or using display/composite caches. Every stored RGBA channel, including alpha-zero hidden RGB and hidden/off-artboard source, converts by exact integer rules:8->16 multiplies by257;16->8 rounds (code+128)/257, with no dithering and possible RGB/alpha precision loss. Convert solid/gradient fill and every editable style RGBA endpoint too; groups, adjustment definitions and all layer IDs/tree/clipping/positions/crop/style/spatial references/DPI stay editable. Normalized floating adjustment colors stay normalized. Current/previous selection and layer/group mask u16 samples, layouts, anchors, enabled flags and tile versions remain unchanged. Whole-document operation independent of active selection/layer. Pixel/transparency/all locks on any layer/ancestor reject; position-only locks are allowed. The same depth is a no-op before lock/work checks, preserving revision/history/dirty/current layer. Validate target frame, frozen references, total pixel+mask bytes and tile capacity before conversion; bounded tile/row cancellation and pooled scratch/output with original source snapshots. One atomic history with exact undo and project roundtrip, not batchable, pixels.replace approval for AI. Native menu/panel and AI execute this same command. 中文：文档位深、8位转16位、16位转8位、转换文档位深、提高位深、降低位深、保留图层和蒙版；降低位深会量化颜色与透明度。",
+        json!({"bit_depth":8})
+    );
     for item in &mut list {
         item.returns = match item.id {
             "image.rotate" => schemars::schema_for!(RotateImageResult),
             "image.resize" => schemars::schema_for!(ResizeImageResult),
             "image.straighten" => schemars::schema_for!(StraightenImageResult),
+            "image.convert_bit_depth" => schemars::schema_for!(BitDepthResult),
             "image.trim" => schemars::schema_for!(TrimCanvasResult),
             "paint.colors.get" | "paint.colors.set" | "paint.colors.swap"
             | "paint.colors.reset" => schemars::schema_for!(PaintColors),
@@ -1280,9 +1290,12 @@ fn build_catalog() -> Vec<CommandSpec> {
             item.examples.push(json!({"reference":{"type":"line","start":[2,4],"end":[13,5],"align":"horizontal"},"crop":true,"interpolation":"nearest"}));
             item.examples.push(json!({"reference":{"type":"line","start":[4,2],"end":[5,13],"align":"vertical"},"crop":false}));
         }
+        if item.id == "image.convert_bit_depth" {
+            item.examples.push(json!({"bit_depth":16}));
+        }
         if matches!(
             item.id,
-            "image.rotate" | "image.resize" | "image.straighten"
+            "image.rotate" | "image.resize" | "image.straighten" | "image.convert_bit_depth"
         ) {
             item.batchable = false;
         }
@@ -1293,6 +1306,7 @@ fn build_catalog() -> Vec<CommandSpec> {
                 | "image.rotate"
                 | "image.resize"
                 | "image.straighten"
+                | "image.convert_bit_depth"
         ) {
             item.effects.push("pixels.replace");
         }

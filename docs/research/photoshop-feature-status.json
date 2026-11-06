@@ -878,5 +878,15 @@
         "path": "../research/2026-11-m7-resize-progress.md"
       }
     ]
+  },
+  "PS-03-692d64115b": {
+    "implementation": "已实现",
+    "acceptance": "整文档双向转换、全部当前类型/样式颜色、蒙版/ICC/原码、锁/资源/取消/工程/撤销，以及 AI、原生、真实 Metal、Release 和单窗口菜单/面板验收通过；32位/HDR 为独立后续项。",
+    "evidence": [
+      {
+        "label": "文档位深转换",
+        "path": "../research/2026-11-m7-bit-depth-progress.md"
+      }
+    ]
   }
 }

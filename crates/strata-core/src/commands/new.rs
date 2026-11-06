@@ -35,9 +35,8 @@ pub(super) fn document(p: NewDocument, pool: MemoryPool) -> Result<Document, Com
         ));
     }
     let format = match p.bit_depth {
-        8 => PixelFormat::Rgba8,
-        16 => PixelFormat::Rgba16,
-        _ => return Err(CommandError::Invalid("bit_depth must be 8 or 16".into())),
+        ImageBitDepth::Eight => PixelFormat::Rgba8,
+        ImageBitDepth::Sixteen => PixelFormat::Rgba16,
     };
     if format
         .byte_count(width, height)

@@ -1899,6 +1899,124 @@ fn straighten_safe_crop_metal_honors_nonzero_frame_origin_and_undo_restores_scen
 }
 
 #[test]
+fn document_bit_depth_conversion_metal_preserves_normalized_color_and_undo_source_precision() {
+    let Some(mut renderer) = renderer() else {
+        return;
+    };
+    let mut e = strata_core::Editor::new();
+    for (id, p) in [
+        (
+            "file.new",
+            serde_json::json!({"width":16,"height":12,"bit_depth":16,"working_space":"display_p3","background":[10001,30003,50001,32769]}),
+        ),
+        (
+            "layer.fill.gradient",
+            serde_json::json!({"name":"gradient","start":[10001,30003,50001,32769],"end":[50001,20003,10001,50001],"angle":27,"scale":0.7}),
+        ),
+        (
+            "layer.set_styles",
+            serde_json::json!({"layer":{"name":"gradient"},"styles":{"drop_shadow":{"color":[10001,30003,50001,32769],"offset_x":2,"offset_y":1,"blur":1},"stroke":{"color":[50001,10001,20003,50001],"size":1},"outer_glow":{"color":[10001,30003,50001,32769],"size":2},"color_overlay":{"color":[50001,20003,10001,50001],"opacity":0.25},"gradient_overlay":{"start":[10001,30003,50001,32769],"end":[50001,20003,10001,50001],"angle":-17,"scale":0.8,"opacity":0.25}}}),
+        ),
+        (
+            "layer.add_adjustment",
+            serde_json::json!({"name":"exposure","type":"exposure","stops":0.2,"mask":"white"}),
+        ),
+    ] {
+        e.execute(e.request(strata_core::Source::Test), id, p, |_| Ok(()))
+            .unwrap();
+    }
+    let original = e.document().unwrap().to_archive().unwrap();
+    let scene = renderer
+        .prepare_document(e.document().unwrap(), false)
+        .unwrap();
+    renderer.commit_document(scene).unwrap();
+    renderer
+        .set_view(ViewTransform {
+            zoom: 3.,
+            center_x: 8.,
+            center_y: 6.,
+        })
+        .unwrap();
+    renderer.render().unwrap();
+    let before = renderer.read_offscreen_rgba().unwrap();
+    let mut eight_scene = Vec::new();
+    for depth in [8, 16] {
+        e.execute(
+            e.request(strata_core::Source::Test),
+            "image.convert_bit_depth",
+            serde_json::json!({"bit_depth":depth}),
+            |_| Ok(()),
+        )
+        .unwrap();
+        let doc = e.document().unwrap();
+        assert_eq!(doc.bit_depth(), depth);
+        let scene = renderer.prepare_document(doc, false).unwrap();
+        renderer.commit_document(scene).unwrap();
+        renderer.render().unwrap();
+        let shown = renderer.read_offscreen_rgba().unwrap();
+        let reference = strata_core::composite::Compositor::new(1)
+            .tile(doc, strata_pixels::TileCoord::new(0, 0).unwrap())
+            .unwrap();
+        for (x, y) in [(3usize, 3usize), (8, 5), (12, 8)] {
+            let p = reference[y * 256 + x];
+            let sx = (32. + (x as f32 + 0.5 - 8.) * 3.) as usize;
+            let sy = (32. + (y as f32 + 0.5 - 6.) * 3.) as usize;
+            let actual = pixel(&shown, sx, sy);
+            for c in 0..3 {
+                let bg = f64::from(CANVAS_BG_SRGB[c]) / 255.;
+                let bg = if bg <= 0.04045 {
+                    bg / 12.92
+                } else {
+                    ((bg + 0.055) / 1.055).powf(2.4)
+                };
+                let v = f64::from(p[c]) * f64::from(p[3]) + bg * (1. - f64::from(p[3]));
+                let v = if v <= 0.0031308 {
+                    12.92 * v
+                } else {
+                    1.055 * v.powf(1. / 2.4) - 0.055
+                };
+                assert!(
+                    actual[c].abs_diff((v.clamp(0., 1.) * 255.).round() as u8) <= 3,
+                    "depth {depth} {x},{y},{c}: {actual:?}"
+                );
+            }
+        }
+        if depth == 8 {
+            assert!(shown.iter().zip(&before).all(|(a, b)| a.abs_diff(*b) <= 4));
+            eight_scene = shown;
+        } else {
+            assert!(
+                shown
+                    .iter()
+                    .zip(&eight_scene)
+                    .all(|(a, b)| a.abs_diff(*b) <= 1)
+            );
+        }
+    }
+    e.execute(
+        e.request(strata_core::Source::Test),
+        "edit.undo",
+        serde_json::json!({}),
+        |_| Ok(()),
+    )
+    .unwrap();
+    e.execute(
+        e.request(strata_core::Source::Test),
+        "edit.undo",
+        serde_json::json!({}),
+        |_| Ok(()),
+    )
+    .unwrap();
+    assert_eq!(e.document().unwrap().to_archive().unwrap(), original);
+    let scene = renderer
+        .prepare_document(e.document().unwrap(), false)
+        .unwrap();
+    renderer.commit_document(scene).unwrap();
+    renderer.render().unwrap();
+    assert_eq!(renderer.read_offscreen_rgba().unwrap(), before);
+}
+
+#[test]
 fn tiled_scene_preserves_source_and_has_no_mip_seam() {
     let Some(mut r) = renderer() else {
         return;

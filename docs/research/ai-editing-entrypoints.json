@@ -1721,6 +1721,50 @@
         }
       ],
       "note": "Pixels and unstyled groups have real size edits and all three sampling modes, with exact AI replacement approval and one-history turn undo. Editable fill/adjustment/style/text sizing and other professional resamplers remain open; do not interpret this partial entry as complete image sizing."
+    },
+    "PS-03-692d64115b": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "file.new",
+        "image.convert_bit_depth"
+      ],
+      "prompts": [
+        {
+          "text": "把当前整份文档转换为16位，保留图层、蒙版和色彩配置。",
+          "query": "转换文档位深",
+          "command": "image.convert_bit_depth"
+        },
+        {
+          "text": "Convert the whole layered document to 8 bits per channel with explicit precision quantization and one-step undo.",
+          "query": "Convert document bit depth",
+          "command": "image.convert_bit_depth"
+        },
+        {
+          "text": "新建一份16位RGB文档，指定像素尺寸。",
+          "query": "新建文档",
+          "command": "file.new"
+        }
+      ],
+      "variants": [
+        {
+          "command": "image.convert_bit_depth",
+          "path": "bit_depth",
+          "values": [
+            8,
+            16
+          ]
+        },
+        {
+          "command": "file.new",
+          "path": "bit_depth",
+          "values": [
+            8,
+            16
+          ]
+        }
+      ],
+      "note": "Both true conversion directions, exact integer expansion/quantization, all current editable layer and style colors, unchanged u16 masks/selections/ICC and whole-document history. Native and AI use the same operation; 16-bit expansion does not recreate precision lost by earlier 8-bit quantization. Live model/hardware/full Photoshop final audit gates remain independent."
     }
   }
 }

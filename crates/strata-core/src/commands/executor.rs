@@ -1160,6 +1160,17 @@ impl Editor {
                 {
                     (Action::Edit, result)
                 } else if let Some(result) =
+                    super::depth::mutate(doc, id, params.clone(), &|| request.expired())?
+                {
+                    (
+                        if result["changed"] == false {
+                            Action::Query
+                        } else {
+                            Action::Edit
+                        },
+                        result,
+                    )
+                } else if let Some(result) =
                     super::straighten::mutate(doc, id, params.clone(), &|| request.expired())?
                 {
                     (
@@ -1488,7 +1499,11 @@ impl Editor {
             || prepared.command == "paint.colors.get"
             || (matches!(
                 prepared.command.as_str(),
-                "image.trim" | "image.rotate" | "image.resize" | "image.straighten"
+                "image.trim"
+                    | "image.rotate"
+                    | "image.resize"
+                    | "image.straighten"
+                    | "image.convert_bit_depth"
             ) && prepared.result["changed"] == false);
         match prepared.action {
             Action::PaintColors(colors) => {

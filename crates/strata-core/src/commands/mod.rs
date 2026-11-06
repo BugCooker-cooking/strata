@@ -4,6 +4,7 @@ mod cancellation;
 mod canvas;
 mod clone_source;
 mod crop_delete;
+mod depth;
 mod executor;
 mod export;
 mod filters;
@@ -52,6 +53,54 @@ macro_rules! params {
     };
 }
 params!(Empty {});
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(try_from = "u8", into = "u8")]
+pub enum ImageBitDepth {
+    Eight,
+    Sixteen,
+}
+impl TryFrom<u8> for ImageBitDepth {
+    type Error = &'static str;
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            8 => Ok(Self::Eight),
+            16 => Ok(Self::Sixteen),
+            _ => Err("bit_depth must be exactly 8 or 16"),
+        }
+    }
+}
+impl From<ImageBitDepth> for u8 {
+    fn from(value: ImageBitDepth) -> Self {
+        match value {
+            ImageBitDepth::Eight => 8,
+            ImageBitDepth::Sixteen => 16,
+        }
+    }
+}
+impl JsonSchema for ImageBitDepth {
+    fn inline_schema() -> bool {
+        true
+    }
+    fn schema_name() -> std::borrow::Cow<'static, str> {
+        "ImageBitDepth".into()
+    }
+    fn json_schema(_: &mut schemars::SchemaGenerator) -> schemars::Schema {
+        schemars::json_schema!({"type":"integer","enum":[8,16]})
+    }
+}
+params!(ConvertBitDepth {
+    bit_depth: ImageBitDepth
+});
+#[derive(Serialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct BitDepthResult {
+    pub previous_bit_depth: ImageBitDepth,
+    pub bit_depth: ImageBitDepth,
+    pub changed: bool,
+    pub preserved_layer_structure: bool,
+    pub masks_unchanged: bool,
+    pub profile_unchanged: bool,
+}
 #[derive(Clone, Debug, Serialize, JsonSchema, PartialEq)]
 pub struct PaintColors {
     pub foreground: [f64; 4],
@@ -463,7 +512,7 @@ params!(NewDocument {
     width: Option<u32>,
     #[serde(default)]
     height: Option<u32>,
-    bit_depth: u8,
+    bit_depth: ImageBitDepth,
     #[serde(default)]
     preset: Option<String>,
     #[serde(default)]

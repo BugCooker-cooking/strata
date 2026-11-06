@@ -39,9 +39,10 @@ Permissions: `bound_document`
     },
     "bit_depth": {
       "type": "integer",
-      "format": "uint8",
-      "maximum": 255,
-      "minimum": 0
+      "enum": [
+        8,
+        16
+      ]
     },
     "discard_changes": {
       "type": "boolean",
@@ -19559,6 +19560,102 @@ Permissions: `bound_document`
     ],
     "type": "line"
   }
+}
+```
+
+## `image.convert_bit_depth` — 转换文档位深
+
+Convert the entire layered RGB document between bit_depth=8 and16 without flattening, resampling, changing its ICC or using display/composite caches. Every stored RGBA channel, including alpha-zero hidden RGB and hidden/off-artboard source, converts by exact integer rules:8->16 multiplies by257;16->8 rounds (code+128)/257, with no dithering and possible RGB/alpha precision loss. Convert solid/gradient fill and every editable style RGBA endpoint too; groups, adjustment definitions and all layer IDs/tree/clipping/positions/crop/style/spatial references/DPI stay editable. Normalized floating adjustment colors stay normalized. Current/previous selection and layer/group mask u16 samples, layouts, anchors, enabled flags and tile versions remain unchanged. Whole-document operation independent of active selection/layer. Pixel/transparency/all locks on any layer/ancestor reject; position-only locks are allowed. The same depth is a no-op before lock/work checks, preserving revision/history/dirty/current layer. Validate target frame, frozen references, total pixel+mask bytes and tile capacity before conversion; bounded tile/row cancellation and pooled scratch/output with original source snapshots. One atomic history with exact undo and project roundtrip, not batchable, pixels.replace approval for AI. Native menu/panel and AI execute this same command. 中文：文档位深、8位转16位、16位转8位、转换文档位深、提高位深、降低位深、保留图层和蒙版；降低位深会量化颜色与透明度。
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `false`
+
+Effects: `document.write, pixels.replace`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ConvertBitDepth",
+  "type": "object",
+  "properties": {
+    "bit_depth": {
+      "type": "integer",
+      "enum": [
+        8,
+        16
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "bit_depth"
+  ]
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BitDepthResult",
+  "type": "object",
+  "properties": {
+    "bit_depth": {
+      "type": "integer",
+      "enum": [
+        8,
+        16
+      ]
+    },
+    "changed": {
+      "type": "boolean"
+    },
+    "masks_unchanged": {
+      "type": "boolean"
+    },
+    "preserved_layer_structure": {
+      "type": "boolean"
+    },
+    "previous_bit_depth": {
+      "type": "integer",
+      "enum": [
+        8,
+        16
+      ]
+    },
+    "profile_unchanged": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "previous_bit_depth",
+    "bit_depth",
+    "changed",
+    "preserved_layer_structure",
+    "masks_unchanged",
+    "profile_unchanged"
+  ]
+}
+```
+
+### Examples
+
+```json
+{
+  "bit_depth": 8
+}
+```
+
+```json
+{
+  "bit_depth": 16
 }
 ```
 

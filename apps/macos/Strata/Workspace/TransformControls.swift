@@ -70,6 +70,8 @@ struct TransformPanel:View{
             Divider()
             ImageSizePanel(model:model)
             Divider()
+            BitDepthPanel(model:model)
+            Divider()
             CanvasSizePanel(model:model)
             Divider()
             CropPanel(model:model)

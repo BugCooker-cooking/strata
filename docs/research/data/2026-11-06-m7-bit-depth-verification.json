@@ -1,0 +1,114 @@
+{
+  "date_local": "2026-11-06",
+  "timezone": "Asia/Taipei",
+  "base_checkpoint": "9fb4f7a",
+  "scope": "Whole-document 8/16-bit integer conversion for all current editable layer kinds and style colors, unchanged masks/profile, native menu/panel and strict AI access. Full Photoshop/final AI closure remains open.",
+  "source_sha256": {
+    "apps/macos/Strata/App/AppDelegate.swift": "e8e7f4eef0a3369c1a2ea71a139052f569d5559e11a9aab52fc618f5de28fd31",
+    "apps/macos/Strata/App/MainWindowController.swift": "2d5870630951b6c2412fb798382e4de3a767e03f06723ef8d6d8c0a7193ec4ae",
+    "apps/macos/Strata/Workspace/BitDepthControls.swift": "2cfecc57c6da7d9d7f07bd41e1ff7bde1ef42d39988283133feec7a0aad75cfb",
+    "apps/macos/Strata/Workspace/TransformControls.swift": "7894c1ff52e6cac038513e4e581b0a036b6867dde4be874e571c0fc78a26dbcf",
+    "apps/macos/Strata/Workspace/WorkspaceModel.swift": "27a41f7ea7261d7b399c8452a6149bd69ccc1d04e0afa7140cb2cbc6137abdd4",
+    "apps/macos/StrataTests/BitDepthTests.swift": "595a50fb75b6179e41eecb78cf88c36ee264222b133d937384c8ce4e9da1e6ee",
+    "crates/strata-ai/tests/replay.rs": "36181cdd3f5b49a0daac951df1d388526f6f60838b24a9b94b3c18de9094884d",
+    "crates/strata-core/src/commands/depth.rs": "e1dbbe983990e1bd61fd0144f4a8a2980c3ca4cd8ed4ec2f287a307adad81571",
+    "crates/strata-core/src/commands/executor.rs": "fdc9a549b86ec541b6deceb182d9759dc25da1a25c327caf18028aeb0f7df7e3",
+    "crates/strata-core/src/commands/mod.rs": "69903bc40d36c610d7d381a3910ece67454b1c4cb0947a84266d7409ac68c69c",
+    "crates/strata-core/src/commands/new.rs": "429ce1b45164d96dc0e34f6b27ea1eaacf439ca6bae8c9b802904e0bb72098cc",
+    "crates/strata-core/src/commands/registry.rs": "84e820f580c2f2a1befa16c03eb6eba478224501e7740acb3f10576cfb276dc6",
+    "crates/strata-core/tests/bit_depth.rs": "516694e8a935d0a8ee2970907450268d2767df82f4ea8a62f7cb9e1e1ad1ff5e",
+    "crates/strata-render/tests/gpu.rs": "e8c7bcfd7ed0f3c6870cf45e26793f9ff81d9a203a00aaefb629f44b6dc3fa6d",
+    "tools/strata-devtool/src/main.rs": "e47ee94baba72e9c3e3356638b10ceb16d76931603a9fda8505b311064b5d400"
+  },
+  "verification": {
+    "core": {
+      "passed": 23,
+      "new_depth_integrations": 7,
+      "document_fill_style_profile_regressions": 16,
+      "log": "build/m7-depth-core.final.log"
+    },
+    "ai": {
+      "passed": 31,
+      "replay_tests": 30,
+      "mapping_contract_tests": 1,
+      "log": "build/m7-depth-ai.log"
+    },
+    "native_subset": {
+      "passed": 4,
+      "bit_depth": 2,
+      "new_document_options": 2,
+      "skipped": 0,
+      "log": "build/m7-depth-native.log"
+    },
+    "required_metal": {
+      "passed": 1,
+      "skipped": 0,
+      "cpu_reference_for_both_depths": true,
+      "normalized_eight_to_sixteen_appearance_preserved": true,
+      "undo_scene_equals_original": true,
+      "log": "build/m7-depth-gpu.log"
+    },
+    "arm64_release": {
+      "passed": true,
+      "log": "build/m7-depth-release.log"
+    },
+    "lint": {
+      "passed": true,
+      "log": "build/m7-depth-lint.log"
+    },
+    "command_examples": {
+      "passed": 120,
+      "log": "build/m7-depth-commands.log",
+      "note": "Both conversion examples start at the opposite depth with nonempty pixels; they execute real conversions rather than same-depth no-ops."
+    },
+    "ai_audit": {
+      "mapped_composite_rows": 83,
+      "inventory_rows": 265,
+      "partial_entrypoints": 9,
+      "unmapped_implemented_rows": 0,
+      "unlinked_registered_commands": 0,
+      "unknown_native_literals": 0,
+      "untyped_root_returns": 0,
+      "final_complete": false,
+      "strict_gate": "build/m7-depth-final-ai-gate.log"
+    },
+    "prior_full_baselines": "Earlier full workspace/native/GPU baselines remain independent; targeted increment only."
+  },
+  "native_manual": {
+    "single_release_instance": true,
+    "fixture": "repository-generated sample-photo.jpg",
+    "size_unchanged": [
+      1024,
+      1536
+    ],
+    "initial_depth": 8,
+    "menu_eight_disabled_initially": true,
+    "menu_eight_to_sixteen_applied": true,
+    "menu_sixteen_disabled_after_conversion": true,
+    "panel_current_depth_and_repeat_disabled": 16,
+    "panel_sixteen_to_eight_applied": true,
+    "two_history_steps": true,
+    "first_undo_depth": 16,
+    "second_undo_restored_original_clean_eight_bit_document": true,
+    "layer_count_preserved": 1,
+    "profile_preserved": "sRGB (assumed)",
+    "dpi_preserved": 72,
+    "final_running_strata_instances": 0,
+    "method": "CUA live native AX and screenshot, native menu plus inspector panel."
+  },
+  "semantics": {
+    "samples": "Raw straight RGBA codes, including alpha-zero hidden RGB and hidden/off-artboard stored tiles. Eight->sixteen exact x257; sixteen->eight nearest integer (code+128)/257 without dither, so lower precision can change RGB/alpha.",
+    "metadata": "All current pixel/group/fill/exposure/HSL/typed adjustment kinds, all five style colors/endpoints. Normalized floating settings, IDs/tree/clipping/positions/DPI/frame/frozen references/ICC stay unchanged. Exhaustive kind/style destructuring forces future types to define conversion.",
+    "masks": "Layer/group/current/previous mask u16 layouts, anchors, enabled flags, samples and tile versions stay exact. Independent of active selection.",
+    "history": "One atomic history and exact source/archive/AI-turn undo. Same-depth no-op before locks/work preserves current layer/revision/dirty/history.",
+    "schema": "New document and conversion share a numeric enum permitting only integer8/16 in actual parsing and schemas. Unknown fields/floats/strings/unsupported depth reject; strict typed return and exact AI replacement approval.",
+    "resources": "Target frame/frozen references/logical pixel+mask totals checked before conversion; per-tile/row cancellation and pooled scratch/output. Pressure failure and actual conversion cancellation preserve original source/depth/versions and release transient reservations.",
+    "locks": "Pixel/transparency/all including ancestor/hidden locks reject; position-only allowed."
+  },
+  "cloud_builds": {
+    "used": false,
+    "automatic_triggers": false,
+    "last_known_workflow_state": "disabled_manually"
+  },
+  "remaining": "32-bit/HDR, other color models and all remaining Photoshop features, final feature-by-feature AI audit, continuous performance/live-model/hardware/platform/release gates remain independent and open."
+}

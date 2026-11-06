@@ -1,10 +1,10 @@
 {
   "scope": "Development audit; not a claim that all Photoshop editing is implemented or AI-verified",
-  "registered_commands": 119,
-  "registered_examples": 172,
-  "catalog_sha256": "b70482f48e421811c08ccf2f8ddfe5b165e078fe7bcd1badcaeb705ea78d3419",
+  "registered_commands": 120,
+  "registered_examples": 174,
+  "catalog_sha256": "7acb4566d0c0156472eccec4a58e00d880e13e558f7c0be3756ef9e2833f5713",
   "inventory_rows": 265,
-  "mapped_features": 82,
+  "mapped_features": 83,
   "unmapped_implemented_features": [],
   "partial_entrypoints": [
     "PS-01-894622b1ce",
@@ -58,7 +58,6 @@
     "PS-03-67a3559782",
     "PS-03-3e1da0c6ef",
     "PS-03-e0d8c7ed11",
-    "PS-03-692d64115b",
     "PS-03-f31cf0825e",
     "PS-03-73a8b2cf0b",
     "PS-03-e44976409a",
@@ -1301,8 +1300,51 @@
       "name": "8 位 / 16 位",
       "priority": "P0",
       "source_line": 118,
-      "implementation": "待实现",
-      "entrypoint": null
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "file.new",
+          "image.convert_bit_depth"
+        ],
+        "prompts": [
+          {
+            "text": "把当前整份文档转换为16位，保留图层、蒙版和色彩配置。",
+            "query": "转换文档位深",
+            "command": "image.convert_bit_depth"
+          },
+          {
+            "text": "Convert the whole layered document to 8 bits per channel with explicit precision quantization and one-step undo.",
+            "query": "Convert document bit depth",
+            "command": "image.convert_bit_depth"
+          },
+          {
+            "text": "新建一份16位RGB文档，指定像素尺寸。",
+            "query": "新建文档",
+            "command": "file.new"
+          }
+        ],
+        "variants": [
+          {
+            "command": "image.convert_bit_depth",
+            "path": "bit_depth",
+            "values": [
+              8,
+              16
+            ]
+          },
+          {
+            "command": "file.new",
+            "path": "bit_depth",
+            "values": [
+              8,
+              16
+            ]
+          }
+        ],
+        "note": "Both true conversion directions, exact integer expansion/quantization, all current editable layer and style colors, unchanged u16 masks/selections/ICC and whole-document history. Native and AI use the same operation; 16-bit expansion does not recreate precision lost by earlier 8-bit quantization. Live model/hardware/full Photoshop final audit gates remain independent."
+      }
     },
     {
       "id": "PS-03-f31cf0825e",

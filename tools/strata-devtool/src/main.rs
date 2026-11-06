@@ -79,6 +79,19 @@ fn examples() -> Result<(), Box<dyn Error>> {
             };
             let mut args = example.clone();
             match spec.id {
+                "image.convert_bit_depth" => {
+                    let depth = if args["bit_depth"] == 16 { 8 } else { 16 };
+                    let color = if depth == 8 {
+                        json!([100, 120, 140, 200])
+                    } else {
+                        json!([10001, 30003, 50001, 32769])
+                    };
+                    run(
+                        &mut editor,
+                        "file.new",
+                        json!({"width":16,"height":16,"bit_depth":depth,"background":color,"discard_changes":true}),
+                    )?;
+                }
                 "image.trim" => {
                     run(
                         &mut editor,

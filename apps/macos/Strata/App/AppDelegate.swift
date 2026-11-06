@@ -267,6 +267,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             item.target = controller
         }
         let viewItem = NSMenuItem(title: "视图", action: nil, keyEquivalent: ""); viewItem.submenu = view; bar.addItem(viewItem)
+        let image=NSMenu(title:"图像")
+        for(title,action) in [("转换为 8 位 / 通道",#selector(MainWindowController.convertToEightBit)),("转换为 16 位 / 通道",#selector(MainWindowController.convertToSixteenBit))]{let item=image.addItem(withTitle:title,action:action,keyEquivalent:"");item.target=controller}
+        let imageItem=NSMenuItem(title:"图像",action:nil,keyEquivalent:"");imageItem.submenu=image;bar.addItem(imageItem)
         let color = NSMenu(title: "色彩")
         for (title, action) in [("指定 sRGB（保留数值）",#selector(MainWindowController.assignSRGB)),("指定 Display P3（保留数值）",#selector(MainWindowController.assignP3)),("转换为 sRGB（保持颜色）", #selector(MainWindowController.convertToSRGB)), ("转换为 Display P3（保持颜色）", #selector(MainWindowController.convertToP3))] {
             let item = color.addItem(withTitle: title, action: action, keyEquivalent: ""); item.target = controller

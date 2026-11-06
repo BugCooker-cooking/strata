@@ -2,7 +2,7 @@
 
 当前开发期审计快照。完整编辑功能与最终 AI 审计仍未闭环；不得把注册数量当作全部功能覆盖。
 
-真实注册命令 119；参数示例 172；综合功能 265；已有映射 82。
+真实注册命令 120；参数示例 174；综合功能 265；已有映射 83。
 
 已实现但未映射 0；部分入口 9；原生未知命令引用 0；未类型化返回 0。
 
@@ -70,7 +70,7 @@
 | PS-03-67a3559782 | CMYK 模式 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-03-3e1da0c6ef | Lab / 索引色 / 双色调 / 位图 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-03-e0d8c7ed11 | 多通道 | 重新核对 | 待实现/待核对 | 保留最终入口与提示核对任务 |
-| PS-03-692d64115b | 8 位 / 16 位 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
+| PS-03-692d64115b | 8 位 / 16 位 | 已实现 | 已映射 | `file.new`、`image.convert_bit_depth` · 把当前整份文档转换为16位，保留图层、蒙版和色彩配置。 · Both true conversion directions, exact integer expansion/quantization, all current editable layer and style colors, unchanged u16 masks/selections/ICC and whole-document history. Native and AI use the same operation; 16-bit expansion does not recreate precision lost by earlier 8-bit quantization. Live model/hardware/full Photoshop final audit gates remain independent. |
 | PS-03-f31cf0825e | 32 位（HDR） | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-03-73a8b2cf0b | 应用图像 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-03-e44976409a | 计算 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
