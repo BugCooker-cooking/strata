@@ -26,6 +26,7 @@ mod tonal_brush;
 mod transform;
 mod transform_selection;
 mod tree;
+mod trim;
 pub use cancellation::WorkCancellation;
 pub use executor::{
     BrushInteraction, ClipboardImage, CommandError, Control, CropInteraction, Editor,
@@ -92,6 +93,27 @@ params!(CanvasSize {
     #[serde(default)]
     anchor: CanvasAnchor
 });
+fn trim_side() -> bool {
+    true
+}
+params!(TrimCanvas {
+    #[serde(default = "trim_side")]
+    top: bool,
+    #[serde(default = "trim_side")]
+    bottom: bool,
+    #[serde(default = "trim_side")]
+    left: bool,
+    #[serde(default = "trim_side")]
+    right: bool
+});
+#[derive(Serialize, JsonSchema)]
+pub struct TrimCanvasResult {
+    pub previous_frame: crate::Frame,
+    pub frame: crate::Frame,
+    pub changed: bool,
+    pub preserved_external_content: bool,
+    pub selection_rebound: bool,
+}
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum CropPixels {

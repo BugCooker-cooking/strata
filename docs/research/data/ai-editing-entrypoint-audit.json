@@ -1,10 +1,10 @@
 {
   "scope": "Development audit; not a claim that all Photoshop editing is implemented or AI-verified",
-  "registered_commands": 115,
-  "registered_examples": 164,
-  "catalog_sha256": "2b3d66ea7b3e4e350dac761d56c17fffbf842647eb5d3b1278ca4804726a45da",
+  "registered_commands": 116,
+  "registered_examples": 165,
+  "catalog_sha256": "bca83af2aa39fb54f4dbfe3d273fdfe62a12cbdfc1052da3697e10f6fbb85c6c",
   "inventory_rows": 265,
-  "mapped_features": 80,
+  "mapped_features": 81,
   "unmapped_implemented_features": [],
   "partial_entrypoints": [
     "PS-01-894622b1ce",
@@ -50,7 +50,6 @@
     "PS-02-bc773443d0",
     "PS-03-ad24731ea8",
     "PS-03-5f9716e5d8",
-    "PS-03-51294954aa",
     "PS-03-0f4e217715",
     "PS-03-691c261ce9",
     "PS-03-c10dd16a58",
@@ -1142,8 +1141,27 @@
       "name": "裁切（去透明边）",
       "priority": "P1",
       "source_line": 110,
-      "implementation": "待实现",
-      "entrypoint": null
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "image.trim"
+        ],
+        "prompts": [
+          {
+            "text": "Trim all fully transparent borders while preserving original editable layers.",
+            "query": "Trim transparent edges",
+            "command": "image.trim"
+          },
+          {
+            "text": "裁去透明边，保留原始图层内容。",
+            "query": "裁去透明边",
+            "command": "image.trim"
+          }
+        ],
+        "note": "Visible composite alpha>0 within the current frame, independent side booleans. No display quantization; hidden RGB/layers do not count. Sources remain stored. Tight repeat is a no-op without history; fully transparent input rejects."
+      }
     },
     {
       "id": "PS-03-0f4e217715",

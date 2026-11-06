@@ -838,5 +838,15 @@
         "path": "../research/2026-11-m7-orientation-progress.md"
       }
     ]
+  },
+  "PS-03-51294954aa": {
+    "implementation": "已实现",
+    "acceptance": "Local core/AI/native subset/real Metal/Release and single-window four-side/no-op/undo evidence passed; ongoing regression.",
+    "evidence": [
+      {
+        "label": "Transparent alpha trim",
+        "path": "../research/2026-11-m7-trim-progress.md"
+      }
+    ]
   }
 }

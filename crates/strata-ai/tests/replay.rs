@@ -1048,6 +1048,98 @@ fn deleting_cropped_pixels_pauses_for_exact_ai_approval_and_turn_undo_restores_s
         before
     );
 }
+#[test]
+fn trim_prompt_discovers_visible_alpha_edit_and_turn_undo_preserves_raw_layers() {
+    let host = Host::new();
+    host.user("select.marquee", json!({"x":2,"y":1,"width":3,"height":5}));
+    host.user(
+        "paint.fill",
+        json!({"layer":{"name":"Background"},"color":[0.8,0.2,0.1,0.5]}),
+    );
+    host.user("select.none", json!({}));
+    let before = host
+        .editor
+        .lock()
+        .unwrap()
+        .document()
+        .unwrap()
+        .to_archive()
+        .unwrap();
+    let initial = host.snapshot().unwrap();
+    let mut session =
+        host.session_with_prompt(ExecutionMode::Direct, "裁去透明边，保留原始图层内容。");
+    reply(
+        &mut session,
+        &host,
+        vec![
+            call("search", "search_catalog", json!({"query":"裁去透明边"})),
+            call(
+                "describe",
+                "describe_commands",
+                json!({"ids":["image.trim"]}),
+            ),
+        ],
+    );
+    assert!(
+        result(session.poll(&host).unwrap())["matches"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|m| m["id"] == "image.trim")
+    );
+    assert_eq!(
+        result(session.poll(&host).unwrap())["commands"][0]["id"],
+        "image.trim"
+    );
+    reply(
+        &mut session,
+        &host,
+        vec![invoke("trim", "image.trim", json!({}))],
+    );
+    let answer = result(session.poll(&host).unwrap());
+    assert_eq!(answer["result"]["changed"], true);
+    assert_eq!(answer["result"]["frame"]["x"], 2);
+    assert_eq!(
+        host.snapshot().unwrap().history.len(),
+        initial.history.len() + 1
+    );
+    assert_eq!(
+        host.editor
+            .lock()
+            .unwrap()
+            .document()
+            .unwrap()
+            .to_archive()
+            .unwrap()
+            .tiles,
+        before.tiles
+    );
+    reply(
+        &mut session,
+        &host,
+        vec![invoke("trim-again", "image.trim", json!({}))],
+    );
+    assert_eq!(
+        result(session.poll(&host).unwrap())["result"]["changed"],
+        false
+    );
+    assert_eq!(
+        host.snapshot().unwrap().history.len(),
+        initial.history.len() + 1
+    );
+    host.editor.lock().unwrap().stop_turn();
+    host.user("edit.undo_turn", json!({"turn_id":session.turn_id()}));
+    assert_eq!(
+        host.editor
+            .lock()
+            .unwrap()
+            .document()
+            .unwrap()
+            .to_archive()
+            .unwrap(),
+        before
+    );
+}
 
 #[test]
 fn inspect_and_direct_queries_and_batches_never_expose_hidden_layers_or_paths() {

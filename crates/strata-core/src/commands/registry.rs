@@ -1066,8 +1066,18 @@ fn build_catalog() -> Vec<CommandSpec> {
         "Reset this editor's palette to opaque encoded working-RGB black foreground and white background; native D uses this command. Same strict ownership, palette-version/idempotent receipt and no-document semantics as paint.colors.set; no pixel/document/history/dirty change and not document/AI-turn undoable, no batch. 中文：重置前景色与背景色、默认黑白绘画颜色、D 快捷键。",
         json!({})
     );
+    command!(
+        "image.trim",
+        TrimCanvas,
+        Mutate,
+        "裁去透明边",
+        "Trim transparent edges",
+        "Trim selected sides of the current artboard to the finite alpha>0 bounds of its actually visible composite, including groups/clipping/masks/adjustments and editable styles. top/bottom/left/right booleans default true; choose at least one. Hidden layers/hidden ancestors do not contribute and transparent hidden RGB never counts. Check original 8/16-bit/float composite alpha directly, no 8-bit display threshold. Only scan within current artboard, at most 64M visits, one pooled composite tile at a time with cancellation; source content outside it does not expand the trim. Preserve raw pixel samples, source positions, editable layer definitions/locks and stored off-artboard content; use image.crop pixels=delete separately if deletion is intended. Rebind current/previous selections and freeze generated/style/spatial references through the same canvas path. Fully transparent composite rejects without changes. Already tight selected sides returns changed=false without history/revision/dirty/layer-selection changes; otherwise one atomic history/undo, not batchable. Native and AI use the same command. 中文：裁去透明边、去掉透明边框、自动裁切透明区域、顶部/底部/左边/右边；保留可编辑图层与画板外原码。",
+        json!({})
+    );
     for item in &mut list {
         item.returns = match item.id {
+            "image.trim" => schemars::schema_for!(TrimCanvasResult),
             "paint.colors.get" | "paint.colors.set" | "paint.colors.swap"
             | "paint.colors.reset" => schemars::schema_for!(PaintColors),
             "image.orient" => schemars::schema_for!(OrientImageResult),
@@ -1207,6 +1217,9 @@ fn build_catalog() -> Vec<CommandSpec> {
             } else {
                 vec!["tool.colors.write"]
             };
+        }
+        if item.id == "image.trim" {
+            item.batchable = false;
         }
         if item.id == "transform.apply" {
             item.examples.push(json!({"layer":{"name":"Background"},"scope":"selection","geometry":{"type":"components","translation":[4,2]}}));

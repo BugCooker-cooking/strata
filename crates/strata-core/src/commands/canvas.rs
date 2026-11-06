@@ -50,7 +50,7 @@ pub(super) fn freeze_references(doc: &mut Document) {
         }
     }
 }
-fn publish_frame(
+pub(super) fn publish_frame(
     doc: &mut Document,
     frame: Frame,
     cancel: &dyn Fn() -> bool,

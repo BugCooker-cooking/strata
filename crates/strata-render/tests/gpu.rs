@@ -1518,6 +1518,93 @@ fn destructive_generated_crop_updates_cached_scene_and_stays_empty_outside_after
     renderer.render().unwrap();
     assert_eq!(renderer.read_offscreen_rgba().unwrap(), before);
 }
+#[test]
+fn alpha_trim_changes_frame_without_moving_visible_metal_samples() {
+    let Some(mut renderer) = renderer() else {
+        return;
+    };
+    let mut e = strata_core::Editor::new();
+    for (id, p) in [
+        (
+            "file.new",
+            serde_json::json!({"width":16,"height":16,"bit_depth":16,"working_space":"display_p3"}),
+        ),
+        (
+            "select.marquee",
+            serde_json::json!({"x":3,"y":2,"width":8,"height":9}),
+        ),
+        (
+            "paint.fill",
+            serde_json::json!({"layer":{"name":"Background"},"color":[0.8,0.2,0.1,0.5]}),
+        ),
+        ("select.none", serde_json::json!({})),
+    ] {
+        e.execute(e.request(strata_core::Source::Test), id, p, |_| Ok(()))
+            .unwrap();
+    }
+    let scene = renderer
+        .prepare_document(e.document().unwrap(), false)
+        .unwrap();
+    renderer.commit_document(scene).unwrap();
+    renderer
+        .set_view(ViewTransform {
+            zoom: 3.,
+            center_x: 8.,
+            center_y: 8.,
+        })
+        .unwrap();
+    renderer.render().unwrap();
+    let before = renderer.read_offscreen_rgba().unwrap();
+    let version = e.document().unwrap().layers()[0]
+        .pixels()
+        .tile_version(strata_pixels::TileCoord::new(0, 0).unwrap());
+    e.execute(
+        e.request(strata_core::Source::Test),
+        "image.trim",
+        serde_json::json!({}),
+        |_| Ok(()),
+    )
+    .unwrap();
+    let doc = e.document().unwrap();
+    assert_eq!(
+        (
+            doc.frame().x,
+            doc.frame().y,
+            doc.frame().width,
+            doc.frame().height
+        ),
+        (3, 2, 8, 9)
+    );
+    assert_eq!(
+        doc.layers()[0]
+            .pixels()
+            .tile_version(strata_pixels::TileCoord::new(0, 0).unwrap()),
+        version
+    );
+    let scene = renderer.prepare_document(doc, false).unwrap();
+    renderer.commit_document(scene).unwrap();
+    renderer.render().unwrap();
+    let after = renderer.read_offscreen_rgba().unwrap();
+    for (x, y) in [(4usize, 3usize), (8, 8), (10, 10)] {
+        assert_eq!(
+            pixel(&before, x * 3 + 9, y * 3 + 9),
+            pixel(&after, x * 3 + 9, y * 3 + 9)
+        );
+    }
+    e.execute(
+        e.request(strata_core::Source::Test),
+        "edit.undo",
+        serde_json::json!({}),
+        |_| Ok(()),
+    )
+    .unwrap();
+    let scene = renderer
+        .prepare_document(e.document().unwrap(), false)
+        .unwrap();
+    renderer.commit_document(scene).unwrap();
+    renderer.render().unwrap();
+    assert_eq!(renderer.read_offscreen_rgba().unwrap(), before);
+}
 
 #[test]
 fn tiled_scene_preserves_source_and_has_no_mip_seam() {

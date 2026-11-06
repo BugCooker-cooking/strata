@@ -1,0 +1,109 @@
+{
+  "date_local": "2026-11-06",
+  "timezone": "Asia/Taipei",
+  "base_checkpoint": "6f3f7a0",
+  "scope": "Visible-composite alpha trim with independent sides, source preservation and exact unchanged-frame no-op. Full Photoshop/final AI closure remain open.",
+  "source_sha256": {
+    "apps/macos/Strata/Workspace/ImageOrientationControls.swift": "4ead904adb034aea5d0021841c385346f4a83f53ce06ef9c86f93c0a1906355f",
+    "apps/macos/Strata/Workspace/WorkspaceModel.swift": "adff41fc2cdcb70f5388384c99af258f074c9cb210c8fcced340f025b704f15f",
+    "apps/macos/StrataTests/CropInputTests.swift": "203525718b565a3c1188d47fbfbdf707b8311803c700d4fc2fa2679a3648d96e",
+    "crates/strata-ai/tests/replay.rs": "50d63e606fafb68e4200d4ffcfcdbf244e4dc98e0062cf5e3347e14322f9f5f6",
+    "crates/strata-core/src/commands/canvas.rs": "be188cfef610591b5c45d449ee1cd05389f9fc32680c354f7075286b2bbd46f8",
+    "crates/strata-core/src/commands/executor.rs": "690faf27154590e289d7e85a47b6e0693fb92377a5ea93d79dd63742ce81de29",
+    "crates/strata-core/src/commands/mod.rs": "ff11a6b94bbaf5db86e36e3f64396d2d4f742052d9cbc259e41ca8535d5299de",
+    "crates/strata-core/src/commands/registry.rs": "1f54c9c1e80261790dda80b8cd0093a59dba9e58003b06b04f58fd1b6dfd9616",
+    "crates/strata-core/src/commands/trim.rs": "4540b6d28668bedf1cd80c204e2f2b955482ef3cce0bec0b8921db8dc1c7dc38",
+    "crates/strata-core/tests/trim.rs": "e0293ecb2bb3d692ae78973452bb362deb55a0427c41a0b5bf45ad03408deed3",
+    "crates/strata-render/tests/gpu.rs": "267e54507269205f038d33d13a4677cd54107592cde0be22e3150c643d5d98d1",
+    "tools/strata-devtool/src/main.rs": "6af75cd25d603815f11609379f200cab73ad082a361eb7764c925d0b1a2f9cac"
+  },
+  "verification": {
+    "core": {
+      "passed": 6,
+      "log": "build/m7-trim-core.log"
+    },
+    "ai": {
+      "passed": 27,
+      "replay_tests": 26,
+      "mapping_contract_tests": 1,
+      "log": "build/m7-trim-ai.log"
+    },
+    "native_subset": {
+      "passed": 6,
+      "skipped": 0,
+      "scope": "StrataTests/CropInputTests",
+      "log": "build/m7-trim-native.log"
+    },
+    "required_metal_numeric": {
+      "passed": 1,
+      "skipped": 0,
+      "log": "build/m7-trim-gpu.log"
+    },
+    "arm64_release": {
+      "passed": true,
+      "log": "build/m7-trim-release.log"
+    },
+    "lint": {
+      "passed": true,
+      "log": "build/m7-trim-lint.log",
+      "final_swiftlint_recheck": true
+    },
+    "command_examples": {
+      "registered_commands": 116,
+      "passed": true,
+      "log": "build/m7-trim-commands.log"
+    },
+    "ai_audit": {
+      "mapped_composite_rows": 81,
+      "inventory_rows": 265,
+      "partial_entrypoints": 8,
+      "unmapped_implemented_rows": 0,
+      "unlinked_registered_commands": 0,
+      "unknown_native_literals": 0,
+      "untyped_root_returns": 0,
+      "final_complete": false,
+      "strict_gate": "build/m7-trim-final-ai-gate.log"
+    },
+    "prior_full_baselines": "a740812 full Rust418/native64+1skip/GPU82+1ignore and 6f3f7a0 complete native65+1skip remain independent; not relabeled as a full rerun for this increment."
+  },
+  "native_manual": {
+    "single_release_instance": true,
+    "fixture": "repository-generated sample-photo.jpg",
+    "original_size": [
+      1024,
+      1536
+    ],
+    "expanded_canvas": [
+      1400,
+      1800
+    ],
+    "expanded_origin": [
+      -188,
+      -132
+    ],
+    "trim_sides_all_checked": true,
+    "trim_result_size": [
+      1024,
+      1536
+    ],
+    "history_after_canvas_and_trim": 2,
+    "tight_repeat_did_not_add_history": true,
+    "first_undo_restored_expanded_size": [
+      1400,
+      1800
+    ],
+    "second_undo_restored_original_clean_document": true,
+    "final_running_strata_instances": 0,
+    "method": "CUA live native AX observation of numeric frame, four-side popover, history and undo."
+  },
+  "semantics": {
+    "basis": "Current-frame actually visible composite alpha>0; tiny 16-bit alpha counts, transparent hidden RGB and hidden layers/ancestors do not.",
+    "samples": "At most 64M artboard alpha samples; tile composition/halos remain under existing cancellation and shared budgets.",
+    "source": "No source sample/position/definition deletion; selection and references rebind through canvas path.",
+    "noop": "Already-tight sides return changed=false with no revision/history/dirty/layer-selection change, including concurrently selected layer.",
+    "empty": "Fully transparent input or no selected sides rejects atomically.",
+    "controls": "Native four-side toggles and AI use identical strict registered command."
+  },
+  "cloud_builds": "disabled and not used",
+  "remaining": "All other incomplete P0-P3 features, final full AI audit and performance/live-model/hardware/platform/release gates remain open."
+}

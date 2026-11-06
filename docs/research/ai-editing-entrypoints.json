@@ -1629,6 +1629,26 @@
         }
       ],
       "note": "五种正交操作支持所有当前类型与原码/结构；任意角度图像旋转和未来文字/智能对象类型仍待后续，综合旋转条目保持部分。"
+    },
+    "PS-03-51294954aa": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "image.trim"
+      ],
+      "prompts": [
+        {
+          "text": "Trim all fully transparent borders while preserving original editable layers.",
+          "query": "Trim transparent edges",
+          "command": "image.trim"
+        },
+        {
+          "text": "裁去透明边，保留原始图层内容。",
+          "query": "裁去透明边",
+          "command": "image.trim"
+        }
+      ],
+      "note": "Visible composite alpha>0 within the current frame, independent side booleans. No display quantization; hidden RGB/layers do not count. Sources remain stored. Tight repeat is a no-op without history; fully transparent input rejects."
     }
   }
 }

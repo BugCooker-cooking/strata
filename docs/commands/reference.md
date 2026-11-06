@@ -18902,6 +18902,123 @@ Permissions: `bound_document`
 {}
 ```
 
+## `image.trim` — 裁去透明边
+
+Trim selected sides of the current artboard to the finite alpha>0 bounds of its actually visible composite, including groups/clipping/masks/adjustments and editable styles. top/bottom/left/right booleans default true; choose at least one. Hidden layers/hidden ancestors do not contribute and transparent hidden RGB never counts. Check original 8/16-bit/float composite alpha directly, no 8-bit display threshold. Only scan within current artboard, at most 64M visits, one pooled composite tile at a time with cancellation; source content outside it does not expand the trim. Preserve raw pixel samples, source positions, editable layer definitions/locks and stored off-artboard content; use image.crop pixels=delete separately if deletion is intended. Rebind current/previous selections and freeze generated/style/spatial references through the same canvas path. Fully transparent composite rejects without changes. Already tight selected sides returns changed=false without history/revision/dirty/layer-selection changes; otherwise one atomic history/undo, not batchable. Native and AI use the same command. 中文：裁去透明边、去掉透明边框、自动裁切透明区域、顶部/底部/左边/右边；保留可编辑图层与画板外原码。
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `false`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TrimCanvas",
+  "type": "object",
+  "properties": {
+    "bottom": {
+      "type": "boolean",
+      "default": true
+    },
+    "left": {
+      "type": "boolean",
+      "default": true
+    },
+    "right": {
+      "type": "boolean",
+      "default": true
+    },
+    "top": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "additionalProperties": false
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TrimCanvasResult",
+  "type": "object",
+  "properties": {
+    "changed": {
+      "type": "boolean"
+    },
+    "frame": {
+      "$ref": "#/$defs/Frame"
+    },
+    "preserved_external_content": {
+      "type": "boolean"
+    },
+    "previous_frame": {
+      "$ref": "#/$defs/Frame"
+    },
+    "selection_rebound": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "previous_frame",
+    "frame",
+    "changed",
+    "preserved_external_content",
+    "selection_rebound"
+  ],
+  "$defs": {
+    "Frame": {
+      "type": "object",
+      "properties": {
+        "height": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "name": {
+          "type": "string"
+        },
+        "width": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "x": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "y": {
+          "type": "integer",
+          "format": "int64"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "x",
+        "y",
+        "width",
+        "height"
+      ]
+    }
+  }
+}
+```
+
+### Examples
+
+```json
+{}
+```
+
 ## `color.assign` — 指定文档配置文件
 
 Assign srgb or display_p3 interpretation without converting any integer pixel samples, hidden RGB, generated fill/style color codes, masks, depth, geometry or original source ICC. Appearance changes because identical RGB codes are interpreted in the newly assigned working profile. This is distinct from color.convert, which changes samples to preserve appearance. Pixel/transparency/position locks are allowed because source codes are unchanged; all-locked layers reject document reinterpretation. Undo restores exact old ICC/metadata; project save/reopen keeps the assigned profile. Cancellable, budgeted, one atomic history edit, not batchable. Currently supports the two built-in RGB working presets, not arbitrary ICC file assignment or CMYK. 中文：指定配置文件、保留 RGB 数值、重新解释颜色、不要转换像素。

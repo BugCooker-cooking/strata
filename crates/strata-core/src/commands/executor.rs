@@ -1139,6 +1139,17 @@ impl Editor {
                 {
                     (Action::Edit, result)
                 } else if let Some(result) =
+                    super::trim::mutate(doc, id, params.clone(), &|| request.expired())?
+                {
+                    (
+                        if result["changed"] == false {
+                            Action::Query
+                        } else {
+                            Action::Edit
+                        },
+                        result,
+                    )
+                } else if let Some(result) =
                     super::canvas::mutate(doc, id, params.clone(), &|| request.expired())?
                 {
                     (Action::Edit, result)
@@ -1416,7 +1427,8 @@ impl Editor {
             self.resource(resource, &prepared.request, false)?;
         }
         let keeps_layer_selection = matches!(prepared.action, Action::PaintColors(_))
-            || prepared.command == "paint.colors.get";
+            || prepared.command == "paint.colors.get"
+            || (prepared.command == "image.trim" && prepared.result["changed"] == false);
         match prepared.action {
             Action::PaintColors(colors) => {
                 self.paint_colors = colors;
