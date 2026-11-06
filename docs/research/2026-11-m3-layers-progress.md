@@ -29,3 +29,5 @@
 - M3 在 `9a0a989` 的远程 Linux/macOS CI 均通过，含 macOS XCTest 与 arm64 Release 构建：[运行 41954427779](https://github.com/BugCooker-cooking/strata/actions/runs/41954427779)。修复 Xcode 16.4 对未显式类型的大小上限算式的类型检查超时；本机另有 2 项原生剪贴板回归通过。
 - 独立干净构建及固定多层性能继续追踪；实现分支尚未合并默认分支。草稿 PR 为 [#1](https://github.com/BugCooker-cooking/strata/pull/1)。
 - 蒙版画笔仍属 M6；其余调色类型属 M5；文字样式与栅格化在 M7 集成，未据当前图层框架提前宣称完成。
+
+2026-11-06 本机重试：在 `24d500b` 的已构建测试宿主中，仅选择原先授权的示例与 groups/stroke/clip/stamp 两协议用例；不可交互钥匙串读取于 10 秒超时并显式跳过（1 测试、1 跳过、0 请求开始），没有发出模型调用。不是服务质量通过，也没有触发云端构建；结果见[重试记录](data/2026-11-06-m3-live-recheck.json)。继续推进独立编辑功能，真实模型门槛保持开放。

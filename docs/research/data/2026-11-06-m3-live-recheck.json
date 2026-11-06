@@ -1,0 +1,19 @@
+{
+  "date_local": "2026-11-06",
+  "base_checkpoint": "24d500b",
+  "scope": "Retry of previously authorized M3 groups/stroke/clip/stamp using the repository sample and configured compatible endpoint, both protocols, without another UI window.",
+  "source": "apps/macos/StrataTests/LiveAITests.swift",
+  "log": "build/m3-live-layer-closure-20261106.log",
+  "tests_executed": 1,
+  "tests_skipped": 1,
+  "failures": 0,
+  "credential_interaction_allowed": false,
+  "credential_wait_timeout_seconds": 10,
+  "reason": "The XCTest host could not obtain the configured Keychain credential within the bounded noninteractive read.",
+  "model_requests_started": 0,
+  "model_acceptance_passed": false,
+  "cloud_builds_used": false,
+  "additional_native_windows_opened": 0,
+  "credentials_logged": false,
+  "remaining": "M3 live-model acceptance remains open; this skip is not counted as a pass."
+}
