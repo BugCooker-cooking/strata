@@ -33,8 +33,9 @@ mod trim;
 pub use cancellation::WorkCancellation;
 pub use executor::{
     BrushInteraction, ClipboardImage, CommandError, Control, CropInteraction, Editor,
-    ExposureInteraction, HistoryInfo, MarqueeInteraction, MoveInteraction, PaintInteraction,
-    PreparedCommand, Request, Snapshot, Source, TonalInteraction,
+    ExposureInteraction, GeometryInteraction, HistoryInfo, MarqueeInteraction, MoveInteraction,
+    PaintInteraction, PreparedCommand, Request, Snapshot, Source, StraightenInteraction,
+    TonalInteraction,
 };
 pub use registry::{CommandKind, CommandSpec, catalog};
 

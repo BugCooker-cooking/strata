@@ -1,0 +1,134 @@
+{
+  "date_local": "2026-11-06",
+  "timezone": "Asia/Taipei",
+  "base_checkpoint": "9b9be70",
+  "scope": "Native canvas reference-line straighten guide with original-context and operation-bound ownership; full arbitrary geometry for generated/adjustment/style/text and complete Photoshop/final AI audit remain open.",
+  "source_sha256": {
+    "apps/macos/Strata/App/MainWindowController.swift": "7f9176fa1216ceba8f3322975551bcc541878535e7b82b4ee4dedb3cc63f496c",
+    "apps/macos/Strata/Canvas/CanvasStraightenInput.swift": "e924102e2cb81320bed05b1ae092174abc30717d66c75144a42b2bdef7141f72",
+    "apps/macos/Strata/Canvas/CanvasView.swift": "d7bddbe1ebc4cca80ccc6936a3a72d105e985290af5de1cfed4022f0f066cd0c",
+    "apps/macos/Strata/Workspace/CropControls.swift": "fbf5d370dc5f95526fdfad3a8583b027e6ca7232cf031f4260591f244a202187",
+    "apps/macos/Strata/Workspace/StraightenControls.swift": "59c35928decb81181e516389fc0fca93535a96d53637193acffccc5d4ef05df4",
+    "apps/macos/Strata/Workspace/WorkspaceModel.swift": "1f9084189c1f896be88ce378e7ed7563febf77818320e05223df4b10b87f59ed",
+    "apps/macos/StrataTests/StraightenInputTests.swift": "44222cdd76ae68ba571b1f22a4674f7a147e469e349c31f93db60325299bee83",
+    "crates/strata-core/src/commands/executor.rs": "22c7e99f2c38ebc5bd55391ed05cc89d082dc8293dc5eb55d08b34ae80784e14",
+    "crates/strata-core/src/commands/mod.rs": "6b61105c1b22d68b5807a89c0e3635a046456d81e171eff850e37e2c6957d8cf",
+    "crates/strata-core/src/commands/registry.rs": "f66b2e448322bb0db3002ffe48e99ff820cdf6e4f67e3a9689d3437070c1b23c",
+    "crates/strata-ffi/src/crop.rs": "d525b4e244b8785add0c91116bd885030c4e92120a38e12b14b9f6031d824c27",
+    "crates/strata-ffi/src/lib.rs": "a59329dfa6ee23c7b2874b2c855265a119640c8098d3c5af09aee9a666903ef5"
+  },
+  "verification": {
+    "core": {
+      "passed": 11,
+      "crop": 4,
+      "interaction": 2,
+      "straighten": 5,
+      "log": "build/m7-straighten-gesture-core.log"
+    },
+    "ffi_required_gpu": {
+      "passed": 10,
+      "new_session_tests": 4,
+      "new_required_metal_scene_test": 1,
+      "existing_crop_regressions": 5,
+      "skipped": 0,
+      "log": "build/m7-straighten-gesture-required-gpu.log"
+    },
+    "native_subset": {
+      "passed": 22,
+      "new_straighten_input": 5,
+      "crop": 6,
+      "filter_geometry": 11,
+      "skipped": 0,
+      "log": "build/m7-straighten-gesture-native.log",
+      "note": "Final label-only toolbar refinement was verified with Swift lint, incremental Release and a separate single-window inspection; native logic tests preceded that label-only change."
+    },
+    "ai_targeted": {
+      "passed": 2,
+      "straighten_replay": 1,
+      "all_mapped_prompt_search_contract": 1,
+      "replay_log": "build/m7-straighten-gesture-ai.log",
+      "final_mapping_log": "build/m7-straighten-gesture-ai-mapping.final.log"
+    },
+    "arm64_release": {
+      "passed": true,
+      "final_log": "build/m7-straighten-gesture-release.final.log"
+    },
+    "lint": {
+      "passed": true,
+      "workspace_log": "build/m7-straighten-gesture-lint.log",
+      "final_swift_log": "build/m7-straighten-gesture-swiftlint.final.log"
+    },
+    "command_examples": {
+      "passed": 119,
+      "log": "build/m7-straighten-gesture-commands.log"
+    },
+    "ai_audit": {
+      "registered_commands": 119,
+      "mapped_composite_rows": 82,
+      "inventory_rows": 265,
+      "partial_entrypoints": 9,
+      "unmapped_implemented_rows": 0,
+      "unlinked_registered_commands": 0,
+      "unknown_native_literals": 0,
+      "untyped_root_returns": 0,
+      "final_complete": false,
+      "strict_gate": "build/m7-straighten-gesture-final-ai-gate.log"
+    },
+    "prior_full_baselines": "Earlier full Rust/native/GPU baselines remain independent; targeted increment only."
+  },
+  "native_manual": {
+    "one_instance_at_a_time": true,
+    "fixture": "repository-generated sample-photo.jpg",
+    "original_size": [
+      1024,
+      1536
+    ],
+    "screen_drag_pixels": {
+      "start": [
+        620,
+        700
+      ],
+      "end": [
+        1320,
+        760
+      ]
+    },
+    "shown_angle_degrees": -4.9,
+    "draft_did_not_change_dirty_or_history": true,
+    "zoom_before_percent": 104,
+    "zoom_after_percent": 129,
+    "guide_stayed_attached_and_angle_unchanged": true,
+    "enter_applied_once": true,
+    "result_size": [
+      900,
+      1462
+    ],
+    "history_steps_added": 1,
+    "one_undo_restored_original_clean_document": true,
+    "redrag_then_escape_added_no_history": true,
+    "toolbar_label_refinement": {
+      "separate_release_window_after_previous_exit": true,
+      "values_visible": [
+        "拉直参考线",
+        "水平",
+        "双线性"
+      ],
+      "document_stayed_clean": true
+    },
+    "final_running_strata_instances": 0,
+    "method": "Live CUA pointer drag, native keyboard, AX state and screenshots; no performance/pen/quality benchmark claim."
+  },
+  "semantics": {
+    "staging": "Only a yellow line and screen-sized endpoints, stored in document coordinates; does not alter pixels/selection/renderer truth/history.",
+    "ownership": "Shared crop/straighten slot; each token and core interaction binds command/document/revision/control epoch. Cross-operation finish/cancel reject, supersession cancels only old local work.",
+    "confirmation": "Enter or button invokes existing strict image.straighten with captured original request and final explicit line/axis/crop/interpolation. One edit/undo for rotation and crop.",
+    "cancellation": "Escape/tool/document/revision/control/detach cancel. Cancellation never takes editor/render lock, queued apply cannot revive, and later AI work remains valid.",
+    "limits": "Finite +/-1e12 points and distinct >=1e-6 length, correction +/-45; shared resampler/source/budget/cancellation policies unchanged."
+  },
+  "cloud_builds": {
+    "used": false,
+    "automatic_triggers": false,
+    "last_known_workflow_state": "disabled_manually"
+  },
+  "remaining": "General editable fill/adjustment/style/text transforms and remaining Photoshop tasks/final per-feature AI/hardware/platform/model/release gates remain open."
+}

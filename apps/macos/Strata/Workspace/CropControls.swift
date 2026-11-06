@@ -5,6 +5,10 @@ struct CropToolOptions:View{
     @ObservedObject var input:CanvasCropInput
     var body:some View{
         HStack(spacing:9){
+            Picker("裁剪操作",selection:Binding(get:{model.cropMode},set:{model.cropMode=$0;model.send(.tool(.crop))})){Text("裁剪框").tag("crop");Text("拉直参考线").tag("straighten")}.labelsHidden().accessibilityLabel("裁剪操作").frame(width:140).disabled(input.running || model.straightenInput?.running == true || !model.permissions.edits)
+            if model.cropMode=="straighten",let straighten=model.straightenInput{
+                StraightenToolOptions(model:model,input:straighten)
+            }else{
             Picker("裁剪比例",selection:Binding(get:{model.cropRatio},set:{model.cropRatio=$0;model.send(.tool(.crop))})){Text("自由").tag("free");Text("1:1").tag("1:1");Text("4:3").tag("4:3");Text("3:2").tag("3:2");Text("16:9").tag("16:9")}.frame(width:100).disabled(input.running || !model.permissions.edits)
             if let rect=input.draft{Text("\(Int64(rect.minX)), \(Int64(rect.minY)) · \(Int(rect.width))×\(Int(rect.height)) px").monospacedDigit()}
             else{Text("拖动框内移动 · 手柄缩放 · 回车应用 · Esc 取消").foregroundStyle(Color(nsColor:WorkspaceColors.secondary))}
@@ -12,6 +16,7 @@ struct CropToolOptions:View{
             Button("应用裁剪"){input.confirm()}.buttonStyle(WorkspaceButtonStyle(selected:true)).disabled(input.draft == nil||input.running || !model.permissions.edits)
             Button("取消裁剪"){input.cancel()}.buttonStyle(WorkspaceButtonStyle()).disabled(!input.hasDraft && !input.running)
             if !input.error.isEmpty{Text(input.error).foregroundStyle(Color(nsColor:WorkspaceColors.danger)).lineLimit(1)}
+            }
         }
     }
 }
@@ -32,7 +37,8 @@ struct CropPanel:View{
     }
     var body:some View{
         Group{
-            if model.tool == .crop,let input=model.cropInput{CropDraftInspector(model:model,input:input)}
+            if model.tool == .crop && model.cropMode=="straighten"{EmptyView()}
+            else if model.tool == .crop,let input=model.cropInput{CropDraftInspector(model:model,input:input)}
             else{numericControls}
         }.onAppear{readFrame()}.onChange(of:signature){_,_ in readFrame()}
     }

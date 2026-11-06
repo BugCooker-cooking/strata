@@ -47,6 +47,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         let preview = TonalPreviewModel(engine: engine)
         workspace.tonalPreview = preview
         workspace.cropInput=canvas.cropInput
+        workspace.straightenInput=canvas.straightenInput
         preview.onBusy = { [weak self] running in guard let self else { return }; self.canvas.isWorkBusy = self.busy || running }
         preview.onApplying = { [weak self] applying in self?.busy = applying }
         preview.onFrame = { [weak self] in guard let self else { return }; self.canvas.markDirty();self.refreshDisplayOutline(); if !self.busy { self.refresh() } }
@@ -252,6 +253,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         workspace.snapshot = snapshot; window?.isDocumentEdited = snapshot.dirty
         workspace.tonalPreview?.bind(snapshot)
         workspace.cropInput?.bind(snapshot)
+        workspace.straightenInput?.bind(snapshot)
         if let space=NSColorSpace(iccProfileData:Data(engine.workingProfileIcc())){workspace.workingColorSpace=space}
         if let colors=snapshot.paintColors{workspace.installPaintColors(colors)}
         workspace.selectedLayers=workspace.selectedLayers.intersection(Set(snapshot.layers.map(\.id)))
@@ -317,6 +319,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         guard !busy else { completion?(false); return }
         workspace.tonalPreview?.cancel()
         workspace.cropInput?.cancel()
+        workspace.straightenInput?.cancel()
         canvas.cancelBenchmarkForDocumentChange()
         do {
             let encoded = try commandJSON(params); busy = true; let engine = engine

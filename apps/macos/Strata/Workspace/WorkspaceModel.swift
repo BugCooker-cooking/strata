@@ -82,8 +82,13 @@ final class WorkspaceModel: ObservableObject {
     @Published var subjectModel: SubjectModelStore?
     @Published var tonalPreview: TonalPreviewModel?
     @Published var cropInput:CanvasCropInput?
+    @Published var straightenInput:CanvasStraightenInput?
+    @Published var cropMode="crop"
     @Published var cropRatio="free"
     @Published var cropDeletesPixels=false
+    @Published var straightenAlign="horizontal"
+    @Published var straightenAutoCrop=true
+    @Published var straightenInterpolation="bilinear"
     @Published var snapshot: EditorSnapshot?
     @Published var thumbnails: [String: NSImage] = [:]
     @Published var fileName = "未命名"

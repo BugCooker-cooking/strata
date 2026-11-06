@@ -178,7 +178,7 @@ pub struct StrataEngine {
     active_ai_request: Mutex<Option<(uuid::Uuid, strata_core::commands::Request)>>,
     tonal_preview_sequence: std::sync::atomic::AtomicU64,
     preview_work: Mutex<strata_core::commands::WorkCancellation>,
-    crop_session: Mutex<Option<crop::NativeCrop>>,
+    geometry_session: Mutex<Option<crop::NativeGeometry>>,
     listener: Arc<dyn EngineListener>,
     recovery: Mutex<Option<strata_io::recovery::RecoveryStore>>,
     ai: Mutex<Option<strata_ai::Session>>,
@@ -236,7 +236,7 @@ impl StrataEngine {
             active_ai_request: Mutex::new(None),
             tonal_preview_sequence: std::sync::atomic::AtomicU64::new(0),
             preview_work: Mutex::new(strata_core::commands::WorkCancellation::default()),
-            crop_session: Mutex::new(None),
+            geometry_session: Mutex::new(None),
             listener,
             recovery: Mutex::new(None),
             ai: Mutex::new(None),
@@ -531,7 +531,7 @@ impl StrataEngine {
         }
     }
     pub fn detach_canvas(&self) -> Result<(), StrataError> {
-        if let Some(crop) = self.crop_session.lock().map_err(render_error)?.take() {
+        if let Some(crop) = self.geometry_session.lock().map_err(render_error)?.take() {
             crop.cancel();
         }
         self.issue_tonal_preview()?;

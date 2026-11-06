@@ -56,7 +56,7 @@
 | PS-02-bc773443d0 | 编辑 | 拼写检查、查找替换文本 | P3 | 待实现 | 待验收 |
 | PS-03-ad24731ea8 | 图像 | 图像大小（多种重采样算法） | P0 | 部分实现 | 像素层/无样式组的最近邻、双线性和面积重采样已实现；生成/调整/样式/文字及其他专业算法仍待后续。 · [尺寸重采样进展](../research/2026-11-m7-resize-progress.md) |
 | PS-03-45c2eea14c | 图像 | 画布大小 | P0 | 已实现 | 九锚点、原码/锁定结构/蒙版/选区、旧工程迁移与撤销通过；当前设备原生/Metal/Release 已有证据；持续回归 · [M7 画布大小](../research/2026-11-m7-canvas-progress.md) |
-| PS-03-5f9716e5d8 | 图像 | 图像旋转 / 翻转 | P0 | 部分实现 | 五种正交方向支持当前全部层类型；像素层/无样式组的任意角度与数值/两点拉直、安全内切裁剪已通过本机核心/AI/原生/Metal/Release 与单窗口验收。生成/调整/样式/文字的一般几何仍开放。 · [M7 整图正交变换](../research/2026-11-m7-orientation-progress.md) · [General pixel-image angle](../research/2026-11-m7-rotate-progress.md) · [拉直与内切裁剪](../research/2026-11-m7-straighten-progress.md) |
+| PS-03-5f9716e5d8 | 图像 | 图像旋转 / 翻转 | P0 | 部分实现 | 全部当前层类型支持五种正交方向；像素层/无样式组支持任意角度及数值/两点/画布参考线拉直、安全内切裁剪，已有本机与单窗口证据；生成/调整/样式/文字的一般几何仍开放。 · [M7 整图正交变换](../research/2026-11-m7-orientation-progress.md) · [General pixel-image angle](../research/2026-11-m7-rotate-progress.md) · [拉直与内切裁剪](../research/2026-11-m7-straighten-progress.md) · [画布参考线会话](../research/2026-11-m7-straighten-gesture-progress.md) |
 | PS-03-84941ac6e8 | 图像 | 显示全部 | P0 | 已实现 | 可见源内容/祖先样式边界、原码/蒙版/选区/撤销及当前设备原生/Metal/Release 已有证据；持续回归 · [M7 裁剪/显示全部](../research/2026-11-m7-crop-progress.md) |
 | PS-03-51294954aa | 图像 | 裁切（去透明边） | P1 | 已实现 | Local core/AI/native subset/real Metal/Release and single-window four-side/no-op/undo evidence passed; ongoing regression. · [Transparent alpha trim](../research/2026-11-m7-trim-progress.md) |
 | PS-03-0f4e217715 | 图像 | 复制文档 | P1 | 待实现 | 待验收 |
@@ -173,7 +173,7 @@
 | PS-08-8917363943 | 绘画 | 历史记录艺术画笔 | ✗ | 重新核对 | 待验收 |
 | PS-09-7cc6b0bb65 | 变换与裁剪 | 移动工具（含吸附） | P0 | 部分实现 | 整数移动/组与链接蒙版/原生拖动已实现；吸附仍待补齐 · [M7 移动与几何边界](../research/2026-11-m7-transform-progress.md) |
 | PS-09-4f3d9835a7 | 变换与裁剪 | 自由变换：缩放 / 旋转 / 斜切 / 扭曲 / 透视 / 翻转 | P0 | 部分实现 | 整层/链接蒙版与选区像素提升/软边/合回/轮廓同步已有核心、AI/FFI/Metal/完整原生/Release 和单窗口证据；生成/组/文字与自由变换手柄仍待补齐 · [M7 整层变换/视图检查点](../research/2026-11-m7-transform-progress.md) · [M7 选区内像素](../research/2026-11-m7-selected-transform-progress.md) |
-| PS-09-7d349372b5 | 变换与裁剪 | 裁剪工具（拉直、比例、是否删除裁剪像素） | P0 | 部分实现 | Numeric/drag/ratio/handles/move/preserve/delete and numeric/two-point straighten with a one-step safe crop have local core/AI/native/Metal/Release and manual evidence. Pointer reference-line dragging and full-type general geometry remain open. · [M7 裁剪/显示全部](../research/2026-11-m7-crop-progress.md) · [M7 裁剪拖动会话](../research/2026-11-m7-crop-gesture-progress.md) · [M7 裁剪手柄](../research/2026-11-m7-crop-handles-progress.md) · [Destructive crop support](../research/2026-11-m7-crop-delete-progress.md) · [拉直与内切裁剪](../research/2026-11-m7-straighten-progress.md) |
+| PS-09-7d349372b5 | 变换与裁剪 | 裁剪工具（拉直、比例、是否删除裁剪像素） | P0 | 部分实现 | 数值/拖框/比例/八手柄/移动/保留与删除裁剪，以及数值/两点/画布拖线拉直已有本机核心、AI、原生、Metal、Release 与单窗口证据；生成/调整/样式/文字的一般几何仍开放。 · [M7 裁剪/显示全部](../research/2026-11-m7-crop-progress.md) · [M7 裁剪拖动会话](../research/2026-11-m7-crop-gesture-progress.md) · [M7 裁剪手柄](../research/2026-11-m7-crop-handles-progress.md) · [Destructive crop support](../research/2026-11-m7-crop-delete-progress.md) · [拉直与内切裁剪](../research/2026-11-m7-straighten-progress.md) · [画布参考线会话](../research/2026-11-m7-straighten-gesture-progress.md) |
 | PS-09-64f3d2a3eb | 变换与裁剪 | 变形 | P1 | 待实现 | 待验收 |
 | PS-09-073c032f33 | 变换与裁剪 | 透视裁剪 | P1 | 待实现 | 待验收 |
 | PS-09-6891bcf56f | 变换与裁剪 | 操控变形 | P2 | 待实现 | 待验收 |

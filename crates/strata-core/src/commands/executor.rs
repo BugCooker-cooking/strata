@@ -88,11 +88,14 @@ pub struct MarqueeInteraction {
     epoch: u64,
 }
 #[derive(Clone)]
-pub struct CropInteraction {
+pub struct GeometryInteraction {
     request: Request,
     epoch: u64,
+    command: &'static str,
 }
-impl CropInteraction {
+pub type CropInteraction = GeometryInteraction;
+pub type StraightenInteraction = GeometryInteraction;
+impl GeometryInteraction {
     pub fn with_work_cancellation(&self, work: &super::WorkCancellation) -> Self {
         let mut value = self.clone();
         value.request.local_cancellation = Some(work.token());
@@ -451,11 +454,18 @@ impl Editor {
         })
     }
     pub fn begin_crop(&self) -> Result<CropInteraction, CommandError> {
-        self.authorize(&Source::User, "image.crop", CommandKind::Mutate)?;
+        self.begin_geometry("image.crop")
+    }
+    pub fn begin_straighten(&self) -> Result<StraightenInteraction, CommandError> {
+        self.begin_geometry("image.straighten")
+    }
+    fn begin_geometry(&self, command: &'static str) -> Result<GeometryInteraction, CommandError> {
+        self.authorize(&Source::User, command, CommandKind::Mutate)?;
         self.document.as_ref().ok_or(CommandError::NoDocument)?;
-        Ok(CropInteraction {
+        Ok(GeometryInteraction {
             request: self.request(Source::User),
             epoch: self.epoch,
+            command,
         })
     }
     pub fn prepare_crop(
@@ -463,10 +473,25 @@ impl Editor {
         interaction: &CropInteraction,
         params: Value,
     ) -> Result<PreparedCommand, CommandError> {
-        if interaction.epoch != self.epoch {
+        self.prepare_geometry(interaction, "image.crop", params)
+    }
+    pub fn prepare_straighten(
+        &self,
+        interaction: &StraightenInteraction,
+        params: Value,
+    ) -> Result<PreparedCommand, CommandError> {
+        self.prepare_geometry(interaction, "image.straighten", params)
+    }
+    fn prepare_geometry(
+        &self,
+        interaction: &GeometryInteraction,
+        command: &str,
+        params: Value,
+    ) -> Result<PreparedCommand, CommandError> {
+        if interaction.epoch != self.epoch || interaction.command != command {
             return Err(CommandError::Stale);
         }
-        self.prepare(interaction.request.clone(), "image.crop", params)
+        self.prepare(interaction.request.clone(), command, params)
     }
     pub fn prepare_marquee(
         &self,

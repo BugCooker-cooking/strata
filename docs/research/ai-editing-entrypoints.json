@@ -1574,6 +1574,11 @@
           "text": "校正图像5度并自动裁掉旋转空角，保留边界外图层像素，一步撤销。",
           "query": "拉直图像",
           "command": "image.straighten"
+        },
+        {
+          "text": "以画布上 (100,700) 到 (900,720) 的参考线拉直图像，让该线水平，自动裁掉空角并保留图层。",
+          "query": "画布拖线拉直",
+          "command": "image.straighten"
         }
       ],
       "variants": [
@@ -1586,7 +1591,7 @@
           ]
         }
       ],
-      "note": "Numeric rectangle/aspect, owned canvas drag/handles/move and preserve/delete share real crop commands. Numeric or two-point horizontal/vertical straightening composes rotation and a safe preserving crop in one history step. Pointer reference-line dragging and generated/adjustment/style/text arbitrary geometry remain open."
+      "note": "Numeric rectangle/aspect, owned canvas drag/handles/move and preserve/delete share real crop commands. Numeric or two-point horizontal/vertical straightening composes rotation and a safe preserving crop in one history step. Canvas-dragged lines stage a guide, bind original document/revision/control/operation, and confirm through the same image.straighten command. Generated/adjustment/style/text arbitrary geometry remains open. Native pointer input uses an operation-bound owned draft; it does not introduce a separate editing implementation or change AI parameters."
     },
     "PS-03-84941ac6e8": {
       "scope": "editing",
@@ -1636,6 +1641,11 @@
           "text": "Straighten the pixel image five degrees clockwise and crop the rotation corners in one undo step.",
           "query": "Straighten image and crop",
           "command": "image.straighten"
+        },
+        {
+          "text": "以画布上 (100,700) 到 (900,720) 的参考线拉直图像，让该线水平，自动裁掉空角并保留图层。",
+          "query": "画布拖线拉直",
+          "command": "image.straighten"
         }
       ],
       "variants": [
@@ -1659,7 +1669,7 @@
           ]
         }
       ],
-      "note": "All current types support exact orthogonal orientations. Pixel layers and unstyled groups support general angles and numeric/two-point straightening with optional safe inscribed crop. Generated/adjustment/style/text general geometry and pointer reference-line dragging remain open; native/AI use identical commands with exact replacement approval and one-step undo."
+      "note": "All current types support exact orthogonal orientations. Pixel layers and unstyled groups support general angles and numeric/two-point straightening with optional safe inscribed crop. Generated/adjustment/style/text general geometry remains open; native canvas-dragged reference lines share the same operation/context-bound command; native/AI use identical commands with exact replacement approval and one-step undo. Native pointer input uses an operation-bound owned draft; it does not introduce a separate editing implementation or change AI parameters."
     },
     "PS-03-51294954aa": {
       "scope": "editing",
