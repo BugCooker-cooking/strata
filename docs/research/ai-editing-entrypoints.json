@@ -1765,6 +1765,90 @@
         }
       ],
       "note": "Both true conversion directions, exact integer expansion/quantization, all current editable layer and style colors, unchanged u16 masks/selections/ICC and whole-document history. Native and AI use the same operation; 16-bit expansion does not recreate precision lost by earlier 8-bit quantization. Live model/hardware/full Photoshop final audit gates remain independent."
+    },
+    "PS-08-86b51af036": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "paint.colors.describe",
+        "paint.colors.set_components",
+        "paint.colors.get",
+        "paint.colors.set",
+        "paint.colors.swap",
+        "paint.colors.reset"
+      ],
+      "prompts": [
+        {
+          "text": "读取颜色面板的前景色和背景色，分别显示RGB、HSB和HEX及透明度。",
+          "query": "读取颜色面板数值",
+          "command": "paint.colors.describe"
+        },
+        {
+          "text": "按HEX把前景色设置为#33669980，背景色保持。",
+          "query": "HEX颜色",
+          "command": "paint.colors.set_components"
+        },
+        {
+          "text": "Set the foreground using HSB hue210 saturation50 brightness80 alpha0.5.",
+          "query": "Set color from RGB HSB or HEX",
+          "command": "paint.colors.set_components"
+        },
+        {
+          "text": "交换前景色和背景色，保留文档像素。",
+          "query": "交换前景色与背景色",
+          "command": "paint.colors.swap"
+        }
+      ],
+      "variants": [
+        {
+          "command": "paint.colors.set_components",
+          "path": "color.model",
+          "values": [
+            "rgb",
+            "rgb8",
+            "rgb16",
+            "hsb",
+            "hex"
+          ]
+        },
+        {
+          "command": "paint.colors.set_components",
+          "path": "target",
+          "values": [
+            "foreground",
+            "background"
+          ]
+        }
+      ],
+      "note": "Persistent native inspector uses the same core formatted palette read/write commands as AI; working encoded RGB, normalized float/8/16-bit codes, HSB and HEX plus alpha. HEX is8-bit, not ICC/sRGB conversion. Palette state is per editor, not document/turn-undoable; explicit paint.fill remains the real pixel edit."
+    },
+    "PS-02-03ea5fd9e6": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "paint.fill",
+        "paint.colors.get",
+        "paint.colors.describe",
+        "paint.colors.set_components"
+      ],
+      "prompts": [
+        {
+          "text": "用指定工作RGB颜色和透明度填充当前像素层，保留选区外像素。",
+          "query": "填充像素",
+          "command": "paint.fill"
+        },
+        {
+          "text": "读取前景色，再用该RGBA填充选中的像素图层。",
+          "query": "读取前景色",
+          "command": "paint.colors.get"
+        },
+        {
+          "text": "Read the color panel values, then fill the selected pixel layer using its explicit foreground RGBA.",
+          "query": "Describe color panel values",
+          "command": "paint.colors.describe"
+        }
+      ],
+      "note": "Actual normalized working-RGBA pixel fill, optional opacity and existing selection/locks/depth/ICC semantics; one document history, native foreground/background fill menu and explicit AI fill. Palette reads/sets are tool state and survive undo; pattern/content-aware fill are separate features."
     }
   }
 }

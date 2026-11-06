@@ -915,7 +915,7 @@ impl Editor {
     }
     fn authorize(&self, source: &Source, id: &str, kind: CommandKind) -> Result<(), CommandError> {
         if id.starts_with("paint.colors.")
-            && id != "paint.colors.get"
+            && !matches!(id, "paint.colors.get" | "paint.colors.describe")
             && matches!(source, Source::User | Source::Test)
             && self.control != Control::User
         {
@@ -1045,6 +1045,8 @@ impl Editor {
                     Action::Query,
                     if id == "paint.colors.get" {
                         json!(self.paint_colors)
+                    } else if id == "paint.colors.describe" {
+                        json!(super::color_components::describe(&self.paint_colors))
                     } else if id == "layer.pixel_bounds" {
                         let p: Target = parse(params.clone())?;
                         let doc = self.document().ok_or(CommandError::NoDocument)?;
@@ -1312,6 +1314,19 @@ impl Editor {
                         CommandError::Invalid("paint color version exhausted".into())
                     })?;
                     match id {
+                        "paint.colors.set_components" => {
+                            let p: super::SetColorComponents = parse(params.clone())?;
+                            if p.expected_version
+                                .is_some_and(|v| v != self.paint_colors.version)
+                            {
+                                return Err(CommandError::Stale);
+                            }
+                            let color = super::color_components::parse_color(p.color)?;
+                            match p.target {
+                                super::PaintColorTarget::Foreground => colors.foreground = color,
+                                super::PaintColorTarget::Background => colors.background = color,
+                            }
+                        }
                         "paint.colors.set" => {
                             let p: super::SetPaintColors = parse(params.clone())?;
                             if p.expected_version
@@ -1496,7 +1511,10 @@ impl Editor {
             self.resource(resource, &prepared.request, false)?;
         }
         let keeps_layer_selection = matches!(prepared.action, Action::PaintColors(_))
-            || prepared.command == "paint.colors.get"
+            || matches!(
+                prepared.command.as_str(),
+                "paint.colors.get" | "paint.colors.describe"
+            )
             || (matches!(
                 prepared.command.as_str(),
                 "image.trim"

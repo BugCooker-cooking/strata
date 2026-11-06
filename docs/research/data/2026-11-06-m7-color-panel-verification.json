@@ -1,0 +1,165 @@
+{
+  "date_local": "2026-11-06",
+  "timezone": "Asia/Taipei",
+  "base_checkpoint": "fe9ecfb",
+  "scope": "Persistent numeric foreground/background working-RGB/HSB/HEX color inspector with alpha, shared strict core parser/formatter and actual fill/undo integration. Existing color-fill inventory omission reconciled from real evidence; full Photoshop/final AI closure remains open.",
+  "source_sha256": {
+    "apps/macos/Strata/App/MainWindowController.swift": "e93bb3c385a51b9439cb34e1e36614bf1cd6f7c581a644da2c77ec9e01b568ae",
+    "apps/macos/Strata/Workspace/ColorPanelModel.swift": "fa2d6c538cc7a4ed895a1088863747c6c35fcf9a650fc3af26b16d01d2283cc5",
+    "apps/macos/Strata/Workspace/ColorPanelViews.swift": "25373507fd13b459c2643f598da4f1524d5fb00b4d41602e185d2b67d20d651e",
+    "apps/macos/Strata/Workspace/WorkspaceModel.swift": "d9dc21578b935ed2c826ecbcc5cbf11b0e6a9fed100bb074901257c0e07ac5fd",
+    "apps/macos/Strata/Workspace/WorkspaceViews.swift": "477bdb331be28b319db8b4540c57e903ef3853f4c4117368ce9208878c944783",
+    "apps/macos/StrataTests/ColorPanelTests.swift": "369e406136c9031b005ff6a2ec6301294e09b9284612f67a65c7d4b0c87eb0a9",
+    "crates/strata-ai/tests/replay.rs": "632ac3bf49ec69d2be858e73649d8fed6a7d8034a3cc561359990b5aa0830944",
+    "crates/strata-core/src/commands/color_components.rs": "77be0c1a49a65508a1e3caf0095a32a2b5fb7941be2a0eebe9323271f71b63df",
+    "crates/strata-core/src/commands/executor.rs": "1c20d7d025fd0f41ef333b08af6a4783ef8a9a0740c92aca1822094b43b4403d",
+    "crates/strata-core/src/commands/mod.rs": "cd93e7330026c4707e1e1947c28295bb4bd2d436f052340e2d92faba174e443a",
+    "crates/strata-core/src/commands/registry.rs": "3a910eb859a103b43686d37b72e6bb0dbc65aed2324690dc13cacfa4233d12ba",
+    "crates/strata-core/tests/color_panel.rs": "f3cfeabb859dae8712aaadd7ee84b2c1ced044d000d73b9423d7aeaefa6ec397",
+    "crates/strata-ffi/src/lib.rs": "a7d02fd23e35dcd7074a655b3c1f53536410ac41d21f707a1512d4dfcbe50c0d",
+    "crates/strata-ffi/src/tests.rs": "f08e5d5bc3d6592580ccef7b1e8c9190eb1c6fd71a59164ec073490ca18f6458"
+  },
+  "targeted_verification": {
+    "core": {
+      "passed": 10,
+      "new_color_panel": 6,
+      "existing_palette_regressions": 4,
+      "log": "build/m7-color-panel-core.final.log",
+      "strict_result_contracts": true
+    },
+    "ai": {
+      "passed": 32,
+      "replay_tests": 31,
+      "mapping_contract_tests": 1,
+      "log": "build/m7-color-panel-ai.log",
+      "final_mapping_note": "Color-fill mapping added after this targeted run; complete core/AI regression separately checks the final mapping."
+    },
+    "native_subset": {
+      "passed": 12,
+      "new_color_panel": 5,
+      "existing_palette": 1,
+      "workspace": 6,
+      "skipped": 0,
+      "log": "build/m7-color-panel-native.final.log"
+    },
+    "ffi_required_metal": {
+      "passed": 2,
+      "pure_read_event_contract": 1,
+      "required_metal_preview_fill_and_undo": 1,
+      "skipped": 0,
+      "log": "build/m7-color-panel-required-gpu.log"
+    },
+    "arm64_release": {
+      "passed": true,
+      "log": "build/m7-color-panel-release.schema-final.log",
+      "previous_layout_verified_log": "build/m7-color-panel-release.final.log"
+    },
+    "lint": {
+      "passed": true,
+      "workspace_log": "build/m7-color-panel-lint.log",
+      "final_swift_log": "build/m7-color-panel-swiftlint.final.log",
+      "note": "Final addition only closes additionalProperties on palette return schemas; final focused palette/core contracts and fmt/command examples verify it. Prior workspace Clippy and final Swift lint remain separate."
+    },
+    "command_examples": {
+      "passed": 122,
+      "log": "build/m7-color-panel-commands.final.log"
+    },
+    "ai_audit": {
+      "registered_commands": 122,
+      "mapped_composite_rows": 85,
+      "inventory_rows": 265,
+      "partial_entrypoints": 9,
+      "unmapped_implemented_rows": 0,
+      "unlinked_registered_commands": 0,
+      "unknown_native_literals": 0,
+      "untyped_root_returns": 0,
+      "final_complete": false,
+      "strict_gate": "build/m7-color-panel-final-ai-gate.log"
+    },
+    "broader_regression": {
+      "core_ai": {
+        "passed": 308,
+        "failed": 0,
+        "ignored": 0,
+        "scope": [
+          "strata-core",
+          "strata-ai"
+        ],
+        "includes_compile_fail_document_privacy_gate": true,
+        "log": "build/m7-session-core-ai-regression.log"
+      },
+      "complete_native": {
+        "total": 83,
+        "passed": 82,
+        "skipped": 1,
+        "failed": 0,
+        "skip_reason": "Live model acceptance requires explicit local opt-in; no network request during the default suite.",
+        "log": "build/m7-session-native-regression.log"
+      },
+      "source_note": "Complete behavior runs preceded a final output-schema-only deny_unknown_fields annotation and its contract assertion. Final focused core/command checks and Release cover that metadata refinement; no behavioral implementation changed."
+    }
+  },
+  "native_manual": {
+    "one_instance_at_a_time": true,
+    "fixture": "repository-generated sample-photo.jpg",
+    "hex_input": "#33669980",
+    "rgb8_readback": [
+      51,
+      102,
+      153
+    ],
+    "alpha_percent_shown": 50.2,
+    "hsb_readback": [
+      210,
+      66.67,
+      60
+    ],
+    "hsb_set": [
+      120,
+      50,
+      80
+    ],
+    "new_alpha_percent": 100,
+    "rgb8_after_hsb": [
+      102,
+      204,
+      102
+    ],
+    "color_edits_kept_document_clean_and_history_empty": true,
+    "native_foreground_fill_used_panel_color": true,
+    "fill_history_steps": 1,
+    "undo_restored_original_clean_sample_but_kept_palette": true,
+    "layout_fix": {
+      "issue": "Six native segmented inspector tabs and duplicate color picker labels overflowed a narrow pane during visual inspection.",
+      "resolution": "Three columns/two rows with all six labels, hidden duplicate target/model labels, full input controls inside pane.",
+      "final_separate_release_window_confirmed": true,
+      "all_tabs_visible": [
+        "属性",
+        "调整",
+        "滤镜",
+        "变换",
+        "颜色",
+        "历史"
+      ]
+    },
+    "background_hex_final_window": "#FF880080",
+    "swap_and_black_white_reset_verified": true,
+    "history_after_palette_only_final_window": "暂无编辑记录",
+    "final_running_strata_instances": 0,
+    "method": "CUA native AX and screenshot, explicit foreground fill menu, undo, close before next instance."
+  },
+  "semantics": {
+    "formats": "Exact float normalized working RGB, integer8/16 code inputs, HSB degrees/percent and HEX6/8 ASCII digits. Describe keeps exact RGBA while separately rounding display codes; HEX is8-bit and not an ICC conversion.",
+    "alpha": "Nonhex alpha0..1 defaults1; HEX6 opaque, HEX8 includes8-bit alpha. Hue360 wraps0, gray hue0; invalid/nonfinite/out-of-range/unknown fields/wrong integer codes reject.",
+    "palette": "Original per-editor paint.colors tool state, source/session/control/palette-generation and expected_version checks. No document revision/dirty/history/current-layer/project change, not document/AI-turn undoable.",
+    "native": "Background reads have request generation and observed palette-version guards; fields stage a draft, Apply/Enter sends the same strict parser command, rapid updates cannot publish old values.",
+    "preview": "Formatted writes and descriptions use FFI palette path; descriptions emit no event, setters one palette event. Existing live Metal filter preview remains byte-identical, explicit fill uses the selected RGBA and matches CPU, undo restores source.",
+    "coverage": "The earlier PS-02 color-fill inventory omission is reconciled with existing paint.fill tests, existing native foreground/background menu and current actual AI/native fill evidence; no placeholder command or synthetic completion count."
+  },
+  "cloud_builds": {
+    "used": false,
+    "automatic_triggers": false,
+    "last_known_workflow_state": "disabled_manually"
+  },
+  "remaining": "Swatches, persistent color samplers, other color modes, all remaining Photoshop editing and strict final per-feature AI audit/model/hardware/platform/release gates remain open."
+}

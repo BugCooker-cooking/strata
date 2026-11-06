@@ -1,7 +1,7 @@
 use super::*;
 use image::{ImageBuffer, ImageEncoder, Rgba};
 use std::sync::Weak;
-use strata_pixels::{PixelBuffer, PixelValue};
+use strata_pixels::{PixelBuffer, PixelValue, TileCoord};
 
 #[derive(Default)]
 struct Recorder(Mutex<Vec<EngineEventDto>>);
@@ -151,6 +151,154 @@ fn palette_state_keeps_crop_and_filter_preview_ownership_without_document_edits(
             .command,
         "filter.add_noise"
     );
+}
+
+#[test]
+fn color_panel_description_is_event_free_and_formatted_write_has_only_one_palette_event() {
+    let recorder = Arc::new(Recorder::default());
+    let e = StrataEngine::new(recorder.clone());
+    let initial = e.snapshot_json().unwrap();
+    let events = recorder.0.lock().unwrap().len();
+    let d: Value = serde_json::from_str(
+        &e.dispatch("paint.colors.describe".into(), "{}".into())
+            .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(d["foreground"]["hex"], "#000000FF");
+    assert_eq!(e.snapshot_json().unwrap(), initial);
+    assert_eq!(recorder.0.lock().unwrap().len(), events);
+    e.dispatch("paint.colors.set_components".into(),json!({"target":"foreground","color":{"model":"hsb","hue":120,"saturation":100,"brightness":100}}).to_string()).unwrap();
+    assert_eq!(recorder.0.lock().unwrap().len(), events + 1);
+    let state = e.snapshot_json().unwrap();
+    e.dispatch("paint.colors.describe".into(), "{}".into())
+        .unwrap();
+    assert_eq!(e.snapshot_json().unwrap(), state);
+    assert_eq!(recorder.0.lock().unwrap().len(), events + 1);
+}
+
+#[test]
+fn color_panel_updates_leave_live_metal_preview_untouched_and_drive_the_same_explicit_fill() {
+    let renderer = match Renderer::new_offscreen(Viewport {
+        width: 64,
+        height: 64,
+        scale: 1.,
+    }) {
+        Ok(value) => value,
+        Err(strata_render::RenderError::NoAdapter)
+            if std::env::var_os("STRATA_REQUIRE_GPU").is_none() =>
+        {
+            return;
+        }
+        Err(error) => panic!("required GPU: {error}"),
+    };
+    let e = StrataEngine::new(Arc::new(Recorder::default()));
+    e.lock().unwrap().renderer = Some(renderer);
+    e.dispatch(
+        "file.new".into(),
+        json!({"width":16,"height":16,"bit_depth":16,"background":[10001,30003,50001,65535]})
+            .to_string(),
+    )
+    .unwrap();
+    {
+        let mut i = e.lock().unwrap();
+        i.renderer
+            .as_mut()
+            .unwrap()
+            .set_view(strata_render::ViewTransform {
+                zoom: 3.,
+                center_x: 8.,
+                center_y: 8.,
+            })
+            .unwrap();
+    }
+    let state = e.lock().unwrap().editor.snapshot();
+    let sequence = e.issue_tonal_preview().unwrap();
+    e.begin_filter_preview(
+        state.active_layer.unwrap().to_string(),
+        "filter.add_noise".into(),
+        state.revision,
+        sequence,
+    )
+    .unwrap();
+    let params = json!({"amount":0.1,"seed":42}).to_string();
+    e.preview_filter(params.clone(), sequence).unwrap();
+    let before = {
+        let mut i = e.lock().unwrap();
+        let r = i.renderer.as_mut().unwrap();
+        r.render().unwrap();
+        r.read_offscreen_rgba().unwrap()
+    };
+    let result: Value = serde_json::from_str(
+        &e.dispatch(
+            "paint.colors.set_components".into(),
+            json!({"target":"foreground","color":{"model":"hex","value":"#33669980"}}).to_string(),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    let formats: Value = serde_json::from_str(
+        &e.dispatch("paint.colors.describe".into(), "{}".into())
+            .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(formats["foreground"]["rgba"], result["foreground"]);
+    {
+        let mut i = e.lock().unwrap();
+        assert!(i.editor.snapshot().history.is_empty());
+        assert_eq!(i.editor.revision(), state.revision);
+        let r = i.renderer.as_mut().unwrap();
+        r.render().unwrap();
+        assert_eq!(r.read_offscreen_rgba().unwrap(), before);
+    }
+    e.end_filter_preview_checked(params, true, sequence)
+        .unwrap();
+    let original = e
+        .lock()
+        .unwrap()
+        .editor
+        .document()
+        .unwrap()
+        .to_archive()
+        .unwrap();
+    e.dispatch(
+        "paint.fill".into(),
+        json!({"layer":{"name":"Background"},"color":formats["foreground"]["rgba"]}).to_string(),
+    )
+    .unwrap();
+    {
+        let mut i = e.lock().unwrap();
+        let reference = strata_core::composite::Compositor::new(1)
+            .tile(i.editor.document().unwrap(), TileCoord::new(0, 0).unwrap())
+            .unwrap()[8 * 256 + 8];
+        let r = i.renderer.as_mut().unwrap();
+        r.render().unwrap();
+        let shown = r.read_offscreen_rgba().unwrap();
+        for c in 0..3 {
+            let v = f64::from(reference[c]);
+            let v = if v <= 0.0031308 {
+                12.92 * v
+            } else {
+                1.055 * v.powf(1. / 2.4) - 0.055
+            };
+            assert!(
+                shown[(33 * 64 + 33) * 4 + c].abs_diff((v.clamp(0., 1.) * 255.).round() as u8) <= 3
+            );
+        }
+    }
+    e.dispatch("edit.undo".into(), "{}".into()).unwrap();
+    assert_eq!(
+        e.lock()
+            .unwrap()
+            .editor
+            .document()
+            .unwrap()
+            .to_archive()
+            .unwrap(),
+        original
+    );
+    let colors: Value =
+        serde_json::from_str(&e.dispatch("paint.colors.get".into(), "{}".into()).unwrap()).unwrap();
+    assert_eq!(colors["foreground"], formats["foreground"]["rgba"]);
 }
 #[test]
 fn registered_open_preserves_source_and_reports_once() {

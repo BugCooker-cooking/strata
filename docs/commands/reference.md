@@ -1169,6 +1169,7 @@ Permissions: `bound_document`
           "minimum": 0
         }
       },
+      "additionalProperties": false,
       "required": [
         "foreground",
         "background",
@@ -18591,7 +18592,7 @@ Kind: `Query` · Undoable: `false` · Batchable: `false`
 
 Effects: `tool.colors.read`
 
-Permissions: `bound_document`
+Permissions: `bound_editor, palette_version, control_ownership`
 
 - Host-bound source, session, document and revision; control ownership and resource limits are checked.
 
@@ -18638,6 +18639,7 @@ Permissions: `bound_document`
       "minimum": 0
     }
   },
+  "additionalProperties": false,
   "required": [
     "foreground",
     "background",
@@ -18660,7 +18662,7 @@ Kind: `View` · Undoable: `false` · Batchable: `false`
 
 Effects: `tool.colors.write`
 
-Permissions: `bound_document`
+Permissions: `bound_editor, palette_version, control_ownership`
 
 - Host-bound source, session, document and revision; control ownership and resource limits are checked.
 
@@ -18744,6 +18746,7 @@ Permissions: `bound_document`
       "minimum": 0
     }
   },
+  "additionalProperties": false,
   "required": [
     "foreground",
     "background",
@@ -18765,6 +18768,464 @@ Permissions: `bound_document`
 }
 ```
 
+## `paint.colors.describe` — 读取颜色面板数值
+
+Read this editor's foreground/background as exact normalized working-RGB RGBA, rounded8/16-bit RGBA, HSB [hue degrees,saturation percent,brightness percent], canonical #RRGGBBAA and one palette version. These are encodings of the document working RGB (sRGB without a document), not conversions into sRGB or another ICC. HSB uses encoded RGB with achromatic hue0; HEX and rgb8 round to8-bit, rgb16 rounds to16-bit, rgba retains the full palette float. Pure read, allowed without document and while AI owns control; no sample/revision/dirty/history/current-layer/preview changes. Native persistent color panel and AI share the same formatter. 中文：颜色面板、读取RGB数值、读取HSB、读取HEX、十六进制颜色、颜色透明度、前景背景色。
+
+Kind: `Query` · Undoable: `false` · Batchable: `false`
+
+Effects: `tool.colors.read`
+
+Permissions: `bound_editor, palette_version, control_ownership`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Empty",
+  "type": "object",
+  "additionalProperties": false
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PaintColorDescription",
+  "type": "object",
+  "properties": {
+    "background": {
+      "$ref": "#/$defs/PaintColorFormats"
+    },
+    "foreground": {
+      "$ref": "#/$defs/PaintColorFormats"
+    },
+    "version": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "foreground",
+    "background",
+    "version"
+  ],
+  "$defs": {
+    "PaintColorFormats": {
+      "type": "object",
+      "properties": {
+        "hex": {
+          "type": "string"
+        },
+        "hsb": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 3,
+          "minItems": 3
+        },
+        "rgb16": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "uint16",
+            "maximum": 65535,
+            "minimum": 0
+          },
+          "maxItems": 4,
+          "minItems": 4
+        },
+        "rgb8": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "uint8",
+            "maximum": 255,
+            "minimum": 0
+          },
+          "maxItems": 4,
+          "minItems": 4
+        },
+        "rgba": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 4,
+          "minItems": 4
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "rgba",
+        "rgb8",
+        "rgb16",
+        "hsb",
+        "hex"
+      ]
+    }
+  }
+}
+```
+
+### Examples
+
+```json
+{}
+```
+
+## `paint.colors.set_components` — 按RGB HSB或HEX设置颜色
+
+Set one explicit foreground/background palette target from tagged color.model: rgb normalized red/green/blue0..1, rgb8 integer0..255, rgb16 integer0..65535, hsb hue0..360/saturation0..100/brightness0..100, or hex value RRGGBB/RRGGBBAA with optional#. Non-hex models accept alpha0..1 default1; six-digit hex is opaque, eight-digit hex includes8-bit alpha. Reject nonfinite/out-of-range values, wrong integer types, malformed HEX, unknown fields and stale expected_version. All formats encode the current working RGB, not sRGB/ICC conversion; hue360 wraps0 and HSB is encoded RGB. HEX input is8-bit precision even in a16-bit document; full normalized RGB remains available. Native persistent color panel sends these exact parameters through this same parser/setter, then brush/fill/gradient read synchronized colors. Palette version advances once, preserves other target and current layer, no document samples/revision/dirty/history/project metadata, not document/turn undoable, no batch. Same source/session/palette/control ownership as paint.colors.set; native writes blocked during AI ownership, owning AI may write. 中文：常驻颜色面板、RGB数值设置、HSB颜色、HEX颜色、十六进制颜色、颜色透明度、前景色和背景色。
+
+Kind: `View` · Undoable: `false` · Batchable: `false`
+
+Effects: `tool.colors.write`
+
+Permissions: `bound_editor, palette_version, control_ownership`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SetColorComponents",
+  "type": "object",
+  "properties": {
+    "color": {
+      "$ref": "#/$defs/PaintColorInput"
+    },
+    "expected_version": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "uint64",
+      "default": null,
+      "minimum": 0
+    },
+    "target": {
+      "$ref": "#/$defs/PaintColorTarget"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "target",
+    "color"
+  ],
+  "$defs": {
+    "PaintColorInput": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "alpha": {
+              "type": "number",
+              "format": "double",
+              "default": 1.0,
+              "maximum": 1,
+              "minimum": 0
+            },
+            "blue": {
+              "type": "number",
+              "format": "double",
+              "maximum": 1,
+              "minimum": 0
+            },
+            "green": {
+              "type": "number",
+              "format": "double",
+              "maximum": 1,
+              "minimum": 0
+            },
+            "model": {
+              "type": "string",
+              "const": "rgb"
+            },
+            "red": {
+              "type": "number",
+              "format": "double",
+              "maximum": 1,
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "model",
+            "red",
+            "green",
+            "blue"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "alpha": {
+              "type": "number",
+              "format": "double",
+              "default": 1.0,
+              "maximum": 1,
+              "minimum": 0
+            },
+            "blue": {
+              "type": "integer",
+              "format": "uint8",
+              "maximum": 255,
+              "minimum": 0
+            },
+            "green": {
+              "type": "integer",
+              "format": "uint8",
+              "maximum": 255,
+              "minimum": 0
+            },
+            "model": {
+              "type": "string",
+              "const": "rgb8"
+            },
+            "red": {
+              "type": "integer",
+              "format": "uint8",
+              "maximum": 255,
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "model",
+            "red",
+            "green",
+            "blue"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "alpha": {
+              "type": "number",
+              "format": "double",
+              "default": 1.0,
+              "maximum": 1,
+              "minimum": 0
+            },
+            "blue": {
+              "type": "integer",
+              "format": "uint16",
+              "maximum": 65535,
+              "minimum": 0
+            },
+            "green": {
+              "type": "integer",
+              "format": "uint16",
+              "maximum": 65535,
+              "minimum": 0
+            },
+            "model": {
+              "type": "string",
+              "const": "rgb16"
+            },
+            "red": {
+              "type": "integer",
+              "format": "uint16",
+              "maximum": 65535,
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "model",
+            "red",
+            "green",
+            "blue"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "alpha": {
+              "type": "number",
+              "format": "double",
+              "default": 1.0,
+              "maximum": 1,
+              "minimum": 0
+            },
+            "brightness": {
+              "type": "number",
+              "format": "double",
+              "maximum": 100,
+              "minimum": 0
+            },
+            "hue": {
+              "type": "number",
+              "format": "double",
+              "maximum": 360,
+              "minimum": 0
+            },
+            "model": {
+              "type": "string",
+              "const": "hsb"
+            },
+            "saturation": {
+              "type": "number",
+              "format": "double",
+              "maximum": 100,
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "model",
+            "hue",
+            "saturation",
+            "brightness"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "model": {
+              "type": "string",
+              "const": "hex"
+            },
+            "value": {
+              "type": "string",
+              "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "model",
+            "value"
+          ]
+        }
+      ]
+    },
+    "PaintColorTarget": {
+      "type": "string",
+      "enum": [
+        "foreground",
+        "background"
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PaintColors",
+  "type": "object",
+  "properties": {
+    "background": {
+      "type": "array",
+      "items": {
+        "type": "number",
+        "format": "double"
+      },
+      "maxItems": 4,
+      "minItems": 4
+    },
+    "foreground": {
+      "type": "array",
+      "items": {
+        "type": "number",
+        "format": "double"
+      },
+      "maxItems": 4,
+      "minItems": 4
+    },
+    "version": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "foreground",
+    "background",
+    "version"
+  ]
+}
+```
+
+### Examples
+
+```json
+{
+  "color": {
+    "alpha": 0.5,
+    "brightness": 80,
+    "hue": 210,
+    "model": "hsb",
+    "saturation": 50
+  },
+  "target": "foreground"
+}
+```
+
+```json
+{
+  "color": {
+    "blue": 0.3,
+    "green": 0.2,
+    "model": "rgb",
+    "red": 0.1
+  },
+  "target": "background"
+}
+```
+
+```json
+{
+  "color": {
+    "alpha": 0.5,
+    "blue": 153,
+    "green": 102,
+    "model": "rgb8",
+    "red": 51
+  },
+  "target": "background"
+}
+```
+
+```json
+{
+  "color": {
+    "blue": 50001,
+    "green": 30003,
+    "model": "rgb16",
+    "red": 10001
+  },
+  "target": "background"
+}
+```
+
+```json
+{
+  "color": {
+    "model": "hex",
+    "value": "#33669980"
+  },
+  "target": "background"
+}
+```
+
 ## `paint.colors.swap` — 交换前景色与背景色
 
 Swap this editor's two normalized working-RGB palette colors; native X uses this command. Increments palette version, rejects stale/concurrent prepared palette calls, keeps current layer selection and all document state/history unchanged. Per-editor tool state, not a pixel edit and not document/turn undoable; no batch. Native user blocked during AI ownership, same-turn running AI allowed. 中文：交换前景色与背景色、交换绘画颜色、X 快捷键。
@@ -18773,7 +19234,7 @@ Kind: `View` · Undoable: `false` · Batchable: `false`
 
 Effects: `tool.colors.write`
 
-Permissions: `bound_document`
+Permissions: `bound_editor, palette_version, control_ownership`
 
 - Host-bound source, session, document and revision; control ownership and resource limits are checked.
 
@@ -18820,6 +19281,7 @@ Permissions: `bound_document`
       "minimum": 0
     }
   },
+  "additionalProperties": false,
   "required": [
     "foreground",
     "background",
@@ -18842,7 +19304,7 @@ Kind: `View` · Undoable: `false` · Batchable: `false`
 
 Effects: `tool.colors.write`
 
-Permissions: `bound_document`
+Permissions: `bound_editor, palette_version, control_ownership`
 
 - Host-bound source, session, document and revision; control ownership and resource limits are checked.
 
@@ -18889,6 +19351,7 @@ Permissions: `bound_document`
       "minimum": 0
     }
   },
+  "additionalProperties": false,
   "required": [
     "foreground",
     "background",

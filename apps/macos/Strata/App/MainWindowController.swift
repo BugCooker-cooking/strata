@@ -48,6 +48,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         workspace.tonalPreview = preview
         workspace.cropInput=canvas.cropInput
         workspace.straightenInput=canvas.straightenInput
+        workspace.colorPanel=ColorPanelModel(engine:engine)
         preview.onBusy = { [weak self] running in guard let self else { return }; self.canvas.isWorkBusy = self.busy || running }
         preview.onApplying = { [weak self] applying in self?.busy = applying }
         preview.onFrame = { [weak self] in guard let self else { return }; self.canvas.markDirty();self.refreshDisplayOutline(); if !self.busy { self.refresh() } }
@@ -258,6 +259,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         workspace.straightenInput?.bind(snapshot)
         if let space=NSColorSpace(iccProfileData:Data(engine.workingProfileIcc())){workspace.workingColorSpace=space}
         if let colors=snapshot.paintColors{workspace.installPaintColors(colors)}
+        workspace.colorPanel?.bind(snapshot)
         workspace.selectedLayers=workspace.selectedLayers.intersection(Set(snapshot.layers.map(\.id)))
         canvas.documentOrigin = NSPoint(x: CGFloat(snapshot.frame?.x ?? 0), y: CGFloat(snapshot.frame?.y ?? 0))
         canvas.isSelectionEnabled = workspace.permissions.selectionEdits
@@ -317,7 +319,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         }
     }
     func perform(_ command: String, _ params: [String: Any], completion: (@MainActor @Sendable (Bool) -> Void)? = nil) {
-        if ["paint.colors.get","paint.colors.set","paint.colors.swap","paint.colors.reset"].contains(command){queuePalette(command,params);return}
+        if ["paint.colors.get","paint.colors.set","paint.colors.set_components","paint.colors.swap","paint.colors.reset"].contains(command){queuePalette(command,params);return}
         guard !busy else { completion?(false); return }
         workspace.tonalPreview?.cancel()
         workspace.cropInput?.cancel()

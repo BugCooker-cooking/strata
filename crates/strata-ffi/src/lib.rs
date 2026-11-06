@@ -392,7 +392,10 @@ impl StrataEngine {
                     .editor
                     .execute(request, &command, params, |_| Ok(()))
                     .map_err(command_error)?;
-                if command != "paint.colors.get" {
+                if !matches!(
+                    command.as_str(),
+                    "paint.colors.get" | "paint.colors.describe"
+                ) {
                     let snapshot_json = json!(inner.editor.snapshot()).to_string();
                     inner
                         .events

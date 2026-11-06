@@ -107,14 +107,19 @@ struct WorkspaceInspector: View {
         GeometryReader { geometry in
             VStack(spacing: 0) {
                 VStack(spacing: 0) {
-                    Picker("检查器", selection: $model.inspector) {
-                        ForEach(InspectorTab.allCases, id: \.self) { Text($0.rawValue).tag($0) }
-                    }.pickerStyle(.segmented).labelsHidden().padding(10)
+                    LazyVGrid(columns:Array(repeating:GridItem(.flexible(minimum:0),spacing:4),count:3),spacing:4){
+                        ForEach(InspectorTab.allCases,id:\.self){tab in
+                            Button{model.inspector=tab}label:{Text(tab.rawValue).lineLimit(1).frame(maxWidth:.infinity)}
+                                .buttonStyle(WorkspaceButtonStyle(selected:model.inspector==tab))
+                                .accessibilityLabel(tab.rawValue).accessibilityValue(model.inspector==tab ? "已选择":"")
+                        }
+                    }.padding(10).accessibilityLabel("检查器")
                     switch model.inspector {
                     case .properties: LayerProperties(model: model)
                     case .adjustments: AdjustmentPanel(model: model)
                     case .filters: if let preview=model.tonalPreview{FilterPanel(model:model,preview:preview)}
                     case .transform: if let preview=model.tonalPreview{TransformPanel(model:model,preview:preview)}
+                    case .color: if let panel=model.colorPanel{ColorPanelView(model:model,panel:panel)}
                     case .history: HistoryPanel(model: model)
                     }
                 }.frame(height: max(210, geometry.size.height * 0.47))

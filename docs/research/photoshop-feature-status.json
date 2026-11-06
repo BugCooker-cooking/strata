@@ -888,5 +888,29 @@
         "path": "../research/2026-11-m7-bit-depth-progress.md"
       }
     ]
+  },
+  "PS-08-86b51af036": {
+    "implementation": "已实现",
+    "acceptance": "常驻RGB/HSB/HEX前景背景面板、共享格式读写命令、核心/AI/原生/真实Metal/Release与单窗口改色/填充/撤销通过；窄面板标签和控件遮挡已修正并重验。",
+    "evidence": [
+      {
+        "label": "常驻颜色面板",
+        "path": "../research/2026-11-m7-color-panel-progress.md"
+      }
+    ]
+  },
+  "PS-02-03ea5fd9e6": {
+    "implementation": "已实现",
+    "acceptance": "已复核现有 paint.fill 的选区/锁/8与16位/撤销/原生前景背景菜单及本轮颜色面板→填充→撤销证据；此前清单漏记已补齐。",
+    "evidence": [
+      {
+        "label": "填充实现与原生证据",
+        "path": "../research/2026-11-m6-paint-retouch-progress.md"
+      },
+      {
+        "label": "颜色面板与填充联动",
+        "path": "../research/2026-11-m7-color-panel-progress.md"
+      }
+    ]
   }
 }

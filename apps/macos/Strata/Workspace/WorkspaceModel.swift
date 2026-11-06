@@ -55,7 +55,7 @@ enum EditorTool: String, CaseIterable, Identifiable {
         .hand: ("抓手", "hand.draw", "H"), .zoom: ("缩放", "magnifyingglass", "Z")]
 }
 
-enum InspectorTab: String, CaseIterable { case properties = "属性", adjustments = "调整", filters = "滤镜", transform = "变换", history = "历史" }
+enum InspectorTab: String, CaseIterable { case properties = "属性", adjustments = "调整", filters = "滤镜", transform = "变换", color="颜色", history = "历史" }
 
 /// One policy shared by panels, menu validation and keyboard actions. Core remains authoritative.
 struct WorkspacePermissions {
@@ -83,6 +83,7 @@ final class WorkspaceModel: ObservableObject {
     @Published var tonalPreview: TonalPreviewModel?
     @Published var cropInput:CanvasCropInput?
     @Published var straightenInput:CanvasStraightenInput?
+    @Published var colorPanel:ColorPanelModel?
     @Published var cropMode="crop"
     @Published var cropRatio="free"
     @Published var cropDeletesPixels=false

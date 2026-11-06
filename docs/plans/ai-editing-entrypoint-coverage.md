@@ -2,7 +2,7 @@
 
 当前开发期审计快照。完整编辑功能与最终 AI 审计仍未闭环；不得把注册数量当作全部功能覆盖。
 
-真实注册命令 120；参数示例 174；综合功能 265；已有映射 83。
+真实注册命令 122；参数示例 180；综合功能 265；已有映射 85。
 
 已实现但未映射 0；部分入口 9；原生未知命令引用 0；未类型化返回 0。
 
@@ -48,7 +48,7 @@
 | PS-02-fc9f1fdaa0 | 历史快照 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-02-24d3726654 | 剪切 / 拷贝 / 合并拷贝 / 粘贴 / 原位粘贴 / 清除 | 已实现 | 已映射 | `edit.cut`、`edit.copy`、`edit.copy_merged`、`edit.paste`、`edit.paste_in_place`、`edit.clear`、`edit.clipboard.write_status` · 剪切当前选区内容到系统剪贴板，等待宿主确认写入成功后再清除。 · 资源由可信宿主授权与写入确认；AI 不猜测 token。剪切在写入完成前不清除源；撤销只恢复文档，不能撤回系统剪贴板的外部写入。 |
 | PS-02-44ec922e45 | 贴入 / 外部粘贴 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
-| PS-02-03ea5fd9e6 | 填充：颜色 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
+| PS-02-03ea5fd9e6 | 填充：颜色 | 已实现 | 已映射 | `paint.fill`、`paint.colors.get`、`paint.colors.describe`、`paint.colors.set_components` · 用指定工作RGB颜色和透明度填充当前像素层，保留选区外像素。 · Actual normalized working-RGBA pixel fill, optional opacity and existing selection/locks/depth/ICC semantics; one document history, native foreground/background fill menu and explicit AI fill. Palette reads/sets are tool state and survive undo; pattern/content-aware fill are separate features. |
 | PS-02-bfa246feb1 | 填充：内容识别 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-02-adcb808036 | 描边 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-02-f62f8ca281 | 渐隐 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
@@ -162,7 +162,7 @@
 | PS-08-739094bd86 | 渐变（线性 / 径向 / 角度 / 对称 / 菱形） | 已实现 | 已映射 | `paint.gradient` · 在给定范围绘制径向渐变。 |
 | PS-08-6f11ed20eb | 吸管 | 已实现 | 已映射 | `paint.sample_color` · 吸取给定位置的可见合成颜色。 |
 | PS-08-3ce0368d80 | 拾色器、前景色 / 背景色 | 已实现 | 已映射 | `paint.colors.get`、`paint.colors.set`、`paint.colors.swap`、`paint.colors.reset`、`paint.sample_color`、`paint.stroke`、`paint.fill`、`paint.gradient` · 读取当前前景色和背景色及调色板版本。 · 原生色块、吸管、X/D 与 AI 走同一编辑器工具状态。工作 RGB 浮点 RGBA 与独立版本绑定；不修改文档样本/历史/dirty，也不由文档或 AI 回合撤销恢复。绘画仍显式传色，AI 可读取调色板并使用其前景/背景参数。 |
-| PS-08-86b51af036 | 颜色面板 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
+| PS-08-86b51af036 | 颜色面板 | 已实现 | 已映射 | `paint.colors.describe`、`paint.colors.set_components`、`paint.colors.get`、`paint.colors.set`、`paint.colors.swap`、`paint.colors.reset` · 读取颜色面板的前景色和背景色，分别显示RGB、HSB和HEX及透明度。 · Persistent native inspector uses the same core formatted palette read/write commands as AI; working encoded RGB, normalized float/8/16-bit codes, HSB and HEX plus alpha. HEX is8-bit, not ICC/sRGB conversion. Palette state is per editor, not document/turn-undoable; explicit paint.fill remains the real pixel edit. |
 | PS-08-92b84304ee | 颜色取样器 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-08-8aec3995bf | 色板 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-08-f77e30ee1a | 铅笔 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |

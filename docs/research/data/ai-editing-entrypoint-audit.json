@@ -1,10 +1,10 @@
 {
   "scope": "Development audit; not a claim that all Photoshop editing is implemented or AI-verified",
-  "registered_commands": 120,
-  "registered_examples": 174,
-  "catalog_sha256": "7acb4566d0c0156472eccec4a58e00d880e13e558f7c0be3756ef9e2833f5713",
+  "registered_commands": 122,
+  "registered_examples": 180,
+  "catalog_sha256": "375ef9c8b4104fa11fee1f3e621bc385f62dbd88ea2056358c7e10f042a6a5e4",
   "inventory_rows": 265,
-  "mapped_features": 83,
+  "mapped_features": 85,
   "unmapped_implemented_features": [],
   "partial_entrypoints": [
     "PS-01-894622b1ce",
@@ -39,7 +39,6 @@
     "PS-01-30d15e0488",
     "PS-02-fc9f1fdaa0",
     "PS-02-44ec922e45",
-    "PS-02-03ea5fd9e6",
     "PS-02-bfa246feb1",
     "PS-02-adcb808036",
     "PS-02-f62f8ca281",
@@ -103,7 +102,6 @@
     "PS-07-dfaf73f366",
     "PS-07-a63d0d97e2",
     "PS-07-ba6e326669",
-    "PS-08-86b51af036",
     "PS-08-92b84304ee",
     "PS-08-8aec3995bf",
     "PS-08-f77e30ee1a",
@@ -919,8 +917,35 @@
       "name": "填充：颜色",
       "priority": "P0",
       "source_line": 91,
-      "implementation": "待实现",
-      "entrypoint": null
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "paint.fill",
+          "paint.colors.get",
+          "paint.colors.describe",
+          "paint.colors.set_components"
+        ],
+        "prompts": [
+          {
+            "text": "用指定工作RGB颜色和透明度填充当前像素层，保留选区外像素。",
+            "query": "填充像素",
+            "command": "paint.fill"
+          },
+          {
+            "text": "读取前景色，再用该RGBA填充选中的像素图层。",
+            "query": "读取前景色",
+            "command": "paint.colors.get"
+          },
+          {
+            "text": "Read the color panel values, then fill the selected pixel layer using its explicit foreground RGBA.",
+            "query": "Describe color panel values",
+            "command": "paint.colors.describe"
+          }
+        ],
+        "note": "Actual normalized working-RGBA pixel fill, optional opacity and existing selection/locks/depth/ICC semantics; one document history, native foreground/background fill menu and explicit AI fill. Palette reads/sets are tool state and survive undo; pattern/content-aware fill are separate features."
+      }
     },
     {
       "id": "PS-02-bfa246feb1",
@@ -3155,8 +3180,63 @@
       "name": "颜色面板",
       "priority": "P0",
       "source_line": 237,
-      "implementation": "待实现",
-      "entrypoint": null
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "paint.colors.describe",
+          "paint.colors.set_components",
+          "paint.colors.get",
+          "paint.colors.set",
+          "paint.colors.swap",
+          "paint.colors.reset"
+        ],
+        "prompts": [
+          {
+            "text": "读取颜色面板的前景色和背景色，分别显示RGB、HSB和HEX及透明度。",
+            "query": "读取颜色面板数值",
+            "command": "paint.colors.describe"
+          },
+          {
+            "text": "按HEX把前景色设置为#33669980，背景色保持。",
+            "query": "HEX颜色",
+            "command": "paint.colors.set_components"
+          },
+          {
+            "text": "Set the foreground using HSB hue210 saturation50 brightness80 alpha0.5.",
+            "query": "Set color from RGB HSB or HEX",
+            "command": "paint.colors.set_components"
+          },
+          {
+            "text": "交换前景色和背景色，保留文档像素。",
+            "query": "交换前景色与背景色",
+            "command": "paint.colors.swap"
+          }
+        ],
+        "variants": [
+          {
+            "command": "paint.colors.set_components",
+            "path": "color.model",
+            "values": [
+              "rgb",
+              "rgb8",
+              "rgb16",
+              "hsb",
+              "hex"
+            ]
+          },
+          {
+            "command": "paint.colors.set_components",
+            "path": "target",
+            "values": [
+              "foreground",
+              "background"
+            ]
+          }
+        ],
+        "note": "Persistent native inspector uses the same core formatted palette read/write commands as AI; working encoded RGB, normalized float/8/16-bit codes, HSB and HEX plus alpha. HEX is8-bit, not ICC/sRGB conversion. Palette state is per editor, not document/turn-undoable; explicit paint.fill remains the real pixel edit."
+      }
     },
     {
       "id": "PS-08-92b84304ee",

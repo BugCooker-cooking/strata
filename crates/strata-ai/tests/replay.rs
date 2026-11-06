@@ -953,6 +953,107 @@ fn ai_palette_configures_native_state_and_explicit_fill_while_turn_undo_only_rev
     );
 }
 #[test]
+fn color_panel_models_are_discoverable_set_read_and_drive_fill_without_tool_state_undo() {
+    for color in [
+        json!({"model":"rgb","red":0.2,"green":0.4,"blue":0.6,"alpha":0.5}),
+        json!({"model":"rgb8","red":51,"green":102,"blue":153,"alpha":0.5}),
+        json!({"model":"rgb16","red":13107,"green":26214,"blue":39321,"alpha":0.5}),
+        json!({"model":"hsb","hue":210,"saturation":50,"brightness":80,"alpha":0.5}),
+        json!({"model":"hex","value":"#33669980"}),
+    ] {
+        let host = Host::new();
+        let before = host
+            .editor
+            .lock()
+            .unwrap()
+            .document()
+            .unwrap()
+            .to_archive()
+            .unwrap();
+        let mut session = host.session_with_prompt(
+            ExecutionMode::Direct,
+            "使用颜色面板的数值设置前景色，再读取该颜色填充当前图层。",
+        );
+        reply(
+            &mut session,
+            &host,
+            vec![
+                call("search", "search_catalog", json!({"query":"颜色面板"})),
+                call(
+                    "describe",
+                    "describe_commands",
+                    json!({"ids":["paint.colors.describe","paint.colors.set_components"]}),
+                ),
+            ],
+        );
+        assert!(
+            result(session.poll(&host).unwrap())["matches"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|m| m["id"] == "paint.colors.set_components")
+        );
+        assert_eq!(
+            result(session.poll(&host).unwrap())["commands"]
+                .as_array()
+                .unwrap()
+                .len(),
+            2
+        );
+        reply(
+            &mut session,
+            &host,
+            vec![
+                invoke(
+                    "set",
+                    "paint.colors.set_components",
+                    json!({"target":"foreground","color":color,"expected_version":0}),
+                ),
+                invoke("formats", "paint.colors.describe", json!({})),
+            ],
+        );
+        assert_eq!(result(session.poll(&host).unwrap())["result"]["version"], 1);
+        let formats = result(session.poll(&host).unwrap())["result"].clone();
+        assert_eq!(formats["version"], 1);
+        assert!(
+            formats["foreground"]["hex"]
+                .as_str()
+                .unwrap()
+                .starts_with('#')
+        );
+        assert!(host.snapshot().unwrap().history.is_empty());
+        reply(
+            &mut session,
+            &host,
+            vec![invoke(
+                "fill",
+                "paint.fill",
+                json!({"layer":{"name":"Background"},"color":formats["foreground"]["rgba"]}),
+            )],
+        );
+        assert!(
+            result(session.poll(&host).unwrap())["result"]["touched_tiles"]
+                .as_u64()
+                .unwrap()
+                > 0
+        );
+        host.editor.lock().unwrap().stop_turn();
+        host.user("edit.undo_turn", json!({"turn_id":session.turn_id()}));
+        assert_eq!(
+            host.editor
+                .lock()
+                .unwrap()
+                .document()
+                .unwrap()
+                .to_archive()
+                .unwrap(),
+            before
+        );
+        assert_eq!(host.user("paint.colors.describe", json!({})), formats);
+    }
+}
+
+#[test]
 fn deleting_cropped_pixels_pauses_for_exact_ai_approval_and_turn_undo_restores_sources() {
     let host = Host::new();
     host.user(

@@ -1,0 +1,83 @@
+{
+  "date_local": "2026-11-06",
+  "timezone": "Asia/Taipei",
+  "checkpoints": {
+    "owned_straighten_gesture": "9fb4f7a",
+    "whole_document_bit_depth": "24d500b",
+    "bounded_m3_retry_documentation": "fe9ecfb",
+    "color_panel_and_fill_mapping": "subsequent_commit"
+  },
+  "scope": "Full local strata-core/strata-ai behavior and complete native test bundle after geometry ownership, strict document-depth input and persistent color panel work. This does not replace separate targeted real Metal/Release gates or the full Photoshop/final AI objective.",
+  "source_sha256": {
+    "apps/macos/Strata/App/MainWindowController.swift": "e93bb3c385a51b9439cb34e1e36614bf1cd6f7c581a644da2c77ec9e01b568ae",
+    "apps/macos/Strata/Workspace/ColorPanelModel.swift": "fa2d6c538cc7a4ed895a1088863747c6c35fcf9a650fc3af26b16d01d2283cc5",
+    "apps/macos/Strata/Workspace/ColorPanelViews.swift": "25373507fd13b459c2643f598da4f1524d5fb00b4d41602e185d2b67d20d651e",
+    "apps/macos/Strata/Workspace/WorkspaceModel.swift": "d9dc21578b935ed2c826ecbcc5cbf11b0e6a9fed100bb074901257c0e07ac5fd",
+    "apps/macos/Strata/Workspace/WorkspaceViews.swift": "477bdb331be28b319db8b4540c57e903ef3853f4c4117368ce9208878c944783",
+    "apps/macos/StrataTests/ColorPanelTests.swift": "369e406136c9031b005ff6a2ec6301294e09b9284612f67a65c7d4b0c87eb0a9",
+    "crates/strata-ai/tests/replay.rs": "632ac3bf49ec69d2be858e73649d8fed6a7d8034a3cc561359990b5aa0830944",
+    "crates/strata-core/src/commands/color_components.rs": "77be0c1a49a65508a1e3caf0095a32a2b5fb7941be2a0eebe9323271f71b63df",
+    "crates/strata-core/src/commands/executor.rs": "1c20d7d025fd0f41ef333b08af6a4783ef8a9a0740c92aca1822094b43b4403d",
+    "crates/strata-core/src/commands/mod.rs": "cd93e7330026c4707e1e1947c28295bb4bd2d436f052340e2d92faba174e443a",
+    "crates/strata-core/src/commands/registry.rs": "3a910eb859a103b43686d37b72e6bb0dbc65aed2324690dc13cacfa4233d12ba",
+    "crates/strata-core/tests/color_panel.rs": "f3cfeabb859dae8712aaadd7ee84b2c1ced044d000d73b9423d7aeaefa6ec397",
+    "crates/strata-ffi/src/lib.rs": "a7d02fd23e35dcd7074a655b3c1f53536410ac41d21f707a1512d4dfcbe50c0d",
+    "crates/strata-ffi/src/tests.rs": "f08e5d5bc3d6592580ccef7b1e8c9190eb1c6fd71a59164ec073490ca18f6458",
+    "apps/macos/Strata/Canvas/CanvasStraightenInput.swift": "e924102e2cb81320bed05b1ae092174abc30717d66c75144a42b2bdef7141f72",
+    "apps/macos/Strata/Workspace/BitDepthControls.swift": "2cfecc57c6da7d9d7f07bd41e1ff7bde1ef42d39988283133feec7a0aad75cfb",
+    "crates/strata-core/src/commands/depth.rs": "e1dbbe983990e1bd61fd0144f4a8a2980c3ca4cd8ed4ec2f287a307adad81571",
+    "crates/strata-ffi/src/crop.rs": "d525b4e244b8785add0c91116bd885030c4e92120a38e12b14b9f6031d824c27"
+  },
+  "core_ai": {
+    "crates": [
+      "strata-core",
+      "strata-ai"
+    ],
+    "passed": 308,
+    "failed": 0,
+    "ignored": 0,
+    "result_summaries": 55,
+    "test_threads": 1,
+    "includes_compile_fail_document_privacy_gate": true,
+    "log": "build/m7-session-core-ai-regression.log"
+  },
+  "native": {
+    "configuration": "Debug",
+    "method": "test-without-building of current compiled complete test bundle",
+    "total": 83,
+    "passed": 82,
+    "skipped": 1,
+    "failed": 0,
+    "parallel_testing_enabled": false,
+    "log": "build/m7-session-native-regression.log",
+    "skip": "LiveAITests explicit opt-in is absent in default local suite; the distinct attempted live retry timed out at Keychain with zero model requests."
+  },
+  "final_schema_refinement": {
+    "behavior_unchanged": true,
+    "change": "Only palette output additionalProperties=false annotation and a strict schema contract assertion were added while the already compiled full behavior binaries ran.",
+    "focused_core_log": "build/m7-color-panel-core.final.log",
+    "commands_log": "build/m7-color-panel-commands.final.log",
+    "release_log": "build/m7-color-panel-release.schema-final.log"
+  },
+  "targeted_real_metal_records": [
+    "2026-11-06-m7-straighten-gesture-verification.json",
+    "2026-11-06-m7-bit-depth-verification.json",
+    "2026-11-06-m7-color-panel-verification.json"
+  ],
+  "local_limits": {
+    "compiler_jobs_max": 2,
+    "heavy_checks_sequential": true,
+    "manual_strata_instances_max": 1,
+    "final_manual_instances": 0
+  },
+  "cloud_builds": {
+    "used": false,
+    "workflow_kept_disabled": true
+  },
+  "exclusions": [
+    "Not a full workspace/Rust-render/ONNX/IO rerun; those tests retain their explicit earlier or targeted evidence.",
+    "Not Linux or minimum macOS14 runtime/hardware/physical pen/trackpad/performance/quality/release signing proof.",
+    "Not a live-model pass; bounded M3 Keychain skip remains open.",
+    "Not all Photoshop features or final per-feature AI closure."
+  ]
+}

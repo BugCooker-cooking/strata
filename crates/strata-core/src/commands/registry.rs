@@ -1049,6 +1049,24 @@ fn build_catalog() -> Vec<CommandSpec> {
         json!({"foreground":[0.8,0.2,0.1,1]})
     );
     command!(
+        "paint.colors.describe",
+        Empty,
+        Query,
+        "读取颜色面板数值",
+        "Describe color panel values",
+        "Read this editor's foreground/background as exact normalized working-RGB RGBA, rounded8/16-bit RGBA, HSB [hue degrees,saturation percent,brightness percent], canonical #RRGGBBAA and one palette version. These are encodings of the document working RGB (sRGB without a document), not conversions into sRGB or another ICC. HSB uses encoded RGB with achromatic hue0; HEX and rgb8 round to8-bit, rgb16 rounds to16-bit, rgba retains the full palette float. Pure read, allowed without document and while AI owns control; no sample/revision/dirty/history/current-layer/preview changes. Native persistent color panel and AI share the same formatter. 中文：颜色面板、读取RGB数值、读取HSB、读取HEX、十六进制颜色、颜色透明度、前景背景色。",
+        json!({})
+    );
+    command!(
+        "paint.colors.set_components",
+        SetColorComponents,
+        View,
+        "按RGB HSB或HEX设置颜色",
+        "Set color from RGB HSB or HEX",
+        "Set one explicit foreground/background palette target from tagged color.model: rgb normalized red/green/blue0..1, rgb8 integer0..255, rgb16 integer0..65535, hsb hue0..360/saturation0..100/brightness0..100, or hex value RRGGBB/RRGGBBAA with optional#. Non-hex models accept alpha0..1 default1; six-digit hex is opaque, eight-digit hex includes8-bit alpha. Reject nonfinite/out-of-range values, wrong integer types, malformed HEX, unknown fields and stale expected_version. All formats encode the current working RGB, not sRGB/ICC conversion; hue360 wraps0 and HSB is encoded RGB. HEX input is8-bit precision even in a16-bit document; full normalized RGB remains available. Native persistent color panel sends these exact parameters through this same parser/setter, then brush/fill/gradient read synchronized colors. Palette version advances once, preserves other target and current layer, no document samples/revision/dirty/history/project metadata, not document/turn undoable, no batch. Same source/session/palette/control ownership as paint.colors.set; native writes blocked during AI ownership, owning AI may write. 中文：常驻颜色面板、RGB数值设置、HSB颜色、HEX颜色、十六进制颜色、颜色透明度、前景色和背景色。",
+        json!({"target":"foreground","color":{"model":"hsb","hue":210,"saturation":50,"brightness":80,"alpha":0.5}})
+    );
+    command!(
         "paint.colors.swap",
         Empty,
         View,
@@ -1118,7 +1136,11 @@ fn build_catalog() -> Vec<CommandSpec> {
             "image.straighten" => schemars::schema_for!(StraightenImageResult),
             "image.convert_bit_depth" => schemars::schema_for!(BitDepthResult),
             "image.trim" => schemars::schema_for!(TrimCanvasResult),
-            "paint.colors.get" | "paint.colors.set" | "paint.colors.swap"
+            "paint.colors.describe" => schemars::schema_for!(PaintColorDescription),
+            "paint.colors.get"
+            | "paint.colors.set"
+            | "paint.colors.set_components"
+            | "paint.colors.swap"
             | "paint.colors.reset" => schemars::schema_for!(PaintColors),
             "image.orient" => schemars::schema_for!(OrientImageResult),
             "image.canvas_size" | "image.crop" | "image.reveal_all" => {
@@ -1252,11 +1274,23 @@ fn build_catalog() -> Vec<CommandSpec> {
         }
         if item.id.starts_with("paint.colors.") {
             item.batchable = false;
+            item.permissions = vec!["bound_editor", "palette_version", "control_ownership"];
             item.effects = if item.kind == CommandKind::Query {
                 vec!["tool.colors.read"]
             } else {
                 vec!["tool.colors.write"]
             };
+        }
+        if item.id == "paint.colors.set_components" {
+            for color in [
+                json!({"model":"rgb","red":0.1,"green":0.2,"blue":0.3}),
+                json!({"model":"rgb8","red":51,"green":102,"blue":153,"alpha":0.5}),
+                json!({"model":"rgb16","red":10001,"green":30003,"blue":50001}),
+                json!({"model":"hex","value":"#33669980"}),
+            ] {
+                item.examples
+                    .push(json!({"target":"background","color":color}));
+            }
         }
         if item.id == "image.trim" {
             item.batchable = false;

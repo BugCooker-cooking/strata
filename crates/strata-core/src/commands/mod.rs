@@ -3,6 +3,7 @@ mod brush;
 mod cancellation;
 mod canvas;
 mod clone_source;
+mod color_components;
 mod crop_delete;
 mod depth;
 mod executor;
@@ -102,6 +103,7 @@ pub struct BitDepthResult {
     pub profile_unchanged: bool,
 }
 #[derive(Clone, Debug, Serialize, JsonSchema, PartialEq)]
+#[serde(deny_unknown_fields)]
 pub struct PaintColors {
     pub foreground: [f64; 4],
     pub background: [f64; 4],
@@ -124,6 +126,82 @@ params!(SetPaintColors {
     #[serde(default)]
     expected_version: Option<u64>
 });
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum PaintColorTarget {
+    Foreground,
+    Background,
+}
+fn opaque_alpha() -> f64 {
+    1.0
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(tag = "model", rename_all = "snake_case", deny_unknown_fields)]
+pub enum PaintColorInput {
+    Rgb {
+        #[schemars(range(min = 0, max = 1))]
+        red: f64,
+        #[schemars(range(min = 0, max = 1))]
+        green: f64,
+        #[schemars(range(min = 0, max = 1))]
+        blue: f64,
+        #[serde(default = "opaque_alpha")]
+        #[schemars(range(min = 0, max = 1))]
+        alpha: f64,
+    },
+    Rgb8 {
+        red: u8,
+        green: u8,
+        blue: u8,
+        #[serde(default = "opaque_alpha")]
+        #[schemars(range(min = 0, max = 1))]
+        alpha: f64,
+    },
+    Rgb16 {
+        red: u16,
+        green: u16,
+        blue: u16,
+        #[serde(default = "opaque_alpha")]
+        #[schemars(range(min = 0, max = 1))]
+        alpha: f64,
+    },
+    Hsb {
+        #[schemars(range(min = 0, max = 360))]
+        hue: f64,
+        #[schemars(range(min = 0, max = 100))]
+        saturation: f64,
+        #[schemars(range(min = 0, max = 100))]
+        brightness: f64,
+        #[serde(default = "opaque_alpha")]
+        #[schemars(range(min = 0, max = 1))]
+        alpha: f64,
+    },
+    Hex {
+        #[schemars(regex(pattern = r"^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$"))]
+        value: String,
+    },
+}
+params!(SetColorComponents {
+    target:PaintColorTarget,
+    color:PaintColorInput,
+    #[serde(default)] expected_version:Option<u64>
+});
+#[derive(Serialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct PaintColorFormats {
+    pub rgba: [f64; 4],
+    pub rgb8: [u8; 4],
+    pub rgb16: [u16; 4],
+    pub hsb: [f64; 3],
+    pub hex: String,
+}
+#[derive(Serialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct PaintColorDescription {
+    pub foreground: PaintColorFormats,
+    pub background: PaintColorFormats,
+    pub version: u64,
+}
 #[derive(Clone, Copy, Debug, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum CanvasAnchor {
