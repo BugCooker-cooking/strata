@@ -1509,6 +1509,50 @@
         }
       ],
       "note": "已有整数位置与原生拖动、单次提交/取消及组联动；吸附仍未实现，因此综合移动工具条目保持部分实现。"
+    },
+    "PS-09-7d349372b5": {
+      "scope": "editing",
+      "coverage": "partial",
+      "commands": [
+        "image.crop"
+      ],
+      "prompts": [
+        {
+          "text": "用指定画布矩形和 4:3 比例裁剪画板，保留所有裁剪外像素与图层。",
+          "query": "矩形裁剪",
+          "command": "image.crop"
+        },
+        {
+          "text": "将画板裁到给定位置和尺寸，不重采样或删除原像素。",
+          "query": "保留裁剪像素",
+          "command": "image.crop"
+        }
+      ],
+      "variants": [
+        {
+          "command": "image.crop",
+          "path": "pixels",
+          "values": [
+            "preserve"
+          ]
+        }
+      ],
+      "note": "数值矩形/整数比例与保留像素已有真实执行；拉直、删除像素和画布交互手柄未实现，完整裁剪工具保持部分。"
+    },
+    "PS-03-84941ac6e8": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "image.reveal_all"
+      ],
+      "prompts": [
+        {
+          "text": "扩展画板，显示全部可见源图层与样式边界，恢复被画板遮住的内容。",
+          "query": "显示全部",
+          "command": "image.reveal_all"
+        }
+      ],
+      "note": "以可见源图层/生成填充和自身/祖先样式的保守边界扩展，不移动/缩放内容；隐藏层不参与，蒙版/剪贴/零透明度可能让边界大于最小可见 alpha 范围。"
     }
   }
 }

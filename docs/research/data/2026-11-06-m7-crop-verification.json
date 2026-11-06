@@ -1,0 +1,112 @@
+{
+  "date_local": "2026-11-06",
+  "timezone": "Asia/Taipei",
+  "base_checkpoint": "f6328bb",
+  "scope": "Preserving numeric rectangle/aspect crop and reveal visible stored content; full crop interaction/straighten/delete/perspective remain open.",
+  "source_sha256": {
+    "apps/macos/Strata/Workspace/CropControls.swift": "c6afb469e7402a5120ca006264ef719e5ed922b85b92d805c87ce28849fee7f4",
+    "apps/macos/Strata/Workspace/TransformControls.swift": "fdd8a206b98d183373c26e62e62705bb89f21b8e60d5dd4757d062ccd9f5d262",
+    "apps/macos/Strata/Workspace/WorkspaceModel.swift": "7b6a881275ac4299944bd70a7fe2587339eb1ecdf85d1dad73cffbf7471ef61f",
+    "apps/macos/StrataTests/FilterPreviewTests.swift": "df42b07d134712ef1341667ab46a1443ac66d962fb71a1ea5c6b7bbb4e24fc0e",
+    "crates/strata-ai/tests/replay.rs": "83e9a0d3d6f5b49b9fccaf9673fad7155fc0ac8f3b81d8617e0534daae0588e2",
+    "crates/strata-core/src/commands/canvas.rs": "807a5c9f62a7193d80af0d42d33e1acc2aea2c936d1260b501abb60f8fe334a0",
+    "crates/strata-core/src/commands/mod.rs": "d012fcc111ad73c14270c5e5a652381bc404d70f0561e37f8db0d03e05fa14f6",
+    "crates/strata-core/src/commands/registry.rs": "8adaaabbef91c94bfa0f31097d2d3a5dc485a25e051c39b32a0a3ea4f24f28b5",
+    "crates/strata-core/tests/crop.rs": "5149753b61e4e9bcf6568d8942cc2167c7415579d21b8528c50e687fc46c379b",
+    "crates/strata-render/tests/gpu.rs": "b67bc91b442a6d97928e87371c1f54861a47ba8677f1e411890cd5196f804b2e"
+  },
+  "full_regression_baseline": {
+    "checkpoint": "f6328bb",
+    "report": "2026-11-06-m7-geometry-verification.json",
+    "note": "Historical full baseline is not relabeled as a full run of this crop increment."
+  },
+  "incremental_verification": {
+    "core": {
+      "passed": 8,
+      "new_crop_integrations": 4,
+      "existing_canvas_integrations": 4,
+      "log": "build/m7-crop-core.log"
+    },
+    "ai": {
+      "passed": 22,
+      "replay_tests": 21,
+      "mapping_contract_tests": 1,
+      "log": "build/m7-crop-ai.log"
+    },
+    "required_metal_numeric": {
+      "passed": 1,
+      "skipped": 0,
+      "log": "build/m7-crop-gpu.log"
+    },
+    "native_xctest_subset": {
+      "passed": 6,
+      "skipped": 0,
+      "scope": "StrataTests/FilterPreviewTests",
+      "log": "build/m7-crop-native.log"
+    },
+    "arm64_release": {
+      "passed": true,
+      "log": "build/m7-crop-release.log"
+    },
+    "lint": {
+      "passed": true,
+      "log": "build/m7-crop-lint.log"
+    },
+    "command_examples": {
+      "passed": 110,
+      "log": "build/m7-crop-commands.log"
+    },
+    "ai_audit": {
+      "registered_commands": 110,
+      "mapped_composite_rows": 79,
+      "inventory_rows": 265,
+      "partial_entrypoints": 8,
+      "unmapped_implemented_rows": 0,
+      "commands_without_feature_links": 0,
+      "unknown_native_literal_commands": 0,
+      "untyped_root_returns": 0,
+      "final_complete": false,
+      "strict_gate": "build/m7-crop-final-ai-gate.log"
+    }
+  },
+  "native_manual": {
+    "one_instance_at_a_time": true,
+    "fixture": "repository-generated sample-photo.jpg 1024x1536",
+    "requested_box": [
+      100,
+      200,
+      800,
+      1000
+    ],
+    "aspect_ratio": [
+      4,
+      3
+    ],
+    "applied_crop_size": [
+      800,
+      600
+    ],
+    "crop_history_count": 1,
+    "reveal_size": [
+      1024,
+      1536
+    ],
+    "combined_history_count": 2,
+    "first_undo_returned_crop": [
+      800,
+      600
+    ],
+    "second_undo_restored_original_clean_document": true,
+    "final_running_strata_instances": 0,
+    "method": "CUA native AX and screenshot; no photo-quality or continuous-latency claim."
+  },
+  "cloud_builds": {
+    "used": false,
+    "workflow_kept_disabled": true
+  },
+  "limitations": [
+    "Crop is a real numeric command/panel; crop drag/handles, straighten, pixel deletion and perspective crop are not implemented.",
+    "Reveal expands visible stored-source bounds plus conservative ancestor/self style outsets; hidden layers/ancestors do not contribute, masks/clipping/opacity can make the result conservative rather than minimal rendered alpha.",
+    "Current source precision, masks/structure/selection/history are covered; the full Photoshop P0–P3 goal, all final AI gaps, performance/live-model/device/platform/release gates remain open."
+  ]
+}

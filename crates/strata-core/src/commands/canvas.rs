@@ -85,11 +85,101 @@ pub(super) fn mutate(
     params: Value,
     cancel: &dyn Fn() -> bool,
 ) -> Result<Option<Value>, CommandError> {
-    if id != "image.canvas_size" {
+    if !matches!(id, "image.canvas_size" | "image.crop" | "image.reveal_all") {
         return Ok(None);
     }
     if cancel() {
         return Err(CommandError::Expired);
+    }
+    if id == "image.crop" {
+        let p: CropCanvas = parse(params)?;
+        let mut bounds = p.rect;
+        bounds.validate().map_err(DocumentError::from)?;
+        if let Some([w, h]) = p.aspect_ratio {
+            if w == 0 || h == 0 || w > 100000 || h > 100000 {
+                return Err(CommandError::Invalid(
+                    "crop aspect_ratio needs two integers 1..100000".into(),
+                ));
+            }
+            // Largest integer rectangle inside the requested box, fixed at its
+            // top-left. Reduce the ratio first so the result is exact.
+            let (mut a, mut b) = (w, h);
+            while b != 0 {
+                (a, b) = (b, a % b);
+            }
+            let (w, h) = (w / a, h / a);
+            let multiple = (bounds.width / w).min(bounds.height / h);
+            if multiple == 0 {
+                return Err(CommandError::Invalid(
+                    "crop box cannot contain one integer unit of this aspect ratio".into(),
+                ));
+            }
+            bounds.width = w * multiple;
+            bounds.height = h * multiple;
+        }
+        let frame = Frame {
+            name: doc.frame.name.clone(),
+            x: bounds.x,
+            y: bounds.y,
+            width: bounds.width,
+            height: bounds.height,
+        };
+        return publish_frame(doc, frame, cancel).map(Some);
+    }
+    if id == "image.reveal_all" {
+        let _: Empty = parse(params)?;
+        let old = &doc.frame;
+        let mut extent = [
+            i128::from(old.x),
+            i128::from(old.y),
+            i128::from(old.x) + i128::from(old.width),
+            i128::from(old.y) + i128::from(old.height),
+        ];
+        for layer in &doc.layers {
+            if cancel() {
+                return Err(CommandError::Expired);
+            }
+            if !doc.effective_visibility(layer.id()) {
+                continue;
+            }
+            let info = layer.info();
+            let bounds = match info.kind {
+                LayerKind::Pixel => crate::geometry_pixels::content_bounds(
+                    layer.pixels(),
+                    [info.x, info.y],
+                    cancel,
+                )?,
+                LayerKind::Solid { .. } | LayerKind::Gradient { .. } => {
+                    let [width, height] = info.generated_size.unwrap_or([old.width, old.height]);
+                    Some(CoverageRect {
+                        x: info.x,
+                        y: info.y,
+                        width,
+                        height,
+                    })
+                }
+                _ => None,
+            };
+            if let Some(b) = bounds {
+                let pad = doc.style_outset(layer.id());
+                extent[0] = extent[0].min(i128::from(b.x) - i128::from(pad[0]));
+                extent[1] = extent[1].min(i128::from(b.y) - i128::from(pad[1]));
+                extent[2] =
+                    extent[2].max(i128::from(b.x) + i128::from(b.width) + i128::from(pad[2]));
+                extent[3] =
+                    extent[3].max(i128::from(b.y) + i128::from(b.height) + i128::from(pad[3]));
+            }
+        }
+        let frame = Frame {
+            name: old.name.clone(),
+            x: i64::try_from(extent[0]).map_err(|_| DocumentError::ResourceLimit)?,
+            y: i64::try_from(extent[1]).map_err(|_| DocumentError::ResourceLimit)?,
+            width: u32::try_from(extent[2] - extent[0])
+                .map_err(|_| DocumentError::ResourceLimit)?,
+            height: u32::try_from(extent[3] - extent[1])
+                .map_err(|_| DocumentError::ResourceLimit)?,
+        };
+        return publish_frame(doc, frame, cancel).map(Some);
     }
     let p: CanvasSize = parse(params)?;
     let (horizontal, vertical) = match p.anchor {

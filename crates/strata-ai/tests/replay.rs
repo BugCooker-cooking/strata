@@ -573,6 +573,106 @@ fn canvas_size_prompt_discovers_real_anchor_edit_and_preserves_source_for_turn_u
 }
 
 #[test]
+fn crop_then_reveal_through_ai_keeps_sources_and_has_a_reversible_two_step_turn() {
+    let host = Host::new();
+    host.user(
+        "paint.fill",
+        json!({"layer":{"name":"Background"},"color":[0.8,0.2,0.1,0.5]}),
+    );
+    let before = host
+        .editor
+        .lock()
+        .unwrap()
+        .document()
+        .unwrap()
+        .to_archive()
+        .unwrap();
+    let initial = host.snapshot().unwrap();
+    let mut session = host.session_with_prompt(
+        ExecutionMode::Direct,
+        "按给定矩形裁剪画板并保留所有原始像素，再显示全部可见图层内容。",
+    );
+    reply(
+        &mut session,
+        &host,
+        vec![
+            call("crop-search", "search_catalog", json!({"query":"矩形裁剪"})),
+            call(
+                "reveal-search",
+                "search_catalog",
+                json!({"query":"显示全部"}),
+            ),
+            call(
+                "describe",
+                "describe_commands",
+                json!({"ids":["image.crop","image.reveal_all"]}),
+            ),
+        ],
+    );
+    for command in ["image.crop", "image.reveal_all"] {
+        assert!(
+            result(session.poll(&host).unwrap())["matches"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|m| m["id"] == command)
+        );
+    }
+    assert_eq!(
+        result(session.poll(&host).unwrap())["commands"]
+            .as_array()
+            .unwrap()
+            .len(),
+        2
+    );
+    reply(
+        &mut session,
+        &host,
+        vec![invoke(
+            "crop",
+            "image.crop",
+            json!({"rect":{"x":1,"y":2,"width":4,"height":3},"pixels":"preserve","aspect_ratio":[4,3]}),
+        )],
+    );
+    let answer = result(session.poll(&host).unwrap());
+    assert_eq!(answer["result"]["frame"]["x"], 1);
+    assert_eq!(answer["result"]["preserved_external_content"], true);
+    reply(
+        &mut session,
+        &host,
+        vec![invoke("reveal", "image.reveal_all", json!({}))],
+    );
+    let answer = result(session.poll(&host).unwrap());
+    assert_eq!(answer["result"]["frame"]["width"], 8);
+    assert_eq!(answer["result"]["frame"]["x"], 0);
+    let after = host
+        .editor
+        .lock()
+        .unwrap()
+        .document()
+        .unwrap()
+        .to_archive()
+        .unwrap();
+    assert_eq!(after.tiles, before.tiles);
+    assert_eq!(
+        host.snapshot().unwrap().history.len(),
+        initial.history.len() + 2
+    );
+    host.editor.lock().unwrap().stop_turn();
+    host.user("edit.undo_turn", json!({"turn_id":session.turn_id()}));
+    assert_eq!(
+        host.editor
+            .lock()
+            .unwrap()
+            .document()
+            .unwrap()
+            .to_archive()
+            .unwrap(),
+        before
+    );
+}
+
+#[test]
 fn inspect_and_direct_queries_and_batches_never_expose_hidden_layers_or_paths() {
     let host = Host::new();
     host.user(

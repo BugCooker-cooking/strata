@@ -788,5 +788,25 @@
         "path": "../research/2026-11-m7-transform-progress.md"
       }
     ]
+  },
+  "PS-09-7d349372b5": {
+    "implementation": "部分实现",
+    "acceptance": "数值矩形/比例/保留内容的核心、AI、Metal、原生子集/实看通过；拉直、删除像素与画布交互仍待补齐",
+    "evidence": [
+      {
+        "label": "M7 裁剪/显示全部",
+        "path": "../research/2026-11-m7-crop-progress.md"
+      }
+    ]
+  },
+  "PS-03-84941ac6e8": {
+    "implementation": "已实现",
+    "acceptance": "可见源内容/祖先样式边界、原码/蒙版/选区/撤销及当前设备原生/Metal/Release 已有证据；持续回归",
+    "evidence": [
+      {
+        "label": "M7 裁剪/显示全部",
+        "path": "../research/2026-11-m7-crop-progress.md"
+      }
+    ]
   }
 }

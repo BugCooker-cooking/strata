@@ -1,10 +1,10 @@
 {
   "scope": "Development audit; not a claim that all Photoshop editing is implemented or AI-verified",
-  "registered_commands": 108,
-  "registered_examples": 151,
-  "catalog_sha256": "4837f217e82d55330d871f5d210837ba8d10b71264948b908d6c938730625bcd",
+  "registered_commands": 110,
+  "registered_examples": 153,
+  "catalog_sha256": "8a59b08fdc71b6487e2bfa54b0e92826eb898b34737f8e38fd5e20d5653eafe2",
   "inventory_rows": 265,
-  "mapped_features": 77,
+  "mapped_features": 79,
   "unmapped_implemented_features": [],
   "partial_entrypoints": [
     "PS-01-894622b1ce",
@@ -13,7 +13,8 @@
     "PS-08-3ce0368d80",
     "PS-16-8de06204ac",
     "PS-09-4f3d9835a7",
-    "PS-09-7cc6b0bb65"
+    "PS-09-7cc6b0bb65",
+    "PS-09-7d349372b5"
   ],
   "unfinished_features": [
     "PS-00-7d7224e709",
@@ -49,7 +50,6 @@
     "PS-02-bc773443d0",
     "PS-03-ad24731ea8",
     "PS-03-5f9716e5d8",
-    "PS-03-84941ac6e8",
     "PS-03-51294954aa",
     "PS-03-0f4e217715",
     "PS-03-691c261ce9",
@@ -1086,8 +1086,22 @@
       "name": "显示全部",
       "priority": "P0",
       "source_line": 109,
-      "implementation": "待实现",
-      "entrypoint": null
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "image.reveal_all"
+        ],
+        "prompts": [
+          {
+            "text": "扩展画板，显示全部可见源图层与样式边界，恢复被画板遮住的内容。",
+            "query": "显示全部",
+            "command": "image.reveal_all"
+          }
+        ],
+        "note": "以可见源图层/生成填充和自身/祖先样式的保守边界扩展，不移动/缩放内容；隐藏层不参与，蒙版/剪贴/零透明度可能让边界大于最小可见 alpha 范围。"
+      }
     },
     {
       "id": "PS-03-51294954aa",
@@ -3191,8 +3205,36 @@
       "name": "裁剪工具（拉直、比例、是否删除裁剪像素）",
       "priority": "P0",
       "source_line": 257,
-      "implementation": "待实现",
-      "entrypoint": null
+      "implementation": "部分实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "partial",
+        "commands": [
+          "image.crop"
+        ],
+        "prompts": [
+          {
+            "text": "用指定画布矩形和 4:3 比例裁剪画板，保留所有裁剪外像素与图层。",
+            "query": "矩形裁剪",
+            "command": "image.crop"
+          },
+          {
+            "text": "将画板裁到给定位置和尺寸，不重采样或删除原像素。",
+            "query": "保留裁剪像素",
+            "command": "image.crop"
+          }
+        ],
+        "variants": [
+          {
+            "command": "image.crop",
+            "path": "pixels",
+            "values": [
+              "preserve"
+            ]
+          }
+        ],
+        "note": "数值矩形/整数比例与保留像素已有真实执行；拉直、删除像素和画布交互手柄未实现，完整裁剪工具保持部分。"
+      }
     },
     {
       "id": "PS-09-64f3d2a3eb",

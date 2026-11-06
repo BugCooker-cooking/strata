@@ -1003,9 +1003,29 @@ fn build_catalog() -> Vec<CommandSpec> {
         "Resize the artboard only; no resampling, flattening, source deletion or movement of stored layer/mask coordinates. width/height integer 1..100000 subject to the document byte budget. anchor top_left/top/top_right/left/center(default)/right/bottom_left/bottom/bottom_right fixes the corresponding old canvas anchor; center uses floor division for odd differences. Source pixels (including hidden RGB), linked/disabled masks, hierarchy, clipping, styles and locked layers stay editable outside the new frame. Frozen generated-fill/style dimensions and spatial-adjustment sampling domains preserve original appearance when the canvas changes; extension is transparent except for already existing outside content. Current/previous u16 selections clip to the new artboard and expand with zero coverage, with at most 64M selection-copy visits. Does not fill the extension with a new background. Atomic cancellable single history step; manifest v5 persists frozen references and reads legacy v0..v4. Not batchable. 中文：画布大小、扩展画布、缩小画布、锚点、保留画板外像素、不要缩放图像。",
         json!({"width":32,"height":24,"anchor":"center"})
     );
+    command!(
+        "image.crop",
+        CropCanvas,
+        Mutate,
+        "保留像素的矩形裁剪",
+        "Crop rectangle preserving pixels",
+        "Crop the artboard to an explicit canvas-coordinate rect {x,y,width,height}; required pixels=preserve. Source layers, hidden RGB, linked/disabled masks and editable structure remain outside the crop with no resampling/deletion. Optional aspect_ratio [w,h], each integer 1..100000, is reduced to coprime integers; choose the largest exact integer-ratio rectangle inside rect, anchored at rect's top-left. A box too small for one ratio unit rejects. All nine-anchor canvas-size byte/dimension limits, frozen generated/style/spatial references, finite current/previous selection clipping, budgets/cancellation and one-history undo apply. Selection is not the crop source: rect is explicit. Deleting cropped pixels, straighten rotation, perspective crop and handles remain separate unsupported work; extra delete/angle parameters reject. Not batchable. 中文：矩形裁剪、保留裁剪像素、保留画板外图层、比例裁剪；通过明确矩形修改画板，选区裁到新边界，原始像素不删除。",
+        json!({"rect":{"x":2,"y":3,"width":12,"height":10},"pixels":"preserve","aspect_ratio":[4,3]})
+    );
+    command!(
+        "image.reveal_all",
+        Empty,
+        Mutate,
+        "显示全部可见图层内容",
+        "Reveal visible stored layer bounds",
+        "Expand the current artboard to include all effectively visible pixel and generated-fill source bounds plus conservative own/ancestor style outsets. Never shrink the existing frame; keep absolute layer positions, source samples, masks, locked hierarchy and editable definitions. Pixel extents include stored transparent hidden RGB; masks/clipping/zero opacity can make the bounds conservative rather than minimal rendered-alpha bounds. Invisible layers/ancestors do not contribute; no hidden-layer metadata is returned. Uses the same frozen-reference and zero-extended selection path as image.canvas_size. Reject unsupported/overflowing/over-budget canvas sizes atomically, cancellable source scans, one history step, not batchable. This changes document geometry; view.fit is a separate display action. 中文：显示全部、恢复画板外内容、扩展到所有可见源图层；保留现有画板并扩展到内容与样式边界，不移动或重采样图层。",
+        json!({})
+    );
     for item in &mut list {
         item.returns = match item.id {
-            "image.canvas_size" => schemars::schema_for!(CanvasGeometryResult),
+            "image.canvas_size" | "image.crop" | "image.reveal_all" => {
+                schemars::schema_for!(CanvasGeometryResult)
+            }
             "layer.pixel_bounds" => schemars::schema_for!(LayerBoundsResult),
             "transform.apply" => schemars::schema_for!(TransformResult),
             "retouch.spot_heal" => schemars::schema_for!(SpotHealResult),
@@ -1123,7 +1143,11 @@ fn build_catalog() -> Vec<CommandSpec> {
             || item.id.starts_with("filter.")
             || matches!(
                 item.id,
-                "transform.apply" | "layer.pixel_bounds" | "image.canvas_size"
+                "transform.apply"
+                    | "layer.pixel_bounds"
+                    | "image.canvas_size"
+                    | "image.crop"
+                    | "image.reveal_all"
             )
         {
             item.batchable = false;

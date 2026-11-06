@@ -1201,6 +1201,77 @@ fn canvas_resize_preserves_gradient_style_and_spatial_appearance_on_real_gpu() {
 }
 
 #[test]
+fn cropped_nonzero_frame_and_reveal_keep_original_sample_display_coordinates() {
+    let Some(mut renderer) = renderer() else {
+        return;
+    };
+    let mut e = strata_core::Editor::new();
+    for (id, p) in [
+        (
+            "file.new",
+            serde_json::json!({"width":16,"height":16,"bit_depth":16,"background":[12001,32003,47001,40001]}),
+        ),
+        (
+            "paint.gradient",
+            serde_json::json!({"layer":{"name":"Background"},"start":[0.5,0.5],"end":[15.5,15.5],"stops":[{"at":0,"color":[0.1,0.2,0.3,0.5]},{"at":1,"color":[0.8,0.6,0.4,0.9]}]}),
+        ),
+    ] {
+        e.execute(e.request(strata_core::Source::Test), id, p, |_| Ok(()))
+            .unwrap();
+    }
+    let scene = renderer
+        .prepare_document(e.document().unwrap(), false)
+        .unwrap();
+    renderer.commit_document(scene).unwrap();
+    renderer
+        .set_view(ViewTransform {
+            zoom: 3.0,
+            center_x: 8.0,
+            center_y: 8.0,
+        })
+        .unwrap();
+    renderer.render().unwrap();
+    let before = renderer.read_offscreen_rgba().unwrap();
+    e.execute(
+        e.request(strata_core::Source::Test),
+        "image.crop",
+        serde_json::json!({"rect":{"x":4,"y":2,"width":8,"height":12},"pixels":"preserve"}),
+        |_| Ok(()),
+    )
+    .unwrap();
+    let scene = renderer
+        .prepare_document(e.document().unwrap(), false)
+        .unwrap();
+    renderer.commit_document(scene).unwrap();
+    renderer.render().unwrap();
+    let after = renderer.read_offscreen_rgba().unwrap();
+    for (x, y) in [(5usize, 3usize), (8, 8), (10, 12)] {
+        assert_eq!(
+            pixel(&before, x * 3 + 9, y * 3 + 9),
+            pixel(&after, x * 3 + 9, y * 3 + 9)
+        );
+    }
+    e.execute(
+        e.request(strata_core::Source::Test),
+        "image.reveal_all",
+        serde_json::json!({}),
+        |_| Ok(()),
+    )
+    .unwrap();
+    let frame = e.document().unwrap().frame();
+    assert_eq!(
+        (frame.x, frame.y, frame.width, frame.height),
+        (0, 0, 16, 16)
+    );
+    let scene = renderer
+        .prepare_document(e.document().unwrap(), false)
+        .unwrap();
+    renderer.commit_document(scene).unwrap();
+    renderer.render().unwrap();
+    assert_eq!(renderer.read_offscreen_rgba().unwrap(), before);
+}
+
+#[test]
 fn tiled_scene_preserves_source_and_has_no_mip_seam() {
     let Some(mut r) = renderer() else {
         return;

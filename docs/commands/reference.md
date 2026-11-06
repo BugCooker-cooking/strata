@@ -18033,6 +18033,272 @@ Permissions: `bound_document`
 }
 ```
 
+## `image.crop` — 保留像素的矩形裁剪
+
+Crop the artboard to an explicit canvas-coordinate rect {x,y,width,height}; required pixels=preserve. Source layers, hidden RGB, linked/disabled masks and editable structure remain outside the crop with no resampling/deletion. Optional aspect_ratio [w,h], each integer 1..100000, is reduced to coprime integers; choose the largest exact integer-ratio rectangle inside rect, anchored at rect's top-left. A box too small for one ratio unit rejects. All nine-anchor canvas-size byte/dimension limits, frozen generated/style/spatial references, finite current/previous selection clipping, budgets/cancellation and one-history undo apply. Selection is not the crop source: rect is explicit. Deleting cropped pixels, straighten rotation, perspective crop and handles remain separate unsupported work; extra delete/angle parameters reject. Not batchable. 中文：矩形裁剪、保留裁剪像素、保留画板外图层、比例裁剪；通过明确矩形修改画板，选区裁到新边界，原始像素不删除。
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `false`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CropCanvas",
+  "type": "object",
+  "properties": {
+    "aspect_ratio": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "default": null,
+      "items": {
+        "type": "integer",
+        "format": "uint32",
+        "minimum": 0
+      },
+      "maxItems": 2,
+      "minItems": 2
+    },
+    "pixels": {
+      "$ref": "#/$defs/CropPixels"
+    },
+    "rect": {
+      "$ref": "#/$defs/CoverageRect"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "rect",
+    "pixels"
+  ],
+  "$defs": {
+    "CoverageRect": {
+      "type": "object",
+      "properties": {
+        "height": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "width": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "x": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "y": {
+          "type": "integer",
+          "format": "int64"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "x",
+        "y",
+        "width",
+        "height"
+      ]
+    },
+    "CropPixels": {
+      "type": "string",
+      "enum": [
+        "preserve"
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CanvasGeometryResult",
+  "type": "object",
+  "properties": {
+    "frame": {
+      "$ref": "#/$defs/Frame"
+    },
+    "preserved_external_content": {
+      "type": "boolean"
+    },
+    "previous_frame": {
+      "$ref": "#/$defs/Frame"
+    },
+    "selection_rebound": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "previous_frame",
+    "frame",
+    "preserved_external_content",
+    "selection_rebound"
+  ],
+  "$defs": {
+    "Frame": {
+      "type": "object",
+      "properties": {
+        "height": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "name": {
+          "type": "string"
+        },
+        "width": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "x": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "y": {
+          "type": "integer",
+          "format": "int64"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "x",
+        "y",
+        "width",
+        "height"
+      ]
+    }
+  }
+}
+```
+
+### Examples
+
+```json
+{
+  "aspect_ratio": [
+    4,
+    3
+  ],
+  "pixels": "preserve",
+  "rect": {
+    "height": 10,
+    "width": 12,
+    "x": 2,
+    "y": 3
+  }
+}
+```
+
+## `image.reveal_all` — 显示全部可见图层内容
+
+Expand the current artboard to include all effectively visible pixel and generated-fill source bounds plus conservative own/ancestor style outsets. Never shrink the existing frame; keep absolute layer positions, source samples, masks, locked hierarchy and editable definitions. Pixel extents include stored transparent hidden RGB; masks/clipping/zero opacity can make the bounds conservative rather than minimal rendered-alpha bounds. Invisible layers/ancestors do not contribute; no hidden-layer metadata is returned. Uses the same frozen-reference and zero-extended selection path as image.canvas_size. Reject unsupported/overflowing/over-budget canvas sizes atomically, cancellable source scans, one history step, not batchable. This changes document geometry; view.fit is a separate display action. 中文：显示全部、恢复画板外内容、扩展到所有可见源图层；保留现有画板并扩展到内容与样式边界，不移动或重采样图层。
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `false`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Empty",
+  "type": "object",
+  "additionalProperties": false
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CanvasGeometryResult",
+  "type": "object",
+  "properties": {
+    "frame": {
+      "$ref": "#/$defs/Frame"
+    },
+    "preserved_external_content": {
+      "type": "boolean"
+    },
+    "previous_frame": {
+      "$ref": "#/$defs/Frame"
+    },
+    "selection_rebound": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "previous_frame",
+    "frame",
+    "preserved_external_content",
+    "selection_rebound"
+  ],
+  "$defs": {
+    "Frame": {
+      "type": "object",
+      "properties": {
+        "height": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "name": {
+          "type": "string"
+        },
+        "width": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "x": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "y": {
+          "type": "integer",
+          "format": "int64"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "x",
+        "y",
+        "width",
+        "height"
+      ]
+    }
+  }
+}
+```
+
+### Examples
+
+```json
+{}
+```
+
 ## `color.assign` — 指定文档配置文件
 
 Assign srgb or display_p3 interpretation without converting any integer pixel samples, hidden RGB, generated fill/style color codes, masks, depth, geometry or original source ICC. Appearance changes because identical RGB codes are interpreted in the newly assigned working profile. This is distinct from color.convert, which changes samples to preserve appearance. Pixel/transparency/position locks are allowed because source codes are unchanged; all-locked layers reject document reinterpretation. Undo restores exact old ICC/metadata; project save/reopen keeps the assigned profile. Cancellable, budgeted, one atomic history edit, not batchable. Currently supports the two built-in RGB working presets, not arbitrary ICC file assignment or CMYK. 中文：指定配置文件、保留 RGB 数值、重新解释颜色、不要转换像素。

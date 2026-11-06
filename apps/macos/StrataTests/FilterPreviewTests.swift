@@ -4,6 +4,14 @@ import XCTest
 
 final class FilterPreviewTests:XCTestCase{
     @MainActor
+    func testCropAndRevealNativeCommandsKeepLayerPositionAndUndoToCleanGeometry()throws{
+        let(engine,_)=try configured();let before=try EditorSnapshot.decode(engine.snapshotJson())
+        _ = try engine.dispatch(command:"image.crop",paramsJson:commandJSON(["rect":["x":3,"y":2,"width":9,"height":8],"pixels":"preserve","aspect_ratio":[4,3]]))
+        let cropped=try EditorSnapshot.decode(engine.snapshotJson());XCTAssertEqual(cropped.frame?.x,3);XCTAssertEqual(cropped.frame?.y,2);XCTAssertEqual(cropped.frame?.width,8);XCTAssertEqual(cropped.frame?.height,6);XCTAssertEqual(cropped.layers[0].x,0);XCTAssertEqual(cropped.history.count,before.history.count+1)
+        _ = try engine.dispatch(command:"image.reveal_all",paramsJson:"{}");let revealed=try EditorSnapshot.decode(engine.snapshotJson());XCTAssertEqual(revealed.frame?.width,16);XCTAssertEqual(revealed.frame?.height,16);XCTAssertEqual(revealed.frame?.x,0)
+        _ = try engine.dispatch(command:"edit.undo",paramsJson:"{}");_ = try engine.dispatch(command:"edit.undo",paramsJson:"{}");XCTAssertEqual(try EditorSnapshot.decode(engine.snapshotJson()).historyCursor,before.historyCursor)
+    }
+    @MainActor
     func testCanvasSizeNativeCommandKeepsSelectionValidAndHasOneUndoStep()throws{
         let(engine,_)=try configured();_ = try engine.dispatch(command:"select.all",paramsJson:"{}")
         let before=try EditorSnapshot.decode(engine.snapshotJson())

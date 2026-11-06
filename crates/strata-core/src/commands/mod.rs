@@ -66,6 +66,17 @@ params!(CanvasSize {
     #[serde(default)]
     anchor: CanvasAnchor
 });
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum CropPixels {
+    Preserve,
+}
+params!(CropCanvas {
+    rect: strata_pixels::CoverageRect,
+    pixels: CropPixels,
+    #[serde(default)]
+    aspect_ratio: Option<[u32;2]>
+});
 #[derive(Serialize, JsonSchema)]
 pub struct CanvasGeometryResult {
     pub previous_frame: crate::Frame,

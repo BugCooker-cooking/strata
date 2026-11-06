@@ -67,6 +67,8 @@ struct TransformPanel:View{
             if !available{Text("请选择未锁定的像素层；生成图层、图层组及选区内像素变换尚待后续支持。").font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))}
             Divider()
             CanvasSizePanel(model:model)
+            Divider()
+            CropPanel(model:model)
         }.padding(12)}
     }
     private func field(_ title:String,_ value:Binding<Double>)->some View{HStack{Text(title);TextField(title,value:value,format:.number.precision(.fractionLength(2))).textFieldStyle(.roundedBorder).accessibilityLabel("变换"+title)}}
