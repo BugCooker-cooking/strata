@@ -4,6 +4,14 @@ import XCTest
 
 final class FilterPreviewTests:XCTestCase{
     @MainActor
+    func testWholeImageOrientationKeepsNativeLayerStructureAndEachVariantUndoes()throws{
+        let engine=StrataEngine(listener:EngineEvents{_ in});_ = try engine.dispatch(command:"file.new",paramsJson:commandJSON(["width":13,"height":9,"bit_depth":16,"background":[20000,30000,40000,32769]]));let before=try EditorSnapshot.decode(engine.snapshotJson())
+        for operation in ["rotate_90_cw","rotate_90_ccw","rotate_180","flip_horizontal","flip_vertical"]{
+            _ = try engine.dispatch(command:"image.orient",paramsJson:commandJSON(["operation":operation]));let after=try EditorSnapshot.decode(engine.snapshotJson());XCTAssertEqual(after.frame?.width,operation.contains("90") ? 9:13);XCTAssertEqual(after.frame?.height,operation.contains("90") ? 13:9);XCTAssertEqual(after.layers.map(\.id),before.layers.map(\.id));XCTAssertEqual(after.history.last?.command,"image.orient");XCTAssertEqual(after.historyCursor,before.historyCursor+1)
+            _ = try engine.dispatch(command:"edit.undo",paramsJson:"{}");let undone=try EditorSnapshot.decode(engine.snapshotJson());XCTAssertEqual(undone.frame?.width,13);XCTAssertEqual(undone.frame?.height,9);XCTAssertEqual(undone.historyCursor,before.historyCursor)
+        }
+    }
+    @MainActor
     func testCropAndRevealNativeCommandsKeepLayerPositionAndUndoToCleanGeometry()throws{
         let(engine,_)=try configured();let before=try EditorSnapshot.decode(engine.snapshotJson())
         _ = try engine.dispatch(command:"image.crop",paramsJson:commandJSON(["rect":["x":3,"y":2,"width":9,"height":8],"pixels":"preserve","aspect_ratio":[4,3]]))

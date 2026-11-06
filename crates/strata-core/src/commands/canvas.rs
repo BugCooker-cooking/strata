@@ -29,7 +29,7 @@ fn checked_frame(doc: &Document, frame: &Frame) -> Result<(), CommandError> {
     }
     Ok(())
 }
-fn freeze_references(doc: &mut Document) {
+pub(super) fn freeze_references(doc: &mut Document) {
     let size = [doc.frame.width, doc.frame.height];
     let bounds = rect(&doc.frame);
     for layer in &mut doc.layers {

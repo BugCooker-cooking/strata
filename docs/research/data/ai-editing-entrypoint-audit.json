@@ -1,10 +1,10 @@
 {
   "scope": "Development audit; not a claim that all Photoshop editing is implemented or AI-verified",
-  "registered_commands": 110,
-  "registered_examples": 153,
-  "catalog_sha256": "8a59b08fdc71b6487e2bfa54b0e92826eb898b34737f8e38fd5e20d5653eafe2",
+  "registered_commands": 111,
+  "registered_examples": 158,
+  "catalog_sha256": "834473951cc52b5bbfdd9ab37e3f6ff4b97a1f4390b6703888440d8bb7d614a1",
   "inventory_rows": 265,
-  "mapped_features": 79,
+  "mapped_features": 80,
   "unmapped_implemented_features": [],
   "partial_entrypoints": [
     "PS-01-894622b1ce",
@@ -14,7 +14,8 @@
     "PS-16-8de06204ac",
     "PS-09-4f3d9835a7",
     "PS-09-7cc6b0bb65",
-    "PS-09-7d349372b5"
+    "PS-09-7d349372b5",
+    "PS-03-5f9716e5d8"
   ],
   "unfinished_features": [
     "PS-00-7d7224e709",
@@ -1076,8 +1077,40 @@
       "name": "图像旋转 / 翻转",
       "priority": "P0",
       "source_line": 108,
-      "implementation": "待实现",
-      "entrypoint": null
+      "implementation": "部分实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "partial",
+        "commands": [
+          "image.orient"
+        ],
+        "prompts": [
+          {
+            "text": "将整幅图像顺时针旋转 90 度，同时保留可编辑图层、链接蒙版和选区。",
+            "query": "图像旋转",
+            "command": "image.orient"
+          },
+          {
+            "text": "水平翻转整幅图像，保留画板外源像素。",
+            "query": "图像水平翻转",
+            "command": "image.orient"
+          }
+        ],
+        "variants": [
+          {
+            "command": "image.orient",
+            "path": "operation",
+            "values": [
+              "rotate_90_cw",
+              "rotate_90_ccw",
+              "rotate_180",
+              "flip_horizontal",
+              "flip_vertical"
+            ]
+          }
+        ],
+        "note": "五种正交操作支持所有当前类型与原码/结构；任意角度图像旋转和未来文字/智能对象类型仍待后续，综合旋转条目保持部分。"
+      }
     },
     {
       "id": "PS-03-84941ac6e8",

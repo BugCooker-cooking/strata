@@ -1084,6 +1084,10 @@ impl Editor {
                 {
                     (Action::Edit, result)
                 } else if let Some(result) =
+                    super::orthogonal::mutate(doc, id, params.clone(), &|| request.expired())?
+                {
+                    (Action::Edit, result)
+                } else if let Some(result) =
                     super::canvas::mutate(doc, id, params.clone(), &|| request.expired())?
                 {
                     (Action::Edit, result)

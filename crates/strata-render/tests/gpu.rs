@@ -1272,6 +1272,89 @@ fn cropped_nonzero_frame_and_reveal_keep_original_sample_display_coordinates() {
 }
 
 #[test]
+fn orthogonal_image_display_tracks_all_five_operations_without_flattening() {
+    let Some(mut renderer) = renderer() else {
+        return;
+    };
+    let mut original = strata_core::Editor::new();
+    for (id, p) in [
+        (
+            "file.new",
+            serde_json::json!({"width":16,"height":12,"bit_depth":16,"working_space":"display_p3","background":[12001,32003,47001,40001]}),
+        ),
+        (
+            "paint.gradient",
+            serde_json::json!({"layer":{"name":"Background"},"start":[0.5,0.5],"end":[15.5,11.5],"stops":[{"at":0,"color":[0.1,0.2,0.3,0.5]},{"at":1,"color":[0.8,0.6,0.4,0.9]}]}),
+        ),
+    ] {
+        original
+            .execute(original.request(strata_core::Source::Test), id, p, |_| {
+                Ok(())
+            })
+            .unwrap();
+    }
+    let scene = renderer
+        .prepare_document(original.document().unwrap(), false)
+        .unwrap();
+    renderer.commit_document(scene).unwrap();
+    renderer
+        .set_view(ViewTransform {
+            zoom: 3.0,
+            center_x: 8.0,
+            center_y: 6.0,
+        })
+        .unwrap();
+    renderer.render().unwrap();
+    let before = renderer.read_offscreen_rgba().unwrap();
+    let screen = |p: usize, center: f64| (32. + (p as f64 + 0.5 - center) * 3.) as usize;
+    for operation in [
+        "rotate_90_cw",
+        "rotate_90_ccw",
+        "rotate_180",
+        "flip_horizontal",
+        "flip_vertical",
+    ] {
+        let mut e = original.clone();
+        e.execute(
+            e.request(strata_core::Source::Test),
+            "image.orient",
+            serde_json::json!({"operation":operation}),
+            |_| Ok(()),
+        )
+        .unwrap();
+        let doc = e.document().unwrap();
+        let frame = doc.frame();
+        let center = [f64::from(frame.width) / 2., f64::from(frame.height) / 2.];
+        let scene = renderer.prepare_document(doc, false).unwrap();
+        renderer.commit_document(scene).unwrap();
+        renderer
+            .set_view(ViewTransform {
+                zoom: 3.0,
+                center_x: center[0] as f32,
+                center_y: center[1] as f32,
+            })
+            .unwrap();
+        renderer.render().unwrap();
+        let shown = renderer.read_offscreen_rgba().unwrap();
+        for (x, y) in [(1usize, 1usize), (5, 8), (13, 10)] {
+            let (dx, dy) = match operation {
+                "rotate_90_cw" => (11 - y, x),
+                "rotate_90_ccw" => (y, 15 - x),
+                "rotate_180" => (15 - x, 11 - y),
+                "flip_horizontal" => (15 - x, y),
+                _ => (x, 11 - y),
+            };
+            let a = pixel(&before, screen(x, 8.), screen(y, 6.));
+            let b = pixel(&shown, screen(dx, center[0]), screen(dy, center[1]));
+            assert!(
+                (0..4).all(|c| a[c].abs_diff(b[c]) <= 2),
+                "{operation} {x},{y}: {a:?} != {b:?}"
+            );
+        }
+    }
+}
+
+#[test]
 fn tiled_scene_preserves_source_and_has_no_mip_seam() {
     let Some(mut r) = renderer() else {
         return;

@@ -18299,6 +18299,161 @@ Permissions: `bound_document`
 {}
 ```
 
+## `image.orient` — 图像旋转与翻转
+
+Apply a whole-document exact signed-axis permutation: operation rotate_90_cw, rotate_90_ccw, rotate_180, flip_horizontal or flip_vertical. Keep the artboard top-left fixed; quarter turns swap width/height. Transform all stored source pixels including off-artboard/hidden layers and transparent hidden RGB, all linked/disabled u16 masks and current/previous selections. Preserve hierarchy, clipping, IDs, working ICC/depth and editable pixel/fill/group/adjustment definitions. Rotate/reflect gradient and gradient-overlay axes, swap frozen dimensions, map spatial adjustment domains and shadow offset vectors; radius/scale stay unchanged under these isometries. No rasterization or source artboard clipping. Exact nearest lattice sampling preserves integer codes. Existing procedural dissolve still uses its deterministic destination canvas-coordinate pattern, not a rotated random bitmap. Reject any layer pixel/position/transparency/all lock, unrepresentable/out-of-range geometry, >64M raster/mask/reference bound visits or shared memory/cache limits; atomic cancellation and one-history undo. All current layer kinds supported; future text/smart objects need their own support. Not batchable; AI requires exact content-replacement approval. Arbitrary-angle image rotation/straighten is separate unsupported work. 中文：整幅图像旋转、顺时针90度、逆时针90度、180度、图像水平翻转、图像垂直翻转；同步保留可编辑图层、蒙版、选区与画板外内容。
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `false`
+
+Effects: `document.write, pixels.replace`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "OrientImage",
+  "type": "object",
+  "properties": {
+    "operation": {
+      "$ref": "#/$defs/ImageOrientation"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "operation"
+  ],
+  "$defs": {
+    "ImageOrientation": {
+      "type": "string",
+      "enum": [
+        "rotate_90_cw",
+        "rotate_90_ccw",
+        "rotate_180",
+        "flip_horizontal",
+        "flip_vertical"
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "OrientImageResult",
+  "type": "object",
+  "properties": {
+    "all_stored_content_transformed": {
+      "type": "boolean"
+    },
+    "frame": {
+      "$ref": "#/$defs/Frame"
+    },
+    "operation": {
+      "$ref": "#/$defs/ImageOrientation"
+    },
+    "preserved_layer_structure": {
+      "type": "boolean"
+    },
+    "previous_frame": {
+      "$ref": "#/$defs/Frame"
+    }
+  },
+  "required": [
+    "operation",
+    "previous_frame",
+    "frame",
+    "all_stored_content_transformed",
+    "preserved_layer_structure"
+  ],
+  "$defs": {
+    "Frame": {
+      "type": "object",
+      "properties": {
+        "height": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "name": {
+          "type": "string"
+        },
+        "width": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "x": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "y": {
+          "type": "integer",
+          "format": "int64"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "x",
+        "y",
+        "width",
+        "height"
+      ]
+    },
+    "ImageOrientation": {
+      "type": "string",
+      "enum": [
+        "rotate_90_cw",
+        "rotate_90_ccw",
+        "rotate_180",
+        "flip_horizontal",
+        "flip_vertical"
+      ]
+    }
+  }
+}
+```
+
+### Examples
+
+```json
+{
+  "operation": "rotate_90_cw"
+}
+```
+
+```json
+{
+  "operation": "rotate_90_ccw"
+}
+```
+
+```json
+{
+  "operation": "rotate_180"
+}
+```
+
+```json
+{
+  "operation": "flip_horizontal"
+}
+```
+
+```json
+{
+  "operation": "flip_vertical"
+}
+```
+
 ## `color.assign` — 指定文档配置文件
 
 Assign srgb or display_p3 interpretation without converting any integer pixel samples, hidden RGB, generated fill/style color codes, masks, depth, geometry or original source ICC. Appearance changes because identical RGB codes are interpreted in the newly assigned working profile. This is distinct from color.convert, which changes samples to preserve appearance. Pixel/transparency/position locks are allowed because source codes are unchanged; all-locked layers reject document reinterpretation. Undo restores exact old ICC/metadata; project save/reopen keeps the assigned profile. Cancellable, budgeted, one atomic history edit, not batchable. Currently supports the two built-in RGB working presets, not arbitrary ICC file assignment or CMYK. 中文：指定配置文件、保留 RGB 数值、重新解释颜色、不要转换像素。

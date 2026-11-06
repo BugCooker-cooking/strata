@@ -10,6 +10,7 @@ mod generated;
 mod heal;
 mod local;
 mod new;
+mod orthogonal;
 mod paint;
 mod pixel_transform;
 mod profiles;
@@ -83,6 +84,30 @@ pub struct CanvasGeometryResult {
     pub frame: crate::Frame,
     pub preserved_external_content: bool,
     pub selection_rebound: bool,
+}
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, JsonSchema)]
+pub enum ImageOrientation {
+    #[serde(rename = "rotate_90_cw")]
+    Rotate90Cw,
+    #[serde(rename = "rotate_90_ccw")]
+    Rotate90Ccw,
+    #[serde(rename = "rotate_180")]
+    Rotate180,
+    #[serde(rename = "flip_horizontal")]
+    FlipHorizontal,
+    #[serde(rename = "flip_vertical")]
+    FlipVertical,
+}
+params!(OrientImage {
+    operation: ImageOrientation
+});
+#[derive(Serialize, JsonSchema)]
+pub struct OrientImageResult {
+    pub operation: ImageOrientation,
+    pub previous_frame: crate::Frame,
+    pub frame: crate::Frame,
+    pub all_stored_content_transformed: bool,
+    pub preserved_layer_structure: bool,
 }
 #[derive(Clone, Copy, Debug, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]

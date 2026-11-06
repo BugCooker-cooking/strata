@@ -1,0 +1,106 @@
+{
+  "date_local": "2026-11-06",
+  "timezone": "Asia/Taipei",
+  "base_checkpoint": "681c709",
+  "scope": "Five whole-image orthogonal rotations/reflections with all current editable layer types. Arbitrary angle/straighten, future type integration and full Photoshop/AI closure remain open.",
+  "source_sha256": {
+    "apps/macos/Strata/App/MainWindowController.swift": "bc60ba1743eb9c56c7f318f1c5570e846c242f0956bc4f5127f057e155b346e2",
+    "apps/macos/Strata/Workspace/ImageOrientationControls.swift": "501b3c5f1cda3a420311cac6c8477bf52316741e2179fa32f3590f7cc8dd539c",
+    "apps/macos/Strata/Workspace/TransformControls.swift": "938aded6a687fd91a2a1981cf6cacaa2b5e9de70955ccd14971d907592759874",
+    "apps/macos/Strata/Workspace/WorkspaceModel.swift": "e9736e200c2219f8b766a90f049314927eb939d738844b3742b6d9351bfc2fa1",
+    "apps/macos/StrataTests/FilterPreviewTests.swift": "b9e1753461486649a3adb067f1db8f71904bb894180de23501c87ca2cef0cc16",
+    "crates/strata-ai/tests/replay.rs": "36cb167063fef44fc30b70e3fcdc77f0229324f513ceae3ddabf9820dc72b4f4",
+    "crates/strata-core/src/commands/canvas.rs": "dcf1066313a8901d2d547ab3b670c0ac5f7011d6bfbecf12bc7303dd0fb03b9d",
+    "crates/strata-core/src/commands/executor.rs": "e2324013982f46e4dc1bd967d208f176027e05c982baa7fa7d5c05c518f4b298",
+    "crates/strata-core/src/commands/mod.rs": "b20f1ece1283264cab2acfb800c3f4505bac8355838ec163ad99715806263cc9",
+    "crates/strata-core/src/commands/orthogonal.rs": "f1732b7a2351aff625b4d104eac0f6727c5f151ed14508eeca1bb170c044b994",
+    "crates/strata-core/src/commands/registry.rs": "f50bb2dab8c91b2194c147853f47d2f8475c5d3a78069e2c0b4fb7bd54fc1f80",
+    "crates/strata-core/tests/orient.rs": "8a7fff0cd9b50ab1d621cd76a3d6a1a7551bcce85158aa3f39728280823c73e2",
+    "crates/strata-render/tests/gpu.rs": "52fc718703fc3a7e2eba8556c6bd8f619ebdc47fbdd0805fe60229d21c55e5e6"
+  },
+  "full_rust_baseline": {
+    "checkpoint": "f6328bb",
+    "report": "2026-11-06-m7-geometry-verification.json",
+    "note": "The 381-pass Rust workspace baseline is historical; this orientation increment uses focused core/AI/Metal checks and a current full native run."
+  },
+  "verification": {
+    "core_integrations": {
+      "passed": 5,
+      "log": "build/m7-orient-core.log"
+    },
+    "ai": {
+      "passed": 23,
+      "replay_tests": 22,
+      "mapping_contract_tests": 1,
+      "all_five_variants_invoked_with_exact_approval_and_turn_undo": true,
+      "log": "build/m7-orient-ai.log"
+    },
+    "required_metal_numeric": {
+      "passed": 1,
+      "operations_in_test": 5,
+      "skipped": 0,
+      "log": "build/m7-orient-gpu.log"
+    },
+    "full_native_xctest": {
+      "total": 60,
+      "passed": 59,
+      "skipped": 1,
+      "failed": 0,
+      "log": "build/m7-orient-native.log"
+    },
+    "native_skip": "Live real-service test requires explicit local network opt-in.",
+    "arm64_release": {
+      "passed": true,
+      "log": "build/m7-orient-release.log"
+    },
+    "lint": {
+      "passed": true,
+      "log": "build/m7-orient-lint.log"
+    },
+    "command_examples": {
+      "passed": 111,
+      "all_five_orientation_examples": true,
+      "log": "build/m7-orient-commands.log"
+    },
+    "ai_audit": {
+      "commands": 111,
+      "mapped_composite_rows": 80,
+      "inventory_rows": 265,
+      "partial_entrypoints": 9,
+      "unmapped_implemented_rows": 0,
+      "unlinked_registered_commands": 0,
+      "unknown_native_literals": 0,
+      "untyped_root_returns": 0,
+      "final_complete": false,
+      "strict_gate": "build/m7-orient-final-ai-gate.log"
+    }
+  },
+  "native_manual": {
+    "single_release_instance": true,
+    "fixture": "repository-generated sample-photo.jpg",
+    "operation": "rotate_90_cw",
+    "original_size": [
+      1024,
+      1536
+    ],
+    "oriented_size": [
+      1536,
+      1024
+    ],
+    "visible_photo_direction_matched_frame": true,
+    "history_edits": 1,
+    "undo_restored_original_clean_document": true,
+    "final_running_strata_instances": 0,
+    "method": "CUA live native AX and screenshot; no image-quality/continuous-performance claim."
+  },
+  "cloud_builds": {
+    "used": false,
+    "workflow_kept_disabled": true
+  },
+  "limitations": [
+    "Arbitrary-angle image rotation/straighten and future text/smart-object kinds are not implemented. Exhaustive kind matching forces their orientation policy to be added when those types exist.",
+    "Procedural dissolve keeps its deterministic destination-canvas pattern, rather than rotating a baked random bitmap.",
+    "Layer pixel/position/transparency/all locks reject whole-image orientation. Geometry is limited by the exact coordinate, 64M per-domain visits, decoded tile and shared memory constraints.",
+    "All remaining P0–P3 features, final full AI audit, continuous 24MP/photo/live-model/device/platform/release gates remain open."
+  ]
+}

@@ -69,6 +69,8 @@ struct TransformPanel:View{
             CanvasSizePanel(model:model)
             Divider()
             CropPanel(model:model)
+            Divider()
+            ImageOrientationPanel(model:model)
         }.padding(12)}
     }
     private func field(_ title:String,_ value:Binding<Double>)->some View{HStack{Text(title);TextField(title,value:value,format:.number.precision(.fractionLength(2))).textFieldStyle(.roundedBorder).accessibilityLabel("变换"+title)}}

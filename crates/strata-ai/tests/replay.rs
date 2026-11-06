@@ -673,6 +673,108 @@ fn crop_then_reveal_through_ai_keeps_sources_and_has_a_reversible_two_step_turn(
 }
 
 #[test]
+fn whole_image_orientation_is_discovered_requires_exact_approval_and_undoes_each_variant() {
+    for operation in [
+        "rotate_90_cw",
+        "rotate_90_ccw",
+        "rotate_180",
+        "flip_horizontal",
+        "flip_vertical",
+    ] {
+        let host = Host::new();
+        host.user(
+            "paint.fill",
+            json!({"layer":{"name":"Background"},"color":[0.8,0.2,0.1,0.5]}),
+        );
+        let before = host
+            .editor
+            .lock()
+            .unwrap()
+            .document()
+            .unwrap()
+            .to_archive()
+            .unwrap();
+        let initial = host.snapshot().unwrap();
+        let mut session = host.session_with_prompt(
+            ExecutionMode::Direct,
+            "将整幅图像旋转或翻转，同时保留全部可编辑图层、选区与蒙版。",
+        );
+        reply(
+            &mut session,
+            &host,
+            vec![
+                call("search", "search_catalog", json!({"query":"图像旋转"})),
+                call(
+                    "describe",
+                    "describe_commands",
+                    json!({"ids":["image.orient"]}),
+                ),
+            ],
+        );
+        assert!(
+            result(session.poll(&host).unwrap())["matches"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|m| m["id"] == "image.orient")
+        );
+        assert_eq!(
+            result(session.poll(&host).unwrap())["commands"][0]["id"],
+            "image.orient"
+        );
+        reply(
+            &mut session,
+            &host,
+            vec![invoke(
+                "orient",
+                "image.orient",
+                json!({"operation":operation}),
+            )],
+        );
+        let Step::Paused {
+            question_id,
+            operation: proposed,
+            ..
+        } = session.poll(&host).unwrap()
+        else {
+            panic!("orientation needs exact replacement approval")
+        };
+        assert_eq!(proposed.unwrap()["params"]["operation"], operation);
+        assert_eq!(host.snapshot().unwrap().revision, initial.revision);
+        let result = result(
+            session
+                .respond(
+                    &host,
+                    HostAnswer {
+                        question_id,
+                        answer: String::new(),
+                        approved: true,
+                        resource: None,
+                    },
+                )
+                .unwrap(),
+        );
+        assert_eq!(result["result"]["preserved_layer_structure"], true);
+        assert_eq!(
+            host.snapshot().unwrap().history.len(),
+            initial.history.len() + 1
+        );
+        host.editor.lock().unwrap().stop_turn();
+        host.user("edit.undo_turn", json!({"turn_id":session.turn_id()}));
+        assert_eq!(
+            host.editor
+                .lock()
+                .unwrap()
+                .document()
+                .unwrap()
+                .to_archive()
+                .unwrap(),
+            before
+        );
+    }
+}
+
+#[test]
 fn inspect_and_direct_queries_and_batches_never_expose_hidden_layers_or_paths() {
     let host = Host::new();
     host.user(

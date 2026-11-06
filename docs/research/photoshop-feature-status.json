@@ -808,5 +808,15 @@
         "path": "../research/2026-11-m7-crop-progress.md"
       }
     ]
+  },
+  "PS-03-5f9716e5d8": {
+    "implementation": "部分实现",
+    "acceptance": "五种正交方向的当前全部层类型、核心/AI/Metal/完整原生/Release 与单窗口实看通过；任意角度仍待后续",
+    "evidence": [
+      {
+        "label": "M7 整图正交变换",
+        "path": "../research/2026-11-m7-orientation-progress.md"
+      }
+    ]
   }
 }

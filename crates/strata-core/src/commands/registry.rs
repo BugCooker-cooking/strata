@@ -1021,8 +1021,18 @@ fn build_catalog() -> Vec<CommandSpec> {
         "Expand the current artboard to include all effectively visible pixel and generated-fill source bounds plus conservative own/ancestor style outsets. Never shrink the existing frame; keep absolute layer positions, source samples, masks, locked hierarchy and editable definitions. Pixel extents include stored transparent hidden RGB; masks/clipping/zero opacity can make the bounds conservative rather than minimal rendered-alpha bounds. Invisible layers/ancestors do not contribute; no hidden-layer metadata is returned. Uses the same frozen-reference and zero-extended selection path as image.canvas_size. Reject unsupported/overflowing/over-budget canvas sizes atomically, cancellable source scans, one history step, not batchable. This changes document geometry; view.fit is a separate display action. 中文：显示全部、恢复画板外内容、扩展到所有可见源图层；保留现有画板并扩展到内容与样式边界，不移动或重采样图层。",
         json!({})
     );
+    command!(
+        "image.orient",
+        OrientImage,
+        Mutate,
+        "图像旋转与翻转",
+        "Rotate or flip the layered image",
+        "Apply a whole-document exact signed-axis permutation: operation rotate_90_cw, rotate_90_ccw, rotate_180, flip_horizontal or flip_vertical. Keep the artboard top-left fixed; quarter turns swap width/height. Transform all stored source pixels including off-artboard/hidden layers and transparent hidden RGB, all linked/disabled u16 masks and current/previous selections. Preserve hierarchy, clipping, IDs, working ICC/depth and editable pixel/fill/group/adjustment definitions. Rotate/reflect gradient and gradient-overlay axes, swap frozen dimensions, map spatial adjustment domains and shadow offset vectors; radius/scale stay unchanged under these isometries. No rasterization or source artboard clipping. Exact nearest lattice sampling preserves integer codes. Existing procedural dissolve still uses its deterministic destination canvas-coordinate pattern, not a rotated random bitmap. Reject any layer pixel/position/transparency/all lock, unrepresentable/out-of-range geometry, >64M raster/mask/reference bound visits or shared memory/cache limits; atomic cancellation and one-history undo. All current layer kinds supported; future text/smart objects need their own support. Not batchable; AI requires exact content-replacement approval. Arbitrary-angle image rotation/straighten is separate unsupported work. 中文：整幅图像旋转、顺时针90度、逆时针90度、180度、图像水平翻转、图像垂直翻转；同步保留可编辑图层、蒙版、选区与画板外内容。",
+        json!({"operation":"rotate_90_cw"})
+    );
     for item in &mut list {
         item.returns = match item.id {
+            "image.orient" => schemars::schema_for!(OrientImageResult),
             "image.canvas_size" | "image.crop" | "image.reveal_all" => {
                 schemars::schema_for!(CanvasGeometryResult)
             }
@@ -1152,7 +1162,18 @@ fn build_catalog() -> Vec<CommandSpec> {
         {
             item.batchable = false;
         }
-        if item.id == "transform.apply" {
+        if item.id == "image.orient" {
+            item.batchable = false;
+            for operation in [
+                "rotate_90_ccw",
+                "rotate_180",
+                "flip_horizontal",
+                "flip_vertical",
+            ] {
+                item.examples.push(json!({"operation":operation}));
+            }
+        }
+        if matches!(item.id, "transform.apply" | "image.orient") {
             item.effects.push("pixels.replace");
         }
         if matches!(

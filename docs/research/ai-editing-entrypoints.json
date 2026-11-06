@@ -1553,6 +1553,39 @@
         }
       ],
       "note": "以可见源图层/生成填充和自身/祖先样式的保守边界扩展，不移动/缩放内容；隐藏层不参与，蒙版/剪贴/零透明度可能让边界大于最小可见 alpha 范围。"
+    },
+    "PS-03-5f9716e5d8": {
+      "scope": "editing",
+      "coverage": "partial",
+      "commands": [
+        "image.orient"
+      ],
+      "prompts": [
+        {
+          "text": "将整幅图像顺时针旋转 90 度，同时保留可编辑图层、链接蒙版和选区。",
+          "query": "图像旋转",
+          "command": "image.orient"
+        },
+        {
+          "text": "水平翻转整幅图像，保留画板外源像素。",
+          "query": "图像水平翻转",
+          "command": "image.orient"
+        }
+      ],
+      "variants": [
+        {
+          "command": "image.orient",
+          "path": "operation",
+          "values": [
+            "rotate_90_cw",
+            "rotate_90_ccw",
+            "rotate_180",
+            "flip_horizontal",
+            "flip_vertical"
+          ]
+        }
+      ],
+      "note": "五种正交操作支持所有当前类型与原码/结构；任意角度图像旋转和未来文字/智能对象类型仍待后续，综合旋转条目保持部分。"
     }
   }
 }
