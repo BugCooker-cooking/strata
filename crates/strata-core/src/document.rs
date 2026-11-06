@@ -273,14 +273,27 @@ impl Document {
                 ));
             }
             if let Some([width, height]) = info.generated_size
-                && (!matches!(
-                    info.kind,
-                    crate::LayerKind::Solid { .. } | crate::LayerKind::Gradient { .. }
-                ) || self.format.byte_count(width, height)? as u64 > MAX_FLAT_IMAGE_BYTES
+                && (info.kind.is_adjustment()
+                    || self.format.byte_count(width, height)? as u64 > MAX_FLAT_IMAGE_BYTES
                     || info.x.checked_add(i64::from(width)).is_none()
                     || info.y.checked_add(i64::from(height)).is_none())
             {
                 return Err(DocumentError::Invalid("generated layer geometry".into()));
+            }
+            if let Some(bounds) = info.spatial_bounds {
+                bounds.validate()?;
+                if !matches!(
+                    info.kind,
+                    crate::LayerKind::Adjustment {
+                        adjustment: crate::TonalAdjustment::ShadowsHighlights { .. }
+                    }
+                ) || self.format.byte_count(bounds.width, bounds.height)? as u64
+                    > MAX_FLAT_IMAGE_BYTES
+                {
+                    return Err(DocumentError::Invalid(
+                        "spatial adjustment sampling bounds".into(),
+                    ));
+                }
             }
             if info.clipped {
                 let base = self

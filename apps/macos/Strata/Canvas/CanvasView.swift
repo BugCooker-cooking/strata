@@ -462,7 +462,11 @@ final class CanvasView: NSView {
         onPointerMoved?(point)
     }
     func panByPoints(dx: CGFloat, dy: CGFloat) { pan(dx: dx, dy: dy) }
-    func actualSize() { guard !isWorkBusy else { return }; zoomBy(1 / CGFloat(engine.canvasZoom())) }
+    func actualSize() {
+        guard !isWorkBusy else{return}
+        benchmark?.cancel(BenchmarkFailure("User input interrupted benchmark"))
+        do{_ = try engine.dispatch(command:"view.actual_size",paramsJson:"{}");markDirty()}catch{onError?(error)}
+    }
     private func cancelLayerDrag() {
         guard layerDrag != nil else { return }
         do { try engine.endLayerMove(x: 0, y: 0, cancel: true) } catch { onError?(error) }

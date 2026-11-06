@@ -1,17 +1,19 @@
 {
   "scope": "Development audit; not a claim that all Photoshop editing is implemented or AI-verified",
-  "registered_commands": 104,
-  "registered_examples": 147,
-  "catalog_sha256": "22802100c63a673ab0393f42b960c8b0cd60a2324c4e4153f203d22d94588588",
+  "registered_commands": 108,
+  "registered_examples": 151,
+  "catalog_sha256": "4837f217e82d55330d871f5d210837ba8d10b71264948b908d6c938730625bcd",
   "inventory_rows": 265,
-  "mapped_features": 71,
+  "mapped_features": 77,
   "unmapped_implemented_features": [],
   "partial_entrypoints": [
     "PS-01-894622b1ce",
     "PS-04-cb66199f15",
     "PS-04-853e6d30f3",
     "PS-08-3ce0368d80",
-    "PS-16-8de06204ac"
+    "PS-16-8de06204ac",
+    "PS-09-4f3d9835a7",
+    "PS-09-7cc6b0bb65"
   ],
   "unfinished_features": [
     "PS-00-7d7224e709",
@@ -33,9 +35,7 @@
     "PS-01-c35b70cb7c",
     "PS-01-bdb7c564c5",
     "PS-01-30d15e0488",
-    "PS-02-47df18296a",
     "PS-02-fc9f1fdaa0",
-    "PS-02-24d3726654",
     "PS-02-44ec922e45",
     "PS-02-03ea5fd9e6",
     "PS-02-bfa246feb1",
@@ -48,7 +48,6 @@
     "PS-02-b2fd2e2a88",
     "PS-02-bc773443d0",
     "PS-03-ad24731ea8",
-    "PS-03-45c2eea14c",
     "PS-03-5f9716e5d8",
     "PS-03-84941ac6e8",
     "PS-03-51294954aa",
@@ -177,7 +176,6 @@
     "PS-13-0529cd2d51",
     "PS-13-4592c9e11f",
     "PS-13-1b8faab964",
-    "PS-14-cf2715aeb6",
     "PS-14-c9a6761937",
     "PS-14-de2fd3ca59",
     "PS-14-810f37be85",
@@ -215,21 +213,7 @@
   ],
   "unknown_native_command_references": {},
   "untyped_command_returns": [],
-  "commands_without_feature_links": [
-    "document.batch",
-    "document.histogram",
-    "document.inspect",
-    "edit.clear",
-    "edit.clipboard.write_status",
-    "edit.copy",
-    "edit.copy_merged",
-    "edit.cut",
-    "edit.paste",
-    "edit.paste_in_place",
-    "layer.list",
-    "layer.select",
-    "layer.set_position"
-  ],
+  "commands_without_feature_links": [],
   "final_audit_complete": false,
   "limits": [
     "Native audit finds literal references; dynamic dispatch and private callbacks still need manual review.",
@@ -248,8 +232,16 @@
       "entrypoint": {
         "scope": "infrastructure",
         "coverage": "complete",
-        "commands": [],
-        "prompts": [],
+        "commands": [
+          "document.batch"
+        ],
+        "prompts": [
+          {
+            "text": "将普通图层属性修改作为一个原子批次提交；失败全部撤销，不在批次中访问文件或剪贴板。",
+            "query": "批量修改",
+            "command": "document.batch"
+          }
+        ],
         "note": "通过元工具访问真实注册表，不是独立像素编辑。",
         "meta_tools": [
           "browse_catalog",
@@ -289,8 +281,28 @@
       "entrypoint": {
         "scope": "infrastructure",
         "coverage": "complete",
-        "commands": [],
-        "prompts": [],
+        "commands": [
+          "document.inspect",
+          "document.histogram",
+          "layer.list"
+        ],
+        "prompts": [
+          {
+            "text": "查看当前授权文档的概要。",
+            "query": "文档信息",
+            "command": "document.inspect"
+          },
+          {
+            "text": "读取当前文档亮度直方图。",
+            "query": "亮度直方图",
+            "command": "document.histogram"
+          },
+          {
+            "text": "列出本轮可见图层及稳定 ID。",
+            "query": "图层列表",
+            "command": "layer.list"
+          }
+        ],
         "note": "受宿主上下文和外发授权约束。",
         "meta_tools": [
           "browse_catalog",
@@ -380,7 +392,8 @@
         "commands": [
           "view.pan",
           "view.zoom",
-          "view.fit"
+          "view.fit",
+          "view.actual_size"
         ],
         "prompts": [
           {
@@ -791,8 +804,34 @@
       "name": "撤销 / 重做 / 历史记录面板",
       "priority": "P0",
       "source_line": 87,
-      "implementation": "待实现",
-      "entrypoint": null
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "edit.undo",
+          "edit.redo",
+          "edit.undo_turn"
+        ],
+        "prompts": [
+          {
+            "text": "撤销上一个编辑步骤。",
+            "query": "撤销",
+            "command": "edit.undo"
+          },
+          {
+            "text": "重做上一个撤销的编辑。",
+            "query": "重做",
+            "command": "edit.redo"
+          },
+          {
+            "text": "撤销指定 AI 回合的完整连续历史。",
+            "query": "撤销本轮",
+            "command": "edit.undo_turn"
+          }
+        ],
+        "note": "原生历史面板观察同一编辑历史；AI 通过历史命令操作，来源/回合仍保留。"
+      }
     },
     {
       "id": "PS-02-fc9f1fdaa0",
@@ -811,8 +850,58 @@
       "name": "剪切 / 拷贝 / 合并拷贝 / 粘贴 / 原位粘贴 / 清除",
       "priority": "P0",
       "source_line": 89,
-      "implementation": "待实现",
-      "entrypoint": null
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "edit.cut",
+          "edit.copy",
+          "edit.copy_merged",
+          "edit.paste",
+          "edit.paste_in_place",
+          "edit.clear",
+          "edit.clipboard.write_status"
+        ],
+        "prompts": [
+          {
+            "command": "edit.cut",
+            "query": "剪切",
+            "text": "剪切当前选区内容到系统剪贴板，等待宿主确认写入成功后再清除。"
+          },
+          {
+            "command": "edit.copy",
+            "query": "拷贝",
+            "text": "拷贝当前图层的选区内容，先取得宿主剪贴板授权。"
+          },
+          {
+            "command": "edit.copy_merged",
+            "query": "合并拷贝",
+            "text": "拷贝可见合成的选区内容。"
+          },
+          {
+            "command": "edit.paste",
+            "query": "粘贴",
+            "text": "将我授权的系统剪贴板图片粘贴成新图层。"
+          },
+          {
+            "command": "edit.paste_in_place",
+            "query": "原位粘贴",
+            "text": "将已授权剪贴板内容按其原始位置粘贴。"
+          },
+          {
+            "command": "edit.clear",
+            "query": "清除",
+            "text": "清除当前像素层选区范围内的内容，保留未选像素。"
+          },
+          {
+            "command": "edit.clipboard.write_status",
+            "query": "剪贴板写入状态",
+            "text": "读取本轮已授权剪贴板写入的实际状态。"
+          }
+        ],
+        "note": "资源由可信宿主授权与写入确认；AI 不猜测 token。剪切在写入完成前不清除源；撤销只恢复文档，不能撤回系统剪贴板的外部写入。"
+      }
     },
     {
       "id": "PS-02-44ec922e45",
@@ -941,8 +1030,44 @@
       "name": "画布大小",
       "priority": "P0",
       "source_line": 107,
-      "implementation": "待实现",
-      "entrypoint": null
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "image.canvas_size"
+        ],
+        "prompts": [
+          {
+            "text": "固定画布右下角，把画布扩展到给定宽高，保留所有画板外内容，不缩放图层。",
+            "query": "画布大小",
+            "command": "image.canvas_size"
+          },
+          {
+            "text": "围绕中心缩小画布边界，保留被遮住的像素，后续可以重新扩展显示。",
+            "query": "缩小画布",
+            "command": "image.canvas_size"
+          }
+        ],
+        "variants": [
+          {
+            "command": "image.canvas_size",
+            "path": "anchor",
+            "values": [
+              "top_left",
+              "top",
+              "top_right",
+              "left",
+              "center",
+              "right",
+              "bottom_left",
+              "bottom",
+              "bottom_right"
+            ]
+          }
+        ],
+        "note": "画布边界编辑保留结构与原码；生成填充/样式和空间调色冻结参考，选区裁到新边界，扩展覆盖为零。图像缩放与删除裁剪像素属于其他命令。"
+      }
     },
     {
       "id": "PS-03-5f9716e5d8",
@@ -2969,8 +3094,28 @@
       "name": "移动工具（含吸附）",
       "priority": "P0",
       "source_line": 255,
-      "implementation": "待实现",
-      "entrypoint": null
+      "implementation": "部分实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "partial",
+        "commands": [
+          "layer.select",
+          "layer.set_position"
+        ],
+        "prompts": [
+          {
+            "text": "选择可见目标图层，使用稳定 ID。",
+            "query": "选择图层",
+            "command": "layer.select"
+          },
+          {
+            "text": "把指定图层移动到画布坐标 X=-20、Y=30，保留画板外像素与链接蒙版。",
+            "query": "移动图层",
+            "command": "layer.set_position"
+          }
+        ],
+        "note": "已有整数位置与原生拖动、单次提交/取消及组联动；吸附仍未实现，因此综合移动工具条目保持部分实现。"
+      }
     },
     {
       "id": "PS-09-4f3d9835a7",
@@ -2979,8 +3124,65 @@
       "name": "自由变换：缩放 / 旋转 / 斜切 / 扭曲 / 透视 / 翻转",
       "priority": "P0",
       "source_line": 256,
-      "implementation": "待实现",
-      "entrypoint": null
+      "implementation": "部分实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "partial",
+        "commands": [
+          "layer.pixel_bounds",
+          "transform.apply"
+        ],
+        "prompts": [
+          {
+            "text": "把整个像素图层围绕给定轴心旋转 15 度，保留画板外内容。",
+            "query": "自由变换",
+            "command": "transform.apply"
+          },
+          {
+            "text": "先读取当前像素图层的内容边界，再使用边界中心作为变换轴心。",
+            "query": "像素图层边界",
+            "command": "layer.pixel_bounds"
+          },
+          {
+            "text": "按源与目标四个画布角点，对整个像素图层进行透视变换。",
+            "query": "透视",
+            "command": "transform.apply"
+          },
+          {
+            "text": "使用给定六个 affine 系数变换整个像素层，系数顺序为 a,b,c,d,tx,ty。",
+            "query": "整层像素",
+            "command": "transform.apply"
+          },
+          {
+            "text": "使用给定行优先的 3×3 matrix 变换整个像素层，显式保留透视除数。",
+            "query": "整层像素",
+            "command": "transform.apply"
+          },
+          {
+            "text": "把整个像素图层水平翻转，轴心为给定内容中心。",
+            "query": "水平翻转",
+            "command": "transform.apply"
+          },
+          {
+            "text": "把整个像素图层缩放到原来的 50%，围绕给定轴心双线性重采样。",
+            "query": "整层像素",
+            "command": "transform.apply"
+          }
+        ],
+        "note": "当前仅整层像素/链接蒙版；选区像素、生成/组/文字变换与交互手柄尚未实现。",
+        "variants": [
+          {
+            "command": "transform.apply",
+            "path": "geometry.type",
+            "values": [
+              "components",
+              "affine",
+              "matrix",
+              "corners"
+            ]
+          }
+        ]
+      }
     },
     {
       "id": "PS-09-7d349372b5",
@@ -3641,8 +3843,25 @@
       "name": "缩放 / 抓手 / 适合屏幕 / 100%",
       "priority": "P0",
       "source_line": 344,
-      "implementation": "待实现",
-      "entrypoint": null
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "view.pan",
+          "view.zoom",
+          "view.fit",
+          "view.actual_size"
+        ],
+        "prompts": [
+          {
+            "text": "以实际像素 100% 显示当前画布，保持中心不变。",
+            "query": "实际像素",
+            "command": "view.actual_size"
+          }
+        ],
+        "note": "绝对 100% 与相对缩放分开；视图命令不改变文档或历史。"
+      }
     },
     {
       "id": "PS-14-c9a6761937",

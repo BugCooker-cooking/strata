@@ -168,6 +168,7 @@ fn fingerprint(doc: &Document, coord: TileCoord, layers: usize) -> u64 {
             layer.info.parent.hash(&mut hash);
             layer.info.clipped.hash(&mut hash);
             layer.info.generated_size.hash(&mut hash);
+            layer.info.spatial_bounds.hash(&mut hash);
             layer.info.pass_through.hash(&mut hash);
             if !layer.info.styles.is_empty() {
                 serde_json::to_vec(&layer.info.styles)
@@ -609,6 +610,7 @@ fn compose_sequence(
                     coord,
                     &out,
                     adjustment,
+                    layer.info.spatial_bounds,
                     |c| input_before_layer(doc, c, layer.id(), cancel),
                     cancel,
                 )?

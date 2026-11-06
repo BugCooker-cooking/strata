@@ -79,7 +79,7 @@ fn examples() -> Result<(), Box<dyn Error>> {
             };
             let mut args = example.clone();
             match spec.id {
-                "retouch.spot_heal" => {
+                "retouch.spot_heal" | "transform.apply" => {
                     run(
                         &mut editor,
                         "paint.fill",

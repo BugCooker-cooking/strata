@@ -33,6 +33,50 @@ fn version_no_canvas_and_view_commands() {
     e.detach_canvas().unwrap();
     e.detach_canvas().unwrap();
 }
+
+#[test]
+fn actual_size_is_absolute_preserves_center_and_never_edits_document() {
+    let e = StrataEngine::new(Arc::new(Recorder::default()));
+    e.dispatch(
+        "file.new".into(),
+        json!({"width":16,"height":16,"bit_depth":16}).to_string(),
+    )
+    .unwrap();
+    let truth = e.snapshot_json().unwrap();
+    let mut renderer = match strata_render::Renderer::new_offscreen(strata_render::Viewport {
+        width: 64,
+        height: 64,
+        scale: 2.0,
+    }) {
+        Ok(r) => r,
+        Err(strata_render::RenderError::NoAdapter)
+            if std::env::var_os("STRATA_REQUIRE_GPU").is_none() =>
+        {
+            return;
+        }
+        Err(e) => panic!("GPU: {e}"),
+    };
+    renderer
+        .set_view(strata_render::ViewTransform {
+            zoom: 0.25,
+            center_x: -12.5,
+            center_y: 31.25,
+        })
+        .unwrap();
+    e.inner.lock().unwrap().renderer = Some(renderer);
+    for zoom in [0.25, 3.0] {
+        let mut inner = e.inner.lock().unwrap();
+        let mut view = inner.renderer.as_ref().unwrap().view();
+        view.zoom = zoom;
+        inner.renderer.as_mut().unwrap().set_view(view).unwrap();
+        drop(inner);
+        e.dispatch("view.actual_size".into(), "{}".into()).unwrap();
+        let view = e.inner.lock().unwrap().renderer.as_ref().unwrap().view();
+        assert_eq!(view.zoom, 1.0);
+        assert_eq!((view.center_x, view.center_y), (-12.5, 31.25));
+        assert_eq!(e.snapshot_json().unwrap(), truth);
+    }
+}
 #[test]
 fn registered_open_preserves_source_and_reports_once() {
     let dir = tempfile::tempdir().unwrap();

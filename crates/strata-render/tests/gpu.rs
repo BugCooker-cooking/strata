@@ -1047,6 +1047,160 @@ fn profile_assignment_invalidates_color_caches_without_changing_source_tiles() {
 }
 
 #[test]
+fn projective_transform_and_linked_mask_display_match_cpu_after_preview_and_commit() {
+    let Some(mut renderer) = renderer() else {
+        return;
+    };
+    let mut e = strata_core::Editor::new();
+    for (id, params) in [
+        (
+            "file.new",
+            serde_json::json!({"width":16,"height":16,"bit_depth":16,"working_space":"display_p3","background":[12000,32000,47000,40001]}),
+        ),
+        (
+            "paint.gradient",
+            serde_json::json!({"layer":{"name":"Background"},"start":[0.5,0.5],"end":[15.5,15.5],"stops":[{"at":0,"color":[0.1,0.2,0.3,0.5]},{"at":1,"color":[0.8,0.6,0.4,0.9]}]}),
+        ),
+        (
+            "select.marquee",
+            serde_json::json!({"x":2,"y":3,"width":10,"height":9}),
+        ),
+        (
+            "layer.mask.add",
+            serde_json::json!({"layer":{"name":"Background"},"source":"from_selection"}),
+        ),
+    ] {
+        e.execute(e.request(strata_core::Source::Test), id, params, |_| Ok(()))
+            .unwrap();
+    }
+    let before = e.document().unwrap().to_archive().unwrap();
+    let interaction = e
+        .begin_filter(
+            serde_json::from_value(serde_json::json!({"name":"Background"})).unwrap(),
+            "transform.apply",
+        )
+        .unwrap();
+    let prepared = e.preview_filter(&interaction,"transform.apply",serde_json::json!({"scope":"whole_layer","geometry":{"type":"matrix","values":[1.1,-0.1,-2,0.2,0.9,1,0.005,0.002,1]}})).unwrap();
+    let candidate = prepared.document().unwrap();
+    let scene = renderer.prepare_document(candidate, false).unwrap();
+    renderer.commit_document(scene).unwrap();
+    renderer
+        .set_view(ViewTransform {
+            zoom: 3.0,
+            center_x: 8.0,
+            center_y: 8.0,
+        })
+        .unwrap();
+    renderer.render().unwrap();
+    let preview = renderer.read_offscreen_rgba().unwrap();
+    assert!(e.document().unwrap().to_archive().unwrap() == before);
+    let reference = strata_core::composite::Compositor::new(1)
+        .tile(candidate, strata_pixels::TileCoord::new(0, 0).unwrap())
+        .unwrap();
+    for (x, y) in [(1usize, 5usize), (4, 6), (8, 8), (10, 9), (14, 12)] {
+        let p = reference[y * 256 + x];
+        let shown = pixel(&preview, x * 3 + 9, y * 3 + 9);
+        for c in 0..3 {
+            let bg = f64::from(CANVAS_BG_SRGB[c]) / 255.0;
+            let bg = if bg <= 0.04045 {
+                bg / 12.92
+            } else {
+                ((bg + 0.055) / 1.055).powf(2.4)
+            };
+            let v = f64::from(p[c]) * f64::from(p[3]) + bg * (1.0 - f64::from(p[3]));
+            let v = if v <= 0.0031308 {
+                12.92 * v
+            } else {
+                1.055 * v.powf(1.0 / 2.4) - 0.055
+            };
+            assert!(
+                shown[c].abs_diff((v.clamp(0.0, 1.0) * 255.0).round() as u8) <= 3,
+                "{x},{y},{c}: {shown:?}"
+            );
+        }
+    }
+    e.commit(prepared).unwrap();
+    let scene = renderer
+        .prepare_document(e.document().unwrap(), false)
+        .unwrap();
+    renderer.commit_document(scene).unwrap();
+    renderer.render().unwrap();
+    assert_eq!(renderer.read_offscreen_rgba().unwrap(), preview);
+}
+
+#[test]
+fn canvas_resize_preserves_gradient_style_and_spatial_appearance_on_real_gpu() {
+    let Some(mut renderer) = renderer() else {
+        return;
+    };
+    let mut e = strata_core::Editor::new();
+    for (id, params) in [
+        (
+            "file.new",
+            serde_json::json!({"width":16,"height":16,"bit_depth":16,"working_space":"display_p3","background":[12000,32000,47000,40001]}),
+        ),
+        (
+            "layer.set_styles",
+            serde_json::json!({"layer":{"name":"Background"},"styles":{"gradient_overlay":{"start":[1000,2000,3000,65535],"end":[60000,62000,63000,65535],"angle":0,"scale":1,"opacity":0.7}}}),
+        ),
+        (
+            "layer.add_tonal_adjustment",
+            serde_json::json!({"name":"tone","adjustment":{"type":"shadows_highlights","shadows":80,"highlights":20,"radius":8}}),
+        ),
+    ] {
+        e.execute(e.request(strata_core::Source::Test), id, params, |_| Ok(()))
+            .unwrap();
+    }
+    let scene = renderer
+        .prepare_document(e.document().unwrap(), false)
+        .unwrap();
+    renderer.commit_document(scene).unwrap();
+    renderer
+        .set_view(ViewTransform {
+            zoom: 3.0,
+            center_x: 8.0,
+            center_y: 8.0,
+        })
+        .unwrap();
+    renderer.render().unwrap();
+    let before = renderer.read_offscreen_rgba().unwrap();
+    e.execute(
+        e.request(strata_core::Source::Test),
+        "image.canvas_size",
+        serde_json::json!({"width":24,"height":24,"anchor":"top_left"}),
+        |_| Ok(()),
+    )
+    .unwrap();
+    let scene = renderer
+        .prepare_document(e.document().unwrap(), false)
+        .unwrap();
+    renderer.commit_document(scene).unwrap();
+    renderer.render().unwrap();
+    let after = renderer.read_offscreen_rgba().unwrap();
+    for (x, y) in [(0usize, 0usize), (1, 6), (8, 8), (14, 12), (15, 15)] {
+        let a = pixel(&before, x * 3 + 9, y * 3 + 9);
+        let b = pixel(&after, x * 3 + 9, y * 3 + 9);
+        assert!(
+            (0..4).all(|c| a[c].abs_diff(b[c]) <= 1),
+            "{x},{y}: {a:?} != {b:?}"
+        );
+    }
+    e.execute(
+        e.request(strata_core::Source::Test),
+        "edit.undo",
+        serde_json::json!({}),
+        |_| Ok(()),
+    )
+    .unwrap();
+    let scene = renderer
+        .prepare_document(e.document().unwrap(), false)
+        .unwrap();
+    renderer.commit_document(scene).unwrap();
+    renderer.render().unwrap();
+    assert_eq!(renderer.read_offscreen_rgba().unwrap(), before);
+}
+
+#[test]
 fn tiled_scene_preserves_source_and_has_no_mip_seam() {
     let Some(mut r) = renderer() else {
         return;

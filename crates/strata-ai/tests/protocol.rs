@@ -197,6 +197,7 @@ fn catalog_is_lazy_bilingual_bounded_and_has_no_unimplemented_commands() {
         ("USM", "filter.unsharp_mask"),
         ("颗粒", "filter.add_noise"),
         ("指定配置文件", "color.assign"),
+        ("实际像素", "view.actual_size"),
     ] {
         assert!(
             catalog::search(query, 32).unwrap()["matches"]

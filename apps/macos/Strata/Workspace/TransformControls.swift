@@ -1,0 +1,76 @@
+import SwiftUI
+
+struct TransformPanel:View{
+    @ObservedObject var model:WorkspaceModel
+    @ObservedObject var preview:TonalPreviewModel
+    @State private var mode="components"
+    @State private var interpolation="bilinear"
+    @State private var x=0.0
+    @State private var y=0.0
+    @State private var scaleX=100.0
+    @State private var scaleY=100.0
+    @State private var rotation=0.0
+    @State private var shearX=0.0
+    @State private var shearY=0.0
+    @State private var pivotX=0.0
+    @State private var pivotY=0.0
+    @State private var source="0,0; 100,0; 100,100; 0,100"
+    @State private var destination="0,0; 100,0; 100,100; 0,100"
+    static func parseCorners(_ value:String)->[[Double]]?{
+        let pieces=value.split(separator:";",omittingEmptySubsequences:false)
+        guard pieces.count==4 else{return nil}
+        let points=pieces.compactMap{piece->[Double]? in
+            let pair=piece.split(separator:",",omittingEmptySubsequences:false)
+            guard pair.count==2,let x=Double(pair[0].trimmingCharacters(in:.whitespacesAndNewlines)),let y=Double(pair[1].trimmingCharacters(in:.whitespacesAndNewlines))else{return nil}
+            return [x,y]
+        }
+        guard points.count==4,points.allSatisfy({$0.count==2&&$0.allSatisfy({$0.isFinite&&abs($0)<=1e12})})else{return nil};return points
+    }
+    private var parameters:[String:Any]?{
+        let geometry:[String:Any]
+        if mode == "corners"{
+            guard let a=Self.parseCorners(source),let b=Self.parseCorners(destination)else{return nil};geometry=["type":"corners","source":a,"destination":b]
+        }else{
+            guard [x,y,scaleX,scaleY,rotation,shearX,shearY,pivotX,pivotY].allSatisfy({$0.isFinite}),abs(scaleX)>=0.0001,abs(scaleY)>=0.0001,abs(shearX)<89,abs(shearY)<89 else{return nil}
+            geometry=["type":"components","translation":[x,y],"scale":[scaleX/100,scaleY/100],"rotation_degrees":rotation,"shear_degrees":[shearX,shearY],"pivot":[pivotX,pivotY]]
+        }
+        return ["scope":"whole_layer","geometry":geometry,"interpolation":interpolation]
+    }
+    private var available:Bool{model.permissions.edits&&model.selected?.kind?.kind == "pixel"&&model.selected?.locks?.all != true&&model.selected?.locks?.pixels != true&&model.selected?.locks?.position != true&&model.selected?.locks?.transparency != true}
+    var body:some View{
+        ScrollView{VStack(alignment:.leading,spacing:10){
+            Text("整层像素变换").fontWeight(.medium)
+            Text("当前选区保持不变；整层像素与链接蒙版一起变换，保留画板外内容。").font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))
+            Group{
+            Picker("变换方式",selection:$mode){Text("数值变换").tag("components");Text("四角透视").tag("corners")}.labelsHidden()
+            if mode == "corners"{
+                Text("按 左上、右上、右下、左下 顺序，画布坐标 x,y；用分号分隔。").font(.system(size:10))
+                TextField("源四角",text:$source).textFieldStyle(.roundedBorder).accessibilityLabel("源四角")
+                TextField("目标四角",text:$destination).textFieldStyle(.roundedBorder).accessibilityLabel("目标四角")
+                Button("使用当前画板四角"){artboardCorners()}.buttonStyle(WorkspaceButtonStyle())
+            }else{
+                pair("平移 X",$x,"Y",$y)
+                pair("缩放 X %",$scaleX,"Y %",$scaleY)
+                field("旋转 °",$rotation)
+                pair("斜切 X °",$shearX,"Y °",$shearY)
+                pair("轴心 X",$pivotX,"Y",$pivotY)
+                HStack{Button("水平翻转"){scaleX = -scaleX};Button("垂直翻转"){scaleY = -scaleY}}.buttonStyle(WorkspaceButtonStyle())
+                Button("轴心设为画板中心"){if let f=model.snapshot?.frame{pivotX=Double(f.x)+Double(f.width)/2;pivotY=Double(f.y)+Double(f.height)/2}}.buttonStyle(WorkspaceButtonStyle())
+            }
+            Picker("重采样",selection:$interpolation){Text("最近邻（保留整数采样）").tag("nearest");Text("双线性（线性光）").tag("bilinear")}
+            }.disabled(preview.applying)
+            TonalPreviewControls(preview:preview,parameters:parameters.flatMap{try? commandJSON($0)},filterCommand:"transform.apply").disabled(!available)
+            HStack{
+                Button("应用变换"){commit()}.buttonStyle(WorkspaceButtonStyle(selected:true)).disabled(!available||parameters == nil||preview.applying)
+                Button("取消预览"){preview.cancel()}.buttonStyle(WorkspaceButtonStyle()).disabled(!preview.enabled && !preview.busy && !preview.applying)
+            }
+            if !available{Text("请选择未锁定的像素层；生成图层、图层组及选区内像素变换尚待后续支持。").font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))}
+            Divider()
+            CanvasSizePanel(model:model)
+        }.padding(12)}
+    }
+    private func field(_ title:String,_ value:Binding<Double>)->some View{HStack{Text(title);TextField(title,value:value,format:.number.precision(.fractionLength(2))).textFieldStyle(.roundedBorder).accessibilityLabel("变换"+title)}}
+    private func pair(_ a:String,_ av:Binding<Double>,_ b:String,_ bv:Binding<Double>)->some View{HStack{field(a,av);field(b,bv)}}
+    private func artboardCorners(){guard let f=model.snapshot?.frame else{return};let x=Double(f.x),y=Double(f.y),r=x+Double(f.width),b=y+Double(f.height);source="\(x),\(y); \(r),\(y); \(r),\(b); \(x),\(b)";destination=source}
+    private func commit(){guard let layer=model.selected,var parameters else{return};if preview.enabled,let json=try? commandJSON(parameters){preview.apply(json);return};parameters["layer"]=["id":layer.id];model.send(.command("transform.apply",parameters))}
+}

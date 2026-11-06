@@ -67,6 +67,7 @@ pub(crate) fn render(
     coord: TileCoord,
     input: &[[f64; 4]],
     settings: &TonalAdjustment,
+    reference: Option<strata_pixels::CoverageRect>,
     mut tile: impl FnMut(TileCoord) -> Result<Vec<[f64; 4]>, DocumentError>,
     cancel: &dyn Fn() -> bool,
 ) -> Result<Vec<[f32; 4]>, DocumentError> {
@@ -101,7 +102,15 @@ pub(crate) fn render(
     let top = oy
         .checked_sub(halo as i64)
         .ok_or_else(|| DocumentError::Invalid("local tone bounds overflow".into()))?;
-    let f = doc.frame();
+    let f = reference.unwrap_or_else(|| {
+        let f = doc.frame();
+        strata_pixels::CoverageRect {
+            x: f.x,
+            y: f.y,
+            width: f.width,
+            height: f.height,
+        }
+    });
     let right = f.x + i64::from(f.width) - 1;
     let bottom = f.y + i64::from(f.height) - 1;
     let xs = (0..side)

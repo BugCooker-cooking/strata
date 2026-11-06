@@ -529,7 +529,7 @@ impl Editor {
     ) -> Result<TonalInteraction, CommandError> {
         if !matches!(
             command,
-            "filter.gaussian_blur" | "filter.unsharp_mask" | "filter.add_noise"
+            "filter.gaussian_blur" | "filter.unsharp_mask" | "filter.add_noise" | "transform.apply"
         ) {
             return Err(CommandError::Invalid(
                 "unsupported pixel filter preview".into(),
@@ -557,7 +557,7 @@ impl Editor {
         }
         if !matches!(
             command,
-            "filter.gaussian_blur" | "filter.unsharp_mask" | "filter.add_noise"
+            "filter.gaussian_blur" | "filter.unsharp_mask" | "filter.add_noise" | "transform.apply"
         ) {
             return Err(CommandError::Invalid(
                 "unsupported pixel filter preview".into(),
@@ -964,12 +964,30 @@ impl Editor {
                     if !self.clipboard_write_confirmed(&request, &p.resource)? {
                         return Err(CommandError::Permission);
                     }
-                } else if id != "paint.sample_color" {
+                } else if id != "paint.sample_color" && id != "layer.pixel_bounds" {
                     let _: Empty = parse(params.clone())?;
                 }
                 (
                     Action::Query,
-                    if id == "paint.sample_color" {
+                    if id == "layer.pixel_bounds" {
+                        let p: Target = parse(params.clone())?;
+                        let doc = self.document().ok_or(CommandError::NoDocument)?;
+                        let target = doc.resolve(&p.layer)?;
+                        let layer = doc.layers().iter().find(|l| l.id() == target).unwrap();
+                        if !matches!(layer.info().kind, crate::LayerKind::Pixel)
+                            || !doc.effective_visibility(target)
+                        {
+                            return Err(CommandError::Invalid(
+                                "bounds query requires a visible pixel layer".into(),
+                            ));
+                        }
+                        let bounds = crate::geometry_pixels::content_bounds(
+                            layer.pixels(),
+                            [layer.info().x, layer.info().y],
+                            &|| request.expired(),
+                        )?;
+                        json!({"layer_id":target,"bounds":bounds})
+                    } else if id == "paint.sample_color" {
                         super::paint::sample(
                             self.document().ok_or(CommandError::NoDocument)?,
                             params.clone(),
@@ -1059,6 +1077,14 @@ impl Editor {
                     super::selection::mutate_cancellable(doc, id, params.clone(), &|| {
                         request.expired()
                     })?
+                {
+                    (Action::Edit, result)
+                } else if let Some(result) =
+                    super::transform::mutate(doc, id, params.clone(), &|| request.expired())?
+                {
+                    (Action::Edit, result)
+                } else if let Some(result) =
+                    super::canvas::mutate(doc, id, params.clone(), &|| request.expired())?
                 {
                     (Action::Edit, result)
                 } else if let Some(result) =

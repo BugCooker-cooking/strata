@@ -117,7 +117,7 @@ fn levels_and_curves_have_fixed_channel_math_and_keep_16bit_adjacent_codes() {
     run(&mut e, "edit.undo", json!({}));
     assert_eq!(values(&e), after);
     let archive = e.document().unwrap().to_archive().unwrap();
-    assert_eq!(archive.metadata["version"], 4);
+    assert_eq!(archive.metadata["version"], 5);
     let reopened = strata_core::Document::from_archive(archive.clone()).unwrap();
     assert_eq!(
         reopened.export_pixels().unwrap(),

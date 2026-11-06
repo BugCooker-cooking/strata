@@ -286,6 +286,10 @@ mod tests {
             ("filter.gaussian_blur", json!({"sigma":0.8})),
             ("filter.unsharp_mask", json!({"sigma":0.8,"amount":1.2})),
             ("filter.add_noise", json!({"amount":0.08,"seed":42})),
+            (
+                "transform.apply",
+                json!({"scope":"whole_layer","geometry":{"type":"components","translation":[0.5,0.25]}}),
+            ),
         ] {
             let (e, listener) = engine();
             let before = e

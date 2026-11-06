@@ -1,0 +1,142 @@
+{
+  "date_local": "2026-11-06",
+  "timezone": "Asia/Taipei",
+  "base_checkpoint": "e90c018",
+  "scope": "Whole pixel-layer projective transforms and linked masks, nine-anchor canvas size preserving editable structure and frozen references, absolute physical 100% view, preview cancel UI and current implemented-feature AI entrypoint reconciliation. Full M7/Photoshop and final AI closure remain open.",
+  "source_sha256": {
+    "apps/macos/Strata/Canvas/CanvasView.swift": "3de34cd8606495ee87f68b0fb5ff0776c43c2d06e4e09fdc4ee40d193103a50a",
+    "apps/macos/Strata/Workspace/CanvasSizeControls.swift": "decb32e68dc43f59f9c3d97ee3b653d9eeeb27949887253ea5db392653b08329",
+    "apps/macos/Strata/Workspace/FilterControls.swift": "f275eb2d1532b342e6be1db3a10f9328183183a5ad07a34206667c595a59cc21",
+    "apps/macos/Strata/Workspace/TransformControls.swift": "3fb291e877037f2fd1682dfd43a84a179b3f123c192393a18636e0af63c20120",
+    "apps/macos/Strata/Workspace/WorkspaceModel.swift": "4179975c1e74e11f8b97e96813effd3e3beef0e36e6797be9607c5815a897f0d",
+    "apps/macos/Strata/Workspace/WorkspaceViews.swift": "74d90f18eda765e41f7a3940b03ec32a633eed815fc5d7472f72184da03e65ae",
+    "apps/macos/StrataTests/FilterPreviewTests.swift": "06b676e8a73316d8d8a50cdfeda5a7ca746aaf0057099631a6e74bdacc50486d",
+    "crates/strata-ai/tests/protocol.rs": "ef5bac0594242a911c3de1786514b1f37a1cedb265c559e5b440e09c38617453",
+    "crates/strata-ai/tests/replay.rs": "d5267672dcbeaef981721468c23f6f3798143187ad812b00b2b712f9451a36a3",
+    "crates/strata-core/src/adjustments/spatial.rs": "4c58dfc160ac1ee3864aee8d8fafc857d0498aef7b50eb3169735a8dbaa70c23",
+    "crates/strata-core/src/commands/canvas.rs": "8e27fce823703d89f951c97e7c090f7021b5d804a7a9875d4ad64686fe1e5854",
+    "crates/strata-core/src/commands/executor.rs": "791d824b051b0715380f0c1c79af012af701e29813d51a88fd1ead6fdd730df6",
+    "crates/strata-core/src/commands/mod.rs": "57d9c6e9bd3da30d6c2df82cbc03a44ed19ec12c8285ffbc7e0ff261400e4d86",
+    "crates/strata-core/src/commands/registry.rs": "a8562b1ca95df78191c91040569ab04a6afa97502bd2582d73b6ffe09edcc107",
+    "crates/strata-core/src/commands/transform.rs": "58d63ab8c82d59a1797253c5f15a04780725aa2db5e4f098b0c8e6e5104f95c6",
+    "crates/strata-core/src/composite.rs": "9c1859e86038e4dd1b876c760cd6f257bf6ae54c9f1bfdb62a7dca5873d21263",
+    "crates/strata-core/src/document.rs": "3d5a1088232a187bb5b9c9ce8e9473290734f816a3c713cddbbbea1b114a847c",
+    "crates/strata-core/src/geometry.rs": "879b6ed278fb718165a19bf5ca1d2bc858b2390e81822b31f0f7931ca9d85e98",
+    "crates/strata-core/src/geometry_masks.rs": "6ed226d0c3516ff33b0d873f208cf2ca7f24c0f1ace9c917b3772e111240b71f",
+    "crates/strata-core/src/geometry_pixels.rs": "e7e79dbf0c332cd046105eb993bdb4af6ef0d6ad766f8584bd801f7cce0ed5de",
+    "crates/strata-core/src/layer.rs": "1f26b3fae5c1a5ea27dfa172ec05feafb9ad064d1554aee14e89dc5774e1b56f",
+    "crates/strata-core/src/lib.rs": "bf7008c328ae582defd0332eaa435a5d9b7c3220a8910b43e42648698f964397",
+    "crates/strata-core/src/project.rs": "ac76a9e6de822fb128815a6806a38e7f8b649efbf2c55a3d7d1cf14922c6938d",
+    "crates/strata-core/tests/canvas.rs": "58cdf762cdcf7e8b3358ce623987d028d6209e5d064fd18252ba1f66a5c03777",
+    "crates/strata-core/tests/geometry_masks.rs": "382d61a992f6d83294dd3fcfaa4c01cae8be0221a4e8c3b333c5b39931caab3a",
+    "crates/strata-core/tests/geometry_pixels.rs": "b4da7772f6049de2289484f4187c82a2d42dc99cec8a4ad62c30b7bf6d774399",
+    "crates/strata-core/tests/tonal_adjustments.rs": "b83aba6e45f26fc753a89a90e8cf0c7ab525a7b3986849b04914cc41bd17eea4",
+    "crates/strata-core/tests/transform.rs": "8bae90d9aabd0beb895e88bb36c94cc4e646bab5975357e84f70e621b216b2cd",
+    "crates/strata-ffi/src/filter_preview.rs": "930647be013294b8368975bc593b0b93728e705b9ca461b4dc8b5b221d9e2622",
+    "crates/strata-ffi/src/lib.rs": "856059c102194cd289a57e0b1988749896d6fa8693523ce3d579b1eb40392839",
+    "crates/strata-ffi/src/tests.rs": "550c74c298b9226be09ab30129a4713a305433d47e503261d8bda76f722970b1",
+    "crates/strata-render/tests/gpu.rs": "a072b75926abf43a27b23de3334dbecb15d655da151f5dfca2b34e0c381e9502",
+    "scripts/build-rust.sh": "e0ce757a05723b445cea4928bbd2d6bd09a303532440e0a1e1af18d52f5bf778",
+    "tools/strata-devtool/src/main.rs": "72371d04297643ffb2df82ab6389a5d0e931b462a5dd2484cabef4f16043c0bc"
+  },
+  "verification": {
+    "full_rust": {
+      "passed": 381,
+      "failed": 0,
+      "ignored": 1,
+      "log": "build/m7-geometry-full-test.log",
+      "scope": "Rust workspace section passed; initial native compilation then failed on @State declarations, fixed and rechecked in the separate native log."
+    },
+    "native_xctest": {
+      "passed": 57,
+      "failed": 0,
+      "skipped": 1,
+      "total": 58,
+      "log": "build/m7-geometry-xctest.log"
+    },
+    "required_gpu_gate": {
+      "passed": 72,
+      "failed": 0,
+      "ignored": 1,
+      "renderer_gpu_integration_tests": 30,
+      "log": "build/m7-geometry-required-gpu.log",
+      "note": "72 includes renderer/FFI unit tests; it is not 72 independent GPU scenarios."
+    },
+    "core_geometry_unit_references": 5,
+    "pixel_mask_transform_integrations": 15,
+    "canvas_integrations": 4,
+    "release_arm64": {
+      "passed": true,
+      "log": "build/m7-geometry-release.log"
+    },
+    "lint": {
+      "passed": true,
+      "log": "build/m7-geometry-lint.log"
+    },
+    "documented_command_examples": {
+      "passed": 108,
+      "log": "build/m7-geometry-commands.log"
+    },
+    "ai": {
+      "commands": 108,
+      "mapped_composite_rows": 77,
+      "inventory_composite_rows": 265,
+      "partial_entries": 7,
+      "unmapped_implemented_rows": 0,
+      "commands_without_feature_links": 0,
+      "unknown_native_literal_commands": 0,
+      "untyped_root_returns": 0,
+      "final_complete": false,
+      "latest_mapping_contract_log": "build/m7-geometry-entrypoints.final.log"
+    },
+    "ignored_or_skipped": [
+      "Rust real ONNX subject acceptance requires verified assets and explicit local inference opt-in.",
+      "XCTest real-service protocol acceptance requires explicit local network opt-in."
+    ],
+    "resolved_failures": [
+      "Sandbox blocked system HEIC fixture encoder: all five ImageIO tests then passed both separately and in the full native-permission Rust run.",
+      "Old tonal test expected manifest v4: updated to v5 and passed workspace run.",
+      "New SwiftUI multi-variable @State syntax: split declarations, full XCTest and Release passed."
+    ]
+  },
+  "native_manual": {
+    "application": "Release Strata.app",
+    "fixture": "repository-generated sample-photo.jpg 1024x1536 sRGB assumed 8-bit",
+    "single_instance": true,
+    "rotation_preview_degrees": 12,
+    "pivot": [
+      512,
+      768
+    ],
+    "preview_left_document_clean": true,
+    "apply_one_named_history": true,
+    "undo_restored_clean_document": true,
+    "actual_pixels_displayed_percent": 100,
+    "canvas_resized": [
+      1200,
+      1600
+    ],
+    "canvas_anchor": "center",
+    "original_pixel_layer_position": [
+      0,
+      0
+    ],
+    "canvas_undo_restored_size": [
+      1024,
+      1536
+    ],
+    "final_running_instances": 0,
+    "method": "CUA live native AX state and screenshot observation; no manual photo-quality/performance claim."
+  },
+  "cloud_builds": {
+    "used": false,
+    "workflow_id": 404259113,
+    "verified_state": "disabled_manually",
+    "automatic_triggers_present": false
+  },
+  "open_limits": [
+    "Selection-pixel lifting; generated/group/text transforms; on-canvas transform handles.",
+    "Crop/straighten, image size/rotation/flip/reveal, editable type, snapping/guides/multi-artboards, arbitrary ICC/CMYK and remaining P1–P3.",
+    "Large-image continuous latency/frame pacing, difficult-photo/live-model quality, macOS14 hardware runtime and physical pen/trackpad/cross-display/release gates."
+  ]
+}

@@ -663,6 +663,11 @@ fn apply(
                 renderer.set_view(view).map_err(render_error)?;
             }
             "view.fit" => renderer.fit_to_screen(),
+            "view.actual_size" => {
+                let mut view = renderer.view();
+                view.zoom = 1.0;
+                renderer.set_view(view).map_err(render_error)?;
+            }
             _ => {}
         }
     }

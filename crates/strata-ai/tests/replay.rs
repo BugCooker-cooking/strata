@@ -315,6 +315,107 @@ fn filter_prompts_discover_describe_invoke_real_edits_and_undo_the_ai_turn() {
 }
 
 #[test]
+fn transform_prompt_discovers_bounds_invokes_after_exact_approval_and_undoes_turn() {
+    let host = Host::new();
+    host.user(
+        "paint.fill",
+        json!({"layer":{"name":"Background"},"color":[0.8,0.2,0.1,0.5]}),
+    );
+    let before = host
+        .editor
+        .lock()
+        .unwrap()
+        .document()
+        .unwrap()
+        .to_archive()
+        .unwrap();
+    let initial = host.snapshot().unwrap();
+    let layer = json!({"id":initial.active_layer});
+    let mut session = host.session_with_prompt(
+        ExecutionMode::Direct,
+        "读取当前像素层边界，将整层围绕中心旋转 90 度，包括链接蒙版并保留画板外内容。",
+    );
+    reply(
+        &mut session,
+        &host,
+        vec![
+            call("search", "search_catalog", json!({"query":"自由变换"})),
+            call(
+                "describe",
+                "describe_commands",
+                json!({"ids":["layer.pixel_bounds","transform.apply"]}),
+            ),
+            invoke("bounds", "layer.pixel_bounds", json!({"layer":layer})),
+        ],
+    );
+    assert!(
+        result(session.poll(&host).unwrap())["matches"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|m| m["id"] == "transform.apply")
+    );
+    let description = result(session.poll(&host).unwrap());
+    assert_eq!(description["commands"].as_array().unwrap().len(), 2);
+    assert_eq!(
+        result(session.poll(&host).unwrap())["result"]["bounds"],
+        json!({"x":0,"y":0,"width":8,"height":8})
+    );
+    reply(
+        &mut session,
+        &host,
+        vec![invoke(
+            "transform",
+            "transform.apply",
+            json!({"layer":layer,"scope":"whole_layer","geometry":{"type":"components","rotation_degrees":90,"pivot":[4,4]}}),
+        )],
+    );
+    let Step::Paused {
+        question_id,
+        operation,
+        ..
+    } = session.poll(&host).unwrap()
+    else {
+        panic!("replacing pixels needs exact host approval")
+    };
+    assert_eq!(operation.unwrap()["command"], "transform.apply");
+    assert_eq!(host.snapshot().unwrap().revision, initial.revision);
+    let output = result(
+        session
+            .respond(
+                &host,
+                HostAnswer {
+                    question_id,
+                    answer: String::new(),
+                    approved: true,
+                    resource: None,
+                },
+            )
+            .unwrap(),
+    );
+    assert_eq!(output["result"]["scope"], "whole_layer");
+    let state = host.snapshot().unwrap();
+    assert_eq!(state.history.len(), initial.history.len() + 1);
+    assert_eq!(
+        state.history.last().unwrap().turn_id,
+        Some(session.turn_id())
+    );
+    assert_eq!(state.history.last().unwrap().command, "transform.apply");
+    host.editor.lock().unwrap().stop_turn();
+    host.user("edit.undo_turn", json!({"turn_id":session.turn_id()}));
+    assert!(
+        host.editor
+            .lock()
+            .unwrap()
+            .document()
+            .unwrap()
+            .to_archive()
+            .unwrap()
+            == before
+    );
+}
+
+#[test]
 fn replay_create_opacity_discovery_and_turn_undo() {
     let host = Host::new();
     let mut session = host.session(ExecutionMode::Direct);
@@ -386,6 +487,89 @@ fn replay_create_opacity_discovery_and_turn_undo() {
     ));
     host.user("edit.undo_turn", json!({"turn_id":session.turn_id()}));
     assert_eq!(host.snapshot().unwrap().layers.len(), 1);
+}
+
+#[test]
+fn canvas_size_prompt_discovers_real_anchor_edit_and_preserves_source_for_turn_undo() {
+    let host = Host::new();
+    host.user(
+        "paint.fill",
+        json!({"layer":{"name":"Background"},"color":[0.8,0.2,0.1,0.5]}),
+    );
+    let before = host
+        .editor
+        .lock()
+        .unwrap()
+        .document()
+        .unwrap()
+        .to_archive()
+        .unwrap();
+    let initial = host.snapshot().unwrap();
+    let mut session = host.session_with_prompt(
+        ExecutionMode::Direct,
+        "固定右下角，将画布扩展到 16×12 像素，不缩放或删除图层内容。",
+    );
+    reply(
+        &mut session,
+        &host,
+        vec![
+            call("search", "search_catalog", json!({"query":"画布大小"})),
+            call(
+                "describe",
+                "describe_commands",
+                json!({"ids":["image.canvas_size"]}),
+            ),
+        ],
+    );
+    assert!(
+        result(session.poll(&host).unwrap())["matches"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|m| m["id"] == "image.canvas_size")
+    );
+    assert_eq!(
+        result(session.poll(&host).unwrap())["commands"][0]["id"],
+        "image.canvas_size"
+    );
+    reply(
+        &mut session,
+        &host,
+        vec![invoke(
+            "resize",
+            "image.canvas_size",
+            json!({"width":16,"height":12,"anchor":"bottom_right"}),
+        )],
+    );
+    let answer = result(session.poll(&host).unwrap());
+    assert_eq!(answer["result"]["frame"]["x"], -8);
+    assert_eq!(answer["result"]["frame"]["y"], -4);
+    assert_eq!(answer["result"]["preserved_external_content"], true);
+    let after = host
+        .editor
+        .lock()
+        .unwrap()
+        .document()
+        .unwrap()
+        .to_archive()
+        .unwrap();
+    assert_eq!(after.tiles, before.tiles);
+    assert_eq!(
+        host.snapshot().unwrap().history.len(),
+        initial.history.len() + 1
+    );
+    host.editor.lock().unwrap().stop_turn();
+    host.user("edit.undo_turn", json!({"turn_id":session.turn_id()}));
+    assert_eq!(
+        host.editor
+            .lock()
+            .unwrap()
+            .document()
+            .unwrap()
+            .to_archive()
+            .unwrap(),
+        before
+    );
 }
 
 #[test]

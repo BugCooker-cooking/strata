@@ -1,6 +1,7 @@
 mod arrange;
 mod brush;
 mod cancellation;
+mod canvas;
 mod clone_source;
 mod executor;
 mod export;
@@ -20,6 +21,7 @@ mod selection;
 mod spot_heal;
 mod tonal;
 mod tonal_brush;
+mod transform;
 mod tree;
 pub use cancellation::WorkCancellation;
 pub use executor::{
@@ -42,6 +44,96 @@ macro_rules! params {
     };
 }
 params!(Empty {});
+#[derive(Clone, Copy, Debug, Default, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum CanvasAnchor {
+    TopLeft,
+    Top,
+    TopRight,
+    Left,
+    #[default]
+    Center,
+    Right,
+    BottomLeft,
+    Bottom,
+    BottomRight,
+}
+params!(CanvasSize {
+    #[schemars(range(min = 1, max = 100000))]
+    width: u32,
+    #[schemars(range(min = 1, max = 100000))]
+    height: u32,
+    #[serde(default)]
+    anchor: CanvasAnchor
+});
+#[derive(Serialize, JsonSchema)]
+pub struct CanvasGeometryResult {
+    pub previous_frame: crate::Frame,
+    pub frame: crate::Frame,
+    pub preserved_external_content: bool,
+    pub selection_rebound: bool,
+}
+#[derive(Clone, Copy, Debug, Default, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum TransformInterpolation {
+    Nearest,
+    #[default]
+    Bilinear,
+}
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum TransformScope {
+    WholeLayer,
+}
+fn transform_scale() -> [f64; 2] {
+    [1.0; 2]
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(tag = "type", rename_all = "snake_case", deny_unknown_fields)]
+pub enum TransformGeometry {
+    Matrix {
+        values: [f64; 9],
+    },
+    Affine {
+        values: [f64; 6],
+    },
+    Corners {
+        source: [[f64; 2]; 4],
+        destination: [[f64; 2]; 4],
+    },
+    Components {
+        #[serde(default)]
+        translation: [f64; 2],
+        #[serde(default = "transform_scale")]
+        scale: [f64; 2],
+        #[serde(default)]
+        rotation_degrees: f64,
+        #[serde(default)]
+        shear_degrees: [f64; 2],
+        #[serde(default)]
+        pivot: [f64; 2],
+    },
+}
+params!(TransformApply {
+    layer: LayerRef,
+    scope: TransformScope,
+    geometry: TransformGeometry,
+    #[serde(default)]
+    interpolation: TransformInterpolation
+});
+#[derive(Serialize, JsonSchema)]
+pub struct TransformResult {
+    pub layer_id: crate::LayerId,
+    pub scope: TransformScope,
+    pub output_bounds: Option<strata_pixels::CoverageRect>,
+    pub source_artboard_clipped: bool,
+    pub mask_transformed: bool,
+}
+#[derive(Serialize, JsonSchema)]
+pub struct LayerBoundsResult {
+    pub layer_id: crate::LayerId,
+    pub bounds: Option<strata_pixels::CoverageRect>,
+}
 fn filter_sigma() -> f64 {
     2.0
 }

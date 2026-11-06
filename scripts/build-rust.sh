@@ -9,6 +9,9 @@ case "${1:-Debug}" in
 esac
 
 export MACOSX_DEPLOYMENT_TARGET=14.0
+# Xcode invokes this script directly as well as through Make. Keep its Rust
+# subprocess within the user's local two-job build limit in either entry point.
+export CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-2}"
 if [[ "$profile" == release ]]; then
     cargo build --locked -p strata-ffi --release
 else

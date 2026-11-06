@@ -702,6 +702,18 @@ Permissions: `bound_document`
           "type": "boolean",
           "default": false
         },
+        "spatial_bounds": {
+          "description": "Frozen sampling domain for spatial adjustments after canvas-only edits.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CoverageRect"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "styles": {
           "$ref": "#/$defs/LayerStyles",
           "default": {
@@ -2234,6 +2246,18 @@ Permissions: `bound_document`
         "pass_through": {
           "type": "boolean",
           "default": false
+        },
+        "spatial_bounds": {
+          "description": "Frozen sampling domain for spatial adjustments after canvas-only edits.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CoverageRect"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "styles": {
           "$ref": "#/$defs/LayerStyles",
@@ -6341,6 +6365,55 @@ Permissions: `bound_document`
 ## `view.fit` — 适合屏幕
 
 Fit the current artboard to the viewport without changing document content.
+
+Kind: `View` · Undoable: `false` · Batchable: `false`
+
+Effects: `view.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Empty",
+  "type": "object",
+  "additionalProperties": false
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ViewResult",
+  "type": "object",
+  "properties": {
+    "params": true,
+    "view": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "view",
+    "params"
+  ]
+}
+```
+
+### Examples
+
+```json
+{}
+```
+
+## `view.actual_size` — 实际像素 100%
+
+Set absolute viewport zoom to one physical display pixel per image pixel, keeping the image-space center unchanged. This is independent of the previous zoom and Retina point scale; unlike view.zoom it is not a multiplicative factor. No document samples, geometry, dirty state or history change. Native navigation and AI use the same command. 中文：实际像素、百分之百、100%、恢复原始缩放。
 
 Kind: `View` · Undoable: `false` · Batchable: `false`
 
@@ -17333,6 +17406,630 @@ Permissions: `bound_document`
   },
   "monochrome": true,
   "seed": 42
+}
+```
+
+## `layer.pixel_bounds` — 像素图层边界
+
+Read finite occupied canvas bounds of an explicit visible pixel layer, including stored transparent hidden RGB. Sparse tiles scan with cancellation; query never changes samples/history. Invisible layer/ancestor or non-pixel target rejected. Null means no stored content. Use before transform.apply to choose source corners or pivot; coordinates include layer offset. Not batchable. 中文：像素图层边界、内容尺寸、变换轴心。
+
+Kind: `Query` · Undoable: `false` · Batchable: `false`
+
+Effects: `document.read`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Target",
+  "type": "object",
+  "properties": {
+    "layer": {
+      "$ref": "#/$defs/LayerRef"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "layer"
+  ],
+  "$defs": {
+    "LayerRef": {
+      "description": "Stable ID preferred. Duplicate names return candidates instead of guessing.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LayerBoundsResult",
+  "type": "object",
+  "properties": {
+    "bounds": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CoverageRect"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "layer_id": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "required": [
+    "layer_id"
+  ],
+  "$defs": {
+    "CoverageRect": {
+      "type": "object",
+      "properties": {
+        "height": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "width": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "x": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "y": {
+          "type": "integer",
+          "format": "int64"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "x",
+        "y",
+        "width",
+        "height"
+      ]
+    }
+  }
+}
+```
+
+### Examples
+
+```json
+{
+  "layer": {
+    "name": "Background"
+  }
+}
+```
+
+## `transform.apply` — 整层像素自由变换
+
+Transform an explicit pixel layer and linked u16 mask from immutable source, preserving canvas-external content, selection and styles. Required scope=whole_layer: all stored pixels transform; selection is NOT a write clip. Selected-pixel lifting, generated/group/text transforms and interactive handles are separate unsupported work; never rasterize/drop them implicitly. geometry.type=components: translation [x,y], scale [sx,sy] (negative flips), rotation_degrees, shear_degrees [x,y], pivot canvas [x,y]; order scale, shear, rotation, translation around pivot. affine values [a,b,c,d,tx,ty]. matrix values row-major [a,c,tx,b,d,ty,p,q,w], projective division. corners maps four cyclic convex source corners to destination corners; canvas coordinates, reversed orientation allowed. Use layer.pixel_bounds for actual source extent. interpolation nearest/bilinear (default): integer centers keep exact codes, fractions premultiplied linear P3 with actual ICC. Empty pixel layers reject. Exact integer translation only changes the layer position and keeps source/mask tile versions; signed axis permutations use integer pixel-center mapping even at large canvas offsets. Other output tiles are rebased to the transformed logical bounds, and the layer position reports that origin. Reject singular/horizon/unbounded or >64M-output visits; independent RGB/mask eight-tile/4096-decode caches, shared reservations/row cancellation. Reject pixel/position/transparency/all and ancestor locks. Linked mask flag preserved, anchors rebound. One atomic history, not batchable. 中文：自由变换、整层像素、缩放、旋转、斜切、扭曲、透视、水平翻转、垂直翻转。
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `false`
+
+Effects: `document.write, pixels.replace`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TransformApply",
+  "type": "object",
+  "properties": {
+    "geometry": {
+      "$ref": "#/$defs/TransformGeometry"
+    },
+    "interpolation": {
+      "$ref": "#/$defs/TransformInterpolation",
+      "default": "bilinear"
+    },
+    "layer": {
+      "$ref": "#/$defs/LayerRef"
+    },
+    "scope": {
+      "$ref": "#/$defs/TransformScope"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "layer",
+    "scope",
+    "geometry"
+  ],
+  "$defs": {
+    "LayerRef": {
+      "description": "Stable ID preferred. Duplicate names return candidates instead of guessing.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ]
+        }
+      ]
+    },
+    "TransformGeometry": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "matrix"
+            },
+            "values": {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "format": "double"
+              },
+              "maxItems": 9,
+              "minItems": 9
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "values"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "affine"
+            },
+            "values": {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "format": "double"
+              },
+              "maxItems": 6,
+              "minItems": 6
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "values"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "destination": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "number",
+                  "format": "double"
+                },
+                "maxItems": 2,
+                "minItems": 2
+              },
+              "maxItems": 4,
+              "minItems": 4
+            },
+            "source": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "number",
+                  "format": "double"
+                },
+                "maxItems": 2,
+                "minItems": 2
+              },
+              "maxItems": 4,
+              "minItems": 4
+            },
+            "type": {
+              "type": "string",
+              "const": "corners"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "source",
+            "destination"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "pivot": {
+              "type": "array",
+              "default": [
+                0.0,
+                0.0
+              ],
+              "items": {
+                "type": "number",
+                "format": "double"
+              },
+              "maxItems": 2,
+              "minItems": 2
+            },
+            "rotation_degrees": {
+              "type": "number",
+              "format": "double",
+              "default": 0.0
+            },
+            "scale": {
+              "type": "array",
+              "default": [
+                1.0,
+                1.0
+              ],
+              "items": {
+                "type": "number",
+                "format": "double"
+              },
+              "maxItems": 2,
+              "minItems": 2
+            },
+            "shear_degrees": {
+              "type": "array",
+              "default": [
+                0.0,
+                0.0
+              ],
+              "items": {
+                "type": "number",
+                "format": "double"
+              },
+              "maxItems": 2,
+              "minItems": 2
+            },
+            "translation": {
+              "type": "array",
+              "default": [
+                0.0,
+                0.0
+              ],
+              "items": {
+                "type": "number",
+                "format": "double"
+              },
+              "maxItems": 2,
+              "minItems": 2
+            },
+            "type": {
+              "type": "string",
+              "const": "components"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        }
+      ]
+    },
+    "TransformInterpolation": {
+      "type": "string",
+      "enum": [
+        "nearest",
+        "bilinear"
+      ]
+    },
+    "TransformScope": {
+      "type": "string",
+      "enum": [
+        "whole_layer"
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TransformResult",
+  "type": "object",
+  "properties": {
+    "layer_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "mask_transformed": {
+      "type": "boolean"
+    },
+    "output_bounds": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CoverageRect"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "scope": {
+      "$ref": "#/$defs/TransformScope"
+    },
+    "source_artboard_clipped": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "layer_id",
+    "scope",
+    "source_artboard_clipped",
+    "mask_transformed"
+  ],
+  "$defs": {
+    "CoverageRect": {
+      "type": "object",
+      "properties": {
+        "height": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "width": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "x": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "y": {
+          "type": "integer",
+          "format": "int64"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "x",
+        "y",
+        "width",
+        "height"
+      ]
+    },
+    "TransformScope": {
+      "type": "string",
+      "enum": [
+        "whole_layer"
+      ]
+    }
+  }
+}
+```
+
+### Examples
+
+```json
+{
+  "geometry": {
+    "pivot": [
+      8,
+      8
+    ],
+    "scale": [
+      -1,
+      1
+    ],
+    "type": "components"
+  },
+  "interpolation": "nearest",
+  "layer": {
+    "name": "Background"
+  },
+  "scope": "whole_layer"
+}
+```
+
+## `image.canvas_size` — 画布大小
+
+Resize the artboard only; no resampling, flattening, source deletion or movement of stored layer/mask coordinates. width/height integer 1..100000 subject to the document byte budget. anchor top_left/top/top_right/left/center(default)/right/bottom_left/bottom/bottom_right fixes the corresponding old canvas anchor; center uses floor division for odd differences. Source pixels (including hidden RGB), linked/disabled masks, hierarchy, clipping, styles and locked layers stay editable outside the new frame. Frozen generated-fill/style dimensions and spatial-adjustment sampling domains preserve original appearance when the canvas changes; extension is transparent except for already existing outside content. Current/previous u16 selections clip to the new artboard and expand with zero coverage, with at most 64M selection-copy visits. Does not fill the extension with a new background. Atomic cancellable single history step; manifest v5 persists frozen references and reads legacy v0..v4. Not batchable. 中文：画布大小、扩展画布、缩小画布、锚点、保留画板外像素、不要缩放图像。
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `false`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CanvasSize",
+  "type": "object",
+  "properties": {
+    "anchor": {
+      "$ref": "#/$defs/CanvasAnchor",
+      "default": "center"
+    },
+    "height": {
+      "type": "integer",
+      "format": "uint32",
+      "maximum": 100000,
+      "minimum": 1
+    },
+    "width": {
+      "type": "integer",
+      "format": "uint32",
+      "maximum": 100000,
+      "minimum": 1
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "width",
+    "height"
+  ],
+  "$defs": {
+    "CanvasAnchor": {
+      "type": "string",
+      "enum": [
+        "top_left",
+        "top",
+        "top_right",
+        "left",
+        "center",
+        "right",
+        "bottom_left",
+        "bottom",
+        "bottom_right"
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CanvasGeometryResult",
+  "type": "object",
+  "properties": {
+    "frame": {
+      "$ref": "#/$defs/Frame"
+    },
+    "preserved_external_content": {
+      "type": "boolean"
+    },
+    "previous_frame": {
+      "$ref": "#/$defs/Frame"
+    },
+    "selection_rebound": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "previous_frame",
+    "frame",
+    "preserved_external_content",
+    "selection_rebound"
+  ],
+  "$defs": {
+    "Frame": {
+      "type": "object",
+      "properties": {
+        "height": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "name": {
+          "type": "string"
+        },
+        "width": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "x": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "y": {
+          "type": "integer",
+          "format": "int64"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "x",
+        "y",
+        "width",
+        "height"
+      ]
+    }
+  }
+}
+```
+
+### Examples
+
+```json
+{
+  "anchor": "center",
+  "height": 24,
+  "width": 32
 }
 ```
 

@@ -4,6 +4,19 @@ import XCTest
 
 final class FilterPreviewTests:XCTestCase{
     @MainActor
+    func testCanvasSizeNativeCommandKeepsSelectionValidAndHasOneUndoStep()throws{
+        let(engine,_)=try configured();_ = try engine.dispatch(command:"select.all",paramsJson:"{}")
+        let before=try EditorSnapshot.decode(engine.snapshotJson())
+        _ = try engine.dispatch(command:"image.canvas_size",paramsJson:commandJSON(["width":21,"height":19,"anchor":"center"]))
+        let after=try EditorSnapshot.decode(engine.snapshotJson());XCTAssertEqual(after.frame?.x,-3);XCTAssertEqual(after.frame?.y,-2);XCTAssertEqual(after.frame?.width,21);XCTAssertEqual(after.history.count,before.history.count+1);XCTAssertEqual(after.history.last?.command,"image.canvas_size")
+        _ = try engine.dispatch(command:"edit.undo",paramsJson:"{}");let undone=try EditorSnapshot.decode(engine.snapshotJson());XCTAssertEqual(undone.frame?.width,16);XCTAssertEqual(undone.frame?.x,0);XCTAssertEqual(undone.historyCursor,before.historyCursor)
+    }
+    @MainActor
+    func testTransformCornerInputRejectsMissingExtraAndNonfiniteCoordinates(){
+        XCTAssertEqual(TransformPanel.parseCorners("0,0; 16,0;16,16;0,16"),[[0,0],[16,0],[16,16],[0,16]])
+        for invalid in ["0,x,0;16,0;16,16;0,16","0,;16,0;16,16;0,16","NaN,0;16,0;16,16;0,16","inf,0;16,0;16,16;0,16","0,0;16,0;16,16;0,16;","0,0;16,0;16,16","1000000000001,0;16,0;16,16;0,16"]{XCTAssertNil(TransformPanel.parseCorners(invalid),invalid)}
+    }
+    @MainActor
     private func configured()throws->(StrataEngine,TonalPreviewModel){
         let engine=StrataEngine(listener:EngineEvents{_ in})
         _ = try engine.dispatch(command:"file.new",paramsJson:commandJSON(["width":16,"height":16,"bit_depth":16,"background":[20000,30000,40000,32768]]))
@@ -14,7 +27,7 @@ final class FilterPreviewTests:XCTestCase{
     private func idle(_ preview:TonalPreviewModel)async throws{for _ in 0..<400{try await Task.sleep(for:.milliseconds(10));if !preview.busy && !preview.applying{return}};XCTFail("Filter preview worker did not finish")}
     @MainActor
     func testEachFilterPreviewsWithoutHistoryAndAppliesOnce()async throws{
-        for (command,params) in [("filter.gaussian_blur",["sigma":1.2] as [String:Any]),("filter.unsharp_mask",["sigma":1.2,"amount":1.5]),("filter.add_noise",["amount":0.08,"seed":42])]{
+        for (command,params) in [("filter.gaussian_blur",["sigma":1.2] as [String:Any]),("filter.unsharp_mask",["sigma":1.2,"amount":1.5]),("filter.add_noise",["amount":0.08,"seed":42]),("transform.apply",["scope":"whole_layer","geometry":["type":"components","translation":[0.5,0.25]]])]{
             let(engine,preview)=try configured();let before=try engine.snapshotJson();let old=try EditorSnapshot.decode(before)
             preview.configureFilter(command);let parameters=try commandJSON(params);preview.setEnabled(true,settings:parameters);try await idle(preview)
             XCTAssertEqual(try engine.snapshotJson(),before);XCTAssertTrue(preview.error.isEmpty,preview.error)

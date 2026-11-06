@@ -159,6 +159,9 @@ pub struct LayerInfo {
     pub clipped: bool,
     #[serde(default)]
     pub generated_size: Option<[u32; 2]>,
+    /// Frozen sampling domain for spatial adjustments after canvas-only edits.
+    #[serde(default)]
+    pub spatial_bounds: Option<strata_pixels::CoverageRect>,
     #[serde(default)]
     pub pass_through: bool,
     #[serde(default = "full_fill_opacity")]
@@ -206,6 +209,7 @@ impl Layer {
                 parent: None,
                 clipped: false,
                 generated_size: None,
+                spatial_bounds: None,
                 pass_through: false,
                 fill_opacity: 1.0,
                 locks: LayerLocks::default(),

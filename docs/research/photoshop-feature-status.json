@@ -720,5 +720,73 @@
         "path": "../research/2026-11-m7-color-progress.md"
       }
     ]
+  },
+  "PS-14-cf2715aeb6": {
+    "implementation": "已实现",
+    "acceptance": "既有 M1 导航；绝对 100% 命令的 Retina 数值与单窗口实看通过，保持文档干净",
+    "evidence": [
+      {
+        "label": "M7 整层变换/视图检查点",
+        "path": "../research/2026-11-m7-transform-progress.md"
+      }
+    ]
+  },
+  "PS-09-4f3d9835a7": {
+    "implementation": "部分实现",
+    "acceptance": "整层像素/链接蒙版与投影采样内核已有核心证据；选区像素、生成/组/文字、交互手柄仍待补齐",
+    "evidence": [
+      {
+        "label": "M7 整层变换/视图检查点",
+        "path": "../research/2026-11-m7-transform-progress.md"
+      }
+    ]
+  },
+  "PS-03-45c2eea14c": {
+    "implementation": "已实现",
+    "acceptance": "九锚点、原码/锁定结构/蒙版/选区、旧工程迁移与撤销通过；当前设备原生/Metal/Release 已有证据；持续回归",
+    "evidence": [
+      {
+        "label": "M7 画布大小",
+        "path": "../research/2026-11-m7-canvas-progress.md"
+      }
+    ]
+  },
+  "PS-02-47df18296a": {
+    "implementation": "已实现",
+    "acceptance": "既有 M1/M3 真实历史/剪贴板实现；本机核心、原生与 AI 权限回归持续验证",
+    "evidence": [
+      {
+        "label": "M3 实现与权限",
+        "path": "../research/2026-11-m3-layers-progress.md"
+      },
+      {
+        "label": "当前入口核对",
+        "path": "ai-editing-entrypoint-coverage.md"
+      }
+    ]
+  },
+  "PS-02-24d3726654": {
+    "implementation": "已实现",
+    "acceptance": "既有 M1/M3 真实历史/剪贴板实现；本机核心、原生与 AI 权限回归持续验证",
+    "evidence": [
+      {
+        "label": "M3 实现与权限",
+        "path": "../research/2026-11-m3-layers-progress.md"
+      },
+      {
+        "label": "当前入口核对",
+        "path": "ai-editing-entrypoint-coverage.md"
+      }
+    ]
+  },
+  "PS-09-7cc6b0bb65": {
+    "implementation": "部分实现",
+    "acceptance": "整数移动/组与链接蒙版/原生拖动已实现；吸附仍待补齐",
+    "evidence": [
+      {
+        "label": "M7 移动与几何边界",
+        "path": "../research/2026-11-m7-transform-progress.md"
+      }
+    ]
   }
 }

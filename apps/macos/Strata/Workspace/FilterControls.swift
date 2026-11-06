@@ -2,6 +2,7 @@ import SwiftUI
 
 struct FilterPanel:View{
     @ObservedObject var model:WorkspaceModel
+    @ObservedObject var preview:TonalPreviewModel
     @State private var command="filter.gaussian_blur"
     @State private var sigma=2.0
     @State private var amount=100.0
@@ -25,6 +26,7 @@ struct FilterPanel:View{
     private var available:Bool{model.selected?.kind?.kind == "pixel"&&model.permissions.edits&&model.selected?.locks?.all != true&&model.selected?.locks?.pixels != true}
     var body:some View{
         ScrollView{VStack(alignment:.leading,spacing:10){
+            Group{
             Picker("滤镜",selection:$command){Text("高斯模糊").tag("filter.gaussian_blur");Text("USM 锐化").tag("filter.unsharp_mask");Text("添加杂色").tag("filter.add_noise")}.labelsHidden()
             if command == "filter.add_noise"{
                 number("数量",value:$noiseAmount,unit:"%")
@@ -41,18 +43,19 @@ struct FilterPanel:View{
                     Text("阈值按线性 RGB 差值计算，保留原透明度。").font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))
                 }
             }
-            if let preview=model.tonalPreview{TonalPreviewControls(preview:preview,parameters:parameters.flatMap{try? commandJSON($0)},filterCommand:command).disabled(!available)}
+            }.disabled(!available)
+            TonalPreviewControls(preview:preview,parameters:parameters.flatMap{try? commandJSON($0)},filterCommand:command).disabled(!available)
             HStack{
-                Button("应用"){commit()}.buttonStyle(WorkspaceButtonStyle(selected:true)).disabled(!available||parameters == nil)
-                Button("取消预览"){model.tonalPreview?.cancel()}.buttonStyle(WorkspaceButtonStyle()).disabled(model.tonalPreview?.enabled != true&&model.tonalPreview?.busy != true)
+                Button("应用"){commit()}.buttonStyle(WorkspaceButtonStyle(selected:true)).disabled(!available||parameters == nil||preview.applying)
+                Button("取消预览"){preview.cancel()}.buttonStyle(WorkspaceButtonStyle()).disabled(!preview.enabled && !preview.busy && !preview.applying)
             }
-            if !available{Text("请选择可编辑的像素图层。").font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))}
-        }.padding(12)}.disabled(model.tonalPreview?.applying == true)
+            if !available && !preview.applying{Text("请选择可编辑的像素图层。").font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))}
+        }.padding(12)}
     }
     private func number(_ title:String,value:Binding<Double>,unit:String)->some View{HStack{Text(title);TextField(title,value:value,format:.number.precision(.fractionLength(2))).textFieldStyle(.roundedBorder).accessibilityLabel("滤镜"+title);Text(unit)}}
     private func commit(){
         guard let layer=model.selected,var parameters else{return}
-        if let preview=model.tonalPreview,preview.enabled,let json=try? commandJSON(parameters){preview.apply(json);return}
+        if preview.enabled,let json=try? commandJSON(parameters){preview.apply(json);return}
         parameters["layer"]=["id":layer.id];model.send(.command(command,parameters))
     }
 }

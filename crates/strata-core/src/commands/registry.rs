@@ -372,6 +372,15 @@ fn build_catalog() -> Vec<CommandSpec> {
         json!({})
     );
     command!(
+        "view.actual_size",
+        Empty,
+        View,
+        "实际像素 100%",
+        "Actual pixels at 100%",
+        "Set absolute viewport zoom to one physical display pixel per image pixel, keeping the image-space center unchanged. This is independent of the previous zoom and Retina point scale; unlike view.zoom it is not a multiplicative factor. No document samples, geometry, dirty state or history change. Native navigation and AI use the same command. 中文：实际像素、百分之百、100%、恢复原始缩放。",
+        json!({})
+    );
+    command!(
         "file.open",
         OpenFile,
         Lifecycle,
@@ -967,8 +976,38 @@ fn build_catalog() -> Vec<CommandSpec> {
         "Add deterministic noise to raw encoded working RGB on an explicit unlocked pixel layer. amount 0..1 (default .02): maximum absolute amplitude for distribution=uniform (default), standard deviation for gaussian. u32 seed (default 0), monochrome=false by default. Coordinate/channel SplitMix64 hashing and Box-Muller Gaussian, independent of tile traversal; monochrome shares the same encoded perturbation across RGB. Clip working RGB 0..1 then use floating actual ICC for linear-P3 coverage blend; no 8-bit intermediate. Preserve exact alpha, transparent hidden RGB and zero-selection codes. amount=0 exact identity; masks/locks/cancel/global tile budgets and one atomic history item. Not batchable. 中文：添加杂色、添加噪点、颗粒、胶片颗粒、均匀、高斯、单色、随机种子。",
         json!({"layer":{"name":"Background"},"amount":0.02,"distribution":"gaussian","monochrome":true,"seed":42})
     );
+    command!(
+        "layer.pixel_bounds",
+        Target,
+        Query,
+        "像素图层边界",
+        "Pixel layer bounds",
+        "Read finite occupied canvas bounds of an explicit visible pixel layer, including stored transparent hidden RGB. Sparse tiles scan with cancellation; query never changes samples/history. Invisible layer/ancestor or non-pixel target rejected. Null means no stored content. Use before transform.apply to choose source corners or pivot; coordinates include layer offset. Not batchable. 中文：像素图层边界、内容尺寸、变换轴心。",
+        json!({"layer":{"name":"Background"}})
+    );
+    command!(
+        "transform.apply",
+        TransformApply,
+        Mutate,
+        "整层像素自由变换",
+        "Whole pixel layer projective transform",
+        "Transform an explicit pixel layer and linked u16 mask from immutable source, preserving canvas-external content, selection and styles. Required scope=whole_layer: all stored pixels transform; selection is NOT a write clip. Selected-pixel lifting, generated/group/text transforms and interactive handles are separate unsupported work; never rasterize/drop them implicitly. geometry.type=components: translation [x,y], scale [sx,sy] (negative flips), rotation_degrees, shear_degrees [x,y], pivot canvas [x,y]; order scale, shear, rotation, translation around pivot. affine values [a,b,c,d,tx,ty]. matrix values row-major [a,c,tx,b,d,ty,p,q,w], projective division. corners maps four cyclic convex source corners to destination corners; canvas coordinates, reversed orientation allowed. Use layer.pixel_bounds for actual source extent. interpolation nearest/bilinear (default): integer centers keep exact codes, fractions premultiplied linear P3 with actual ICC. Empty pixel layers reject. Exact integer translation only changes the layer position and keeps source/mask tile versions; signed axis permutations use integer pixel-center mapping even at large canvas offsets. Other output tiles are rebased to the transformed logical bounds, and the layer position reports that origin. Reject singular/horizon/unbounded or >64M-output visits; independent RGB/mask eight-tile/4096-decode caches, shared reservations/row cancellation. Reject pixel/position/transparency/all and ancestor locks. Linked mask flag preserved, anchors rebound. One atomic history, not batchable. 中文：自由变换、整层像素、缩放、旋转、斜切、扭曲、透视、水平翻转、垂直翻转。",
+        json!({"layer":{"name":"Background"},"scope":"whole_layer","geometry":{"type":"components","scale":[-1,1],"pivot":[8,8]},"interpolation":"nearest"})
+    );
+    command!(
+        "image.canvas_size",
+        CanvasSize,
+        Mutate,
+        "画布大小",
+        "Canvas size",
+        "Resize the artboard only; no resampling, flattening, source deletion or movement of stored layer/mask coordinates. width/height integer 1..100000 subject to the document byte budget. anchor top_left/top/top_right/left/center(default)/right/bottom_left/bottom/bottom_right fixes the corresponding old canvas anchor; center uses floor division for odd differences. Source pixels (including hidden RGB), linked/disabled masks, hierarchy, clipping, styles and locked layers stay editable outside the new frame. Frozen generated-fill/style dimensions and spatial-adjustment sampling domains preserve original appearance when the canvas changes; extension is transparent except for already existing outside content. Current/previous u16 selections clip to the new artboard and expand with zero coverage, with at most 64M selection-copy visits. Does not fill the extension with a new background. Atomic cancellable single history step; manifest v5 persists frozen references and reads legacy v0..v4. Not batchable. 中文：画布大小、扩展画布、缩小画布、锚点、保留画板外像素、不要缩放图像。",
+        json!({"width":32,"height":24,"anchor":"center"})
+    );
     for item in &mut list {
         item.returns = match item.id {
+            "image.canvas_size" => schemars::schema_for!(CanvasGeometryResult),
+            "layer.pixel_bounds" => schemars::schema_for!(LayerBoundsResult),
+            "transform.apply" => schemars::schema_for!(TransformResult),
             "retouch.spot_heal" => schemars::schema_for!(SpotHealResult),
             "retouch.heal" => schemars::schema_for!(HealResult),
             "paint.sample_color" => schemars::schema_for!(SampleColorResult),
@@ -1001,7 +1040,7 @@ fn build_catalog() -> Vec<CommandSpec> {
             "file.new" | "file.open" | "file.recover" => schemars::schema_for!(NewResult),
             "file.save" | "file.save_as" | "file.export" => schemars::schema_for!(ExternalResult),
             "edit.undo" | "edit.redo" | "edit.undo_turn" => schemars::schema_for!(HistoryResult),
-            "view.pan" | "view.zoom" | "view.fit" | "layer.select" => {
+            "view.pan" | "view.zoom" | "view.fit" | "view.actual_size" | "layer.select" => {
                 schemars::schema_for!(ViewResult)
             }
             "document.batch" => schemars::schema_for!(BatchResult),
@@ -1079,9 +1118,18 @@ fn build_catalog() -> Vec<CommandSpec> {
                     });
             }
         }
-        if item.id == "document.batch" || item.id == "file.place" || item.id.starts_with("filter.")
+        if item.id == "document.batch"
+            || item.id == "file.place"
+            || item.id.starts_with("filter.")
+            || matches!(
+                item.id,
+                "transform.apply" | "layer.pixel_bounds" | "image.canvas_size"
+            )
         {
             item.batchable = false;
+        }
+        if item.id == "transform.apply" {
+            item.effects.push("pixels.replace");
         }
         if matches!(
             item.id,
