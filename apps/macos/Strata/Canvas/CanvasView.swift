@@ -29,6 +29,7 @@ final class CanvasView: NSView {
     private var cloneSource:NSPoint?
     private let cloneMarker=CAShapeLayer()
     private let cropPreview=CAShapeLayer()
+    private let cropHandles=CAShapeLayer()
     lazy var cropInput=CanvasCropInput(engine:engine)
     private var cropTool=false
     var documentOrigin = NSPoint.zero
@@ -86,6 +87,7 @@ final class CanvasView: NSView {
         paintGuide.fillColor=nil;paintGuide.strokeColor=NSColor.white.cgColor;paintGuide.lineWidth=1;paintGuide.lineDashPattern=[4,4];layer?.addSublayer(paintGuide)
         cloneMarker.fillColor=nil;cloneMarker.strokeColor=NSColor.white.cgColor;cloneMarker.lineWidth=1;layer?.addSublayer(cloneMarker)
         cropPreview.fillColor=nil;cropPreview.strokeColor=NSColor.systemBlue.cgColor;cropPreview.lineWidth=1.5;cropPreview.lineDashPattern=[8,4];layer?.addSublayer(cropPreview)
+        cropHandles.fillColor=NSColor.white.cgColor;cropHandles.strokeColor=NSColor.systemBlue.cgColor;cropHandles.lineWidth=1;layer?.addSublayer(cropHandles)
         cropInput.onChanged={[weak self] in self?.drawCropPreview();self?.markDirty()}
         cropInput.onRunning={[weak self] running in self?.onBrushRunning?(running)}
         cropInput.onCommitted={[weak self] in self?.markDirty();self?.onCommitted?()}
@@ -305,10 +307,11 @@ final class CanvasView: NSView {
         selectionInput.cancel(); lastDrag = nil
     }
     private func drawCropPreview(){
-        guard let path=cropInput.path(),let frame=engine.artboardOverlay()else{cropPreview.path=nil;return}
+        guard let path=cropInput.path(),let draft=cropInput.draft,let frame=engine.artboardOverlay()else{cropPreview.path=nil;cropHandles.path=nil;return}
         let zoom=CGFloat(engine.canvasZoom())/scale
         var transform=CGAffineTransform(a:zoom,b:0,c:0,d:zoom,tx:CGFloat(frame.x)/scale-documentOrigin.x*zoom,ty:CGFloat(frame.y)/scale-documentOrigin.y*zoom)
-        CATransaction.begin();CATransaction.setDisableActions(true);cropPreview.path=path.copy(using:&transform);CATransaction.commit()
+        let handles=CGMutablePath();for handle in CropHandle.allCases{let point=handle.position(in:draft).applying(transform);handles.addRect(CGRect(x:point.x-3,y:point.y-3,width:6,height:6))}
+        CATransaction.begin();CATransaction.setDisableActions(true);cropPreview.path=path.copy(using:&transform);cropHandles.path=handles;CATransaction.commit()
     }
     func configureCrop(_ model:WorkspaceModel){let enabled=model.tool == .crop;if enabled && !cropTool{cancelLayerDrag()};cropTool=enabled;cropInput.configure(enabled:cropTool,ratio:model.cropRatio)}
     func configureSelection(_ model: WorkspaceModel) {
@@ -403,7 +406,7 @@ final class CanvasView: NSView {
         guard !isWorkBusy else { return }
         benchmark?.cancel(BenchmarkFailure("User input interrupted benchmark"))
         window?.makeFirstResponder(self)
-        if cropTool{guard isEditingEnabled,let point=documentPoint(convert(event.locationInWindow,from:nil))else{return};cropInput.down(point);return}
+        if cropTool{guard isEditingEnabled,let point=documentPoint(convert(event.locationInWindow,from:nil))else{return};let zoom=CGFloat(engine.canvasZoom())/scale;cropInput.down(point,hitTolerance:8/max(zoom,0.0001));return}
         if paintTool{guard let point=documentPoint(convert(event.locationInWindow,from:nil))else{return};paintInput.down(point,background:event.modifierFlags.contains(.option));return}
         if brushTool {
             guard isEditingEnabled, let point = documentPoint(convert(event.locationInWindow,from:nil)) else { return }

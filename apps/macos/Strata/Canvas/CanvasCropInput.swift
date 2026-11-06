@@ -1,8 +1,14 @@
 import AppKit
 import Combine
 
-/// An owned crop draft draws only an overlay. Its trusted core request is
-/// captured on mouse-down; applying never retargets a newer document or epoch.
+enum CropHandle:CaseIterable{
+    case topLeft,top,topRight,left,right,bottomLeft,bottom,bottomRight
+    var axes:(Int,Int){switch self{case .topLeft:(-1,-1);case .top:(0,-1);case .topRight:(1,-1);case .left:(-1,0);case .right:(1,0);case .bottomLeft:(-1,1);case .bottom:(0,1);case .bottomRight:(1,1)}}
+    func position(in rect:CGRect)->NSPoint{let(x,y)=axes;return NSPoint(x:x<0 ? rect.minX:x>0 ? rect.maxX:rect.midX,y:y<0 ? rect.minY:y>0 ? rect.maxY:rect.midY)}
+}
+
+/// An owned crop draft draws only an overlay. Its trusted request is captured
+/// on first input; moving/resizing the draft never retargets a newer revision.
 @MainActor
 final class CanvasCropInput:ObservableObject{
     @Published private(set) var running=false
@@ -11,11 +17,10 @@ final class CanvasCropInput:ObservableObject{
     private let engine:StrataEngine
     private var context:(document:String?,revision:UInt64,control:String)?
     private var token:String?
-    private var active=false
     private var enabled=false
-    private var start=NSPoint.zero
-    private var current=NSPoint.zero
     private var ratio:[UInt32]?
+    private enum Drag{case create(NSPoint),move(NSPoint,CGRect),resize(CropHandle,CGRect)}
+    private var gesture:Drag?
     var onChanged:(()->Void)?
     var onRunning:((Bool)->Void)?
     var onCommitted:(()->Void)?
@@ -32,51 +37,86 @@ final class CanvasCropInput:ObservableObject{
         if !enabled{cancel();return}
         guard !running else{return}
         let pair=ratio.split(separator:":").compactMap{UInt32($0)}
-        self.ratio=pair.count==2&&pair.allSatisfy({$0>0&&$0<=100000}) ? pair:nil
-        updateDraft()
+        let next=pair.count==2&&pair.allSatisfy({$0>0&&$0<=100000}) ? pair:nil
+        guard next != self.ratio else{return}
+        self.ratio=next
+        if let draft{publish(fit(draft))}
     }
-    func down(_ point:NSPoint){
+    func down(_ point:NSPoint,hitTolerance:CGFloat=0){
         guard enabled,!running,context?.control=="user",let context,let document=context.document,point.x.isFinite,point.y.isFinite else{return}
+        if token != nil,let draft{
+            if hitTolerance>0,let handle=CropHandle.allCases.min(by:{distance(point,$0.position(in:draft))<distance(point,$1.position(in:draft))}),distance(point,handle.position(in:draft))<=hitTolerance{
+                gesture = .resize(handle,draft);return
+            }
+            if draft.contains(point){gesture = .move(point,draft);return}
+        }
         cancel();error=""
-        do{token=try engine.beginCrop(documentId:document,revision:context.revision);active=true;start=point;current=point;updateDraft()}
-        catch{record(error)}
+        do{token=try engine.beginCrop(documentId:document,revision:context.revision);gesture = .create(point);publish(nil)}catch{record(error)}
     }
-    func drag(_ point:NSPoint){guard active,!running,point.x.isFinite,point.y.isFinite else{return};current=point;updateDraft()}
-    func up(_ point:NSPoint){drag(point)}
-    private var rectangle:[String:Any]?{
-        let x=min(start.x,current.x).rounded(.down),y=min(start.y,current.y).rounded(.down)
-        let width=max(start.x,current.x).rounded(.up)-x,height=max(start.y,current.y).rounded(.up)-y
-        guard abs(x)<=1e12,abs(y)<=1e12,let left=Int64(exactly:x),let top=Int64(exactly:y),let w=UInt32(exactly:width),let h=UInt32(exactly:height),w>0,h>0,w<=100000,h<=100000 else{return nil}
-        return ["x":left,"y":top,"width":w,"height":h]
+    func drag(_ point:NSPoint){
+        guard !running,point.x.isFinite,point.y.isFinite,let gesture else{return}
+        switch gesture{
+        case .create(let start):publish(fit(box(start,point)))
+        case .move(let start,let rect):publish(valid(rect.offsetBy(dx:(point.x-start.x).rounded(),dy:(point.y-start.y).rounded())))
+        case .resize(let handle,let rect):publish(resize(rect,handle:handle,to:point))
+        }
     }
-    private func updateDraft(){
-        guard token != nil,let rectangle,let x=rectangle["x"] as? Int64,let y=rectangle["y"] as? Int64,var w=rectangle["width"] as? UInt32,var h=rectangle["height"] as? UInt32 else{draft=nil;onChanged?();return}
-        if let ratio{var a=ratio[0],b=ratio[1];while b != 0{(a,b)=(b,a%b)};let rw=ratio[0]/a,rh=ratio[1]/a,multiple=min(w/rw,h/rh);guard multiple>0 else{draft=nil;onChanged?();return};w=rw*multiple;h=rh*multiple}
-        draft=CGRect(x:Double(x),y:Double(y),width:Double(w),height:Double(h));error="";onChanged?()
+    func up(_ point:NSPoint){drag(point);gesture=nil}
+    private func distance(_ a:NSPoint,_ b:NSPoint)->CGFloat{hypot(a.x-b.x,a.y-b.y)}
+    private func box(_ a:NSPoint,_ b:NSPoint)->CGRect{
+        let x=min(a.x,b.x).rounded(.down),y=min(a.y,b.y).rounded(.down)
+        return CGRect(x:x,y:y,width:max(a.x,b.x).rounded(.up)-x,height:max(a.y,b.y).rounded(.up)-y)
     }
+    private var units:(CGFloat,CGFloat)?{
+        guard let ratio else{return nil};var a=ratio[0],b=ratio[1];while b != 0{(a,b)=(b,a%b)};return(CGFloat(ratio[0]/a),CGFloat(ratio[1]/a))
+    }
+    private func valid(_ rect:CGRect)->CGRect?{
+        guard [rect.minX,rect.minY,rect.maxX,rect.maxY].allSatisfy({$0.isFinite&&abs($0)<=1e12&&$0.rounded()==$0}),rect.width>=1,rect.height>=1,rect.width<=100000,rect.height<=100000 else{return nil};return rect
+    }
+    private func fit(_ rect:CGRect)->CGRect?{
+        guard let (w,h)=units else{return valid(rect)};let n=min(floor(rect.width/w),floor(rect.height/h));guard n>=1 else{return nil}
+        return valid(CGRect(x:rect.minX,y:rect.minY,width:n*w,height:n*h))
+    }
+    private func resize(_ rect:CGRect,handle:CropHandle,to point:NSPoint)->CGRect?{
+        let (ax,ay)=handle.axes
+        let fixed=NSPoint(x:ax<0 ? rect.maxX:rect.minX,y:ay<0 ? rect.maxY:rect.minY)
+        if ax != 0 && ay != 0{
+            let bounds=box(fixed,point);guard var fitted=fit(bounds)else{return nil}
+            fitted.origin.x=point.x<fixed.x ? fixed.x-fitted.width:fixed.x
+            fitted.origin.y=point.y<fixed.y ? fixed.y-fitted.height:fixed.y
+            return valid(fitted)
+        }
+        if ax != 0{
+            let width=abs(point.x-fixed.x).rounded(.up)
+            let size:CGSize
+            if let(w,h)=units{let n=floor(width/w);size=CGSize(width:n*w,height:n*h)}else{size=CGSize(width:width,height:rect.height)}
+            return valid(CGRect(x:point.x<fixed.x ? fixed.x-size.width:fixed.x,y:(rect.midY-size.height/2).rounded(.down),width:size.width,height:size.height))
+        }
+        let height=abs(point.y-fixed.y).rounded(.up)
+        let size:CGSize
+        if let(w,h)=units{let n=floor(height/h);size=CGSize(width:n*w,height:n*h)}else{size=CGSize(width:rect.width,height:height)}
+        return valid(CGRect(x:(rect.midX-size.width/2).rounded(.down),y:point.y<fixed.y ? fixed.y-size.height:fixed.y,width:size.width,height:size.height))
+    }
+    private func publish(_ rect:CGRect?){draft=rect;if rect != nil{error=""};onChanged?()}
     @discardableResult
     func confirm()->Bool{
-        guard active,!running,let token else{return false}
-        guard let rectangle,draft != nil else{error="请拖出有效的裁剪矩形。";return true}
-        var params:[String:Any]=["rect":rectangle,"pixels":"preserve"];if let ratio{params["aspect_ratio"]=ratio}
+        guard !running,let token else{return false}
+        guard let draft=valid(draft ?? .zero),let x=Int64(exactly:draft.minX),let y=Int64(exactly:draft.minY),let w=UInt32(exactly:draft.width),let h=UInt32(exactly:draft.height)else{error="请拖出有效的裁剪矩形。";return true}
+        var params:[String:Any]=["rect":["x":x,"y":y,"width":w,"height":h],"pixels":"preserve"];if let ratio{params["aspect_ratio"]=ratio}
         do{
-            let encoded=try commandJSON(params),engine=engine
-            active=false;running=true;onRunning?(true)
+            let encoded=try commandJSON(params),engine=engine;gesture=nil;running=true;onRunning?(true)
             Task{[weak self]in
                 let result:Result<Void,Error>
                 do{try await aiEngineWork{try engine.endCrop(token:token,paramsJson:encoded,cancel:false)};result = .success(())}catch{result = .failure(error)}
                 guard let self else{return};self.running=false
-                if self.token==token{self.token=nil;self.draft=nil;self.active=false;self.onChanged?()}
+                if self.token==token{self.token=nil;self.publish(nil)}
                 self.onRunning?(false)
                 switch result{case .success:self.onCommitted?();case .failure(let error):self.record(error)}
             }
         }catch{record(error)}
         return true
     }
-    func cancel(){
-        if let token{try? engine.endCrop(token:token,paramsJson:"{}",cancel:true)}
-        token=nil;active=false;draft=nil;error="";onChanged?()
-    }
+    func cancel(){if let token{try? engine.endCrop(token:token,paramsJson:"{}",cancel:true)};token=nil;gesture=nil;error="";publish(nil)}
     func path()->CGPath?{guard let draft else{return nil};return CGPath(rect:draft,transform:nil)}
     private func record(_ error:Error){if let e=error as? StrataError,case .Cancelled=e{return};self.error=(error as? StrataError)?.userMessage ?? error.localizedDescription;onError?(error)}
 }

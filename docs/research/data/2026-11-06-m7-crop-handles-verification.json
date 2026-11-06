@@ -1,0 +1,75 @@
+{
+  "date_local": "2026-11-06",
+  "timezone": "Asia/Taipei",
+  "base_checkpoint": "a6ebb38",
+  "scope": "Native crop eight resize handles and inside movement; same image.crop implementation and owned original-context draft.",
+  "source_sha256": {
+    "apps/macos/Strata/Canvas/CanvasCropInput.swift": "774b641e10975ffacc33ed08dc33c79b40e18737c48935c184dbcf308bd31f37",
+    "apps/macos/Strata/Canvas/CanvasView.swift": "044802e7346c8a535a492b2bf3a2fab19307dfdbc7650117f068544b68831095",
+    "apps/macos/Strata/Workspace/CropControls.swift": "57a773c1591644d0e83031a38f30c0c3b557919df492444627b9adca7e7e4a02",
+    "apps/macos/StrataTests/CropInputTests.swift": "8aefa05417c8c40376dd37e201b4e4b3f5a0ee104c92ea48e12f1e4c24acdb73",
+    "crates/strata-core/src/commands/registry.rs": "3d17dfc2fdd86abcf4ce5a2079d54912104b35d9bb69827f6f955299c981c4a6"
+  },
+  "verification": {
+    "native_crop_subset": {
+      "passed": 4,
+      "failed": 0,
+      "skipped": 0,
+      "log": "build/m7-crop-handles-native.log",
+      "coverage": "Eight handle references, move, ratio, negative coordinates, actual displayed-rectangle commit, stale revision, cancel and replacement."
+    },
+    "swiftlint": true,
+    "arm64_release": {
+      "passed": true,
+      "log": "build/m7-crop-handles-release.log"
+    },
+    "generated_command_reference_and_ai_check": {
+      "passed": true,
+      "commands": 111,
+      "mapped_composite_rows": 80,
+      "partial_entrypoints": 9,
+      "final_complete": false
+    },
+    "prior_full_baseline": "a6ebb38: 35 FFI passed/1 ONNX ignored and 61 native passed/1 live-network skipped; retained separately, not relabeled as a full rerun of this Swift-only input increment."
+  },
+  "native_manual": {
+    "single_release_instance": true,
+    "fixture": "repository-generated sample-photo.jpg",
+    "initial_draft": [
+      164,
+      215,
+      677,
+      677
+    ],
+    "after_bottom_right_resize": [
+      164,
+      215,
+      773,
+      822
+    ],
+    "after_inside_move": [
+      261,
+      312,
+      773,
+      822
+    ],
+    "draft_kept_document_clean": true,
+    "eight_handles_visible": true,
+    "return_committed_displayed_size": [
+      773,
+      822
+    ],
+    "history_edits": 1,
+    "undo_restored_original_clean_size": [
+      1024,
+      1536
+    ],
+    "final_running_strata_instances": 0
+  },
+  "ai_entrypoint": "No new pixel command: final explicit rectangle and optional exact ratio still go through image.crop, so AI uses the same real capability without host tokens.",
+  "cloud_builds": "disabled and not used",
+  "open_limits": [
+    "Straighten, deleting cropped pixels, perspective crop and all remaining full Photoshop/AI tasks remain open.",
+    "This is functional single-sample evidence; continuous 24MP/photo/live-model/device/platform/release gates stay distinct."
+  ]
+}

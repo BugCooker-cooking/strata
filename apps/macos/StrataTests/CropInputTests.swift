@@ -24,4 +24,32 @@ final class CropInputTests:XCTestCase{
         // Switching tools cancels only this owned crop session.
         input.down(NSPoint(x:0,y:0));input.up(NSPoint(x:3,y:3));input.configure(enabled:false,ratio:"free");XCTAssertFalse(input.hasDraft);XCTAssertFalse(input.confirm());input.down(NSPoint(x:0,y:0));XCTAssertFalse(input.hasDraft)
     }
+    @MainActor
+    func testAllEightHandlesResizeOppositeEdgesAndKeepDraftOutOfHistory()throws{
+        let(engine,input)=try configured();input.configure(enabled:true,ratio:"free");let before=try engine.snapshotJson()
+        let cases:[(CropHandle,NSPoint,CGRect)]=[
+            (.topLeft,NSPoint(x:0,y:1),CGRect(x:0,y:1,width:14,height:11)),
+            (.top,NSPoint(x:8,y:1),CGRect(x:2,y:1,width:12,height:11)),
+            (.topRight,NSPoint(x:16,y:1),CGRect(x:2,y:1,width:14,height:11)),
+            (.left,NSPoint(x:0,y:7),CGRect(x:0,y:3,width:14,height:9)),
+            (.right,NSPoint(x:16,y:7),CGRect(x:2,y:3,width:14,height:9)),
+            (.bottomLeft,NSPoint(x:0,y:14),CGRect(x:0,y:3,width:14,height:11)),
+            (.bottom,NSPoint(x:8,y:14),CGRect(x:2,y:3,width:12,height:11)),
+            (.bottomRight,NSPoint(x:16,y:14),CGRect(x:2,y:3,width:14,height:11))]
+        for(handle,point,expected)in cases{
+            input.cancel();input.down(NSPoint(x:2,y:3));input.up(NSPoint(x:14,y:12));let rect=try XCTUnwrap(input.draft)
+            input.down(handle.position(in:rect),hitTolerance:0.5);input.up(point);XCTAssertEqual(input.draft,expected,"\(handle)");XCTAssertEqual(try engine.snapshotJson(),before)
+        }
+    }
+    @MainActor
+    func testMoveAndRatioResizeCommitDisplayedRectAndKeepInitialRevisionBinding()async throws{
+        let(engine,input)=try configured();input.configure(enabled:true,ratio:"4:3");input.down(NSPoint(x:2,y:3));input.up(NSPoint(x:14,y:12))
+        input.down(NSPoint(x:8,y:7),hitTolerance:0.5);input.up(NSPoint(x:13,y:3));XCTAssertEqual(input.draft,CGRect(x:7,y:-1,width:12,height:9))
+        input.down(NSPoint(x:19,y:8),hitTolerance:0.5);input.up(NSPoint(x:23,y:11));XCTAssertEqual(input.draft,CGRect(x:7,y:-1,width:16,height:12))
+        XCTAssertTrue(input.confirm());try await finished(input);let after=try EditorSnapshot.decode(engine.snapshotJson());XCTAssertEqual(after.frame?.x,7);XCTAssertEqual(after.frame?.y,-1);XCTAssertEqual(after.frame?.width,16);XCTAssertEqual(after.frame?.height,12);XCTAssertEqual(after.history.count,1)
+        _ = try engine.dispatch(command:"edit.undo",paramsJson:"{}");input.bind(try EditorSnapshot.decode(engine.snapshotJson()));input.down(NSPoint(x:2,y:3));input.up(NSPoint(x:14,y:12))
+        input.down(NSPoint(x:2,y:3),hitTolerance:0.5);input.up(NSPoint(x:-2,y:0));XCTAssertEqual(input.draft,CGRect(x:-2,y:0,width:16,height:12))
+        _ = try engine.dispatch(command:"layer.rename",paramsJson:commandJSON(["layer":["name":"Background"],"name":"new revision"]))
+        XCTAssertTrue(input.confirm());try await finished(input);let snapshot=try EditorSnapshot.decode(engine.snapshotJson());XCTAssertEqual(snapshot.frame?.width,16);XCTAssertEqual(snapshot.frame?.x,0);XCTAssertEqual(snapshot.history.last?.command,"layer.rename")
+    }
 }
