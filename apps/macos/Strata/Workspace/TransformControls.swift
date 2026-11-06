@@ -68,6 +68,8 @@ struct TransformPanel:View{
             }
             if !available{Text("请选择未锁定像素层；选区模式需要非空选区。生成图层和图层组的自由变换仍待支持。").font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))}
             Divider()
+            ImageSizePanel(model:model)
+            Divider()
             CanvasSizePanel(model:model)
             Divider()
             CropPanel(model:model)

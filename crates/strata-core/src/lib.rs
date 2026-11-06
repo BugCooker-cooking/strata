@@ -7,6 +7,7 @@ mod document;
 pub mod geometry;
 pub mod geometry_masks;
 pub mod geometry_pixels;
+mod geometry_resize;
 mod ids;
 mod layer;
 mod project;

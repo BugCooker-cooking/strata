@@ -852,5 +852,15 @@
         "path": "../research/2026-11-m7-trim-progress.md"
       }
     ]
+  },
+  "PS-03-ad24731ea8": {
+    "implementation": "部分实现",
+    "acceptance": "像素层/无样式组的最近邻、双线性和面积重采样已实现；生成/调整/样式/文字及其他专业算法仍待后续。",
+    "evidence": [
+      {
+        "label": "尺寸重采样进展",
+        "path": "../research/2026-11-m7-resize-progress.md"
+      }
+    ]
   }
 }

@@ -4,6 +4,23 @@ import XCTest
 
 final class FilterPreviewTests:XCTestCase{
     @MainActor
+    func testImageSizeSamplingRetainsNativeLayerIdsAndOneUndoStep()throws{
+        for interpolation in ["nearest","bilinear","area"]{
+            let engine=StrataEngine(listener:EngineEvents{_ in});_ = try engine.dispatch(command:"file.new",paramsJson:commandJSON(["width":16,"height":12,"bit_depth":16,"background":[10001,30003,50001,32769]]));let before=try EditorSnapshot.decode(engine.snapshotJson())
+            _ = try engine.dispatch(command:"image.resize",paramsJson:commandJSON(["width":13,"height":9,"interpolation":interpolation]));let after=try EditorSnapshot.decode(engine.snapshotJson());XCTAssertEqual(after.frame?.width,13);XCTAssertEqual(after.frame?.height,9);XCTAssertEqual(after.layers.map(\.id),before.layers.map(\.id));XCTAssertEqual(after.historyCursor,before.historyCursor+1);XCTAssertEqual(after.history.last?.command,"image.resize")
+            _ = try engine.dispatch(command:"image.resize",paramsJson:commandJSON(["width":13,"height":9]));XCTAssertEqual(try EditorSnapshot.decode(engine.snapshotJson()).historyCursor,after.historyCursor)
+            _ = try engine.dispatch(command:"edit.undo",paramsJson:"{}");let undone=try EditorSnapshot.decode(engine.snapshotJson());XCTAssertEqual(undone.frame?.width,16);XCTAssertEqual(undone.frame?.height,12);XCTAssertEqual(undone.historyCursor,before.historyCursor)
+        }
+    }
+    @MainActor
+    func testImageSizeAspectConstraintRoundsFromTheOriginalRatioAndRejectsInvalidInput(){
+        XCTAssertEqual(ImageSizePanel.linkedSize(512,from:1024,to:1536),768)
+        XCTAssertEqual(ImageSizePanel.linkedSize(100,from:1536,to:1024),67)
+        XCTAssertEqual(ImageSizePanel.linkedSize(1,from:1000,to:1),1)
+        for invalid in [Double.nan,Double.infinity,0,-1,100001]{XCTAssertNil(ImageSizePanel.linkedSize(invalid,from:16,to:12))}
+        XCTAssertNil(ImageSizePanel.linkedSize(5,from:0,to:12))
+    }
+    @MainActor
     func testArbitraryImageAngleExpandsNativeFrameAndUndoKeepsLayerIds()throws{
         let engine=StrataEngine(listener:EngineEvents{_ in});_ = try engine.dispatch(command:"file.new",paramsJson:commandJSON(["width":16,"height":12,"bit_depth":16,"background":[10001,30003,50001,32769]]));let before=try EditorSnapshot.decode(engine.snapshotJson());_ = try engine.dispatch(command:"image.rotate",paramsJson:commandJSON(["angle_degrees":27,"interpolation":"bilinear"]));let after=try EditorSnapshot.decode(engine.snapshotJson());XCTAssertGreaterThan(after.frame?.width ?? 0,16);XCTAssertGreaterThan(after.frame?.height ?? 0,12);XCTAssertEqual(after.frame?.x,0);XCTAssertEqual(after.frame?.y,0);XCTAssertEqual(after.layers.map(\.id),before.layers.map(\.id));XCTAssertEqual(after.history.last?.command,"image.rotate");XCTAssertEqual(after.historyCursor,before.historyCursor+1);_ = try engine.dispatch(command:"edit.undo",paramsJson:"{}");let undone=try EditorSnapshot.decode(engine.snapshotJson());XCTAssertEqual(undone.frame?.width,16);XCTAssertEqual(undone.frame?.height,12);XCTAssertEqual(undone.historyCursor,before.historyCursor)
     }

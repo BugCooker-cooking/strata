@@ -1655,6 +1655,37 @@
         }
       ],
       "note": "Visible composite alpha>0 within the current frame, independent side booleans. No display quantization; hidden RGB/layers do not count. Sources remain stored. Tight repeat is a no-op without history; fully transparent input rejects."
+    },
+    "PS-03-ad24731ea8": {
+      "scope": "editing",
+      "coverage": "partial",
+      "commands": [
+        "image.resize"
+      ],
+      "prompts": [
+        {
+          "text": "将图像大小改为512乘768像素，使用面积缩小并保留独立图层和蒙版。",
+          "query": "图像大小",
+          "command": "image.resize"
+        },
+        {
+          "text": "Resize the entire pixel image with nearest neighbor, preserving layer structure and off-artboard content.",
+          "query": "Resize layered pixel image",
+          "command": "image.resize"
+        }
+      ],
+      "variants": [
+        {
+          "command": "image.resize",
+          "path": "interpolation",
+          "values": [
+            "nearest",
+            "bilinear",
+            "area"
+          ]
+        }
+      ],
+      "note": "Pixels and unstyled groups have real size edits and all three sampling modes, with exact AI replacement approval and one-history turn undo. Editable fill/adjustment/style/text sizing and other professional resamplers remain open; do not interpret this partial entry as complete image sizing."
     }
   }
 }

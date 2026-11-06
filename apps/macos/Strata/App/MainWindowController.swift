@@ -248,7 +248,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         assistant.bind(document: snapshot.documentId, inheritedTurn: snapshot.control?.turnId)
         let oldControl = state?.control?.kind
         if snapshot.documentId != state?.documentId
-            || (snapshot.revision != state?.revision && ["transform.apply","image.orient","image.rotate"].contains(snapshot.history.last?.command ?? "")) {workspace.cloneSource=nil}
+            || (snapshot.revision != state?.revision && ["transform.apply","image.orient","image.rotate","image.resize"].contains(snapshot.history.last?.command ?? "")) {workspace.cloneSource=nil}
         workspace.snapshot = snapshot; window?.isDocumentEdited = snapshot.dirty
         workspace.tonalPreview?.bind(snapshot)
         workspace.cropInput?.bind(snapshot)

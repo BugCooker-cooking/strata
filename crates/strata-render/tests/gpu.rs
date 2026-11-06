@@ -1696,6 +1696,105 @@ fn arbitrary_image_rotation_metal_matches_cpu_composite_and_undo_restores_frame(
 }
 
 #[test]
+fn image_size_sampling_modes_metal_match_cpu_and_undo_retains_original_sources() {
+    let Some(mut renderer) = renderer() else {
+        return;
+    };
+    for (mode, size) in [
+        ("nearest", [23u32, 19u32]),
+        ("bilinear", [23, 19]),
+        ("area", [8, 6]),
+    ] {
+        let mut e = strata_core::Editor::new();
+        for (id, p) in [
+            (
+                "file.new",
+                serde_json::json!({"width":16,"height":12,"bit_depth":16,"working_space":"display_p3","background":[10001,30003,50001,32769]}),
+            ),
+            (
+                "paint.gradient",
+                serde_json::json!({"layer":{"name":"Background"},"start":[0.5,0.5],"end":[15.5,11.5],"stops":[{"at":0,"color":[0.1,0.2,0.3,0.5]},{"at":1,"color":[0.8,0.6,0.4,0.9]}]}),
+            ),
+            (
+                "select.marquee",
+                serde_json::json!({"x":2,"y":2,"width":11,"height":8}),
+            ),
+            (
+                "layer.mask.add",
+                serde_json::json!({"layer":{"name":"Background"},"source":"from_selection"}),
+            ),
+            ("select.none", serde_json::json!({})),
+        ] {
+            e.execute(e.request(strata_core::Source::Test), id, p, |_| Ok(()))
+                .unwrap();
+        }
+        let before = e.document().unwrap().to_archive().unwrap();
+        e.execute(
+            e.request(strata_core::Source::Test),
+            "image.resize",
+            serde_json::json!({"width":size[0],"height":size[1],"interpolation":mode}),
+            |_| Ok(()),
+        )
+        .unwrap();
+        let doc = e.document().unwrap();
+        // Integer view center + odd magnification puts each sampled source
+        // center exactly on a fragment center, including odd image dimensions.
+        let center = [(size[0] / 2) as f32, (size[1] / 2) as f32];
+        let zoom = if size[0] < 10 { 5. } else { 3. };
+        let scene = renderer.prepare_document(doc, false).unwrap();
+        renderer.commit_document(scene).unwrap();
+        renderer
+            .set_view(ViewTransform {
+                zoom,
+                center_x: center[0],
+                center_y: center[1],
+            })
+            .unwrap();
+        renderer.render().unwrap();
+        let shown = renderer.read_offscreen_rgba().unwrap();
+        let reference = strata_core::composite::Compositor::new(1)
+            .tile(doc, strata_pixels::TileCoord::new(0, 0).unwrap())
+            .unwrap();
+        for (x, y) in [
+            (size[0] / 4, size[1] / 4),
+            (size[0] / 2, size[1] / 2),
+            (size[0] * 3 / 4, size[1] * 3 / 4),
+        ] {
+            let p = reference[y as usize * 256 + x as usize];
+            let sx = (32. + (x as f32 + 0.5 - center[0]) * zoom) as usize;
+            let sy = (32. + (y as f32 + 0.5 - center[1]) * zoom) as usize;
+            let actual = pixel(&shown, sx, sy);
+            for c in 0..3 {
+                let bg = f64::from(CANVAS_BG_SRGB[c]) / 255.;
+                let bg = if bg <= 0.04045 {
+                    bg / 12.92
+                } else {
+                    ((bg + 0.055) / 1.055).powf(2.4)
+                };
+                let v = f64::from(p[c]) * f64::from(p[3]) + bg * (1. - f64::from(p[3]));
+                let v = if v <= 0.0031308 {
+                    12.92 * v
+                } else {
+                    1.055 * v.powf(1. / 2.4) - 0.055
+                };
+                assert!(
+                    actual[c].abs_diff((v.clamp(0., 1.) * 255.).round() as u8) <= 3,
+                    "{mode} {x},{y},{c}: {actual:?}"
+                );
+            }
+        }
+        e.execute(
+            e.request(strata_core::Source::Test),
+            "edit.undo",
+            serde_json::json!({}),
+            |_| Ok(()),
+        )
+        .unwrap();
+        assert_eq!(e.document().unwrap().to_archive().unwrap(), before);
+    }
+}
+
+#[test]
 fn tiled_scene_preserves_source_and_has_no_mip_seam() {
     let Some(mut r) = renderer() else {
         return;

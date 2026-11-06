@@ -1,0 +1,120 @@
+{
+  "date_local": "2026-11-06",
+  "timezone": "Asia/Taipei",
+  "base_checkpoint": "05213d4",
+  "scope": "Actual image-size nearest/bilinear/area resampling for every pixel layer and unstyled group, with masks/selections/native/AI; editable generated/adjustment/style/text sizing and full Photoshop/final AI coverage remain open.",
+  "source_sha256": {
+    "apps/macos/Strata/App/MainWindowController.swift": "c42e38fadef98ecb281e439e3b5d327ce3118e6f25305b191428771204d3b9e1",
+    "apps/macos/Strata/Workspace/ImageSizeControls.swift": "3b55c86cd1a3e61468203fc39eec5b725b07d3c46e60affb29af28c39dee070d",
+    "apps/macos/Strata/Workspace/TransformControls.swift": "e05adb9d7f3d8bfc742298ccbfd77a30c0fae505d17ed758dfb92040f599dbba",
+    "apps/macos/Strata/Workspace/WorkspaceModel.swift": "e8d0106768ad2ced43f7dfaa15a64906d63cad9f8a1d8958fddd3c0059359cb2",
+    "apps/macos/StrataTests/FilterPreviewTests.swift": "ae682a044d2c6952940cf7c63fb6746cc79634845a636f242508fffcbfc2823e",
+    "crates/strata-ai/tests/replay.rs": "a55a078621c91c4d14414cbf7e807b432f21377cf8f4e84af3e2aea1097e9097",
+    "crates/strata-core/src/commands/executor.rs": "27e2a595775c9de8b23e52a911f3f415d845e7dbe23e1a8087e60d547d4f59ef",
+    "crates/strata-core/src/commands/mod.rs": "bf27d2309594a6d99af23c425722a9e0ddae3190bfa1bc992d782a53d39e8690",
+    "crates/strata-core/src/commands/registry.rs": "e5ef981a6b0e4e7c01a716be84c128013d8fe9eaee5f4fe0226707beb5f8d065",
+    "crates/strata-core/src/commands/resize_image.rs": "fb4c68da75eabe3f066d89735a0bab76a54ca735fab80ec3fe08cf00cb761a8e",
+    "crates/strata-core/src/geometry_resize.rs": "f160295c3bccd1fe8f2fe3640066c54ccebeed67661ed400f4f0b1f04739216a",
+    "crates/strata-core/src/geometry_masks.rs": "a7d8788e08c113a814394cc18583eb73c5777476d8272e31d6fce373a960cc38",
+    "crates/strata-core/src/geometry_pixels.rs": "67f1d02f3eb3206fc561ecd410ee18b37c0af4dc924cca7a87bb70f723d7fb11",
+    "crates/strata-core/src/lib.rs": "8770dd3932231fabdb97ee4ab3728acec0d27b4b98ce8926f7e26cddb782dfa4",
+    "crates/strata-core/tests/resize_image.rs": "a990512160ff671f18794bd51a5c0e315d1e70938476f97ef9a2030b4200f61d",
+    "crates/strata-render/tests/gpu.rs": "b207bd264477df9e1e5d4b0f360b0d5329dd04cbba5f786d194921daef7fb7ed",
+    "tools/strata-devtool/src/main.rs": "a7e2d91004766da67b11e5a4dc19c5b4380ce27f2b6108ab6d7df660c6594700"
+  },
+  "verification": {
+    "core": {
+      "new_size_tests": 9,
+      "new_size_tests_log": "build/m7-resize-core.updated.log",
+      "existing_geometry_regressions": 31,
+      "existing_geometry_log": "build/m7-resize-core.final.log",
+      "note": "Existing geometry regression run preceded the final resize-only edge and large no-op refinements; all nine size cases ran after these refinements."
+    },
+    "ai": {
+      "passed": 29,
+      "replay_tests": 28,
+      "mapping_contract_tests": 1,
+      "log": "build/m7-resize-ai.final.log"
+    },
+    "native_subset": {
+      "passed": 10,
+      "skipped": 0,
+      "scope": "StrataTests/FilterPreviewTests",
+      "log": "build/m7-resize-native.final.log"
+    },
+    "required_metal_numeric": {
+      "passed": 1,
+      "sampling_modes": [
+        "nearest",
+        "bilinear",
+        "area"
+      ],
+      "skipped": 0,
+      "log": "build/m7-resize-gpu.final.log"
+    },
+    "arm64_release": {
+      "passed": true,
+      "log": "build/m7-resize-release.log"
+    },
+    "lint": {
+      "passed": true,
+      "log": "build/m7-resize-lint.final.log"
+    },
+    "command_examples": {
+      "passed": 118,
+      "log": "build/m7-resize-commands.final.log"
+    },
+    "ai_audit": {
+      "mapped_composite_rows": 82,
+      "inventory_rows": 265,
+      "partial_entrypoints": 9,
+      "unmapped_implemented_rows": 0,
+      "unlinked_registered_commands": 0,
+      "unknown_native_literals": 0,
+      "untyped_root_returns": 0,
+      "final_complete": false,
+      "strict_gate": "build/m7-resize-final-ai-gate.log"
+    },
+    "prior_full_baselines": "Earlier full workspace/native/GPU baselines remain independent; this is targeted incremental verification."
+  },
+  "native_manual": {
+    "single_release_instance": true,
+    "fixture": "repository-generated sample-photo.jpg",
+    "original_size": [
+      1024,
+      1536
+    ],
+    "entered_width": 512,
+    "aspect_constraint_derived_height": 768,
+    "interpolation": "area",
+    "result_size": [
+      512,
+      768
+    ],
+    "separate_pixel_layer_retained": true,
+    "history_steps_added": 1,
+    "repeat_equal_dimensions_added_no_history": true,
+    "undo_restored_original_clean_document": true,
+    "final_running_strata_instances": 0,
+    "method": "CUA live native AX and screenshot, no latency/quality benchmark claim."
+  },
+  "semantics": {
+    "sampling": "Nearest preserves selected 8/16-bit codes and alpha-zero RGB. Bilinear uses premultiplied linear light with actual ICC. Area integrates rational pixel-box overlap for reducing axes and bilinear for other axes.",
+    "edges": "Interior/off-artboard finite source edges sample transparent zero; linear axes retain conservative half-source-pixel support. Only edges exactly coinciding with the original artboard extend boundary samples, preserving opaque full-image borders. Independent interior alpha references and full-image corner checks pass.",
+    "geometry": "i128 rational coordinates preserve nearest phase across tiles, negatives and approximately +/-1e12 offsets. Artboard top-left and DPI stay fixed; source outside new frame remains stored. Layer/group masks and current/previous selections resample with u16 coverage, then document selections rebind.",
+    "limits": "64M destination visits and 256M source taps across the command; eight cached/4096 decoded source blocks per raster, pooled output/scratch, cancellation during rows and long tap loops.",
+    "no_op": "Equal dimensions preserve revision/history/dirty/current layer even on unsupported/locked types and sparse >64M canvases.",
+    "partial_types": "Generated fills/adjustments/active styles/frozen style references explicitly reject before mutation; no implicit rasterization."
+  },
+  "issues_resolved": {
+    "native_type": "Panel ratio helper now accepts the actual UInt32 frame fields; final native tests and Release pass.",
+    "metal_reference": "Odd image size plus even view magnification initially placed reference between pixel centers. Final test uses integer view center and odd magnification; all three modes agree with CPU.",
+    "interior_edges": "Added independent alpha coverage checks and corrected finite interior boundaries before final native/GPU/Release."
+  },
+  "cloud_builds": {
+    "used": false,
+    "remote_workflow_last_verified": "disabled_manually",
+    "automatic_triggers": false
+  },
+  "remaining": "All incomplete P0-P3 features, generated/adjustment/style/text size models, additional professional resamplers, continuous performance, live model, device/platform and release gates remain open."
+}

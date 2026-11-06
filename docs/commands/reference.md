@@ -19150,6 +19150,169 @@ Permissions: `bound_document`
 }
 ```
 
+## `image.resize` — 图像大小与重采样
+
+Resize the actual image to integer width/height 1..100000 pixels while keeping the old artboard top-left and document DPI. Supports all pixel layers and unstyled groups, including hidden/off-artboard source pixels, layer/group masks (enabled flag retained) and current/previous u16 selections. Preserve IDs/tree/clipping/ICC/bit depth; do not flatten or clip to the old/new artboard. Generated fills/adjustments, active styles and frozen style references explicitly reject before resampling; their editable sizing support remains open. interpolation=nearest copies exact source codes (including transparent hidden RGB); bilinear samples pixel centers in premultiplied linear light with actual ICC; area(default) integrates exact pixel-box overlap on each reducing axis and uses bilinear on equal/enlarging axes. Finite interior/off-artboard source edges filter against transparent zero, with conservative half-source-pixel support for bilinear axes; only source edges exactly coinciding with the old artboard edge extend their sample so a full opaque image keeps opaque borders. Area reduction uses exact pixel-box overlap normalization. Rational canvas coordinates preserve sample phase at large offsets. Source bounds scale with floor/ceil and integer layer storage origins rebase; this can retain a partial edge pixel beyond the new artboard. Selections rebind to the exact new frame, never reapply old selection to image pixels. Equal dimensions are a no-op with no history/revision/dirty/current-layer changes even on unsupported or locked layers. Reject affected layer/ancestor pixel/position/transparency/all locks. At most 64M destination visits and 256M sample taps across layers/masks/selections per command, eight cached source tiles/4096 decoded loads per raster, shared reservations and row/inner-loop cancellation. Prepare from immutable sources, publish one atomic history step with exact undo, not batchable; exact AI pixels.replace approval. Native and AI share this implementation. 中文：图像大小、调整图像尺寸、像素尺寸、重采样、最近邻、双线性、面积缩小、抗混叠；保留图层蒙版与画板外像素。
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `false`
+
+Effects: `document.write, pixels.replace`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ResizeImage",
+  "type": "object",
+  "properties": {
+    "height": {
+      "type": "integer",
+      "format": "uint32",
+      "maximum": 100000,
+      "minimum": 1
+    },
+    "interpolation": {
+      "$ref": "#/$defs/ResizeInterpolation",
+      "default": "area"
+    },
+    "width": {
+      "type": "integer",
+      "format": "uint32",
+      "maximum": 100000,
+      "minimum": 1
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "width",
+    "height"
+  ],
+  "$defs": {
+    "ResizeInterpolation": {
+      "type": "string",
+      "enum": [
+        "nearest",
+        "bilinear",
+        "area"
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ResizeImageResult",
+  "type": "object",
+  "properties": {
+    "changed": {
+      "type": "boolean"
+    },
+    "frame": {
+      "$ref": "#/$defs/Frame"
+    },
+    "interpolation": {
+      "$ref": "#/$defs/ResizeInterpolation"
+    },
+    "preserved_layer_structure": {
+      "type": "boolean"
+    },
+    "previous_frame": {
+      "$ref": "#/$defs/Frame"
+    },
+    "source_artboard_clipped": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "previous_frame",
+    "frame",
+    "interpolation",
+    "changed",
+    "source_artboard_clipped",
+    "preserved_layer_structure"
+  ],
+  "$defs": {
+    "Frame": {
+      "type": "object",
+      "properties": {
+        "height": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "name": {
+          "type": "string"
+        },
+        "width": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "x": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "y": {
+          "type": "integer",
+          "format": "int64"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "x",
+        "y",
+        "width",
+        "height"
+      ]
+    },
+    "ResizeInterpolation": {
+      "type": "string",
+      "enum": [
+        "nearest",
+        "bilinear",
+        "area"
+      ]
+    }
+  }
+}
+```
+
+### Examples
+
+```json
+{
+  "height": 10,
+  "interpolation": "area",
+  "width": 12
+}
+```
+
+```json
+{
+  "height": 19,
+  "interpolation": "nearest",
+  "width": 23
+}
+```
+
+```json
+{
+  "height": 19,
+  "interpolation": "bilinear",
+  "width": 23
+}
+```
+
 ## `color.assign` — 指定文档配置文件
 
 Assign srgb or display_p3 interpretation without converting any integer pixel samples, hidden RGB, generated fill/style color codes, masks, depth, geometry or original source ICC. Appearance changes because identical RGB codes are interpreted in the newly assigned working profile. This is distinct from color.convert, which changes samples to preserve appearance. Pixel/transparency/position locks are allowed because source codes are unchanged; all-locked layers reject document reinterpretation. Undo restores exact old ICC/metadata; project save/reopen keeps the assigned profile. Cancellable, budgeted, one atomic history edit, not batchable. Currently supports the two built-in RGB working presets, not arbitrary ICC file assignment or CMYK. 中文：指定配置文件、保留 RGB 数值、重新解释颜色、不要转换像素。

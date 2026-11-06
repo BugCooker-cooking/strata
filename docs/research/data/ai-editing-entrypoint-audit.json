@@ -1,10 +1,10 @@
 {
   "scope": "Development audit; not a claim that all Photoshop editing is implemented or AI-verified",
-  "registered_commands": 117,
-  "registered_examples": 166,
-  "catalog_sha256": "79240d35c8f8802625302ca3f3f26e1cbb19b6e6c14b6f9dbb7ed257ec1a75d3",
+  "registered_commands": 118,
+  "registered_examples": 169,
+  "catalog_sha256": "518b0422ffeccf55ac14e2176d0320cdd14a3e44a1c4810358c81a79c2b8d4f7",
   "inventory_rows": 265,
-  "mapped_features": 81,
+  "mapped_features": 82,
   "unmapped_implemented_features": [],
   "partial_entrypoints": [
     "PS-01-894622b1ce",
@@ -14,7 +14,8 @@
     "PS-09-4f3d9835a7",
     "PS-09-7cc6b0bb65",
     "PS-09-7d349372b5",
-    "PS-03-5f9716e5d8"
+    "PS-03-5f9716e5d8",
+    "PS-03-ad24731ea8"
   ],
   "unfinished_features": [
     "PS-00-7d7224e709",
@@ -1019,8 +1020,38 @@
       "name": "图像大小（多种重采样算法）",
       "priority": "P0",
       "source_line": 106,
-      "implementation": "待实现",
-      "entrypoint": null
+      "implementation": "部分实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "partial",
+        "commands": [
+          "image.resize"
+        ],
+        "prompts": [
+          {
+            "text": "将图像大小改为512乘768像素，使用面积缩小并保留独立图层和蒙版。",
+            "query": "图像大小",
+            "command": "image.resize"
+          },
+          {
+            "text": "Resize the entire pixel image with nearest neighbor, preserving layer structure and off-artboard content.",
+            "query": "Resize layered pixel image",
+            "command": "image.resize"
+          }
+        ],
+        "variants": [
+          {
+            "command": "image.resize",
+            "path": "interpolation",
+            "values": [
+              "nearest",
+              "bilinear",
+              "area"
+            ]
+          }
+        ],
+        "note": "Pixels and unstyled groups have real size edits and all three sampling modes, with exact AI replacement approval and one-history turn undo. Editable fill/adjustment/style/text sizing and other professional resamplers remain open; do not interpret this partial entry as complete image sizing."
+      }
     },
     {
       "id": "PS-03-45c2eea14c",

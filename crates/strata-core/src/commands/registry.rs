@@ -1084,9 +1084,19 @@ fn build_catalog() -> Vec<CommandSpec> {
         "Rotate the layered image clockwise by finite angle_degrees +/-360000 (normalized modulo360); interpolation nearest/bilinear(default). General angles currently support every pixel layer and unstyled group, including hidden/off-artboard stored pixels, linked/disabled u16 masks and current/previous selections. Generated fills/adjustments, active styles and frozen style references reject before work; no implicit rasterization. Exact 90/180/270 degrees reuse image.orient and its support for all current types/finite generated crops/styles. Exact multiples of360 are no-ops with no history/revision/dirty/current-layer change. For general angles, rotate around old artboard center and translate its conservative half-source-pixel reconstruction envelope to the old artboard top-left; new canvas dimensions enclose that envelope independent of interpolation, so nearest may show an extra transparent border. Pixel source outside the old artboard is never clipped; it can stay outside the new frame. Integer layer storage origins rebase to transformed source bounds. Document selections transform/rebind to the new artboard, layer/group masks keep transformed finite support and enabled flags. ICC/depth/tree/IDs/clipping remain; fractions use premultiplied linear light, nearest preserves sampled codes and picks the positive-side sample for floating edge ties within 1e-9 source pixel. Reject any layer/ancestor pixel/position/transparency/all lock or existing 64M-output, eight-tile/4096-source-decode, coordinate and shared memory limits. Prepare from immutable source, row cancellation, atomic one-history undo, not batchable, exact AI content-replacement approval. This partial image-rotation capability does not complete general editable fill/style/text geometry or straighten/crop integration. 中文：整图任意角度旋转、旋转图像、顺时针角度、逆时针角度；扩展画板，保留像素层/组、蒙版、选区和画板外内容。",
         json!({"angle_degrees":15,"interpolation":"bilinear"})
     );
+    command!(
+        "image.resize",
+        ResizeImage,
+        Mutate,
+        "图像大小与重采样",
+        "Resize layered pixel image",
+        "Resize the actual image to integer width/height 1..100000 pixels while keeping the old artboard top-left and document DPI. Supports all pixel layers and unstyled groups, including hidden/off-artboard source pixels, layer/group masks (enabled flag retained) and current/previous u16 selections. Preserve IDs/tree/clipping/ICC/bit depth; do not flatten or clip to the old/new artboard. Generated fills/adjustments, active styles and frozen style references explicitly reject before resampling; their editable sizing support remains open. interpolation=nearest copies exact source codes (including transparent hidden RGB); bilinear samples pixel centers in premultiplied linear light with actual ICC; area(default) integrates exact pixel-box overlap on each reducing axis and uses bilinear on equal/enlarging axes. Finite interior/off-artboard source edges filter against transparent zero, with conservative half-source-pixel support for bilinear axes; only source edges exactly coinciding with the old artboard edge extend their sample so a full opaque image keeps opaque borders. Area reduction uses exact pixel-box overlap normalization. Rational canvas coordinates preserve sample phase at large offsets. Source bounds scale with floor/ceil and integer layer storage origins rebase; this can retain a partial edge pixel beyond the new artboard. Selections rebind to the exact new frame, never reapply old selection to image pixels. Equal dimensions are a no-op with no history/revision/dirty/current-layer changes even on unsupported or locked layers. Reject affected layer/ancestor pixel/position/transparency/all locks. At most 64M destination visits and 256M sample taps across layers/masks/selections per command, eight cached source tiles/4096 decoded loads per raster, shared reservations and row/inner-loop cancellation. Prepare from immutable sources, publish one atomic history step with exact undo, not batchable; exact AI pixels.replace approval. Native and AI share this implementation. 中文：图像大小、调整图像尺寸、像素尺寸、重采样、最近邻、双线性、面积缩小、抗混叠；保留图层蒙版与画板外像素。",
+        json!({"width":12,"height":10,"interpolation":"area"})
+    );
     for item in &mut list {
         item.returns = match item.id {
             "image.rotate" => schemars::schema_for!(RotateImageResult),
+            "image.resize" => schemars::schema_for!(ResizeImageResult),
             "image.trim" => schemars::schema_for!(TrimCanvasResult),
             "paint.colors.get" | "paint.colors.set" | "paint.colors.swap"
             | "paint.colors.reset" => schemars::schema_for!(PaintColors),
@@ -1250,10 +1260,19 @@ fn build_catalog() -> Vec<CommandSpec> {
                 item.examples.push(json!({"operation":operation}));
             }
         }
-        if item.id == "image.rotate" {
+        if item.id == "image.resize" {
+            for interpolation in ["nearest", "bilinear"] {
+                item.examples
+                    .push(json!({"width":23,"height":19,"interpolation":interpolation}));
+            }
+        }
+        if matches!(item.id, "image.rotate" | "image.resize") {
             item.batchable = false;
         }
-        if matches!(item.id, "transform.apply" | "image.orient" | "image.rotate") {
+        if matches!(
+            item.id,
+            "transform.apply" | "image.orient" | "image.rotate" | "image.resize"
+        ) {
             item.effects.push("pixels.replace");
         }
         if matches!(

@@ -125,13 +125,18 @@ pub fn rebind(
     }
     Ok(output)
 }
-struct MaskSampler<'a> {
+pub(crate) struct MaskSampler<'a> {
     source: &'a TiledMask,
     tiles: VecDeque<(TileCoord, Vec<u16>)>,
     loads: usize,
 }
 impl MaskSampler<'_> {
-    fn sample(&mut self, x: i64, y: i64, cancel: &dyn Fn() -> bool) -> Result<u16, DocumentError> {
+    pub(crate) fn sample(
+        &mut self,
+        x: i64,
+        y: i64,
+        cancel: &dyn Fn() -> bool,
+    ) -> Result<u16, DocumentError> {
         if !self.source.layout().bounds.contains(x, y) {
             return Ok(0);
         }
@@ -157,6 +162,15 @@ impl MaskSampler<'_> {
                 .push_back((coord, self.source.region_tile(ox, oy)?));
         }
         Ok(self.tiles.back().unwrap().1[usize::from(py) * 256 + usize::from(px)])
+    }
+}
+impl<'a> MaskSampler<'a> {
+    pub(crate) fn new(source: &'a TiledMask) -> Self {
+        Self {
+            source,
+            tiles: VecDeque::new(),
+            loads: 0,
+        }
     }
 }
 pub fn transform_mask(

@@ -1135,6 +1135,17 @@ impl Editor {
                 {
                     (Action::Edit, result)
                 } else if let Some(result) =
+                    super::resize_image::mutate(doc, id, params.clone(), &|| request.expired())?
+                {
+                    (
+                        if result["changed"] == false {
+                            Action::Query
+                        } else {
+                            Action::Edit
+                        },
+                        result,
+                    )
+                } else if let Some(result) =
                     super::rotate_image::mutate(doc, id, params.clone(), &|| request.expired())?
                 {
                     (
@@ -1439,8 +1450,10 @@ impl Editor {
         }
         let keeps_layer_selection = matches!(prepared.action, Action::PaintColors(_))
             || prepared.command == "paint.colors.get"
-            || (matches!(prepared.command.as_str(), "image.trim" | "image.rotate")
-                && prepared.result["changed"] == false);
+            || (matches!(
+                prepared.command.as_str(),
+                "image.trim" | "image.rotate" | "image.resize"
+            ) && prepared.result["changed"] == false);
         match prepared.action {
             Action::PaintColors(colors) => {
                 self.paint_colors = colors;

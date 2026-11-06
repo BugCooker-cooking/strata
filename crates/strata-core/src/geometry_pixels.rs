@@ -152,7 +152,7 @@ struct SourceTile {
     raw: PixelBuffer,
     linear: Option<Vec<[f32; 4]>>,
 }
-struct Sampler<'a> {
+pub(crate) struct Sampler<'a> {
     source: &'a TiledPixels,
     offset: [i64; 2],
     bounds: CoverageRect,
@@ -218,7 +218,7 @@ impl Sampler<'_> {
         }
         Ok(Some((i, usize::from(py) * 256 + usize::from(px))))
     }
-    fn raw(
+    pub(crate) fn raw(
         &mut self,
         x: i64,
         y: i64,
@@ -230,7 +230,7 @@ impl Sampler<'_> {
             [0; 4]
         })
     }
-    fn linear(
+    pub(crate) fn linear(
         &mut self,
         x: i64,
         y: i64,
@@ -241,6 +241,18 @@ impl Sampler<'_> {
         } else {
             [0.0; 4]
         })
+    }
+}
+impl<'a> Sampler<'a> {
+    pub(crate) fn new(input: PixelSource<'a>) -> Self {
+        Self {
+            source: input.pixels,
+            offset: input.offset,
+            bounds: input.bounds,
+            icc: input.icc,
+            tiles: VecDeque::new(),
+            loads: 0,
+        }
     }
 }
 pub fn transform_pixels(
