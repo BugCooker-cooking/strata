@@ -19313,6 +19313,255 @@ Permissions: `bound_document`
 }
 ```
 
+## `image.straighten` — 拉直图像与自动裁剪
+
+Straighten all pixel layers and unstyled groups in one atomic history step using reference.type=angle (clockwise angle_degrees +/-45) or line (distinct start/end canvas points, align horizontal/vertical). A reference line computes the shortest unoriented correction toward the requested axis; choose the other axis if correction exceeds45 degrees. Points must be finite inside +/-1e12 and at least1e-6 pixel apart. crop=true(default) uses the rotated original artboard, not visible-content alpha, to compute an analytical largest centered continuous inscribed rectangle, then rounds its edges inward and verifies inverse corners. Bilinear uses an additional half-source-pixel inset so an originally opaque image cannot gain transparent corner interpolation; integer alignment may conservatively remove extra edge pixels. An image too narrow for a nonempty safe integer rectangle rejects before sampling; set crop=false to retain the expanded rotation artboard. No content-aware filling, deletion or implicit rasterization. Same immutable resampler/limits/locks/partial-type restrictions as image.rotate; preserve layer IDs/tree/depth/ICC, hidden/off-artboard sources, enabled flags and layer/group/current/previous masks. Source content outside the cropped frame remains stored; selection binds to final frame. Exactly zero correction is unchanged-state no-op, even with crop=true. Numeric native panel and AI share strict parameters, output and pixels.replace approval; one undo restores both rotation and crop. Generated fills/adjustments/styles/text and reference-line pointer dragging are still open. 中文：拉直、水平线校正、垂直线校正、按两点参考线拉直、校正地平线、自动裁掉旋转空角、保留像素裁剪。
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `false`
+
+Effects: `document.write, pixels.replace`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "StraightenImage",
+  "type": "object",
+  "properties": {
+    "crop": {
+      "type": "boolean",
+      "default": true
+    },
+    "interpolation": {
+      "$ref": "#/$defs/TransformInterpolation",
+      "default": "bilinear"
+    },
+    "reference": {
+      "$ref": "#/$defs/StraightenReference"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "reference"
+  ],
+  "$defs": {
+    "StraightenAxis": {
+      "type": "string",
+      "enum": [
+        "horizontal",
+        "vertical"
+      ]
+    },
+    "StraightenReference": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "angle_degrees": {
+              "type": "number",
+              "format": "double",
+              "maximum": 45,
+              "minimum": -45
+            },
+            "type": {
+              "type": "string",
+              "const": "angle"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "angle_degrees"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "align": {
+              "$ref": "#/$defs/StraightenAxis"
+            },
+            "end": {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "format": "double"
+              },
+              "maxItems": 2,
+              "minItems": 2
+            },
+            "start": {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "format": "double"
+              },
+              "maxItems": 2,
+              "minItems": 2
+            },
+            "type": {
+              "type": "string",
+              "const": "line"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "start",
+            "end",
+            "align"
+          ]
+        }
+      ]
+    },
+    "TransformInterpolation": {
+      "type": "string",
+      "enum": [
+        "nearest",
+        "bilinear"
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "StraightenImageResult",
+  "type": "object",
+  "properties": {
+    "angle_degrees": {
+      "type": "number",
+      "format": "double"
+    },
+    "changed": {
+      "type": "boolean"
+    },
+    "cropped": {
+      "type": "boolean"
+    },
+    "expanded_frame": {
+      "$ref": "#/$defs/Frame"
+    },
+    "frame": {
+      "$ref": "#/$defs/Frame"
+    },
+    "preserved_external_content": {
+      "type": "boolean"
+    },
+    "preserved_layer_structure": {
+      "type": "boolean"
+    },
+    "previous_frame": {
+      "$ref": "#/$defs/Frame"
+    }
+  },
+  "required": [
+    "angle_degrees",
+    "previous_frame",
+    "expanded_frame",
+    "frame",
+    "cropped",
+    "changed",
+    "preserved_external_content",
+    "preserved_layer_structure"
+  ],
+  "$defs": {
+    "Frame": {
+      "type": "object",
+      "properties": {
+        "height": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "name": {
+          "type": "string"
+        },
+        "width": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "x": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "y": {
+          "type": "integer",
+          "format": "int64"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "x",
+        "y",
+        "width",
+        "height"
+      ]
+    }
+  }
+}
+```
+
+### Examples
+
+```json
+{
+  "crop": true,
+  "interpolation": "bilinear",
+  "reference": {
+    "angle_degrees": 5,
+    "type": "angle"
+  }
+}
+```
+
+```json
+{
+  "crop": true,
+  "interpolation": "nearest",
+  "reference": {
+    "align": "horizontal",
+    "end": [
+      13,
+      5
+    ],
+    "start": [
+      2,
+      4
+    ],
+    "type": "line"
+  }
+}
+```
+
+```json
+{
+  "crop": false,
+  "reference": {
+    "align": "vertical",
+    "end": [
+      5,
+      13
+    ],
+    "start": [
+      4,
+      2
+    ],
+    "type": "line"
+  }
+}
+```
+
 ## `color.assign` — 指定文档配置文件
 
 Assign srgb or display_p3 interpretation without converting any integer pixel samples, hidden RGB, generated fill/style color codes, masks, depth, geometry or original source ICC. Appearance changes because identical RGB codes are interpreted in the newly assigned working profile. This is distinct from color.convert, which changes samples to preserve appearance. Pixel/transparency/position locks are allowed because source codes are unchanged; all-locked layers reject document reinterpretation. Undo restores exact old ICC/metadata; project save/reopen keeps the assigned profile. Cancellable, budgeted, one atomic history edit, not batchable. Currently supports the two built-in RGB working presets, not arbitrary ICC file assignment or CMYK. 中文：指定配置文件、保留 RGB 数值、重新解释颜色、不要转换像素。

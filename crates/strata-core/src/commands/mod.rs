@@ -23,6 +23,7 @@ mod rotate_image;
 mod sample_selection;
 mod selection;
 mod spot_heal;
+mod straighten;
 mod tonal;
 mod tonal_brush;
 mod transform;
@@ -204,6 +205,46 @@ pub struct ResizeImageResult {
     pub interpolation: ResizeInterpolation,
     pub changed: bool,
     pub source_artboard_clipped: bool,
+    pub preserved_layer_structure: bool,
+}
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum StraightenAxis {
+    Horizontal,
+    Vertical,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(tag = "type", rename_all = "snake_case", deny_unknown_fields)]
+pub enum StraightenReference {
+    Angle {
+        #[schemars(range(min=-45,max=45))]
+        angle_degrees: f64,
+    },
+    Line {
+        start: [f64; 2],
+        end: [f64; 2],
+        align: StraightenAxis,
+    },
+}
+fn straighten_crop() -> bool {
+    true
+}
+params!(StraightenImage {
+    reference: StraightenReference,
+    #[serde(default = "straighten_crop")]
+    crop: bool,
+    #[serde(default)]
+    interpolation: TransformInterpolation
+});
+#[derive(Serialize, JsonSchema)]
+pub struct StraightenImageResult {
+    pub angle_degrees: f64,
+    pub previous_frame: crate::Frame,
+    pub expanded_frame: crate::Frame,
+    pub frame: crate::Frame,
+    pub cropped: bool,
+    pub changed: bool,
+    pub preserved_external_content: bool,
     pub preserved_layer_structure: bool,
 }
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, JsonSchema)]

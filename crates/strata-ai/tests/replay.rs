@@ -1338,6 +1338,107 @@ fn image_size_modes_are_discoverable_require_exact_approval_and_undo_the_turn() 
 }
 
 #[test]
+fn straighten_reference_lines_and_numeric_angles_discover_approve_and_undo_rotation_and_crop() {
+    for reference in [
+        json!({"type":"angle","angle_degrees":5}),
+        json!({"type":"line","start":[1,2],"end":[7,3],"align":"horizontal"}),
+        json!({"type":"line","start":[2,1],"end":[3,7],"align":"vertical"}),
+    ] {
+        let host = Host::new();
+        host.user(
+            "paint.fill",
+            json!({"layer":{"name":"Background"},"color":[0.8,0.2,0.1,0.5]}),
+        );
+        let before = host
+            .editor
+            .lock()
+            .unwrap()
+            .document()
+            .unwrap()
+            .to_archive()
+            .unwrap();
+        let initial = host.snapshot().unwrap();
+        let mut session = host.session_with_prompt(
+            ExecutionMode::Direct,
+            "按参考线拉直图像，自动裁掉旋转空角并保留像素图层。",
+        );
+        reply(
+            &mut session,
+            &host,
+            vec![
+                call("search", "search_catalog", json!({"query":"拉直图像"})),
+                call(
+                    "describe",
+                    "describe_commands",
+                    json!({"ids":["image.straighten"]}),
+                ),
+            ],
+        );
+        assert!(
+            result(session.poll(&host).unwrap())["matches"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|m| m["id"] == "image.straighten")
+        );
+        assert_eq!(
+            result(session.poll(&host).unwrap())["commands"][0]["id"],
+            "image.straighten"
+        );
+        reply(
+            &mut session,
+            &host,
+            vec![invoke(
+                "straighten",
+                "image.straighten",
+                json!({"reference":reference,"crop":true}),
+            )],
+        );
+        let Step::Paused {
+            question_id,
+            operation,
+            ..
+        } = session.poll(&host).unwrap()
+        else {
+            panic!()
+        };
+        assert_eq!(operation.unwrap()["params"]["reference"], reference);
+        assert_eq!(host.snapshot().unwrap().revision, initial.revision);
+        let answer = result(
+            session
+                .respond(
+                    &host,
+                    HostAnswer {
+                        question_id,
+                        answer: String::new(),
+                        approved: true,
+                        resource: None,
+                    },
+                )
+                .unwrap(),
+        );
+        assert_eq!(answer["result"]["cropped"], true);
+        assert_eq!(answer["result"]["preserved_external_content"], true);
+        assert_eq!(
+            host.snapshot().unwrap().history.len(),
+            initial.history.len() + 1
+        );
+        host.editor.lock().unwrap().stop_turn();
+        host.user("edit.undo_turn", json!({"turn_id":session.turn_id()}));
+        assert_eq!(
+            host.editor
+                .lock()
+                .unwrap()
+                .document()
+                .unwrap()
+                .to_archive()
+                .unwrap(),
+            before
+        );
+    }
+}
+
+#[test]
 fn inspect_and_direct_queries_and_batches_never_expose_hidden_layers_or_paths() {
     let host = Host::new();
     host.user(

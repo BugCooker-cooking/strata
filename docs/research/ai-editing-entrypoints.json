@@ -1551,7 +1551,8 @@
       "scope": "editing",
       "coverage": "partial",
       "commands": [
-        "image.crop"
+        "image.crop",
+        "image.straighten"
       ],
       "prompts": [
         {
@@ -1568,6 +1569,11 @@
           "text": "Crop to the given rectangle and explicitly delete outside source pixels while retaining editable layers.",
           "query": "pixels=preserve or delete",
           "command": "image.crop"
+        },
+        {
+          "text": "校正图像5度并自动裁掉旋转空角，保留边界外图层像素，一步撤销。",
+          "query": "拉直图像",
+          "command": "image.straighten"
         }
       ],
       "variants": [
@@ -1580,7 +1586,7 @@
           ]
         }
       ],
-      "note": "Numeric/drag/eight-handle crop and preserve/delete use image.crop. Native drafts bind original document/revision/control epoch. Delete requires exact approval; generated fill support persists in manifest v6. Straighten remains open."
+      "note": "Numeric rectangle/aspect, owned canvas drag/handles/move and preserve/delete share real crop commands. Numeric or two-point horizontal/vertical straightening composes rotation and a safe preserving crop in one history step. Pointer reference-line dragging and generated/adjustment/style/text arbitrary geometry remain open."
     },
     "PS-03-84941ac6e8": {
       "scope": "editing",
@@ -1602,7 +1608,8 @@
       "coverage": "partial",
       "commands": [
         "image.orient",
-        "image.rotate"
+        "image.rotate",
+        "image.straighten"
       ],
       "prompts": [
         {
@@ -1619,6 +1626,16 @@
           "text": "Rotate the entire pixel image 27 degrees clockwise, expanding the artboard while preserving layer structure.",
           "query": "Rotate pixel image by angle",
           "command": "image.rotate"
+        },
+        {
+          "text": "按两点参考线拉直图像，让地平线水平，自动裁掉旋转空角并保留源图层。",
+          "query": "拉直图像",
+          "command": "image.straighten"
+        },
+        {
+          "text": "Straighten the pixel image five degrees clockwise and crop the rotation corners in one undo step.",
+          "query": "Straighten image and crop",
+          "command": "image.straighten"
         }
       ],
       "variants": [
@@ -1632,9 +1649,17 @@
             "flip_horizontal",
             "flip_vertical"
           ]
+        },
+        {
+          "command": "image.straighten",
+          "path": "reference.type",
+          "values": [
+            "angle",
+            "line"
+          ]
         }
       ],
-      "note": "All current types support exact orthogonal orientations. General angles support pixel layers and unstyled groups only; generated/adjustment/style geometry and straighten remain open. Native and AI use identical strict angle/interpolation parameters, exact approval and one-history undo."
+      "note": "All current types support exact orthogonal orientations. Pixel layers and unstyled groups support general angles and numeric/two-point straightening with optional safe inscribed crop. Generated/adjustment/style/text general geometry and pointer reference-line dragging remain open; native/AI use identical commands with exact replacement approval and one-step undo."
     },
     "PS-03-51294954aa": {
       "scope": "editing",

@@ -799,7 +799,7 @@
   },
   "PS-09-7d349372b5": {
     "implementation": "部分实现",
-    "acceptance": "Numeric/drag/ratio/handles/move/preserve/delete and owned confirmation/cancel have local core, AI, native, Metal and Release evidence; straighten remains open.",
+    "acceptance": "Numeric/drag/ratio/handles/move/preserve/delete and numeric/two-point straighten with a one-step safe crop have local core/AI/native/Metal/Release and manual evidence. Pointer reference-line dragging and full-type general geometry remain open.",
     "evidence": [
       {
         "label": "M7 裁剪/显示全部",
@@ -816,6 +816,10 @@
       {
         "label": "Destructive crop support",
         "path": "../research/2026-11-m7-crop-delete-progress.md"
+      },
+      {
+        "label": "拉直与内切裁剪",
+        "path": "../research/2026-11-m7-straighten-progress.md"
       }
     ]
   },
@@ -831,7 +835,7 @@
   },
   "PS-03-5f9716e5d8": {
     "implementation": "部分实现",
-    "acceptance": "五种正交方向的当前全部层类型、核心/AI/Metal/完整原生/Release 与单窗口实看通过；任意角度仍待后续",
+    "acceptance": "五种正交方向支持当前全部层类型；像素层/无样式组的任意角度与数值/两点拉直、安全内切裁剪已通过本机核心/AI/原生/Metal/Release 与单窗口验收。生成/调整/样式/文字的一般几何仍开放。",
     "evidence": [
       {
         "label": "M7 整图正交变换",
@@ -840,6 +844,10 @@
       {
         "label": "General pixel-image angle",
         "path": "../research/2026-11-m7-rotate-progress.md"
+      },
+      {
+        "label": "拉直与内切裁剪",
+        "path": "../research/2026-11-m7-straighten-progress.md"
       }
     ]
   },

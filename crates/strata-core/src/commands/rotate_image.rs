@@ -17,6 +17,60 @@ fn check(cancel: &dyn Fn() -> bool) -> Result<(), CommandError> {
 fn invalid(e: impl std::fmt::Display) -> CommandError {
     CommandError::Invalid(e.to_string())
 }
+pub(super) fn layout(
+    old: &crate::Frame,
+    angle: f64,
+) -> Result<(Homography, crate::Frame), CommandError> {
+    let theta = angle.to_radians();
+    let (c, s) = (theta.cos(), theta.sin());
+    let cx = old.x as f64 + f64::from(old.width) / 2.;
+    let cy = old.y as f64 + f64::from(old.height) / 2.;
+    let tx = cx - c * cx + s * cy;
+    let ty = cy - s * cx - c * cy;
+    let base = Homography::affine([c, s, -s, c, tx, ty]).map_err(invalid)?;
+    // A conservative half-pixel reconstruction envelope, identical for the
+    // nearest and bilinear choices, encloses antialias support after rotation.
+    let extent = geometry_pixels::transformed_bounds(
+        CoverageRect {
+            x: old.x,
+            y: old.y,
+            width: old.width,
+            height: old.height,
+        },
+        &base,
+        Sampling::Bilinear,
+    )?;
+    let transform = Homography::affine([
+        c,
+        s,
+        -s,
+        c,
+        tx + (old.x as f64 - extent.x as f64),
+        ty + (old.y as f64 - extent.y as f64),
+    ])
+    .map_err(invalid)?;
+    let frame = crate::Frame {
+        name: old.name.clone(),
+        x: old.x,
+        y: old.y,
+        width: extent.width,
+        height: extent.height,
+    };
+    if [
+        frame.x as f64,
+        frame.y as f64,
+        frame.x as f64 + f64::from(frame.width),
+        frame.y as f64 + f64::from(frame.height),
+    ]
+    .iter()
+    .any(|v| v.abs() > 1e12)
+    {
+        return Err(invalid(
+            "expanded image frame exceeds canvas coordinates +/-1e12",
+        ));
+    }
+    Ok((transform, frame))
+}
 pub(super) fn mutate(
     doc: &mut Document,
     id: &str,
@@ -78,54 +132,7 @@ pub(super) fn mutate(
             ));
         }
     }
-    let theta = angle.to_radians();
-    let (c, s) = (theta.cos(), theta.sin());
-    let cx = old.x as f64 + f64::from(old.width) / 2.;
-    let cy = old.y as f64 + f64::from(old.height) / 2.;
-    let tx = cx - c * cx + s * cy;
-    let ty = cy - s * cx - c * cy;
-    let base = Homography::affine([c, s, -s, c, tx, ty]).map_err(invalid)?;
-    // A conservative half-pixel reconstruction envelope, identical for the
-    // nearest and bilinear choices, encloses antialias support after rotation.
-    let extent = geometry_pixels::transformed_bounds(
-        CoverageRect {
-            x: old.x,
-            y: old.y,
-            width: old.width,
-            height: old.height,
-        },
-        &base,
-        Sampling::Bilinear,
-    )?;
-    let transform = Homography::affine([
-        c,
-        s,
-        -s,
-        c,
-        tx + (old.x as f64 - extent.x as f64),
-        ty + (old.y as f64 - extent.y as f64),
-    ])
-    .map_err(invalid)?;
-    let frame = crate::Frame {
-        name: old.name.clone(),
-        x: old.x,
-        y: old.y,
-        width: extent.width,
-        height: extent.height,
-    };
-    if [
-        frame.x as f64,
-        frame.y as f64,
-        frame.x as f64 + f64::from(frame.width),
-        frame.y as f64 + f64::from(frame.height),
-    ]
-    .iter()
-    .any(|v| v.abs() > 1e12)
-    {
-        return Err(invalid(
-            "expanded image frame exceeds canvas coordinates +/-1e12",
-        ));
-    }
+    let (transform, frame) = layout(&old, angle)?;
     if frame.width > 100000
         || frame.height > 100000
         || doc

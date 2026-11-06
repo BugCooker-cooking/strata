@@ -92,7 +92,7 @@ fn examples() -> Result<(), Box<dyn Error>> {
                     )?;
                     run(&mut editor, "select.none", json!({}))?;
                 }
-                "retouch.spot_heal" | "transform.apply" | "image.resize" => {
+                "retouch.spot_heal" | "transform.apply" | "image.resize" | "image.straighten" => {
                     run(
                         &mut editor,
                         "paint.fill",

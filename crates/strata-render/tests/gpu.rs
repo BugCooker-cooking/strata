@@ -1795,6 +1795,110 @@ fn image_size_sampling_modes_metal_match_cpu_and_undo_retains_original_sources()
 }
 
 #[test]
+fn straighten_safe_crop_metal_honors_nonzero_frame_origin_and_undo_restores_scene() {
+    let Some(mut renderer) = renderer() else {
+        return;
+    };
+    let mut e = strata_core::Editor::new();
+    for (id, p) in [
+        (
+            "file.new",
+            serde_json::json!({"width":32,"height":24,"bit_depth":16,"working_space":"display_p3","background":[10001,30003,50001,65535]}),
+        ),
+        (
+            "paint.gradient",
+            serde_json::json!({"layer":{"name":"Background"},"start":[0.5,0.5],"end":[31.5,23.5],"stops":[{"at":0,"color":[0.1,0.2,0.3,1]},{"at":1,"color":[0.8,0.6,0.4,1]}]}),
+        ),
+    ] {
+        e.execute(e.request(strata_core::Source::Test), id, p, |_| Ok(()))
+            .unwrap();
+    }
+    let original = e.document().unwrap().to_archive().unwrap();
+    let scene = renderer
+        .prepare_document(e.document().unwrap(), false)
+        .unwrap();
+    renderer.commit_document(scene).unwrap();
+    renderer
+        .set_view(ViewTransform {
+            zoom: 1.,
+            center_x: 16.,
+            center_y: 12.,
+        })
+        .unwrap();
+    renderer.render().unwrap();
+    let before = renderer.read_offscreen_rgba().unwrap();
+    e.execute(e.request(strata_core::Source::Test),"image.straighten",serde_json::json!({"reference":{"type":"line","start":[2,4],"end":[29,8],"align":"horizontal"},"crop":true}),|_|Ok(())).unwrap();
+    let doc = e.document().unwrap();
+    let f = doc.frame();
+    assert!(f.x > 0 && f.y > 0);
+    let center = [
+        f.x as f32 + (f.width / 2) as f32,
+        f.y as f32 + (f.height / 2) as f32,
+    ];
+    let scene = renderer.prepare_document(doc, false).unwrap();
+    renderer.commit_document(scene).unwrap();
+    renderer
+        .set_view(ViewTransform {
+            zoom: 3.,
+            center_x: center[0],
+            center_y: center[1],
+        })
+        .unwrap();
+    renderer.render().unwrap();
+    let shown = renderer.read_offscreen_rgba().unwrap();
+    let reference = strata_core::composite::Compositor::new(1)
+        .tile(doc, strata_pixels::TileCoord::new(0, 0).unwrap())
+        .unwrap();
+    for (x, y) in [
+        (f.x + i64::from(f.width / 4), f.y + i64::from(f.height / 4)),
+        (f.x + i64::from(f.width / 2), f.y + i64::from(f.height / 2)),
+        (
+            f.x + i64::from(f.width * 3 / 4),
+            f.y + i64::from(f.height * 3 / 4),
+        ),
+    ] {
+        let p = reference[y as usize * 256 + x as usize];
+        assert_eq!(p[3], 1.);
+        let sx = (32. + (x as f32 + 0.5 - center[0]) * 3.) as usize;
+        let sy = (32. + (y as f32 + 0.5 - center[1]) * 3.) as usize;
+        let actual = pixel(&shown, sx, sy);
+        for c in 0..3 {
+            let v = f64::from(p[c]);
+            let v = if v <= 0.0031308 {
+                12.92 * v
+            } else {
+                1.055 * v.powf(1. / 2.4) - 0.055
+            };
+            assert!(
+                actual[c].abs_diff((v.clamp(0., 1.) * 255.).round() as u8) <= 3,
+                "{x},{y},{c}: {actual:?}"
+            );
+        }
+    }
+    e.execute(
+        e.request(strata_core::Source::Test),
+        "edit.undo",
+        serde_json::json!({}),
+        |_| Ok(()),
+    )
+    .unwrap();
+    assert_eq!(e.document().unwrap().to_archive().unwrap(), original);
+    let scene = renderer
+        .prepare_document(e.document().unwrap(), false)
+        .unwrap();
+    renderer.commit_document(scene).unwrap();
+    renderer
+        .set_view(ViewTransform {
+            zoom: 1.,
+            center_x: 16.,
+            center_y: 12.,
+        })
+        .unwrap();
+    renderer.render().unwrap();
+    assert_eq!(renderer.read_offscreen_rgba().unwrap(), before);
+}
+
+#[test]
 fn tiled_scene_preserves_source_and_has_no_mip_seam() {
     let Some(mut r) = renderer() else {
         return;

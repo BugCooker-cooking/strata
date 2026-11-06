@@ -214,7 +214,7 @@ func commandTitle(_ command: String) -> String {
     commandTitles[command] ?? command
 }
 private let commandTitles: [String: String] = [
-     "filter.gaussian_blur":"高斯模糊", "filter.unsharp_mask":"USM 锐化", "filter.add_noise":"添加杂色", "transform.apply":"像素自由变换", "image.canvas_size":"画布大小", "image.crop":"矩形裁剪", "image.reveal_all":"显示全部可见图层内容", "image.orient":"图像旋转与翻转", "image.trim":"裁去透明边", "image.rotate":"整图任意角度旋转", "image.resize":"图像大小与重采样",
+     "filter.gaussian_blur":"高斯模糊", "filter.unsharp_mask":"USM 锐化", "filter.add_noise":"添加杂色", "transform.apply":"像素自由变换", "image.canvas_size":"画布大小", "image.crop":"矩形裁剪", "image.reveal_all":"显示全部可见图层内容", "image.orient":"图像旋转与翻转", "image.trim":"裁去透明边", "image.rotate":"整图任意角度旋转", "image.resize":"图像大小与重采样", "image.straighten":"拉直图像与自动裁剪",
      "layer.create": "新建图层", "layer.duplicate": "复制图层", "layer.delete": "删除图层", "layer.rename": "重命名图层",
      "layer.set_position": "移动图层", "layer.set_visibility": "图层显隐", "layer.set_opacity": "调整不透明度",
      "layer.set_blend_mode": "混合模式", "layer.move_order": "调整顺序", "color.convert": "转换色彩空间", "color.assign":"指定色彩配置",

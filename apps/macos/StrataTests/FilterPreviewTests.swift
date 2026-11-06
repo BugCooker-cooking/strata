@@ -4,6 +4,14 @@ import XCTest
 
 final class FilterPreviewTests:XCTestCase{
     @MainActor
+    func testStraightenAngleAndLineAreOneNativeUndoIncludingSafeCrop()throws{
+        for reference in [["type":"angle","angle_degrees":5] as [String:Any],["type":"line","start":[2,4],"end":[30,7],"align":"horizontal"]]{
+            let engine=StrataEngine(listener:EngineEvents{_ in});_ = try engine.dispatch(command:"file.new",paramsJson:commandJSON(["width":40,"height":26,"bit_depth":16,"background":[10001,30003,50001,65535]]));let before=try EditorSnapshot.decode(engine.snapshotJson())
+            _ = try engine.dispatch(command:"image.straighten",paramsJson:commandJSON(["reference":reference,"crop":true]));let after=try EditorSnapshot.decode(engine.snapshotJson());XCTAssertLessThan(after.frame?.height ?? 26,26);XCTAssertEqual(after.layers.map(\.id),before.layers.map(\.id));XCTAssertEqual(after.historyCursor,before.historyCursor+1);XCTAssertEqual(after.history.last?.command,"image.straighten")
+            _ = try engine.dispatch(command:"edit.undo",paramsJson:"{}");let undone=try EditorSnapshot.decode(engine.snapshotJson());XCTAssertEqual(undone.frame?.width,40);XCTAssertEqual(undone.frame?.height,26);XCTAssertEqual(undone.historyCursor,before.historyCursor)
+        }
+    }
+    @MainActor
     func testImageSizeSamplingRetainsNativeLayerIdsAndOneUndoStep()throws{
         for interpolation in ["nearest","bilinear","area"]{
             let engine=StrataEngine(listener:EngineEvents{_ in});_ = try engine.dispatch(command:"file.new",paramsJson:commandJSON(["width":16,"height":12,"bit_depth":16,"background":[10001,30003,50001,32769]]));let before=try EditorSnapshot.decode(engine.snapshotJson())

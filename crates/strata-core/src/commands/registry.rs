@@ -1093,10 +1093,20 @@ fn build_catalog() -> Vec<CommandSpec> {
         "Resize the actual image to integer width/height 1..100000 pixels while keeping the old artboard top-left and document DPI. Supports all pixel layers and unstyled groups, including hidden/off-artboard source pixels, layer/group masks (enabled flag retained) and current/previous u16 selections. Preserve IDs/tree/clipping/ICC/bit depth; do not flatten or clip to the old/new artboard. Generated fills/adjustments, active styles and frozen style references explicitly reject before resampling; their editable sizing support remains open. interpolation=nearest copies exact source codes (including transparent hidden RGB); bilinear samples pixel centers in premultiplied linear light with actual ICC; area(default) integrates exact pixel-box overlap on each reducing axis and uses bilinear on equal/enlarging axes. Finite interior/off-artboard source edges filter against transparent zero, with conservative half-source-pixel support for bilinear axes; only source edges exactly coinciding with the old artboard edge extend their sample so a full opaque image keeps opaque borders. Area reduction uses exact pixel-box overlap normalization. Rational canvas coordinates preserve sample phase at large offsets. Source bounds scale with floor/ceil and integer layer storage origins rebase; this can retain a partial edge pixel beyond the new artboard. Selections rebind to the exact new frame, never reapply old selection to image pixels. Equal dimensions are a no-op with no history/revision/dirty/current-layer changes even on unsupported or locked layers. Reject affected layer/ancestor pixel/position/transparency/all locks. At most 64M destination visits and 256M sample taps across layers/masks/selections per command, eight cached source tiles/4096 decoded loads per raster, shared reservations and row/inner-loop cancellation. Prepare from immutable sources, publish one atomic history step with exact undo, not batchable; exact AI pixels.replace approval. Native and AI share this implementation. 中文：图像大小、调整图像尺寸、像素尺寸、重采样、最近邻、双线性、面积缩小、抗混叠；保留图层蒙版与画板外像素。",
         json!({"width":12,"height":10,"interpolation":"area"})
     );
+    command!(
+        "image.straighten",
+        StraightenImage,
+        Mutate,
+        "拉直图像与自动裁剪",
+        "Straighten image and crop",
+        "Straighten all pixel layers and unstyled groups in one atomic history step using reference.type=angle (clockwise angle_degrees +/-45) or line (distinct start/end canvas points, align horizontal/vertical). A reference line computes the shortest unoriented correction toward the requested axis; choose the other axis if correction exceeds45 degrees. Points must be finite inside +/-1e12 and at least1e-6 pixel apart. crop=true(default) uses the rotated original artboard, not visible-content alpha, to compute an analytical largest centered continuous inscribed rectangle, then rounds its edges inward and verifies inverse corners. Bilinear uses an additional half-source-pixel inset so an originally opaque image cannot gain transparent corner interpolation; integer alignment may conservatively remove extra edge pixels. An image too narrow for a nonempty safe integer rectangle rejects before sampling; set crop=false to retain the expanded rotation artboard. No content-aware filling, deletion or implicit rasterization. Same immutable resampler/limits/locks/partial-type restrictions as image.rotate; preserve layer IDs/tree/depth/ICC, hidden/off-artboard sources, enabled flags and layer/group/current/previous masks. Source content outside the cropped frame remains stored; selection binds to final frame. Exactly zero correction is unchanged-state no-op, even with crop=true. Numeric native panel and AI share strict parameters, output and pixels.replace approval; one undo restores both rotation and crop. Generated fills/adjustments/styles/text and reference-line pointer dragging are still open. 中文：拉直、水平线校正、垂直线校正、按两点参考线拉直、校正地平线、自动裁掉旋转空角、保留像素裁剪。",
+        json!({"reference":{"type":"angle","angle_degrees":5},"crop":true,"interpolation":"bilinear"})
+    );
     for item in &mut list {
         item.returns = match item.id {
             "image.rotate" => schemars::schema_for!(RotateImageResult),
             "image.resize" => schemars::schema_for!(ResizeImageResult),
+            "image.straighten" => schemars::schema_for!(StraightenImageResult),
             "image.trim" => schemars::schema_for!(TrimCanvasResult),
             "paint.colors.get" | "paint.colors.set" | "paint.colors.swap"
             | "paint.colors.reset" => schemars::schema_for!(PaintColors),
@@ -1266,12 +1276,23 @@ fn build_catalog() -> Vec<CommandSpec> {
                     .push(json!({"width":23,"height":19,"interpolation":interpolation}));
             }
         }
-        if matches!(item.id, "image.rotate" | "image.resize") {
+        if item.id == "image.straighten" {
+            item.examples.push(json!({"reference":{"type":"line","start":[2,4],"end":[13,5],"align":"horizontal"},"crop":true,"interpolation":"nearest"}));
+            item.examples.push(json!({"reference":{"type":"line","start":[4,2],"end":[5,13],"align":"vertical"},"crop":false}));
+        }
+        if matches!(
+            item.id,
+            "image.rotate" | "image.resize" | "image.straighten"
+        ) {
             item.batchable = false;
         }
         if matches!(
             item.id,
-            "transform.apply" | "image.orient" | "image.rotate" | "image.resize"
+            "transform.apply"
+                | "image.orient"
+                | "image.rotate"
+                | "image.resize"
+                | "image.straighten"
         ) {
             item.effects.push("pixels.replace");
         }
