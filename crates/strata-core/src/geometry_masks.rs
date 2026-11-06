@@ -235,7 +235,11 @@ pub fn transform_mask(
                     let sx = sx - offset[0] as f64;
                     let sy = sy - offset[1] as f64;
                     let coverage = if sampling == Sampling::Nearest {
-                        f64::from(input.sample(sx.floor() as i64, sy.floor() as i64, cancel)?)
+                        f64::from(input.sample(
+                            crate::geometry_pixels::nearest_index(sx),
+                            crate::geometry_pixels::nearest_index(sy),
+                            cancel,
+                        )?)
                     } else {
                         let x = sx - 0.5;
                         let y = sy - 0.5;

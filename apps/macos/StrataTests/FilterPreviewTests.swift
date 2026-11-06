@@ -4,6 +4,10 @@ import XCTest
 
 final class FilterPreviewTests:XCTestCase{
     @MainActor
+    func testArbitraryImageAngleExpandsNativeFrameAndUndoKeepsLayerIds()throws{
+        let engine=StrataEngine(listener:EngineEvents{_ in});_ = try engine.dispatch(command:"file.new",paramsJson:commandJSON(["width":16,"height":12,"bit_depth":16,"background":[10001,30003,50001,32769]]));let before=try EditorSnapshot.decode(engine.snapshotJson());_ = try engine.dispatch(command:"image.rotate",paramsJson:commandJSON(["angle_degrees":27,"interpolation":"bilinear"]));let after=try EditorSnapshot.decode(engine.snapshotJson());XCTAssertGreaterThan(after.frame?.width ?? 0,16);XCTAssertGreaterThan(after.frame?.height ?? 0,12);XCTAssertEqual(after.frame?.x,0);XCTAssertEqual(after.frame?.y,0);XCTAssertEqual(after.layers.map(\.id),before.layers.map(\.id));XCTAssertEqual(after.history.last?.command,"image.rotate");XCTAssertEqual(after.historyCursor,before.historyCursor+1);_ = try engine.dispatch(command:"edit.undo",paramsJson:"{}");let undone=try EditorSnapshot.decode(engine.snapshotJson());XCTAssertEqual(undone.frame?.width,16);XCTAssertEqual(undone.frame?.height,12);XCTAssertEqual(undone.historyCursor,before.historyCursor)
+    }
+    @MainActor
     func testWholeImageOrientationKeepsNativeLayerStructureAndEachVariantUndoes()throws{
         let engine=StrataEngine(listener:EngineEvents{_ in});_ = try engine.dispatch(command:"file.new",paramsJson:commandJSON(["width":13,"height":9,"bit_depth":16,"background":[20000,30000,40000,32769]]));let before=try EditorSnapshot.decode(engine.snapshotJson())
         for operation in ["rotate_90_cw","rotate_90_ccw","rotate_180","flip_horizontal","flip_vertical"]{

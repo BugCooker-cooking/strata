@@ -836,6 +836,10 @@
       {
         "label": "M7 整图正交变换",
         "path": "../research/2026-11-m7-orientation-progress.md"
+      },
+      {
+        "label": "General pixel-image angle",
+        "path": "../research/2026-11-m7-rotate-progress.md"
       }
     ]
   },

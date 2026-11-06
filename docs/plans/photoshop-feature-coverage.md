@@ -56,7 +56,7 @@
 | PS-02-bc773443d0 | 编辑 | 拼写检查、查找替换文本 | P3 | 待实现 | 待验收 |
 | PS-03-ad24731ea8 | 图像 | 图像大小（多种重采样算法） | P0 | 待实现 | 待验收 |
 | PS-03-45c2eea14c | 图像 | 画布大小 | P0 | 已实现 | 九锚点、原码/锁定结构/蒙版/选区、旧工程迁移与撤销通过；当前设备原生/Metal/Release 已有证据；持续回归 · [M7 画布大小](../research/2026-11-m7-canvas-progress.md) |
-| PS-03-5f9716e5d8 | 图像 | 图像旋转 / 翻转 | P0 | 部分实现 | 五种正交方向的当前全部层类型、核心/AI/Metal/完整原生/Release 与单窗口实看通过；任意角度仍待后续 · [M7 整图正交变换](../research/2026-11-m7-orientation-progress.md) |
+| PS-03-5f9716e5d8 | 图像 | 图像旋转 / 翻转 | P0 | 部分实现 | 五种正交方向的当前全部层类型、核心/AI/Metal/完整原生/Release 与单窗口实看通过；任意角度仍待后续 · [M7 整图正交变换](../research/2026-11-m7-orientation-progress.md) · [General pixel-image angle](../research/2026-11-m7-rotate-progress.md) |
 | PS-03-84941ac6e8 | 图像 | 显示全部 | P0 | 已实现 | 可见源内容/祖先样式边界、原码/蒙版/选区/撤销及当前设备原生/Metal/Release 已有证据；持续回归 · [M7 裁剪/显示全部](../research/2026-11-m7-crop-progress.md) |
 | PS-03-51294954aa | 图像 | 裁切（去透明边） | P1 | 已实现 | Local core/AI/native subset/real Metal/Release and single-window four-side/no-op/undo evidence passed; ongoing regression. · [Transparent alpha trim](../research/2026-11-m7-trim-progress.md) |
 | PS-03-0f4e217715 | 图像 | 复制文档 | P1 | 待实现 | 待验收 |

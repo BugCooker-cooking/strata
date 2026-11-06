@@ -17638,7 +17638,7 @@ Permissions: `bound_document`
 
 ## `transform.apply` — 像素自由变换
 
-Transform an explicit pixel layer and linked u16 mask from immutable source, preserving canvas-external content, selection and styles. Required scope=whole_layer or selection. whole_layer transforms all stored pixels and linked mask, leaving selection unchanged. selection requires nonempty document coverage: lift nontransparent source once with u16 selection into 16-bit temporary tiles, keep a source-over complement r=(a-s)/(1-s) with s=selected alpha, warp that immutable lift, then composite over remainder in premultiplied linear light. This complement reconstructs identity alpha and differs from simply multiplying original alpha by (1-coverage). Never clip the destination again by old selection. Move current selection through the same geometry/interpolation, clip coverage to the artboard, store old selection for reselect; keep layer position/styles/linked mask unchanged in selection mode. Zero-coverage and original alpha-zero hidden RGB remain exact at source; selected fully opaque coverage carries exact visible codes. Identity transform is exact. Pixel destinations outside artboard stay stored even if selection outline clips away. RGB lifting/warp and destination composite remain bounded/cancellable/pooled; no 8-bit intermediate for soft coverage. Generated/group/text transforms and free-transform handles remain unsupported; never rasterize/drop them implicitly. geometry.type=components: translation [x,y], scale [sx,sy] (negative flips), rotation_degrees, shear_degrees [x,y], pivot canvas [x,y]; order scale, shear, rotation, translation around pivot. affine values [a,b,c,d,tx,ty]. matrix values row-major [a,c,tx,b,d,ty,p,q,w], projective division. corners maps four cyclic convex source corners to destination corners; canvas coordinates, reversed orientation allowed. Use layer.pixel_bounds for actual source extent. interpolation nearest/bilinear (default): integer centers keep exact codes, fractions premultiplied linear P3 with actual ICC. Empty pixel layers reject. Exact integer translation only changes the layer position and keeps source/mask tile versions; signed axis permutations use integer pixel-center mapping even at large canvas offsets. Other output tiles are rebased to the transformed logical bounds, and the layer position reports that origin. Reject singular/horizon/unbounded or >64M-output visits; independent RGB/mask eight-tile/4096-decode caches, shared reservations/row cancellation. Reject pixel/position/transparency/all and ancestor locks. Linked mask flag preserved, anchors rebound. One atomic history, not batchable. 中文：自由变换、整层像素、选区内像素、移动选中区域、缩放、旋转、斜切、扭曲、透视、水平翻转、垂直翻转。
+Transform an explicit pixel layer and linked u16 mask from immutable source, preserving canvas-external content, selection and styles. Required scope=whole_layer or selection. whole_layer transforms all stored pixels and linked mask, leaving selection unchanged. selection requires nonempty document coverage: lift nontransparent source once with u16 selection into 16-bit temporary tiles, keep a source-over complement r=(a-s)/(1-s) with s=selected alpha, warp that immutable lift, then composite over remainder in premultiplied linear light. This complement reconstructs identity alpha and differs from simply multiplying original alpha by (1-coverage). Never clip the destination again by old selection. Move current selection through the same geometry/interpolation, clip coverage to the artboard, store old selection for reselect; keep layer position/styles/linked mask unchanged in selection mode. Zero-coverage and original alpha-zero hidden RGB remain exact at source; selected fully opaque coverage carries exact visible codes. Identity transform is exact. Pixel destinations outside artboard stay stored even if selection outline clips away. RGB lifting/warp and destination composite remain bounded/cancellable/pooled; no 8-bit intermediate for soft coverage. Generated/group/text transforms and free-transform handles remain unsupported; never rasterize/drop them implicitly. geometry.type=components: translation [x,y], scale [sx,sy] (negative flips), rotation_degrees, shear_degrees [x,y], pivot canvas [x,y]; order scale, shear, rotation, translation around pivot. affine values [a,b,c,d,tx,ty]. matrix values row-major [a,c,tx,b,d,ty,p,q,w], projective division. corners maps four cyclic convex source corners to destination corners; canvas coordinates, reversed orientation allowed. Use layer.pixel_bounds for actual source extent. interpolation nearest/bilinear (default): nearest floating edge ties within 1e-9 source pixel choose the positive-side sample; integer centers keep exact codes, fractions premultiplied linear P3 with actual ICC. Empty pixel layers reject. Exact integer translation only changes the layer position and keeps source/mask tile versions; signed axis permutations use integer pixel-center mapping even at large canvas offsets. Other output tiles are rebased to the transformed logical bounds, and the layer position reports that origin. Reject singular/horizon/unbounded or >64M-output visits; independent RGB/mask eight-tile/4096-decode caches, shared reservations/row cancellation. Reject pixel/position/transparency/all and ancestor locks. Linked mask flag preserved, anchors rebound. One atomic history, not batchable. 中文：自由变换、整层像素、选区内像素、移动选中区域、缩放、旋转、斜切、扭曲、透视、水平翻转、垂直翻转。
 
 Kind: `Mutate` · Undoable: `true` · Batchable: `false`
 
@@ -19017,6 +19017,137 @@ Permissions: `bound_document`
 
 ```json
 {}
+```
+
+## `image.rotate` — 整图任意角度旋转
+
+Rotate the layered image clockwise by finite angle_degrees +/-360000 (normalized modulo360); interpolation nearest/bilinear(default). General angles currently support every pixel layer and unstyled group, including hidden/off-artboard stored pixels, linked/disabled u16 masks and current/previous selections. Generated fills/adjustments, active styles and frozen style references reject before work; no implicit rasterization. Exact 90/180/270 degrees reuse image.orient and its support for all current types/finite generated crops/styles. Exact multiples of360 are no-ops with no history/revision/dirty/current-layer change. For general angles, rotate around old artboard center and translate its conservative half-source-pixel reconstruction envelope to the old artboard top-left; new canvas dimensions enclose that envelope independent of interpolation, so nearest may show an extra transparent border. Pixel source outside the old artboard is never clipped; it can stay outside the new frame. Integer layer storage origins rebase to transformed source bounds. Document selections transform/rebind to the new artboard, layer/group masks keep transformed finite support and enabled flags. ICC/depth/tree/IDs/clipping remain; fractions use premultiplied linear light, nearest preserves sampled codes and picks the positive-side sample for floating edge ties within 1e-9 source pixel. Reject any layer/ancestor pixel/position/transparency/all lock or existing 64M-output, eight-tile/4096-source-decode, coordinate and shared memory limits. Prepare from immutable source, row cancellation, atomic one-history undo, not batchable, exact AI content-replacement approval. This partial image-rotation capability does not complete general editable fill/style/text geometry or straighten/crop integration. 中文：整图任意角度旋转、旋转图像、顺时针角度、逆时针角度；扩展画板，保留像素层/组、蒙版、选区和画板外内容。
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `false`
+
+Effects: `document.write, pixels.replace`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RotateImage",
+  "type": "object",
+  "properties": {
+    "angle_degrees": {
+      "type": "number",
+      "format": "double",
+      "maximum": 360000,
+      "minimum": -360000
+    },
+    "interpolation": {
+      "$ref": "#/$defs/TransformInterpolation",
+      "default": "bilinear"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "angle_degrees"
+  ],
+  "$defs": {
+    "TransformInterpolation": {
+      "type": "string",
+      "enum": [
+        "nearest",
+        "bilinear"
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RotateImageResult",
+  "type": "object",
+  "properties": {
+    "angle_degrees": {
+      "type": "number",
+      "format": "double"
+    },
+    "changed": {
+      "type": "boolean"
+    },
+    "frame": {
+      "$ref": "#/$defs/Frame"
+    },
+    "preserved_layer_structure": {
+      "type": "boolean"
+    },
+    "previous_frame": {
+      "$ref": "#/$defs/Frame"
+    },
+    "source_artboard_clipped": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "angle_degrees",
+    "previous_frame",
+    "frame",
+    "changed",
+    "source_artboard_clipped",
+    "preserved_layer_structure"
+  ],
+  "$defs": {
+    "Frame": {
+      "type": "object",
+      "properties": {
+        "height": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "name": {
+          "type": "string"
+        },
+        "width": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "x": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "y": {
+          "type": "integer",
+          "format": "int64"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "x",
+        "y",
+        "width",
+        "height"
+      ]
+    }
+  }
+}
+```
+
+### Examples
+
+```json
+{
+  "angle_degrees": 15,
+  "interpolation": "bilinear"
+}
 ```
 
 ## `color.assign` — 指定文档配置文件

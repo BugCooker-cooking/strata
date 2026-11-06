@@ -18,6 +18,7 @@ mod profiles;
 mod raster;
 mod registry;
 mod resample;
+mod rotate_image;
 mod sample_selection;
 mod selection;
 mod spot_heal;
@@ -155,6 +156,21 @@ pub struct OrientImageResult {
     pub previous_frame: crate::Frame,
     pub frame: crate::Frame,
     pub all_stored_content_transformed: bool,
+    pub preserved_layer_structure: bool,
+}
+params!(RotateImage {
+    #[schemars(range(min=-360000,max=360000))]
+    angle_degrees: f64,
+    #[serde(default)]
+    interpolation: TransformInterpolation
+});
+#[derive(Serialize, JsonSchema)]
+pub struct RotateImageResult {
+    pub angle_degrees: f64,
+    pub previous_frame: crate::Frame,
+    pub frame: crate::Frame,
+    pub changed: bool,
+    pub source_artboard_clipped: bool,
     pub preserved_layer_structure: bool,
 }
 #[derive(Clone, Copy, Debug, Default, Serialize, Deserialize, JsonSchema)]

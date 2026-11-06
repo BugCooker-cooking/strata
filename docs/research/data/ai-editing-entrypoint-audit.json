@@ -1,8 +1,8 @@
 {
   "scope": "Development audit; not a claim that all Photoshop editing is implemented or AI-verified",
-  "registered_commands": 116,
-  "registered_examples": 165,
-  "catalog_sha256": "bca83af2aa39fb54f4dbfe3d273fdfe62a12cbdfc1052da3697e10f6fbb85c6c",
+  "registered_commands": 117,
+  "registered_examples": 166,
+  "catalog_sha256": "79240d35c8f8802625302ca3f3f26e1cbb19b6e6c14b6f9dbb7ed257ec1a75d3",
   "inventory_rows": 265,
   "mapped_features": 81,
   "unmapped_implemented_features": [],
@@ -1080,7 +1080,8 @@
         "scope": "editing",
         "coverage": "partial",
         "commands": [
-          "image.orient"
+          "image.orient",
+          "image.rotate"
         ],
         "prompts": [
           {
@@ -1092,6 +1093,11 @@
             "text": "水平翻转整幅图像，保留画板外源像素。",
             "query": "图像水平翻转",
             "command": "image.orient"
+          },
+          {
+            "text": "Rotate the entire pixel image 27 degrees clockwise, expanding the artboard while preserving layer structure.",
+            "query": "Rotate pixel image by angle",
+            "command": "image.rotate"
           }
         ],
         "variants": [
@@ -1107,7 +1113,7 @@
             ]
           }
         ],
-        "note": "五种正交操作支持所有当前类型与原码/结构；任意角度图像旋转和未来文字/智能对象类型仍待后续，综合旋转条目保持部分。"
+        "note": "All current types support exact orthogonal orientations. General angles support pixel layers and unstyled groups only; generated/adjustment/style geometry and straighten remain open. Native and AI use identical strict angle/interpolation parameters, exact approval and one-history undo."
       }
     },
     {

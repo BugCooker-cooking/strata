@@ -1140,6 +1140,104 @@ fn trim_prompt_discovers_visible_alpha_edit_and_turn_undo_preserves_raw_layers()
         before
     );
 }
+#[test]
+fn arbitrary_image_rotation_is_discoverable_requires_exact_approval_and_undoes_one_turn() {
+    let host = Host::new();
+    host.user(
+        "paint.fill",
+        json!({"layer":{"name":"Background"},"color":[0.8,0.2,0.1,0.5]}),
+    );
+    let before = host
+        .editor
+        .lock()
+        .unwrap()
+        .document()
+        .unwrap()
+        .to_archive()
+        .unwrap();
+    let initial = host.snapshot().unwrap();
+    let mut session = host.session_with_prompt(
+        ExecutionMode::Direct,
+        "把整幅像素图像顺时针旋转27度，扩展画板并保留图层。",
+    );
+    reply(
+        &mut session,
+        &host,
+        vec![
+            call(
+                "search",
+                "search_catalog",
+                json!({"query":"整图任意角度旋转"}),
+            ),
+            call(
+                "describe",
+                "describe_commands",
+                json!({"ids":["image.rotate"]}),
+            ),
+        ],
+    );
+    assert!(
+        result(session.poll(&host).unwrap())["matches"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|m| m["id"] == "image.rotate")
+    );
+    assert_eq!(
+        result(session.poll(&host).unwrap())["commands"][0]["id"],
+        "image.rotate"
+    );
+    reply(
+        &mut session,
+        &host,
+        vec![invoke(
+            "rotate",
+            "image.rotate",
+            json!({"angle_degrees":27,"interpolation":"bilinear"}),
+        )],
+    );
+    let Step::Paused {
+        question_id,
+        operation,
+        ..
+    } = session.poll(&host).unwrap()
+    else {
+        panic!()
+    };
+    assert_eq!(operation.unwrap()["params"]["angle_degrees"], 27);
+    assert_eq!(host.snapshot().unwrap().revision, initial.revision);
+    let answer = result(
+        session
+            .respond(
+                &host,
+                HostAnswer {
+                    question_id,
+                    answer: String::new(),
+                    approved: true,
+                    resource: None,
+                },
+            )
+            .unwrap(),
+    );
+    assert_eq!(answer["result"]["preserved_layer_structure"], true);
+    assert_eq!(answer["result"]["changed"], true);
+    assert_eq!(
+        host.snapshot().unwrap().history.len(),
+        initial.history.len() + 1
+    );
+    host.editor.lock().unwrap().stop_turn();
+    host.user("edit.undo_turn", json!({"turn_id":session.turn_id()}));
+    assert_eq!(
+        host.editor
+            .lock()
+            .unwrap()
+            .document()
+            .unwrap()
+            .to_archive()
+            .unwrap(),
+        before
+    );
+}
 
 #[test]
 fn inspect_and_direct_queries_and_batches_never_expose_hidden_layers_or_paths() {

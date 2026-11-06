@@ -1,0 +1,105 @@
+{
+  "date_local": "2026-11-06",
+  "timezone": "Asia/Taipei",
+  "base_checkpoint": "a239f5c",
+  "scope": "Arbitrary image rotation for pixel layers and unstyled groups; full-type general geometry, straighten and complete Photoshop/AI closure remain open.",
+  "source_sha256": {
+    "apps/macos/Strata/App/MainWindowController.swift": "17efc4e01ea441b833c5658c8356e417aad76d8d7d720bfc8047adab983967ff",
+    "apps/macos/Strata/Workspace/ImageOrientationControls.swift": "a28c40fc10c972e648691efe567a61c0037e5668fcb56ff965630e6500325ad7",
+    "apps/macos/Strata/Workspace/WorkspaceModel.swift": "b7db5ca97006f115c41d873489f865e10059e2ebfe0e71c9a8c172ff6a1a8afb",
+    "apps/macos/StrataTests/FilterPreviewTests.swift": "f7fd8ae8d639da193a43d863f66f168c50c355abeac0b930330f9cea6372d716",
+    "crates/strata-ai/tests/replay.rs": "f9ea1b4525ca3795dc6bebf12bb8ef4b5c2a3f6544594d798101b0f24625a63f",
+    "crates/strata-core/src/commands/executor.rs": "41e4265a640d13661cf8a749aaea45617a4d4e01fde3c1e6ef52f3e28029fdff",
+    "crates/strata-core/src/commands/mod.rs": "606b0203cd50141394fb20d16449741e2bf062023312770cf0dbdbaa598934a5",
+    "crates/strata-core/src/commands/registry.rs": "4b105bdb5261fd483e5adbec529a2069c87f6441e63c130ba384df5a5e7398ac",
+    "crates/strata-core/src/commands/rotate_image.rs": "d288af2c4bebfbb68a46e8a83afa0f413c0ae68434e4b8725ec06e858eba3e21",
+    "crates/strata-core/src/geometry_masks.rs": "be8518b49788c07a718d185e47fedf82e62e1551d4b3727113d95a526da011d3",
+    "crates/strata-core/src/geometry_pixels.rs": "f83fa6145f22bf2fb744b924d71c0563eb72200b255524b1f52acbdddb59438a",
+    "crates/strata-core/tests/rotate_image.rs": "0690f648684456d5525d122b7e71a073a02df80e4bafd4571b3a54704230225d",
+    "crates/strata-render/tests/gpu.rs": "9271506bd895de186adf5971666ccf8a37e4f53f74f837088197ec53bd672949"
+  },
+  "verification": {
+    "core": {
+      "passed": 22,
+      "new_rotation_integrations": 6,
+      "existing_pixel_mask_whole_layer_regressions": 16,
+      "log": "build/m7-rotate-core.final.log"
+    },
+    "ai": {
+      "passed": 28,
+      "replay_tests": 27,
+      "mapping_contract_tests": 1,
+      "log": "build/m7-rotate-ai.log"
+    },
+    "native_subset": {
+      "passed": 8,
+      "skipped": 0,
+      "scope": "StrataTests/FilterPreviewTests",
+      "log": "build/m7-rotate-native.log",
+      "note": "Native test ran before the final nearest-tie clarification; Release compiled the final implementation. Native rotation case uses bilinear."
+    },
+    "required_metal_numeric": {
+      "passed": 1,
+      "skipped": 0,
+      "log": "build/m7-rotate-gpu.log"
+    },
+    "arm64_release": {
+      "passed": true,
+      "log": "build/m7-rotate-release.log"
+    },
+    "lint": {
+      "passed": true,
+      "log": "build/m7-rotate-lint.final.log"
+    },
+    "command_examples": {
+      "passed": 117,
+      "log": "build/m7-rotate-commands.final.log"
+    },
+    "ai_audit": {
+      "mapped_composite_rows": 81,
+      "inventory_rows": 265,
+      "partial_entrypoints": 8,
+      "unmapped_implemented_rows": 0,
+      "unlinked_registered_commands": 0,
+      "unknown_native_literals": 0,
+      "untyped_root_returns": 0,
+      "final_complete": false,
+      "strict_gate": "build/m7-rotate-final-ai-gate.log"
+    },
+    "prior_full_baselines": "Existing complete Rust/native/GPU baselines remain independent; this increment is targeted, not relabeled as a full rerun."
+  },
+  "native_manual": {
+    "single_release_instance": true,
+    "fixture": "repository-generated sample-photo.jpg",
+    "original_size": [
+      1024,
+      1536
+    ],
+    "angle_degrees": 27,
+    "interpolation": "bilinear",
+    "rotated_size": [
+      1612,
+      1836
+    ],
+    "separate_pixel_layer_retained": true,
+    "history_steps_added": 1,
+    "undo_restored_original_clean_document": true,
+    "final_running_strata_instances": 0,
+    "method": "CUA live native AX and screenshot; refocus from AI text editor before document undo."
+  },
+  "semantics": {
+    "types": "General angles: all pixel layers and unstyled groups, hidden/off-artboard included. Generated/adjustment/active style/frozen style reference reject before sampling. Exact quarter turns delegate full-type image.orient.",
+    "sampling": "Independent inverse-center nearest references at 27/-27/45/137.5 degrees in 8/16 bit; independent premultiplied linear-light bilinear reference. Near-edge ties within 1e-9 choose positive-side sample consistently for pixels and masks.",
+    "frame": "Conservative half-source-pixel reconstruction envelope, same frame for nearest and bilinear; top-left remains fixed. Original off-artboard source is not clipped.",
+    "history": "One atomic cancellable edit, exact archive undo and project roundtrip; whole revolutions have no revision/dirty/history/current-layer changes.",
+    "limits": "Existing output/source-cache/coordinate/shared-budget limits and actual computation cancellation verified."
+  },
+  "cloud_builds": {
+    "used": false,
+    "remote_workflow_state": "disabled_manually",
+    "local_triggers": [
+      "workflow_dispatch"
+    ]
+  },
+  "remaining": "General editable fill/adjustment/style/text geometry, image resize, straighten/crop integration and all other incomplete feature/performance/live-model/platform/device/release gates remain open."
+}

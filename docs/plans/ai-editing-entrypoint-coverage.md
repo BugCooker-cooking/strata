@@ -2,7 +2,7 @@
 
 当前开发期审计快照。完整编辑功能与最终 AI 审计仍未闭环；不得把注册数量当作全部功能覆盖。
 
-真实注册命令 116；参数示例 165；综合功能 265；已有映射 81。
+真实注册命令 117；参数示例 166；综合功能 265；已有映射 81。
 
 已实现但未映射 0；部分入口 8；原生未知命令引用 0；未类型化返回 0。
 
@@ -60,7 +60,7 @@
 | PS-02-bc773443d0 | 拼写检查、查找替换文本 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-03-ad24731ea8 | 图像大小（多种重采样算法） | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-03-45c2eea14c | 画布大小 | 已实现 | 已映射 | `image.canvas_size` · 固定画布右下角，把画布扩展到给定宽高，保留所有画板外内容，不缩放图层。 · 画布边界编辑保留结构与原码；生成填充/样式和空间调色冻结参考，选区裁到新边界，扩展覆盖为零。图像缩放与删除裁剪像素属于其他命令。 |
-| PS-03-5f9716e5d8 | 图像旋转 / 翻转 | 部分实现 | 部分入口 | `image.orient` · 将整幅图像顺时针旋转 90 度，同时保留可编辑图层、链接蒙版和选区。 · 五种正交操作支持所有当前类型与原码/结构；任意角度图像旋转和未来文字/智能对象类型仍待后续，综合旋转条目保持部分。 |
+| PS-03-5f9716e5d8 | 图像旋转 / 翻转 | 部分实现 | 部分入口 | `image.orient`、`image.rotate` · 将整幅图像顺时针旋转 90 度，同时保留可编辑图层、链接蒙版和选区。 · All current types support exact orthogonal orientations. General angles support pixel layers and unstyled groups only; generated/adjustment/style geometry and straighten remain open. Native and AI use identical strict angle/interpolation parameters, exact approval and one-history undo. |
 | PS-03-84941ac6e8 | 显示全部 | 已实现 | 已映射 | `image.reveal_all` · 扩展画板，显示全部可见源图层与样式边界，恢复被画板遮住的内容。 · 以可见源图层/生成填充和自身/祖先样式的保守边界扩展，不移动/缩放内容；隐藏层不参与，蒙版/剪贴/零透明度可能让边界大于最小可见 alpha 范围。 |
 | PS-03-51294954aa | 裁切（去透明边） | 已实现 | 已映射 | `image.trim` · Trim all fully transparent borders while preserving original editable layers. · Visible composite alpha>0 within the current frame, independent side booleans. No display quantization; hidden RGB/layers do not count. Sources remain stored. Tight repeat is a no-op without history; fully transparent input rejects. |
 | PS-03-0f4e217715 | 复制文档 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |

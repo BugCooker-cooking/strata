@@ -12,6 +12,16 @@ pub enum Sampling {
     Nearest,
     Bilinear,
 }
+/// Near-integer source-center ties pick the positive-side pixel consistently.
+/// Exact signed lattice paths bypass floating coordinates entirely.
+pub(crate) fn nearest_index(center: f64) -> i64 {
+    (if (center - center.round()).abs() <= 1e-9 {
+        center.round()
+    } else {
+        center
+    })
+    .floor() as i64
+}
 pub struct PixelSource<'a> {
     pub pixels: &'a TiledPixels,
     pub offset: [i64; 2],
@@ -329,7 +339,7 @@ pub fn transform_pixels_at(
                         set(
                             &mut pixels,
                             i,
-                            input.raw(sx.floor() as i64, sy.floor() as i64, cancel)?,
+                            input.raw(nearest_index(sx), nearest_index(sy), cancel)?,
                         );
                         continue;
                     }
