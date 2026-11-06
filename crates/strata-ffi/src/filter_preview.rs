@@ -7,6 +7,15 @@ pub(crate) struct CachedFilter {
     parameters: Value,
     sequence: u64,
 }
+impl CachedFilter {
+    pub(crate) fn selection_document(&self) -> Option<&strata_core::Document> {
+        // Cached candidate is the last displayed scene even while a newer
+        // sequence computes or has invalid parameters. Cancel removes the slot.
+        (self.parameters["scope"] == "selection")
+            .then(|| self.prepared.document())
+            .flatten()
+    }
+}
 fn cancelled() -> StrataError {
     StrataError::Cancelled {
         message: "filter preview superseded or cancelled".into(),
@@ -290,8 +299,19 @@ mod tests {
                 "transform.apply",
                 json!({"scope":"whole_layer","geometry":{"type":"components","translation":[0.5,0.25]}}),
             ),
+            (
+                "transform.apply",
+                json!({"scope":"selection","geometry":{"type":"components","translation":[4.5,0.25]}}),
+            ),
         ] {
             let (e, listener) = engine();
+            if params["scope"] == "selection" {
+                e.dispatch(
+                    "select.marquee".into(),
+                    json!({"x":3,"y":3,"width":6,"height":6}).to_string(),
+                )
+                .unwrap();
+            }
             let before = e
                 .lock()
                 .unwrap()
@@ -376,6 +396,40 @@ mod tests {
                     == before
             );
         }
+    }
+    #[test]
+    fn selected_preview_outline_moves_without_mutating_truth_and_cancel_restores_it() {
+        let (e, _) = engine();
+        e.dispatch(
+            "select.marquee".into(),
+            json!({"x":2,"y":2,"width":4,"height":4}).to_string(),
+        )
+        .unwrap();
+        let revision = e.lock().unwrap().editor.revision();
+        let truth = e.selection_outline(revision).unwrap();
+        let before = e.snapshot_json().unwrap();
+        let sequence = start(&e, "transform.apply");
+        e.preview_filter(
+            json!({"scope":"selection","geometry":{"type":"components","translation":[6,1]}})
+                .to_string(),
+            sequence,
+        )
+        .unwrap();
+        let shown = e.display_selection_outline(revision).unwrap();
+        assert_ne!(shown, truth);
+        assert_eq!(e.selection_outline(revision).unwrap(), truth);
+        assert_eq!(e.snapshot_json().unwrap(), before);
+        assert!(shown.iter().all(|edge| edge.x1 >= 8. && edge.x2 >= 8.));
+        let newer = e.issue_tonal_preview().unwrap();
+        assert_eq!(
+            e.display_selection_outline(revision).unwrap(),
+            shown,
+            "last displayed candidate remains while newer input is pending"
+        );
+        e.end_filter_preview_checked("{}".into(), true, newer)
+            .unwrap();
+        assert_eq!(e.display_selection_outline(revision).unwrap(), truth);
+        assert_eq!(e.snapshot_json().unwrap(), before);
     }
     #[test]
     fn invalid_and_superseded_apply_cannot_revive_work_or_overwrite_a_new_command() {

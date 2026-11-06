@@ -1,8 +1,8 @@
 {
   "scope": "Development audit; not a claim that all Photoshop editing is implemented or AI-verified",
   "registered_commands": 111,
-  "registered_examples": 158,
-  "catalog_sha256": "b7e1191bfdb9a795c5d8610c0a7b88bab759729fa8928202b6be57baf40f9452",
+  "registered_examples": 159,
+  "catalog_sha256": "5038aa40d69c252c4f55d1058b117dd9d2646a4bab95a7c74174a8fe2721f032",
   "inventory_rows": 265,
   "mapped_features": 80,
   "unmapped_implemented_features": [],
@@ -3214,9 +3214,14 @@
             "text": "把整个像素图层缩放到原来的 50%，围绕给定轴心双线性重采样。",
             "query": "整层像素",
             "command": "transform.apply"
+          },
+          {
+            "text": "把选区内像素向右移动 20px，图层位置与蒙版保持，选区轮廓随内容移动。",
+            "query": "选区内像素",
+            "command": "transform.apply"
           }
         ],
-        "note": "当前仅整层像素/链接蒙版；选区像素、生成/组/文字变换与交互手柄尚未实现。",
+        "note": "整层像素/链接蒙版及选区像素的真实提升/变换/合回已接入；软边按 source-over 余量保留，目标不被原选区重复裁切。生成/组/文字自由变换及交互手柄仍未实现。",
         "variants": [
           {
             "command": "transform.apply",
@@ -3226,6 +3231,14 @@
               "affine",
               "matrix",
               "corners"
+            ]
+          },
+          {
+            "command": "transform.apply",
+            "path": "scope",
+            "values": [
+              "whole_layer",
+              "selection"
             ]
           }
         ]

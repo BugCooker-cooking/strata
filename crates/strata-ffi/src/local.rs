@@ -269,6 +269,48 @@ impl StrataEngine {
         }
         Ok(result)
     }
+    /// Display-only candidate coverage. Document/AI selection queries remain
+    /// anchored to editor truth until Apply commits the prepared transform.
+    pub fn display_selection_outline(
+        &self,
+        revision: u64,
+    ) -> Result<Vec<SelectionEdge>, StrataError> {
+        use std::sync::atomic::Ordering;
+        let sequence = self.tonal_preview_sequence.load(Ordering::Acquire);
+        let doc = {
+            let inner = self.lock()?;
+            if inner.editor.revision() != revision {
+                return Ok(vec![]);
+            }
+            inner
+                .tonal_preview
+                .as_ref()
+                .and_then(|p| p.candidate.as_ref())
+                .and_then(|p| p.selection_document())
+                .cloned()
+                .or_else(|| inner.editor.document().cloned())
+        };
+        let Some(doc) = doc else {
+            return Ok(vec![]);
+        };
+        let Some(mask) = doc.selection() else {
+            return Ok(vec![]);
+        };
+        let _scratch = doc
+            .memory_pool()
+            .reserve(
+                strata_pixels::memory::MemoryKind::Transient,
+                12 * 1024 * 1024,
+            )
+            .map_err(render_error)?;
+        let result = outline(mask).map_err(render_error)?;
+        if self.tonal_preview_sequence.load(Ordering::Acquire) != sequence
+            || self.lock()?.editor.revision() != revision
+        {
+            return Ok(vec![]);
+        }
+        Ok(result)
+    }
 }
 fn restore_scene(inner: &mut Inner) -> Result<(), StrataError> {
     let doc = inner.editor.document().cloned();

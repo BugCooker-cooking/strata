@@ -85,6 +85,13 @@ fn examples() -> Result<(), Box<dyn Error>> {
                         "paint.fill",
                         json!({"layer":{"name":"Background"},"color":[0.4,0.5,0.6,1]}),
                     )?;
+                    if args["scope"] == "selection" {
+                        run(
+                            &mut editor,
+                            "select.marquee",
+                            json!({"x":2,"y":2,"width":6,"height":6}),
+                        )?;
+                    }
                 }
                 "paint.stroke" | "paint.erase" if args["target"] == "mask" => {
                     run(

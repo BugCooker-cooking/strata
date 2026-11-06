@@ -1,0 +1,134 @@
+{
+  "date_local": "2026-11-06",
+  "timezone": "Asia/Taipei",
+  "base_checkpoint": "f818f07",
+  "scope": "Selected-pixel projective transform using one u16 lift, source-over complement, premultiplied linear destination composition and display-only preview outline. Full free-transform and full Photoshop/AI closure remain open.",
+  "source_sha256": {
+    "apps/macos/Strata/App/MainWindowController.swift": "5210b0a8377b212ea0fa596bb0ed636fc534484bc5a64ad8472192332156bde6",
+    "apps/macos/Strata/Workspace/TransformControls.swift": "15f99de05d9da52f43ccb86958b4266c3fbfc5dfd87fa3a4708726f7ac3dd26d",
+    "apps/macos/Strata/Workspace/WorkspaceModel.swift": "a8851125472ff10a518737b58bc57c632a099de34db5fc56017f3843fe7ad127",
+    "apps/macos/StrataTests/FilterPreviewTests.swift": "eb293f152d818094f5f77049943bc9ab6e4d66604fa06629edb66e22e41e8c6b",
+    "crates/strata-ai/tests/replay.rs": "2474f4d259e04551afa8405b7756dbc017cc9343d799c878e334fc4bbf8b2fb8",
+    "crates/strata-core/src/commands/mod.rs": "18452345decb87dc4d4997968972cb51a5c935a44dc25736ee3a9e2bb9f2b464",
+    "crates/strata-core/src/commands/registry.rs": "589347d316727e5becabe89b13cc217dbdacffd842b5be407899e5122ccabc42",
+    "crates/strata-core/src/commands/transform.rs": "1411090e9b9e1d7ec1f97f2236a2db9f410c10354295c026aa3f088bf2b9ab1e",
+    "crates/strata-core/src/commands/transform_selection.rs": "0e50b139edf34be6cfe8ce0ab0c3e271a071e19fff250abc9db30f80f2c69542",
+    "crates/strata-core/src/geometry_masks.rs": "7812adcbd17c839fa87a6541f4d35b5d7e670847a5cb0256fa7e951d0d46a7b2",
+    "crates/strata-core/tests/geometry_masks.rs": "0df2d7265d659a2023127578b740107a34aa2ea4f925595de264e8143ec661ac",
+    "crates/strata-core/tests/transform_selection.rs": "1d3dfc279156e0e6055f414418925ee1dbb5ea77bea07b840e6b9e493028c7ec",
+    "crates/strata-ffi/src/filter_preview.rs": "740d6044727292e55bdfc41a51622b621ca0572b21fe85180452e096cf99538e",
+    "crates/strata-ffi/src/local.rs": "17fd727cf22618ceafc6b0b9e4b594080acac67e834dc093e6325b9d9284c76c",
+    "crates/strata-render/tests/gpu.rs": "c131834572d72bac0ba8b993c6a0e297f13d4f7926c11cf47f563d3eb815a486",
+    "tools/strata-devtool/src/main.rs": "abe9ea377616e593e1973b242315b7e41c180dc5c998be846dd024ec48c63cb9"
+  },
+  "verification": {
+    "focused_core": {
+      "passed": 20,
+      "selected_pixel_integrations": 9,
+      "whole_layer_regressions": 7,
+      "mask_integrations": 4,
+      "log": "build/m7-selected-transform-core.final.log"
+    },
+    "ai": {
+      "passed": 24,
+      "replay_tests": 23,
+      "mapping_contract_tests": 1,
+      "log": "build/m7-selected-ai.log",
+      "note": "Search/describe/strict scope and exact approval/actual invoke/turn undo; deterministic replies, no external model request."
+    },
+    "all_ffi_required_gpu": {
+      "passed": 36,
+      "ignored": 1,
+      "failed": 0,
+      "log": "build/m7-selected-ffi.final.log",
+      "includes": "Shared selected preview/cancel/exact candidate apply and separate displayed-vs-truth outline."
+    },
+    "required_metal_numeric": {
+      "passed": 1,
+      "skipped": 0,
+      "log": "build/m7-selected-gpu.final.log"
+    },
+    "full_native_xctest": {
+      "total": 64,
+      "passed": 63,
+      "skipped": 1,
+      "failed": 0,
+      "log": "build/m7-selected-native.final.log"
+    },
+    "arm64_release": {
+      "passed": true,
+      "log": "build/m7-selected-release.final.log"
+    },
+    "lint": {
+      "passed": true,
+      "log": "build/m7-selected-lint.final.log"
+    },
+    "command_examples": {
+      "registered_commands": 111,
+      "passed": true,
+      "selection_scope_example_executed": true,
+      "log": "build/m7-selected-commands.final.log"
+    },
+    "ai_audit": {
+      "mapped_composite_rows": 80,
+      "inventory_rows": 265,
+      "partial_entrypoints": 9,
+      "unmapped_implemented_rows": 0,
+      "unlinked_registered_commands": 0,
+      "unknown_native_literals": 0,
+      "untyped_root_returns": 0,
+      "final_complete": false,
+      "strict_gate": "build/m7-selected-final-ai-gate.log"
+    },
+    "explicit_skips": [
+      "Real ONNX local acceptance is explicitly ignored.",
+      "Live-network model XCTest is explicitly opt-in and skipped."
+    ],
+    "prior_full_rust": "f6328bb historical 381-pass workspace baseline remains separate; this increment uses focused core plus all FFI/current full native and targeted Metal."
+  },
+  "native_manual": {
+    "single_release_instance": true,
+    "fixture": "repository-generated sample-photo.jpg 1024x1536, 8-bit",
+    "initial_selection": [
+      164,
+      264,
+      290,
+      387
+    ],
+    "translation": [
+      400,
+      0
+    ],
+    "preview_moved_pixels_and_display_outline": true,
+    "preview_preserved_selection_only_history": true,
+    "cancel_restored_original_pixels_and_outline": true,
+    "apply_added_exactly_one_transform_history": true,
+    "applied_selection": [
+      564,
+      264,
+      290,
+      387
+    ],
+    "layer_position_unchanged": [
+      0,
+      0
+    ],
+    "undo_restored_original_selection_then_clean_unselected_document": true,
+    "final_running_strata_instances": 0,
+    "method": "CUA native AX and screenshot observation; no manual soft-edge/photo-quality/continuous-performance claim."
+  },
+  "alpha_semantics": {
+    "lift": "s=round_u16(a*coverage)",
+    "remainder": "r=(a-s)/(1-s), or 0 when s=1, quantized at original layer depth",
+    "destination": "front s source-over remainder in premultiplied linear working-ICC/P3, no second selection clip",
+    "identity": "exact no pixel rewriting",
+    "transparent_hidden_rgb": "original alpha-zero hidden RGB stays exact at source; only nontransparent samples are lifted"
+  },
+  "cloud_builds": "disabled and not used",
+  "open_limits": [
+    "Generated/group/text free transform and on-canvas free-transform handles remain unsupported.",
+    "The source-over complement intentionally differs from simply multiplying original alpha by one-minus-selection.",
+    "Document selection coverage is rebound to artboard after transformation; moved pixels outside it remain stored. Layer masks remain fixed in selected mode.",
+    "The full P0–P3 implementation/AI audit and performance/live-model/device/platform/release gates remain open."
+  ]
+}

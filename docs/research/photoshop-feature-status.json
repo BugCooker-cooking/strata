@@ -733,11 +733,15 @@
   },
   "PS-09-4f3d9835a7": {
     "implementation": "部分实现",
-    "acceptance": "整层像素/链接蒙版与投影采样内核已有核心证据；选区像素、生成/组/文字、交互手柄仍待补齐",
+    "acceptance": "整层/链接蒙版与选区像素提升/软边/合回/轮廓同步已有核心、AI/FFI/Metal/完整原生/Release 和单窗口证据；生成/组/文字与自由变换手柄仍待补齐",
     "evidence": [
       {
         "label": "M7 整层变换/视图检查点",
         "path": "../research/2026-11-m7-transform-progress.md"
+      },
+      {
+        "label": "M7 选区内像素",
+        "path": "../research/2026-11-m7-selected-transform-progress.md"
       }
     ]
   },

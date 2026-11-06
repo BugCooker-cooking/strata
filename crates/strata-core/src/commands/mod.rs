@@ -23,6 +23,7 @@ mod spot_heal;
 mod tonal;
 mod tonal_brush;
 mod transform;
+mod transform_selection;
 mod tree;
 pub use cancellation::WorkCancellation;
 pub use executor::{
@@ -120,6 +121,7 @@ pub enum TransformInterpolation {
 #[serde(rename_all = "snake_case")]
 pub enum TransformScope {
     WholeLayer,
+    Selection,
 }
 fn transform_scale() -> [f64; 2] {
     [1.0; 2]
@@ -164,6 +166,7 @@ pub struct TransformResult {
     pub output_bounds: Option<strata_pixels::CoverageRect>,
     pub source_artboard_clipped: bool,
     pub mask_transformed: bool,
+    pub selection_transformed: bool,
 }
 #[derive(Serialize, JsonSchema)]
 pub struct LayerBoundsResult {

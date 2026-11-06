@@ -17543,9 +17543,9 @@ Permissions: `bound_document`
 }
 ```
 
-## `transform.apply` — 整层像素自由变换
+## `transform.apply` — 像素自由变换
 
-Transform an explicit pixel layer and linked u16 mask from immutable source, preserving canvas-external content, selection and styles. Required scope=whole_layer: all stored pixels transform; selection is NOT a write clip. Selected-pixel lifting, generated/group/text transforms and interactive handles are separate unsupported work; never rasterize/drop them implicitly. geometry.type=components: translation [x,y], scale [sx,sy] (negative flips), rotation_degrees, shear_degrees [x,y], pivot canvas [x,y]; order scale, shear, rotation, translation around pivot. affine values [a,b,c,d,tx,ty]. matrix values row-major [a,c,tx,b,d,ty,p,q,w], projective division. corners maps four cyclic convex source corners to destination corners; canvas coordinates, reversed orientation allowed. Use layer.pixel_bounds for actual source extent. interpolation nearest/bilinear (default): integer centers keep exact codes, fractions premultiplied linear P3 with actual ICC. Empty pixel layers reject. Exact integer translation only changes the layer position and keeps source/mask tile versions; signed axis permutations use integer pixel-center mapping even at large canvas offsets. Other output tiles are rebased to the transformed logical bounds, and the layer position reports that origin. Reject singular/horizon/unbounded or >64M-output visits; independent RGB/mask eight-tile/4096-decode caches, shared reservations/row cancellation. Reject pixel/position/transparency/all and ancestor locks. Linked mask flag preserved, anchors rebound. One atomic history, not batchable. 中文：自由变换、整层像素、缩放、旋转、斜切、扭曲、透视、水平翻转、垂直翻转。
+Transform an explicit pixel layer and linked u16 mask from immutable source, preserving canvas-external content, selection and styles. Required scope=whole_layer or selection. whole_layer transforms all stored pixels and linked mask, leaving selection unchanged. selection requires nonempty document coverage: lift nontransparent source once with u16 selection into 16-bit temporary tiles, keep a source-over complement r=(a-s)/(1-s) with s=selected alpha, warp that immutable lift, then composite over remainder in premultiplied linear light. This complement reconstructs identity alpha and differs from simply multiplying original alpha by (1-coverage). Never clip the destination again by old selection. Move current selection through the same geometry/interpolation, clip coverage to the artboard, store old selection for reselect; keep layer position/styles/linked mask unchanged in selection mode. Zero-coverage and original alpha-zero hidden RGB remain exact at source; selected fully opaque coverage carries exact visible codes. Identity transform is exact. Pixel destinations outside artboard stay stored even if selection outline clips away. RGB lifting/warp and destination composite remain bounded/cancellable/pooled; no 8-bit intermediate for soft coverage. Generated/group/text transforms and free-transform handles remain unsupported; never rasterize/drop them implicitly. geometry.type=components: translation [x,y], scale [sx,sy] (negative flips), rotation_degrees, shear_degrees [x,y], pivot canvas [x,y]; order scale, shear, rotation, translation around pivot. affine values [a,b,c,d,tx,ty]. matrix values row-major [a,c,tx,b,d,ty,p,q,w], projective division. corners maps four cyclic convex source corners to destination corners; canvas coordinates, reversed orientation allowed. Use layer.pixel_bounds for actual source extent. interpolation nearest/bilinear (default): integer centers keep exact codes, fractions premultiplied linear P3 with actual ICC. Empty pixel layers reject. Exact integer translation only changes the layer position and keeps source/mask tile versions; signed axis permutations use integer pixel-center mapping even at large canvas offsets. Other output tiles are rebased to the transformed logical bounds, and the layer position reports that origin. Reject singular/horizon/unbounded or >64M-output visits; independent RGB/mask eight-tile/4096-decode caches, shared reservations/row cancellation. Reject pixel/position/transparency/all and ancestor locks. Linked mask flag preserved, anchors rebound. One atomic history, not batchable. 中文：自由变换、整层像素、选区内像素、移动选中区域、缩放、旋转、斜切、扭曲、透视、水平翻转、垂直翻转。
 
 Kind: `Mutate` · Undoable: `true` · Batchable: `false`
 
@@ -17787,7 +17787,8 @@ Permissions: `bound_document`
     "TransformScope": {
       "type": "string",
       "enum": [
-        "whole_layer"
+        "whole_layer",
+        "selection"
       ]
     }
   }
@@ -17822,6 +17823,9 @@ Permissions: `bound_document`
     "scope": {
       "$ref": "#/$defs/TransformScope"
     },
+    "selection_transformed": {
+      "type": "boolean"
+    },
     "source_artboard_clipped": {
       "type": "boolean"
     }
@@ -17830,7 +17834,8 @@ Permissions: `bound_document`
     "layer_id",
     "scope",
     "source_artboard_clipped",
-    "mask_transformed"
+    "mask_transformed",
+    "selection_transformed"
   ],
   "$defs": {
     "CoverageRect": {
@@ -17866,7 +17871,8 @@ Permissions: `bound_document`
     "TransformScope": {
       "type": "string",
       "enum": [
-        "whole_layer"
+        "whole_layer",
+        "selection"
       ]
     }
   }
@@ -17893,6 +17899,22 @@ Permissions: `bound_document`
     "name": "Background"
   },
   "scope": "whole_layer"
+}
+```
+
+```json
+{
+  "geometry": {
+    "translation": [
+      4,
+      2
+    ],
+    "type": "components"
+  },
+  "layer": {
+    "name": "Background"
+  },
+  "scope": "selection"
 }
 ```
 

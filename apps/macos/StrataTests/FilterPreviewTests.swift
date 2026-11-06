@@ -43,8 +43,8 @@ final class FilterPreviewTests:XCTestCase{
     private func idle(_ preview:TonalPreviewModel)async throws{for _ in 0..<400{try await Task.sleep(for:.milliseconds(10));if !preview.busy && !preview.applying{return}};XCTFail("Filter preview worker did not finish")}
     @MainActor
     func testEachFilterPreviewsWithoutHistoryAndAppliesOnce()async throws{
-        for (command,params) in [("filter.gaussian_blur",["sigma":1.2] as [String:Any]),("filter.unsharp_mask",["sigma":1.2,"amount":1.5]),("filter.add_noise",["amount":0.08,"seed":42]),("transform.apply",["scope":"whole_layer","geometry":["type":"components","translation":[0.5,0.25]]])]{
-            let(engine,preview)=try configured();let before=try engine.snapshotJson();let old=try EditorSnapshot.decode(before)
+        for (command,params) in [("filter.gaussian_blur",["sigma":1.2] as [String:Any]),("filter.unsharp_mask",["sigma":1.2,"amount":1.5]),("filter.add_noise",["amount":0.08,"seed":42]),("transform.apply",["scope":"whole_layer","geometry":["type":"components","translation":[0.5,0.25]]]),("transform.apply",["scope":"selection","geometry":["type":"components","translation":[4.5,0.25]]])]{
+            let(engine,preview)=try configured();if params["scope"] as? String == "selection"{_ = try engine.dispatch(command:"select.marquee",paramsJson:commandJSON(["x":3,"y":3,"width":6,"height":6]));preview.bind(try EditorSnapshot.decode(engine.snapshotJson()))};let before=try engine.snapshotJson();let old=try EditorSnapshot.decode(before)
             preview.configureFilter(command);let parameters=try commandJSON(params);preview.setEnabled(true,settings:parameters);try await idle(preview)
             XCTAssertEqual(try engine.snapshotJson(),before);XCTAssertTrue(preview.error.isEmpty,preview.error)
             preview.apply(parameters);try await idle(preview);let after=try EditorSnapshot.decode(engine.snapshotJson());XCTAssertEqual(after.history.count,old.history.count+1);XCTAssertEqual(after.history.last?.command,command);XCTAssertTrue(preview.error.isEmpty,preview.error)

@@ -12,6 +12,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
     private var assistantItem: NSSplitViewItem!
     private var allowClose = false
     private var thumbnailRevision: UInt64?
+    private var displayOutlineRequest:UInt64=0
     private var pendingExposure: Double?
     private var exposureEnding: (Double, Bool)?
     private var exposurePreviewTask: Task<Void, Never>?
@@ -46,7 +47,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         workspace.cropInput=canvas.cropInput
         preview.onBusy = { [weak self] running in guard let self else { return }; self.canvas.isWorkBusy = self.busy || running }
         preview.onApplying = { [weak self] applying in self?.busy = applying }
-        preview.onFrame = { [weak self] in guard let self else { return }; self.canvas.markDirty(); if !self.busy { self.refresh() } }
+        preview.onFrame = { [weak self] in guard let self else { return }; self.canvas.markDirty();self.refreshDisplayOutline(); if !self.busy { self.refresh() } }
         window.title = "Strata"; window.titleVisibility = .hidden
         window.minSize = NSSize(width: 1280, height: 720); window.toolbarStyle = .unifiedCompact
         window.isReleasedWhenClosed = false; window.delegate = self
@@ -261,10 +262,10 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         workspace.fileName = fileName; window?.title = "\(fileName) — Strata"
         if thumbnailRevision != snapshot.revision {
             thumbnailRevision = snapshot.revision
+            refreshDisplayOutline()
             let revision = snapshot.revision, engine = engine
             DispatchQueue.global(qos: .utility).async { [weak self] in
                 let previews = (try? engine.layerThumbnails(revision: revision)) ?? []
-                let outline = (try? engine.selectionOutline(revision: revision)) ?? []
                 let histogram = (try? engine.dispatch(command: "document.histogram", paramsJson: "{}"))
                     .flatMap { try? AIJSON.decode($0) }?["luminance"].array.compactMap(\.number) ?? []
                 DispatchQueue.main.async {
@@ -275,7 +276,6 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
                               let image = CGImage(width: Int(preview.width), height: Int(preview.height), bitsPerComponent: 8, bitsPerPixel: 32, bytesPerRow: Int(preview.width) * 4, space: space, bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.last.rawValue), provider: provider, decode: nil, shouldInterpolate: true, intent: .defaultIntent) else { return nil }
                         return (preview.layerId, NSImage(cgImage: image, size: NSSize(width: Int(preview.width), height: Int(preview.height))))
                     })
-                    self.canvas.setSelectionOutline(outline)
                     self.workspace.histogram = histogram
                 }
             }
@@ -327,6 +327,18 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
                 }
             }
         } catch { showError(error); completion?(false) }
+    }
+    private func refreshDisplayOutline(){
+        guard let revision=state?.revision else{return}
+        displayOutlineRequest &+= 1
+        let ticket=displayOutlineRequest,engine=engine
+        DispatchQueue.global(qos:.utility).async{[weak self]in
+            let outline=(try? engine.displaySelectionOutline(revision:revision)) ?? []
+            DispatchQueue.main.async{
+                guard let self,self.displayOutlineRequest==ticket,self.state?.revision==revision else{return}
+                self.canvas.setSelectionOutline(outline)
+            }
+        }
     }
     func layerCommand(_ command: String, _ extra: [String: Any] = [:]) { guard let layer = selected else { return }; var params = extra; params["layer"] = ["id": layer.id]; perform(command, params) }
     @objc func duplicateLayer() { layerCommand("layer.duplicate") }

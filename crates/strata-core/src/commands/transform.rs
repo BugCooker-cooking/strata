@@ -1,5 +1,5 @@
-//! Whole pixel-layer projective transform. Selection lifting and editable
-//! generated/group transforms remain separate work, not silent rasterization.
+//! Pixel-layer/selected-pixel projective transforms. Editable generated/group
+//! transforms remain separate work, never silent rasterization.
 use super::*;
 use crate::{
     Document, DocumentError, LayerKind,
@@ -89,7 +89,10 @@ pub(super) fn mutate(
     }
     if doc.layers().iter().any(|l| {
         (l.id() == target || doc.is_descendant(target, l.id()))
-            && (l.info().locks.all || l.info().locks.pixels || l.info().locks.position)
+            && (l.info().locks.all
+                || l.info().locks.pixels
+                || l.info().locks.position
+                || l.info().locks.transparency)
     }) || layer.info().locks.transparency
     {
         return Err(invalid(
@@ -101,6 +104,11 @@ pub(super) fn mutate(
         TransformInterpolation::Bilinear => Sampling::Bilinear,
     };
     let offset = [layer.info().x, layer.info().y];
+    if matches!(p.scope, TransformScope::Selection) {
+        return super::transform_selection::apply(doc, index, &transform, sampling, cancel)
+            .map(Some)
+            .map_err(CommandError::from);
+    }
     let bounds = geometry_pixels::content_bounds(layer.pixels(), offset, cancel)?
         .ok_or_else(|| invalid("pixel layer is empty; there is no geometry to transform"))?;
     let output_bounds = geometry_pixels::transformed_bounds(bounds, &transform, sampling)?;
@@ -116,7 +124,7 @@ pub(super) fn mutate(
         }
         super::tree::move_position(doc, target, x, y)?;
         return Ok(Some(
-            serde_json::json!({"layer_id":target,"scope":"whole_layer","output_bounds":output_bounds,"source_artboard_clipped":false,"mask_transformed":layer.mask.is_some()}),
+            serde_json::json!({"layer_id":target,"scope":"whole_layer","output_bounds":output_bounds,"source_artboard_clipped":false,"mask_transformed":layer.mask.is_some(),"selection_transformed":false}),
         ));
     }
     let logical = geometry_pixels::transformed_bounds(bounds, &transform, Sampling::Nearest)?;
@@ -170,6 +178,6 @@ pub(super) fn mutate(
         doc.layers[index].info.mask.as_mut().unwrap().enabled = enabled;
     }
     Ok(Some(
-        serde_json::json!({"layer_id":target,"scope":"whole_layer","output_bounds":output_bounds,"source_artboard_clipped":false,"mask_transformed":layer.mask.is_some()}),
+        serde_json::json!({"layer_id":target,"scope":"whole_layer","output_bounds":output_bounds,"source_artboard_clipped":false,"mask_transformed":layer.mask.is_some(),"selection_transformed":false}),
     ))
 }

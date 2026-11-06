@@ -118,3 +118,47 @@ fn rebound_finite_defaults_and_inversion_keep_exact_codes_and_expand_with_zero()
         assert_eq!(source.sample(2, 5).unwrap(), 50001);
     }
 }
+#[test]
+fn coverage_bounds_scan_is_cancellable_and_handles_zero_inverted_baseline() {
+    use strata_core::geometry_masks::coverage_bounds;
+    let pool = MemoryPool::global();
+    let layout = MaskLayout {
+        bounds: CoverageRect {
+            x: 0,
+            y: 0,
+            width: 300,
+            height: 300,
+        },
+        default_coverage: 65535,
+        inverted: true,
+    };
+    let mut source = TiledMask::new(layout, 16, pool.clone()).unwrap();
+    let mut values = vec![0; 256 * 256];
+    values[12 * 256 + 9] = 50001;
+    source
+        .insert_tile(strata_pixels::TileCoord::new(0, 0).unwrap(), values)
+        .unwrap();
+    assert_eq!(
+        coverage_bounds(&source, &|| false).unwrap(),
+        Some(CoverageRect {
+            x: 9,
+            y: 12,
+            width: 1,
+            height: 1
+        })
+    );
+    let checks = std::cell::Cell::new(0);
+    assert!(matches!(
+        coverage_bounds(&source, &|| {
+            checks.set(checks.get() + 1);
+            checks.get() > 10
+        }),
+        Err(strata_core::DocumentError::Cancelled)
+    ));
+    let mut full = source.clone();
+    full.invert();
+    assert_eq!(
+        coverage_bounds(&full, &|| false).unwrap(),
+        Some(layout.bounds)
+    );
+}

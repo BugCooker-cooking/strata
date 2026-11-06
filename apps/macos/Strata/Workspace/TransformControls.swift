@@ -4,6 +4,7 @@ struct TransformPanel:View{
     @ObservedObject var model:WorkspaceModel
     @ObservedObject var preview:TonalPreviewModel
     @State private var mode="components"
+    @State private var scope="whole_layer"
     @State private var interpolation="bilinear"
     @State private var x=0.0
     @State private var y=0.0
@@ -34,13 +35,14 @@ struct TransformPanel:View{
             guard [x,y,scaleX,scaleY,rotation,shearX,shearY,pivotX,pivotY].allSatisfy({$0.isFinite}),abs(scaleX)>=0.0001,abs(scaleY)>=0.0001,abs(shearX)<89,abs(shearY)<89 else{return nil}
             geometry=["type":"components","translation":[x,y],"scale":[scaleX/100,scaleY/100],"rotation_degrees":rotation,"shear_degrees":[shearX,shearY],"pivot":[pivotX,pivotY]]
         }
-        return ["scope":"whole_layer","geometry":geometry,"interpolation":interpolation]
+        return ["scope":scope,"geometry":geometry,"interpolation":interpolation]
     }
-    private var available:Bool{model.permissions.edits&&model.selected?.kind?.kind == "pixel"&&model.selected?.locks?.all != true&&model.selected?.locks?.pixels != true&&model.selected?.locks?.position != true&&model.selected?.locks?.transparency != true}
+    private var available:Bool{model.permissions.edits&&model.selected?.kind?.kind == "pixel"&&model.selected?.locks?.all != true&&model.selected?.locks?.pixels != true&&model.selected?.locks?.position != true&&model.selected?.locks?.transparency != true && (scope != "selection" || model.snapshot?.selectionExtent != nil)}
     var body:some View{
         ScrollView{VStack(alignment:.leading,spacing:10){
-            Text("整层像素变换").fontWeight(.medium)
-            Text("当前选区保持不变；整层像素与链接蒙版一起变换，保留画板外内容。").font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))
+            Text("像素自由变换").fontWeight(.medium)
+            Picker("变换范围",selection:$scope){Text("整个像素图层").tag("whole_layer");Text("选区内像素").tag("selection")}.disabled(preview.applying)
+            Text(scope == "selection" ? "提升选中像素后变换并合回；选区轮廓同步，图层位置与蒙版保留。" : "当前选区保持不变；整层像素与链接蒙版一起变换，保留画板外内容。").font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))
             Group{
             Picker("变换方式",selection:$mode){Text("数值变换").tag("components");Text("四角透视").tag("corners")}.labelsHidden()
             if mode == "corners"{
@@ -64,7 +66,7 @@ struct TransformPanel:View{
                 Button("应用变换"){commit()}.buttonStyle(WorkspaceButtonStyle(selected:true)).disabled(!available||parameters == nil||preview.applying)
                 Button("取消预览"){preview.cancel()}.buttonStyle(WorkspaceButtonStyle()).disabled(!preview.enabled && !preview.busy && !preview.applying)
             }
-            if !available{Text("请选择未锁定的像素层；生成图层、图层组及选区内像素变换尚待后续支持。").font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))}
+            if !available{Text("请选择未锁定像素层；选区模式需要非空选区。生成图层和图层组的自由变换仍待支持。").font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))}
             Divider()
             CanvasSizePanel(model:model)
             Divider()

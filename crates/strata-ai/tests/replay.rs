@@ -775,6 +775,95 @@ fn whole_image_orientation_is_discovered_requires_exact_approval_and_undoes_each
 }
 
 #[test]
+fn selected_pixels_transform_is_discovered_approved_and_moves_selection_with_turn_undo() {
+    let host = Host::new();
+    host.user(
+        "paint.fill",
+        json!({"layer":{"name":"Background"},"color":[0.8,0.2,0.1,0.5]}),
+    );
+    host.user("select.marquee", json!({"x":1,"y":1,"width":3,"height":3}));
+    let before = host
+        .editor
+        .lock()
+        .unwrap()
+        .document()
+        .unwrap()
+        .to_archive()
+        .unwrap();
+    let initial = host.snapshot().unwrap();
+    let mut session = host.session_with_prompt(
+        ExecutionMode::Direct,
+        "把选区内像素向右移动 4px，只移动选中内容，图层位置与蒙版保持。",
+    );
+    reply(
+        &mut session,
+        &host,
+        vec![
+            call("search", "search_catalog", json!({"query":"选区内像素"})),
+            call(
+                "describe",
+                "describe_commands",
+                json!({"ids":["transform.apply"]}),
+            ),
+        ],
+    );
+    assert!(
+        result(session.poll(&host).unwrap())["matches"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|m| m["id"] == "transform.apply")
+    );
+    assert_eq!(
+        result(session.poll(&host).unwrap())["commands"][0]["id"],
+        "transform.apply"
+    );
+    reply(
+        &mut session,
+        &host,
+        vec![invoke(
+            "transform-selection",
+            "transform.apply",
+            json!({"layer":{"id":initial.active_layer},"scope":"selection","geometry":{"type":"components","translation":[4,0]}}),
+        )],
+    );
+    let Step::Paused { question_id, .. } = session.poll(&host).unwrap() else {
+        panic!()
+    };
+    let out = result(
+        session
+            .respond(
+                &host,
+                HostAnswer {
+                    question_id,
+                    answer: String::new(),
+                    approved: true,
+                    resource: None,
+                },
+            )
+            .unwrap(),
+    );
+    assert_eq!(out["result"]["selection_transformed"], true);
+    assert_eq!(out["result"]["mask_transformed"], false);
+    let state = host.snapshot().unwrap();
+    assert_eq!(state.layers[0].x, 0);
+    assert_eq!(state.selection_extent.unwrap().x, 5);
+    assert_eq!(state.history.len(), initial.history.len() + 1);
+    host.editor.lock().unwrap().stop_turn();
+    host.user("edit.undo_turn", json!({"turn_id":session.turn_id()}));
+    assert_eq!(
+        host.editor
+            .lock()
+            .unwrap()
+            .document()
+            .unwrap()
+            .to_archive()
+            .unwrap(),
+        before
+    );
+}
+
+#[test]
 fn inspect_and_direct_queries_and_batches_never_expose_hidden_layers_or_paths() {
     let host = Host::new();
     host.user(

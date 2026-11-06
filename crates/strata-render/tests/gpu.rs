@@ -1355,6 +1355,91 @@ fn orthogonal_image_display_tracks_all_five_operations_without_flattening() {
 }
 
 #[test]
+fn selected_pixel_preview_and_moved_outline_leave_truth_until_one_commit() {
+    let Some(mut renderer) = renderer() else {
+        return;
+    };
+    let mut e = strata_core::Editor::new();
+    for (id, p) in [
+        (
+            "file.new",
+            serde_json::json!({"width":16,"height":16,"bit_depth":16,"background":[12001,32003,47001,40001]}),
+        ),
+        (
+            "paint.gradient",
+            serde_json::json!({"layer":{"name":"Background"},"start":[0.5,0.5],"end":[15.5,15.5],"stops":[{"at":0,"color":[0.1,0.2,0.3,0.5]},{"at":1,"color":[0.8,0.6,0.4,0.9]}]}),
+        ),
+        (
+            "select.marquee",
+            serde_json::json!({"x":2,"y":2,"width":6,"height":6}),
+        ),
+        ("select.feather", serde_json::json!({"radius":1.5})),
+    ] {
+        e.execute(e.request(strata_core::Source::Test), id, p, |_| Ok(()))
+            .unwrap();
+    }
+    let before = e.document().unwrap().to_archive().unwrap();
+    let interaction = e
+        .begin_filter(
+            serde_json::from_value(serde_json::json!({"name":"Background"})).unwrap(),
+            "transform.apply",
+        )
+        .unwrap();
+    let prepared=e.preview_filter(&interaction,"transform.apply",serde_json::json!({"scope":"selection","geometry":{"type":"components","translation":[6.5,1.25]}})).unwrap();
+    let candidate = prepared.document().unwrap();
+    let scene = renderer.prepare_document(candidate, false).unwrap();
+    renderer.commit_document(scene).unwrap();
+    renderer
+        .set_view(ViewTransform {
+            zoom: 3.0,
+            center_x: 8.0,
+            center_y: 8.0,
+        })
+        .unwrap();
+    renderer.render().unwrap();
+    let preview = renderer.read_offscreen_rgba().unwrap();
+    assert_eq!(e.document().unwrap().to_archive().unwrap(), before);
+    let reference = strata_core::composite::Compositor::new(1)
+        .tile(candidate, strata_pixels::TileCoord::new(0, 0).unwrap())
+        .unwrap();
+    for (x, y) in [(3usize, 4usize), (8, 5), (11, 7), (14, 12)] {
+        let p = reference[y * 256 + x];
+        let shown = pixel(&preview, x * 3 + 9, y * 3 + 9);
+        for c in 0..3 {
+            let bg = f64::from(CANVAS_BG_SRGB[c]) / 255.;
+            let bg = if bg <= 0.04045 {
+                bg / 12.92
+            } else {
+                ((bg + 0.055) / 1.055).powf(2.4)
+            };
+            let v = f64::from(p[c]) * f64::from(p[3]) + bg * (1. - f64::from(p[3]));
+            let v = if v <= 0.0031308 {
+                12.92 * v
+            } else {
+                1.055 * v.powf(1. / 2.4) - 0.055
+            };
+            assert!(shown[c].abs_diff((v.clamp(0., 1.) * 255.).round() as u8) <= 3);
+        }
+    }
+    e.commit(prepared).unwrap();
+    let scene = renderer
+        .prepare_document(e.document().unwrap(), false)
+        .unwrap();
+    renderer.commit_document(scene).unwrap();
+    renderer.render().unwrap();
+    assert_eq!(renderer.read_offscreen_rgba().unwrap(), preview);
+    assert!(
+        e.document()
+            .unwrap()
+            .selection()
+            .unwrap()
+            .sample(10, 6)
+            .unwrap()
+            > 0
+    );
+}
+
+#[test]
 fn tiled_scene_preserves_source_and_has_no_mip_seam() {
     let Some(mut r) = renderer() else {
         return;

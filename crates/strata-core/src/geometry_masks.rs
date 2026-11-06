@@ -9,6 +9,61 @@ use strata_pixels::{
     MaskLayout, TileCoord, TiledMask,
     memory::{MemoryKind, MemoryPool},
 };
+/// Cancel-aware sparse coverage bounds. Nonzero implicit coverage conservatively
+/// occupies the finite layout; a zero baseline needs only stored tile scans.
+pub fn coverage_bounds(
+    source: &TiledMask,
+    cancel: &dyn Fn() -> bool,
+) -> Result<Option<strata_pixels::CoverageRect>, DocumentError> {
+    if cancel() {
+        return Err(DocumentError::Cancelled);
+    }
+    let layout = source.layout();
+    let baseline = layout.default_coverage ^ if layout.inverted { 65535 } else { 0 };
+    if baseline != 0 {
+        return Ok(Some(layout.bounds));
+    }
+    let mut extent: Option<[i64; 4]> = None;
+    let mut visits = 0u64;
+    for (coord, tile) in source.tiles() {
+        if cancel() {
+            return Err(DocumentError::Cancelled);
+        }
+        visits += 256 * 256;
+        if visits > 64_000_000 {
+            return Err(DocumentError::ResourceLimit);
+        }
+        let values = tile?;
+        let [ox, oy] = coord.origin();
+        for row in 0..256 {
+            if cancel() {
+                return Err(DocumentError::Cancelled);
+            }
+            for col in 0..256 {
+                let x = ox + col as i64;
+                let y = oy + row as i64;
+                if values[row * 256 + col] == 0 || !layout.bounds.contains(x, y) {
+                    continue;
+                }
+                extent = Some(extent.map_or([x, y, x + 1, y + 1], |[l, t, r, b]| {
+                    [l.min(x), t.min(y), r.max(x + 1), b.max(y + 1)]
+                }));
+            }
+        }
+    }
+    extent
+        .map(|[x, y, r, b]| {
+            Ok(strata_pixels::CoverageRect {
+                x,
+                y,
+                width: u32::try_from(i128::from(r) - i128::from(x))
+                    .map_err(|_| DocumentError::ResourceLimit)?,
+                height: u32::try_from(i128::from(b) - i128::from(y))
+                    .map_err(|_| DocumentError::ResourceLimit)?,
+            })
+        })
+        .transpose()
+}
 /// Rebind exact u16 selection coverage to a new artboard. Expansion is zero,
 /// including when the old finite plane had an implicit white/inverted default.
 pub fn rebind(
