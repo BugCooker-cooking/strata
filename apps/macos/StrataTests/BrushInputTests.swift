@@ -111,7 +111,14 @@ final class BrushInputTests:XCTestCase{
         input.down(NSPoint(x:8.5,y:8.5),pressure:1);input.up(NSPoint(x:8.5,y:8.5),pressure:1);try await finish(input)
         let state=try EditorSnapshot.decode(engine.snapshotJson())
         XCTAssertEqual(state.history.count,2);XCTAssertNotNil(state.layers.first?.mask)
-        let workspace=WorkspaceModel();workspace.foregroundColor = .red;workspace.backgroundColor = .blue
-        workspace.swapPaintColors();XCTAssertEqual(workspace.foregroundColor,.blue);XCTAssertEqual(workspace.backgroundColor,.red)
+        let workspace=WorkspaceModel();var commands:[String]=[]
+        workspace.action={[weak workspace] action in
+            guard case .command(let id,let params)=action else{XCTFail("Expected registered palette command");return}
+            do{commands.append(id);_ = try engine.dispatch(command:id,paramsJson:commandJSON(params));let snapshot=try EditorSnapshot.decode(engine.snapshotJson());if let colors=snapshot.paintColors{workspace?.installPaintColors(colors)}}catch{XCTFail(error.localizedDescription)}
+        }
+        workspace.setPaintComponents([1,0,0,1],background:false);workspace.setPaintComponents([0,0,1,1],background:true);workspace.swapPaintColors()
+        XCTAssertEqual(commands,["paint.colors.set","paint.colors.set","paint.colors.swap"])
+        XCTAssertEqual(workspace.foregroundColor.blueComponent,1,accuracy:0.000001);XCTAssertEqual(workspace.backgroundColor.redComponent,1,accuracy:0.000001)
+        XCTAssertEqual(try EditorSnapshot.decode(engine.snapshotJson()).history.count,state.history.count)
     }
 }

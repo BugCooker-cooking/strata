@@ -382,6 +382,27 @@ impl StrataEngine {
             serde_json::from_str(&params_json).map_err(|e| StrataError::Command {
                 message: e.to_string(),
             })?;
+        if command.starts_with("paint.colors.") {
+            // Palette is editor tool state. It must not invalidate a pixel
+            // preview/crop or prepare renderer resources just to change a swatch.
+            let result = {
+                let mut inner = self.lock()?;
+                let request = inner.editor.request(Source::User);
+                let result = inner
+                    .editor
+                    .execute(request, &command, params, |_| Ok(()))
+                    .map_err(command_error)?;
+                if command != "paint.colors.get" {
+                    let snapshot_json = json!(inner.editor.snapshot()).to_string();
+                    inner
+                        .events
+                        .push_back(EngineEventDto::StateChanged { snapshot_json });
+                }
+                result
+            };
+            self.deliver_events()?;
+            return Ok(result.to_string());
+        }
         if command.starts_with("view.") {
             let mut inner = match self.inner.try_lock() {
                 Ok(inner) => inner,

@@ -78,6 +78,81 @@ fn actual_size_is_absolute_preserves_center_and_never_edits_document() {
     }
 }
 #[test]
+fn palette_state_keeps_crop_and_filter_preview_ownership_without_document_edits() {
+    let e = StrataEngine::new(Arc::new(Recorder::default()));
+    e.dispatch(
+        "file.new".into(),
+        json!({"width":16,"height":16,"bit_depth":16,"background":[12001,30003,50001,32769]})
+            .to_string(),
+    )
+    .unwrap();
+    let state = e.lock().unwrap().editor.snapshot();
+    let before = e
+        .lock()
+        .unwrap()
+        .editor
+        .document()
+        .unwrap()
+        .to_archive()
+        .unwrap();
+    let crop = e
+        .begin_crop(state.document_id.unwrap().to_string(), state.revision)
+        .unwrap();
+    e.dispatch(
+        "paint.colors.set".into(),
+        json!({"foreground":[0.2,0.3,0.4,1.]}).to_string(),
+    )
+    .unwrap();
+    assert_eq!(e.lock().unwrap().editor.revision(), state.revision);
+    e.end_crop(
+        crop,
+        json!({"rect":{"x":2,"y":3,"width":8,"height":6},"pixels":"preserve"}).to_string(),
+        false,
+    )
+    .unwrap();
+    e.dispatch("edit.undo".into(), "{}".into()).unwrap();
+    assert_eq!(
+        e.lock()
+            .unwrap()
+            .editor
+            .document()
+            .unwrap()
+            .to_archive()
+            .unwrap(),
+        before
+    );
+    let state = e.lock().unwrap().editor.snapshot();
+    let sequence = e.issue_tonal_preview().unwrap();
+    e.begin_filter_preview(
+        state.active_layer.unwrap().to_string(),
+        "filter.add_noise".into(),
+        state.revision,
+        sequence,
+    )
+    .unwrap();
+    let params = json!({"amount":0.1,"seed":42}).to_string();
+    e.preview_filter(params.clone(), sequence).unwrap();
+    e.dispatch("paint.colors.swap".into(), "{}".into()).unwrap();
+    assert_eq!(
+        e.tonal_preview_sequence
+            .load(std::sync::atomic::Ordering::Acquire),
+        sequence
+    );
+    e.end_filter_preview_checked(params, false, sequence)
+        .unwrap();
+    assert_eq!(
+        e.lock()
+            .unwrap()
+            .editor
+            .snapshot()
+            .history
+            .last()
+            .unwrap()
+            .command,
+        "filter.add_noise"
+    );
+}
+#[test]
 fn registered_open_preserves_source_and_reports_once() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("red.png");

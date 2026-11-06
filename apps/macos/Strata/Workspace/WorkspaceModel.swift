@@ -171,7 +171,17 @@ final class WorkspaceModel: ObservableObject {
         if tool == .subject { if permissions.edits { send(.selectSubject) }; return }
         self.tool = tool; send(.tool(tool))
     }
-    func swapPaintColors() { let old = foregroundColor; foregroundColor = backgroundColor; backgroundColor = old; send(.tool(tool)) }
+    func swapPaintColors(){guard permissions.edits else{return};send(.command("paint.colors.swap",[:]))}
+    func setPaintColor(_ value:NSColor,background:Bool){
+        guard permissions.edits,let c=value.usingColorSpace(workingColorSpace)else{return}
+        let values=[c.redComponent,c.greenComponent,c.blueComponent,c.alphaComponent].map{min(1,max(0,Double($0)))}
+        setPaintComponents(values,background:background)
+    }
+    func setPaintComponents(_ values:[Double],background:Bool){guard permissions.edits,values.count==4,values.allSatisfy({$0.isFinite})else{return};send(.command("paint.colors.set",[background ? "background":"foreground":values.map{min(1,max(0,$0))}]))}
+    func installPaintColors(_ colors:EditorSnapshot.PaintColors){
+        func color(_ v:[Double])->NSColor?{guard v.count==4,v.allSatisfy({$0.isFinite&&(0...1).contains($0)})else{return nil};var components=v.map{CGFloat($0)};return NSColor(colorSpace:workingColorSpace,components:&components,count:4)}
+        if let c=color(colors.foreground){foregroundColor=c};if let c=color(colors.background){backgroundColor=c}
+    }
 }
 
 enum WorkspaceAction {

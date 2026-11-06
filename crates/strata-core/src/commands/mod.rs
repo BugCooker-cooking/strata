@@ -46,6 +46,29 @@ macro_rules! params {
     };
 }
 params!(Empty {});
+#[derive(Clone, Debug, Serialize, JsonSchema, PartialEq)]
+pub struct PaintColors {
+    pub foreground: [f64; 4],
+    pub background: [f64; 4],
+    pub version: u64,
+}
+impl Default for PaintColors {
+    fn default() -> Self {
+        Self {
+            foreground: [0., 0., 0., 1.],
+            background: [1., 1., 1., 1.],
+            version: 0,
+        }
+    }
+}
+params!(SetPaintColors {
+    #[serde(default)]
+    foreground: Option<[f64;4]>,
+    #[serde(default)]
+    background: Option<[f64;4]>,
+    #[serde(default)]
+    expected_version: Option<u64>
+});
 #[derive(Clone, Copy, Debug, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum CanvasAnchor {

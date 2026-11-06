@@ -256,6 +256,9 @@ Permissions: `bound_document`
         "$ref": "#/$defs/LayerInfo"
       }
     },
+    "paint_colors": {
+      "$ref": "#/$defs/PaintColors"
+    },
     "preset": {
       "type": [
         "string",
@@ -316,6 +319,7 @@ Permissions: `bound_document`
     }
   },
   "required": [
+    "paint_colors",
     "selection_extent_conservative",
     "selection_summary_available",
     "session_id",
@@ -1107,6 +1111,39 @@ Permissions: `bound_document`
       "additionalProperties": false,
       "required": [
         "color"
+      ]
+    },
+    "PaintColors": {
+      "type": "object",
+      "properties": {
+        "background": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 4,
+          "minItems": 4
+        },
+        "foreground": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 4,
+          "minItems": 4
+        },
+        "version": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "foreground",
+        "background",
+        "version"
       ]
     },
     "Shadow": {
@@ -18474,6 +18511,326 @@ Permissions: `bound_document`
 {
   "operation": "flip_vertical"
 }
+```
+
+## `paint.colors.get` — 读取前景色与背景色
+
+Read this editor's tool palette: normalized encoded working-RGB foreground/background RGBA 0..1 and a palette version. The current document working ICC interprets these codes (sRGB when no document); palette is per editor/window, starts opaque black/white, survives document replacement in that editor, and is not project metadata/history/recovery content. Reading never changes pixels, document revision/dirty/history or tool state. Native swatches, eyedropper and X/D use the same palette. Painting commands still accept explicit working-RGBA color; use the returned foreground/background as that parameter when desired. Allowed without document, bound source/session/control checked; not batchable. 中文：读取前景色、读取背景色、当前绘画颜色、工具调色板。
+
+Kind: `Query` · Undoable: `false` · Batchable: `false`
+
+Effects: `tool.colors.read`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Empty",
+  "type": "object",
+  "additionalProperties": false
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PaintColors",
+  "type": "object",
+  "properties": {
+    "background": {
+      "type": "array",
+      "items": {
+        "type": "number",
+        "format": "double"
+      },
+      "maxItems": 4,
+      "minItems": 4
+    },
+    "foreground": {
+      "type": "array",
+      "items": {
+        "type": "number",
+        "format": "double"
+      },
+      "maxItems": 4,
+      "minItems": 4
+    },
+    "version": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    }
+  },
+  "required": [
+    "foreground",
+    "background",
+    "version"
+  ]
+}
+```
+
+### Examples
+
+```json
+{}
+```
+
+## `paint.colors.set` — 设置前景色与背景色
+
+Set foreground and/or background in this editor's tool palette as finite normalized encoded working-RGB RGBA 0..1. At least one color required; omitted side remains. Optional expected_version from paint.colors.get rejects stale palette writes; every request also captures a palette generation, so concurrent/stale preparations cannot overwrite newer colors. Codes are interpreted in the current document's working ICC, or sRGB with no document, and remain numerically unchanged across profile changes/document replacement. Native color wells and eyedropper use this same command, then brush/fill/gradient read the synchronized state. Does not draw, change document samples/revision/dirty/history or project metadata; not undoable by document/AI-turn undo. Native user setters are locked while AI owns control, including pause; same-turn running AI may configure colors directly. Strict fields, no batch, one idempotent receipt. 中文：设置前景色、设置背景色、选择绘画颜色、拾色器、工具调色板。
+
+Kind: `View` · Undoable: `false` · Batchable: `false`
+
+Effects: `tool.colors.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SetPaintColors",
+  "type": "object",
+  "properties": {
+    "background": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "default": null,
+      "items": {
+        "type": "number",
+        "format": "double"
+      },
+      "maxItems": 4,
+      "minItems": 4
+    },
+    "expected_version": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "uint64",
+      "default": null,
+      "minimum": 0
+    },
+    "foreground": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "default": null,
+      "items": {
+        "type": "number",
+        "format": "double"
+      },
+      "maxItems": 4,
+      "minItems": 4
+    }
+  },
+  "additionalProperties": false
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PaintColors",
+  "type": "object",
+  "properties": {
+    "background": {
+      "type": "array",
+      "items": {
+        "type": "number",
+        "format": "double"
+      },
+      "maxItems": 4,
+      "minItems": 4
+    },
+    "foreground": {
+      "type": "array",
+      "items": {
+        "type": "number",
+        "format": "double"
+      },
+      "maxItems": 4,
+      "minItems": 4
+    },
+    "version": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    }
+  },
+  "required": [
+    "foreground",
+    "background",
+    "version"
+  ]
+}
+```
+
+### Examples
+
+```json
+{
+  "foreground": [
+    0.8,
+    0.2,
+    0.1,
+    1
+  ]
+}
+```
+
+## `paint.colors.swap` — 交换前景色与背景色
+
+Swap this editor's two normalized working-RGB palette colors; native X uses this command. Increments palette version, rejects stale/concurrent prepared palette calls, keeps current layer selection and all document state/history unchanged. Per-editor tool state, not a pixel edit and not document/turn undoable; no batch. Native user blocked during AI ownership, same-turn running AI allowed. 中文：交换前景色与背景色、交换绘画颜色、X 快捷键。
+
+Kind: `View` · Undoable: `false` · Batchable: `false`
+
+Effects: `tool.colors.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Empty",
+  "type": "object",
+  "additionalProperties": false
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PaintColors",
+  "type": "object",
+  "properties": {
+    "background": {
+      "type": "array",
+      "items": {
+        "type": "number",
+        "format": "double"
+      },
+      "maxItems": 4,
+      "minItems": 4
+    },
+    "foreground": {
+      "type": "array",
+      "items": {
+        "type": "number",
+        "format": "double"
+      },
+      "maxItems": 4,
+      "minItems": 4
+    },
+    "version": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    }
+  },
+  "required": [
+    "foreground",
+    "background",
+    "version"
+  ]
+}
+```
+
+### Examples
+
+```json
+{}
+```
+
+## `paint.colors.reset` — 重置前景色与背景色
+
+Reset this editor's palette to opaque encoded working-RGB black foreground and white background; native D uses this command. Same strict ownership, palette-version/idempotent receipt and no-document semantics as paint.colors.set; no pixel/document/history/dirty change and not document/AI-turn undoable, no batch. 中文：重置前景色与背景色、默认黑白绘画颜色、D 快捷键。
+
+Kind: `View` · Undoable: `false` · Batchable: `false`
+
+Effects: `tool.colors.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Empty",
+  "type": "object",
+  "additionalProperties": false
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PaintColors",
+  "type": "object",
+  "properties": {
+    "background": {
+      "type": "array",
+      "items": {
+        "type": "number",
+        "format": "double"
+      },
+      "maxItems": 4,
+      "minItems": 4
+    },
+    "foreground": {
+      "type": "array",
+      "items": {
+        "type": "number",
+        "format": "double"
+      },
+      "maxItems": 4,
+      "minItems": 4
+    },
+    "version": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    }
+  },
+  "required": [
+    "foreground",
+    "background",
+    "version"
+  ]
+}
+```
+
+### Examples
+
+```json
+{}
 ```
 
 ## `color.assign` — 指定文档配置文件

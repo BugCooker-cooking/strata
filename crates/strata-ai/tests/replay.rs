@@ -864,6 +864,96 @@ fn selected_pixels_transform_is_discovered_approved_and_moves_selection_with_tur
 }
 
 #[test]
+fn ai_palette_configures_native_state_and_explicit_fill_while_turn_undo_only_reverts_pixels() {
+    let host = Host::new();
+    let before = host
+        .editor
+        .lock()
+        .unwrap()
+        .document()
+        .unwrap()
+        .to_archive()
+        .unwrap();
+    let mut session = host.session_with_prompt(
+        ExecutionMode::Direct,
+        "设置前景色为半透明红色，读取它并用于填充当前像素层。",
+    );
+    reply(
+        &mut session,
+        &host,
+        vec![
+            call("search", "search_catalog", json!({"query":"设置前景色"})),
+            call(
+                "describe",
+                "describe_commands",
+                json!({"ids":["paint.colors.get","paint.colors.set","paint.colors.swap","paint.colors.reset"]}),
+            ),
+        ],
+    );
+    assert!(
+        result(session.poll(&host).unwrap())["matches"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|m| m["id"] == "paint.colors.set")
+    );
+    assert_eq!(
+        result(session.poll(&host).unwrap())["commands"]
+            .as_array()
+            .unwrap()
+            .len(),
+        4
+    );
+    reply(
+        &mut session,
+        &host,
+        vec![
+            invoke(
+                "set",
+                "paint.colors.set",
+                json!({"foreground":[1.,0.,0.,0.5],"expected_version":0}),
+            ),
+            invoke("get", "paint.colors.get", json!({})),
+        ],
+    );
+    assert_eq!(result(session.poll(&host).unwrap())["result"]["version"], 1);
+    let colors = result(session.poll(&host).unwrap())["result"].clone();
+    assert_eq!(colors["foreground"], json!([1., 0., 0., 0.5]));
+    assert!(host.snapshot().unwrap().history.is_empty());
+    reply(
+        &mut session,
+        &host,
+        vec![invoke(
+            "fill",
+            "paint.fill",
+            json!({"layer":{"name":"Background"},"color":colors["foreground"]}),
+        )],
+    );
+    assert!(
+        result(session.poll(&host).unwrap())["result"]["touched_tiles"]
+            .as_u64()
+            .unwrap()
+            > 0
+    );
+    host.editor.lock().unwrap().stop_turn();
+    host.user("edit.undo_turn", json!({"turn_id":session.turn_id()}));
+    assert_eq!(
+        host.editor
+            .lock()
+            .unwrap()
+            .document()
+            .unwrap()
+            .to_archive()
+            .unwrap(),
+        before
+    );
+    assert_eq!(
+        host.user("paint.colors.get", json!({}))["foreground"],
+        json!([1., 0., 0., 0.5])
+    );
+}
+
+#[test]
 fn inspect_and_direct_queries_and_batches_never_expose_hidden_layers_or_paths() {
     let host = Host::new();
     host.user(

@@ -50,6 +50,7 @@ pub struct Request {
     deadline: Instant,
     cancellation: Arc<AtomicBool>,
     local_cancellation: Option<Arc<AtomicBool>>,
+    paint_colors_version: u64,
 }
 
 impl Request {
@@ -195,6 +196,7 @@ struct HistoryEntry {
 
 #[derive(Serialize, JsonSchema)]
 pub struct Snapshot {
+    pub paint_colors: super::PaintColors,
     pub selection: Option<strata_pixels::MaskLayout>,
     pub selection_extent: Option<strata_pixels::CoverageRect>,
     pub selection_extent_conservative: bool,
@@ -219,6 +221,7 @@ pub struct Snapshot {
 }
 
 enum Action {
+    PaintColors(super::PaintColors),
     Query,
     View,
     New,
@@ -287,6 +290,7 @@ struct Receipt {
 
 #[derive(Clone)]
 pub struct Editor {
+    paint_colors: super::PaintColors,
     pool: strata_pixels::memory::MemoryPool,
     pub(crate) document: Option<Document>,
     session: Uuid,
@@ -316,6 +320,7 @@ impl Default for Editor {
 impl Editor {
     pub fn new() -> Self {
         Self {
+            paint_colors: Default::default(),
             pool: strata_pixels::memory::MemoryPool::global(),
             document: None,
             session: Uuid::new_v4(),
@@ -397,6 +402,7 @@ impl Editor {
     }
     pub fn request(&self, source: Source) -> Request {
         Request {
+            paint_colors_version: self.paint_colors.version,
             call_id: Uuid::new_v4(),
             source,
             session: self.session,
@@ -792,6 +798,7 @@ impl Editor {
     }
     pub fn snapshot(&self) -> Snapshot {
         Snapshot {
+            paint_colors: self.paint_colors.clone(),
             selection_extent: self
                 .document
                 .as_ref()
@@ -882,6 +889,13 @@ impl Editor {
         self.cancellation.clone()
     }
     fn authorize(&self, source: &Source, id: &str, kind: CommandKind) -> Result<(), CommandError> {
+        if id.starts_with("paint.colors.")
+            && id != "paint.colors.get"
+            && matches!(source, Source::User | Source::Test)
+            && self.control != Control::User
+        {
+            return Err(CommandError::ControlLocked);
+        }
         let allowed = match (source, &self.control) {
             (Source::User | Source::Test, Control::User) => true,
             (Source::User | Source::Test, Control::Running { .. }) => {
@@ -977,6 +991,11 @@ impl Editor {
         }
         self.authorize(&request.source, id, kind)?;
         self.check_request(&request)?;
+        if id.starts_with("paint.colors.")
+            && request.paint_colors_version != self.paint_colors.version
+        {
+            return Err(CommandError::Stale);
+        }
         // View/query calls run for every display-link frame. They never need a
         // copy of every layer's tile index; edits alone stage a COW document.
         let mut candidate = if kind == CommandKind::Mutate {
@@ -999,7 +1018,9 @@ impl Editor {
                 }
                 (
                     Action::Query,
-                    if id == "layer.pixel_bounds" {
+                    if id == "paint.colors.get" {
+                        json!(self.paint_colors)
+                    } else if id == "layer.pixel_bounds" {
                         let p: Target = parse(params.clone())?;
                         let doc = self.document().ok_or(CommandError::NoDocument)?;
                         let target = doc.resolve(&p.layer)?;
@@ -1205,37 +1226,90 @@ impl Editor {
                 (Action::History(next), json!({"history_cursor":next}))
             }
             CommandKind::View => {
-                match id {
-                    "layer.select" => {
-                        let p: Target = parse(params.clone())?;
-                        selected = Some(
-                            self.document
-                                .as_ref()
-                                .ok_or(CommandError::NoDocument)?
-                                .resolve(&p.layer)?,
-                        );
-                    }
-                    "view.pan" => {
-                        let p: Pan = parse(params.clone())?;
-                        if !p.dx.is_finite() || !p.dy.is_finite() {
-                            return Err(CommandError::Invalid("nonfinite pan".into()));
+                if id.starts_with("paint.colors.") {
+                    let mut colors = self.paint_colors.clone();
+                    colors.version = colors.version.checked_add(1).ok_or_else(|| {
+                        CommandError::Invalid("paint color version exhausted".into())
+                    })?;
+                    match id {
+                        "paint.colors.set" => {
+                            let p: super::SetPaintColors = parse(params.clone())?;
+                            if p.expected_version
+                                .is_some_and(|v| v != self.paint_colors.version)
+                            {
+                                return Err(CommandError::Stale);
+                            }
+                            if p.foreground.is_none() && p.background.is_none() {
+                                return Err(CommandError::Invalid(
+                                    "provide foreground and/or background working RGB color".into(),
+                                ));
+                            }
+                            for value in [p.foreground, p.background].into_iter().flatten() {
+                                if value
+                                    .iter()
+                                    .any(|v| !v.is_finite() || !(0.0..=1.0).contains(v))
+                                {
+                                    return Err(CommandError::Invalid(
+                                        "paint colors require finite normalized RGBA 0..1".into(),
+                                    ));
+                                }
+                            }
+                            if let Some(c) = p.foreground {
+                                colors.foreground = c;
+                            }
+                            if let Some(c) = p.background {
+                                colors.background = c;
+                            }
+                        }
+                        "paint.colors.swap" => {
+                            let _: Empty = parse(params.clone())?;
+                            std::mem::swap(&mut colors.foreground, &mut colors.background);
+                        }
+                        "paint.colors.reset" => {
+                            let _: Empty = parse(params.clone())?;
+                            colors.foreground = [0., 0., 0., 1.];
+                            colors.background = [1., 1., 1., 1.];
+                        }
+                        _ => {
+                            return Err(CommandError::Invalid(
+                                "unknown paint color state operation".into(),
+                            ));
                         }
                     }
-                    "view.zoom" => {
-                        let p: Zoom = parse(params.clone())?;
-                        if !p.x.is_finite()
-                            || !p.y.is_finite()
-                            || !p.factor.is_finite()
-                            || p.factor <= 0.0
-                        {
-                            return Err(CommandError::Invalid("invalid zoom".into()));
+                    (Action::PaintColors(colors.clone()), json!(colors))
+                } else {
+                    match id {
+                        "layer.select" => {
+                            let p: Target = parse(params.clone())?;
+                            selected = Some(
+                                self.document
+                                    .as_ref()
+                                    .ok_or(CommandError::NoDocument)?
+                                    .resolve(&p.layer)?,
+                            );
+                        }
+                        "view.pan" => {
+                            let p: Pan = parse(params.clone())?;
+                            if !p.dx.is_finite() || !p.dy.is_finite() {
+                                return Err(CommandError::Invalid("nonfinite pan".into()));
+                            }
+                        }
+                        "view.zoom" => {
+                            let p: Zoom = parse(params.clone())?;
+                            if !p.x.is_finite()
+                                || !p.y.is_finite()
+                                || !p.factor.is_finite()
+                                || p.factor <= 0.0
+                            {
+                                return Err(CommandError::Invalid("invalid zoom".into()));
+                            }
+                        }
+                        _ => {
+                            let _: Empty = parse(params.clone())?;
                         }
                     }
-                    _ => {
-                        let _: Empty = parse(params.clone())?;
-                    }
+                    (Action::View, json!({"view":id,"params":params}))
                 }
-                (Action::View, json!({"view":id,"params":params}))
             }
             CommandKind::External if matches!(id, "edit.copy" | "edit.copy_merged") => {
                 let copy = self.prepare_copy(&request, id, params.clone())?;
@@ -1306,6 +1380,11 @@ impl Editor {
             &prepared.command,
             registry::kind(&prepared.command)?,
         )?;
+        if prepared.command.starts_with("paint.colors.")
+            && prepared.request.paint_colors_version != self.paint_colors.version
+        {
+            return Err(CommandError::Stale);
+        }
         self.receipts.retain(|_, r| {
             r.issued.elapsed() <= Duration::from_secs(if r.view { 30 } else { 3600 })
         });
@@ -1336,7 +1415,12 @@ impl Editor {
         if let Some(resource) = &prepared.read_resource {
             self.resource(resource, &prepared.request, false)?;
         }
+        let keeps_layer_selection = matches!(prepared.action, Action::PaintColors(_))
+            || prepared.command == "paint.colors.get";
         match prepared.action {
+            Action::PaintColors(colors) => {
+                self.paint_colors = colors;
+            }
             Action::External(write) => {
                 self.commit_write(&prepared.request, &prepared.command, *write)?;
             }
@@ -1444,7 +1528,9 @@ impl Editor {
             }
             Action::Query => {}
         }
-        self.selected = prepared.selected;
+        if !keeps_layer_selection {
+            self.selected = prepared.selected;
+        }
         self.receipts.insert(
             prepared.request.call_id,
             Receipt {

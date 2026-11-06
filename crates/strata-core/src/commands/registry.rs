@@ -1030,8 +1030,46 @@ fn build_catalog() -> Vec<CommandSpec> {
         "Apply a whole-document exact signed-axis permutation: operation rotate_90_cw, rotate_90_ccw, rotate_180, flip_horizontal or flip_vertical. Keep the artboard top-left fixed; quarter turns swap width/height. Transform all stored source pixels including off-artboard/hidden layers and transparent hidden RGB, all linked/disabled u16 masks and current/previous selections. Preserve hierarchy, clipping, IDs, working ICC/depth and editable pixel/fill/group/adjustment definitions. Rotate/reflect gradient and gradient-overlay axes, swap frozen dimensions, map spatial adjustment domains and shadow offset vectors; radius/scale stay unchanged under these isometries. No rasterization or source artboard clipping. Exact nearest lattice sampling preserves integer codes. Existing procedural dissolve still uses its deterministic destination canvas-coordinate pattern, not a rotated random bitmap. Reject any layer pixel/position/transparency/all lock, unrepresentable/out-of-range geometry, >64M raster/mask/reference bound visits or shared memory/cache limits; atomic cancellation and one-history undo. All current layer kinds supported; future text/smart objects need their own support. Not batchable; AI requires exact content-replacement approval. Arbitrary-angle image rotation/straighten is separate unsupported work. 中文：整幅图像旋转、顺时针90度、逆时针90度、180度、图像水平翻转、图像垂直翻转；同步保留可编辑图层、蒙版、选区与画板外内容。",
         json!({"operation":"rotate_90_cw"})
     );
+    command!(
+        "paint.colors.get",
+        Empty,
+        Query,
+        "读取前景色与背景色",
+        "Read foreground/background colors",
+        "Read this editor's tool palette: normalized encoded working-RGB foreground/background RGBA 0..1 and a palette version. The current document working ICC interprets these codes (sRGB when no document); palette is per editor/window, starts opaque black/white, survives document replacement in that editor, and is not project metadata/history/recovery content. Reading never changes pixels, document revision/dirty/history or tool state. Native swatches, eyedropper and X/D use the same palette. Painting commands still accept explicit working-RGBA color; use the returned foreground/background as that parameter when desired. Allowed without document, bound source/session/control checked; not batchable. 中文：读取前景色、读取背景色、当前绘画颜色、工具调色板。",
+        json!({})
+    );
+    command!(
+        "paint.colors.set",
+        SetPaintColors,
+        View,
+        "设置前景色与背景色",
+        "Set foreground/background colors",
+        "Set foreground and/or background in this editor's tool palette as finite normalized encoded working-RGB RGBA 0..1. At least one color required; omitted side remains. Optional expected_version from paint.colors.get rejects stale palette writes; every request also captures a palette generation, so concurrent/stale preparations cannot overwrite newer colors. Codes are interpreted in the current document's working ICC, or sRGB with no document, and remain numerically unchanged across profile changes/document replacement. Native color wells and eyedropper use this same command, then brush/fill/gradient read the synchronized state. Does not draw, change document samples/revision/dirty/history or project metadata; not undoable by document/AI-turn undo. Native user setters are locked while AI owns control, including pause; same-turn running AI may configure colors directly. Strict fields, no batch, one idempotent receipt. 中文：设置前景色、设置背景色、选择绘画颜色、拾色器、工具调色板。",
+        json!({"foreground":[0.8,0.2,0.1,1]})
+    );
+    command!(
+        "paint.colors.swap",
+        Empty,
+        View,
+        "交换前景色与背景色",
+        "Swap foreground/background colors",
+        "Swap this editor's two normalized working-RGB palette colors; native X uses this command. Increments palette version, rejects stale/concurrent prepared palette calls, keeps current layer selection and all document state/history unchanged. Per-editor tool state, not a pixel edit and not document/turn undoable; no batch. Native user blocked during AI ownership, same-turn running AI allowed. 中文：交换前景色与背景色、交换绘画颜色、X 快捷键。",
+        json!({})
+    );
+    command!(
+        "paint.colors.reset",
+        Empty,
+        View,
+        "重置前景色与背景色",
+        "Reset foreground/background colors",
+        "Reset this editor's palette to opaque encoded working-RGB black foreground and white background; native D uses this command. Same strict ownership, palette-version/idempotent receipt and no-document semantics as paint.colors.set; no pixel/document/history/dirty change and not document/AI-turn undoable, no batch. 中文：重置前景色与背景色、默认黑白绘画颜色、D 快捷键。",
+        json!({})
+    );
     for item in &mut list {
         item.returns = match item.id {
+            "paint.colors.get" | "paint.colors.set" | "paint.colors.swap"
+            | "paint.colors.reset" => schemars::schema_for!(PaintColors),
             "image.orient" => schemars::schema_for!(OrientImageResult),
             "image.canvas_size" | "image.crop" | "image.reveal_all" => {
                 schemars::schema_for!(CanvasGeometryResult)
@@ -1161,6 +1199,14 @@ fn build_catalog() -> Vec<CommandSpec> {
             )
         {
             item.batchable = false;
+        }
+        if item.id.starts_with("paint.colors.") {
+            item.batchable = false;
+            item.effects = if item.kind == CommandKind::Query {
+                vec!["tool.colors.read"]
+            } else {
+                vec!["tool.colors.write"]
+            };
         }
         if item.id == "transform.apply" {
             item.examples.push(json!({"layer":{"name":"Background"},"scope":"selection","geometry":{"type":"components","translation":[4,2]}}));

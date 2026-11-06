@@ -47,12 +47,11 @@ struct PaintColorControls: View {
             ColorPicker("前景色",selection:binding(\.foregroundColor),supportsOpacity:false).labelsHidden().help("前景色")
             ColorPicker("背景色",selection:binding(\.backgroundColor),supportsOpacity:false).labelsHidden().help("背景色")
             WorkspaceIconButton(title:"交换前景色与背景色 (X)",symbol:"arrow.up.arrow.down") {model.swapPaintColors()}
-        }.disabled(model.busy)
+        }.disabled(!model.permissions.edits)
     }
     private func binding(_ key:ReferenceWritableKeyPath<WorkspaceModel,NSColor>) -> Binding<Color> {
         Binding(get:{Color(nsColor:model[keyPath:key])},set:{color in
-            model[keyPath:key]=NSColor(color).usingColorSpace(model.workingColorSpace) ?? NSColor(color)
-            model.send(.tool(model.tool))
+            model.setPaintColor(NSColor(color),background:key == \.backgroundColor)
         })
     }
 }

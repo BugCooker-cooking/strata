@@ -1,0 +1,124 @@
+{
+  "date_local": "2026-11-06",
+  "timezone": "Asia/Taipei",
+  "base_checkpoint": "81212ac",
+  "scope": "Unified editor foreground/background tool palette get/set/swap/reset with native and AI access. Full Photoshop and final AI closure remain open.",
+  "source_sha256": {
+    "apps/macos/Strata/App/MainWindowController.swift": "313782e7573a2830d31ab06b1844a83eb322081446fa648779bb74c225dcc8c1",
+    "apps/macos/Strata/Engine/EditorSnapshot.swift": "e5203a5c1a061a3785de7635bfba13b260736b67c19533a1032f46d85fcbb22f",
+    "apps/macos/Strata/Workspace/BrushControls.swift": "3c70dda26d82cae23fc78410b5cb1a75b0f230b1c18f37da891aca661a89b180",
+    "apps/macos/Strata/Workspace/WorkspaceModel.swift": "66776012ba911765567918dfe3599a11f2096b284ad29a287a8ccb8a74249c71",
+    "apps/macos/StrataTests/BrushInputTests.swift": "d9a73b7d3e708fd20ea1f74c12f3cd27390aed5df53f139dc2f347c52ebfde95",
+    "apps/macos/StrataTests/PaintColorStateTests.swift": "f3e4b823d34140aede2f0ad9122e9a3892036309c0840aebc5c0001ff6d991a0",
+    "crates/strata-ai/tests/replay.rs": "79b77b5e5053592fe1346788555f978ec8205946f0f9c3ebe292f1409cc8cf2d",
+    "crates/strata-core/src/commands/executor.rs": "14896086c583b3dc4258d49f6dd23b99a2986dd6e9a01bd641775585a361b4ca",
+    "crates/strata-core/src/commands/mod.rs": "3cfbcbc8f78f07c562bb0a2905b2998156c29c5ef549a8c73445c8754836d4a0",
+    "crates/strata-core/src/commands/registry.rs": "aa51fb42d055771a804943259f01185d2b78de4aed145d41833dba8963745dba",
+    "crates/strata-core/tests/paint_colors.rs": "927aecb0ed76b94db2923b867dde5abf35b9922db9b213bd0dcaeef0afcf96e1",
+    "crates/strata-ffi/src/lib.rs": "04c4499add7520ca5f4a828d5540c848f4a4c34b6055af696d16b472262b9041",
+    "crates/strata-ffi/src/tests.rs": "90c49a4fa9d61482e23090a959ce95240f23d369ceb9aa3fd974b143cac9de9f"
+  },
+  "verification": {
+    "full_rust": {
+      "passed": 418,
+      "ignored": 1,
+      "failed": 0,
+      "log": "build/m7-palette-full-test.log",
+      "note": "Rust workspace passed; old native test then failed because it assumed direct local field swap. Updated to real command/snapshot contract and rechecked complete native separately."
+    },
+    "full_native_xctest": {
+      "total": 65,
+      "passed": 64,
+      "skipped": 1,
+      "failed": 0,
+      "log": "build/m7-palette-native.final.log"
+    },
+    "required_gpu_gate": {
+      "passed": 82,
+      "ignored": 1,
+      "failed": 0,
+      "renderer_gpu_integrations": 33,
+      "log": "build/m7-palette-gpu.log",
+      "note": "82 also includes FFI/renderer unit tests, not 82 distinct GPU scenarios."
+    },
+    "arm64_release": {
+      "passed": true,
+      "log": "build/m7-palette-release.log"
+    },
+    "lint": {
+      "passed": true,
+      "log": "build/m7-palette-lint.log",
+      "final_swiftlint_recheck": true
+    },
+    "command_examples": {
+      "registered_commands": 115,
+      "passed": true,
+      "log": "build/m7-palette-commands.log"
+    },
+    "ai_audit": {
+      "mapped_composite_rows": 80,
+      "inventory_rows": 265,
+      "partial_entrypoints": 8,
+      "unmapped_implemented_rows": 0,
+      "unlinked_registered_commands": 0,
+      "unknown_native_literals": 0,
+      "untyped_root_returns": 0,
+      "final_complete": false,
+      "strict_gate": "build/m7-palette-final-ai-gate.log"
+    },
+    "new_core_contract_tests": 4,
+    "explicit_skips": [
+      "Rust real ONNX local acceptance requires explicit opt-in and verified assets.",
+      "Native real-service acceptance requires explicit local network opt-in."
+    ],
+    "resolved_checks": [
+      "AI mapping query was changed to actual registered fill title after real discovery test failed.",
+      "Legacy native color-swap test now executes registered commands and installs core snapshots instead of asserting unsynchronized view-only fields."
+    ]
+  },
+  "native_manual": {
+    "single_release_instance": true,
+    "fixture": "repository-generated sample-photo.jpg",
+    "eyedropper_foreground_rgb": [
+      0.627451,
+      0.47451,
+      0.172549
+    ],
+    "swap_x_foreground_rgb": [
+      1,
+      1,
+      1
+    ],
+    "swap_x_background_rgb": [
+      0.627451,
+      0.47451,
+      0.172549
+    ],
+    "reset_d_foreground_rgba": [
+      0,
+      0,
+      0,
+      1
+    ],
+    "reset_d_background_rgba": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "history_empty": true,
+    "document_remained_clean": true,
+    "final_running_strata_instances": 0,
+    "method": "CUA native AX, screenshot and keyboard; no system color panel opened."
+  },
+  "semantics": {
+    "scope": "Per editor/window, retained over document replacement; normalized encoded current working-RGB codes, sRGB without document.",
+    "history": "Tool-state change: no document revision/pixels/dirty/history/project/recovery write; document/AI-turn undo does not reset palette.",
+    "concurrency": "Every palette request bound to captured palette version, optional expected_version, idempotent receipts. Native continuous values coalesced; same-revision stale state events filtered.",
+    "control": "Native writes blocked while AI runs or pauses. Same-turn running AI writes and paused AI reads allowed.",
+    "preview": "Palette writes preserve active display preview and crop ownership, prepare no renderer scene.",
+    "painting": "Commands keep explicit colors; AI can read palette then pass foreground/background to paint/fill/gradient."
+  },
+  "cloud_builds": "disabled and not used",
+  "remaining": "Eight other partial entrypoints, all unfinished full Photoshop features, final complete AI audit, continuous performance/live-model/hardware/platform/release gates remain open."
+}

@@ -1,6 +1,8 @@
 import Foundation
 
 struct EditorSnapshot: Decodable, Sendable {
+    struct PaintColors:Decodable,Sendable{let foreground:[Double];let background:[Double];let version:UInt64}
+    let paintColors:PaintColors?
     struct Control: Decodable, Sendable { let kind: String; let turnId: String? }
     struct Frame: Decodable, Sendable { let name: String; let width: UInt32; let height: UInt32; let x: Int64; let y: Int64 }
     struct Layer: Decodable, Sendable {

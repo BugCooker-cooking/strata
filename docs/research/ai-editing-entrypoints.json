@@ -717,8 +717,12 @@
     },
     "PS-08-3ce0368d80": {
       "scope": "editing",
-      "coverage": "partial",
+      "coverage": "complete",
       "commands": [
+        "paint.colors.get",
+        "paint.colors.set",
+        "paint.colors.swap",
+        "paint.colors.reset",
         "paint.sample_color",
         "paint.stroke",
         "paint.fill",
@@ -726,12 +730,32 @@
       ],
       "prompts": [
         {
-          "text": "吸取给定位置的颜色。",
-          "query": "吸取颜色",
-          "command": "paint.sample_color"
+          "text": "读取当前前景色和背景色及调色板版本。",
+          "query": "读取前景色",
+          "command": "paint.colors.get"
+        },
+        {
+          "text": "把前景色设为工作 RGB 的不透明红色。",
+          "query": "设置前景色",
+          "command": "paint.colors.set"
+        },
+        {
+          "text": "交换前景色与背景色。",
+          "query": "交换前景色与背景色",
+          "command": "paint.colors.swap"
+        },
+        {
+          "text": "重置前景色和背景色为默认黑白。",
+          "query": "重置前景色与背景色",
+          "command": "paint.colors.reset"
+        },
+        {
+          "text": "读取前景色，并把它显式传给填充命令。",
+          "query": "填充像素",
+          "command": "paint.fill"
         }
       ],
-      "note": "AI 可显式传入绘制颜色；原生前景/背景色状态尚无独立 AI 设置命令。"
+      "note": "原生色块、吸管、X/D 与 AI 走同一编辑器工具状态。工作 RGB 浮点 RGBA 与独立版本绑定；不修改文档样本/历史/dirty，也不由文档或 AI 回合撤销恢复。绘画仍显式传色，AI 可读取调色板并使用其前景/背景参数。"
     },
     "PS-10-0e134f5a85": {
       "scope": "editing",

@@ -157,7 +157,7 @@
 | PS-08-af9951e405 | 绘画 | 油漆桶 | P0 | 已实现 | 本机核心/原生/Metal/单窗口证据；大图连续性能另记 · [M6 第二批](../research/2026-11-m6-paint-retouch-progress.md) |
 | PS-08-739094bd86 | 绘画 | 渐变（线性 / 径向 / 角度 / 对称 / 菱形） | P0 | 已实现 | 本机核心/原生/Metal/单窗口证据；大图连续性能另记 · [M6 第二批](../research/2026-11-m6-paint-retouch-progress.md) |
 | PS-08-6f11ed20eb | 绘画 | 吸管 | P0 | 已实现 | 本机核心/原生/Metal/单窗口证据；大图连续性能另记 · [M6 第二批](../research/2026-11-m6-paint-retouch-progress.md) |
-| PS-08-3ce0368d80 | 绘画 | 拾色器、前景色 / 背景色 | P0 | 已实现 | 原生工作 ICC 拾色器和前景/背景色交换已有证据 · [M6 绘画证据](../research/2026-11-m6-paint-retouch-progress.md) |
+| PS-08-3ce0368d80 | 绘画 | 拾色器、前景色 / 背景色 | P0 | 已实现 | 前景/背景 get/set/swap/reset 与原生拾色器/吸管/X/D 统一；当前设备核心、AI/FFI/完整原生/Metal/Release 与单窗口已有证据；持续回归 · [M6 绘画证据](../research/2026-11-m6-paint-retouch-progress.md) · [工具调色板与 AI](../research/2026-11-m7-paint-colors-progress.md) |
 | PS-08-86b51af036 | 绘画 | 颜色面板 | P0 | 待实现 | 待验收 |
 | PS-08-92b84304ee | 绘画 | 颜色取样器 | P1 | 待实现 | 待验收 |
 | PS-08-8aec3995bf | 绘画 | 色板 | P1 | 待实现 | 待验收 |

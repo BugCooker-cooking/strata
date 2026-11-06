@@ -553,11 +553,15 @@
   },
   "PS-08-3ce0368d80": {
     "implementation": "已实现",
-    "acceptance": "原生工作 ICC 拾色器和前景/背景色交换已有证据",
+    "acceptance": "前景/背景 get/set/swap/reset 与原生拾色器/吸管/X/D 统一；当前设备核心、AI/FFI/完整原生/Metal/Release 与单窗口已有证据；持续回归",
     "evidence": [
       {
         "label": "M6 绘画证据",
         "path": "../research/2026-11-m6-paint-retouch-progress.md"
+      },
+      {
+        "label": "工具调色板与 AI",
+        "path": "../research/2026-11-m7-paint-colors-progress.md"
       }
     ]
   },

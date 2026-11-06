@@ -13,6 +13,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
     private var allowClose = false
     private var thumbnailRevision: UInt64?
     private var displayOutlineRequest:UInt64=0
+    private var paletteQueue:[(String,[String:Any])]=[]
+    private var paletteWorker:Task<Void,Never>?
     private var pendingExposure: Double?
     private var exposureEnding: (Double, Bool)?
     private var exposurePreviewTask: Task<Void, Never>?
@@ -98,16 +100,15 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         canvas.onSelectionRunning = { [weak self] running in self?.busy = running }
         canvas.onBrushRunning = { [weak self] running in self?.busy = running }
         canvas.onColorSample = {[weak self] values,background,profile in
-            guard let self,values.count==4 else{return};var components=values.map{CGFloat($0)}
-            let color=NSColor(colorSpace:self.workspace.workingColorSpace,components:&components,count:4)
-            if background{self.workspace.backgroundColor=color}else{self.workspace.foregroundColor=color}
+            guard let self,values.count==4 else{return}
+            self.workspace.setPaintComponents(values,background:background)
             self.workspace.sampledColorSummary=String(format:"RGB %.4f / %.4f / %.4f · %@",values[0],values[1],values[2],profile)
             self.canvas.configurePaint(self.workspace)
         }
         canvas.onCloneSource = {[weak self] point in guard let self else{return};self.workspace.cloneSource=[Double(point.x),Double(point.y)];self.canvas.configureBrush(self.workspace)}
         canvas.onToolKey = { [weak self] key in
             if key == "X", let self { self.workspace.swapPaintColors(); return true }
-            if key == "D", let self { self.workspace.foregroundColor = .black; self.workspace.backgroundColor = .white; self.workspace.send(.tool(self.workspace.tool)); return true }
+            if key == "D", let self { if self.workspace.permissions.edits{self.workspace.send(.command("paint.colors.reset",[:]))}; return true }
             guard let self, let tool = EditorTool.allCases.first(where: { $0.key == key && $0.available }) else { return false }
             self.workspace.selectTool(tool); return true
         }
@@ -238,7 +239,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
     func handle(_ event: EngineEventDto) {
         switch event {
         case .documentOpened: canvas.markDirty()
-        case .stateChanged(let json): if let new = try? EditorSnapshot.decode(json), new.revision >= (state?.revision ?? 0) { apply(new) }
+        case .stateChanged(let json):
+            if let new=try? EditorSnapshot.decode(json),new.revision >= (state?.revision ?? 0),new.revision != state?.revision || (new.paintColors?.version ?? 0) >= (state?.paintColors?.version ?? 0){apply(new)}
         }
     }
     func refresh() { do { apply(try EditorSnapshot.decode(engine.snapshotJson())) } catch { showError(error) } }
@@ -251,6 +253,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         workspace.tonalPreview?.bind(snapshot)
         workspace.cropInput?.bind(snapshot)
         if let space=NSColorSpace(iccProfileData:Data(engine.workingProfileIcc())){workspace.workingColorSpace=space}
+        if let colors=snapshot.paintColors{workspace.installPaintColors(colors)}
         workspace.selectedLayers=workspace.selectedLayers.intersection(Set(snapshot.layers.map(\.id)))
         canvas.documentOrigin = NSPoint(x: CGFloat(snapshot.frame?.x ?? 0), y: CGFloat(snapshot.frame?.y ?? 0))
         canvas.isSelectionEnabled = workspace.permissions.selectionEdits
@@ -310,6 +313,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         }
     }
     func perform(_ command: String, _ params: [String: Any], completion: (@MainActor @Sendable (Bool) -> Void)? = nil) {
+        if ["paint.colors.get","paint.colors.set","paint.colors.swap","paint.colors.reset"].contains(command){queuePalette(command,params);return}
         guard !busy else { completion?(false); return }
         workspace.tonalPreview?.cancel()
         workspace.cropInput?.cancel()
@@ -340,6 +344,26 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
             }
         }
     }
+    private func queuePalette(_ command:String,_ params:[String:Any]){
+        guard workspace.permissions.edits else{return}
+        if command=="paint.colors.set",paletteQueue.last?.0==command{
+            for(key,value)in params{paletteQueue[paletteQueue.count-1].1[key]=value}
+        }else{
+            guard paletteQueue.count<32 else{return}
+            paletteQueue.append((command,params))
+        }
+        guard paletteWorker==nil else{return}
+        let engine=engine
+        paletteWorker=Task{[weak self]in
+            guard let self else{return};defer{self.paletteWorker=nil}
+            while !self.paletteQueue.isEmpty,!Task.isCancelled{
+                guard self.workspace.permissions.edits else{self.paletteQueue=[];break}
+                let(command,params)=self.paletteQueue.removeFirst()
+                do{let encoded=try commandJSON(params);_ = try await aiEngineWork{try engine.dispatch(command:command,paramsJson:encoded)};self.refresh()}
+                catch{if self.workspace.permissions.edits{self.showError(error)}}
+            }
+        }
+    }
     func layerCommand(_ command: String, _ extra: [String: Any] = [:]) { guard let layer = selected else { return }; var params = extra; params["layer"] = ["id": layer.id]; perform(command, params) }
     @objc func duplicateLayer() { layerCommand("layer.duplicate") }
     @objc func deleteLayer() { layerCommand("layer.delete") }
@@ -364,7 +388,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
     }
     @objc func stopAI() { if assistant.running { assistant.stop() } else if busy { try? engine.cancelPendingWork() } }
     func requestTermination(_ completion: @escaping @MainActor @Sendable (Bool) -> Void) { if assistant.running { assistant.stop() }; if busy { completion(false) } else { confirmDiscard(completion) } }
-    func windowWillClose(_ notification: Notification) { workspace.tonalPreview?.cancel(); if assistant.running { assistant.stop() }; recovery?.stop(discard: true); canvas.shutdown(); onClosed?() }
+    func windowWillClose(_ notification: Notification) { paletteQueue=[];paletteWorker?.cancel();workspace.tonalPreview?.cancel(); if assistant.running { assistant.stop() }; recovery?.stop(discard: true); canvas.shutdown(); onClosed?() }
     func windowDidBecomeMain(_ notification: Notification) { onBecameMain?() }
     func windowDidMiniaturize(_ notification: Notification) {
         if ProcessInfo.processInfo.arguments.contains("--window-lifecycle-log") {
