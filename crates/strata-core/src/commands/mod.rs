@@ -26,9 +26,9 @@ mod transform;
 mod tree;
 pub use cancellation::WorkCancellation;
 pub use executor::{
-    BrushInteraction, ClipboardImage, CommandError, Control, Editor, ExposureInteraction,
-    HistoryInfo, MarqueeInteraction, MoveInteraction, PaintInteraction, PreparedCommand, Request,
-    Snapshot, Source, TonalInteraction,
+    BrushInteraction, ClipboardImage, CommandError, Control, CropInteraction, Editor,
+    ExposureInteraction, HistoryInfo, MarqueeInteraction, MoveInteraction, PaintInteraction,
+    PreparedCommand, Request, Snapshot, Source, TonalInteraction,
 };
 pub use registry::{CommandKind, CommandSpec, catalog};
 

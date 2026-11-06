@@ -9,6 +9,9 @@ settings:
     CODE_SIGN_IDENTITY: "-"
     ENABLE_USER_SCRIPT_SANDBOXING: NO
     SWIFT_STRICT_CONCURRENCY: complete
+    # Xcode's parallel WMO otherwise starts a backend per CPU independently of
+    # -jobs. Keep optimized Swift within the user's local build task limit.
+    SWIFT_USE_PARALLEL_WHOLE_MODULE_OPTIMIZATION: NO
     # M0 ships the local arm64 prototype only; universal binaries are an M8 task.
     ARCHS: arm64
 targets:

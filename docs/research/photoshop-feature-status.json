@@ -791,11 +791,15 @@
   },
   "PS-09-7d349372b5": {
     "implementation": "部分实现",
-    "acceptance": "数值矩形/比例/保留内容的核心、AI、Metal、原生子集/实看通过；拉直、删除像素与画布交互仍待补齐",
+    "acceptance": "数值/拖动/比例/回车/取消与原始会话绑定的 FFI、完整原生/Release、单窗口实看通过；拉直、删除像素、手柄仍待补齐",
     "evidence": [
       {
         "label": "M7 裁剪/显示全部",
         "path": "../research/2026-11-m7-crop-progress.md"
+      },
+      {
+        "label": "M7 裁剪拖动会话",
+        "path": "../research/2026-11-m7-crop-gesture-progress.md"
       }
     ]
   },

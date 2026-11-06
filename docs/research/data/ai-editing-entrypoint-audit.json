@@ -2,7 +2,7 @@
   "scope": "Development audit; not a claim that all Photoshop editing is implemented or AI-verified",
   "registered_commands": 111,
   "registered_examples": 158,
-  "catalog_sha256": "834473951cc52b5bbfdd9ab37e3f6ff4b97a1f4390b6703888440d8bb7d614a1",
+  "catalog_sha256": "1210530032fae5d088d4c49ac71504e9a86905c980b377b8cc854cff958653bf",
   "inventory_rows": 265,
   "mapped_features": 80,
   "unmapped_implemented_features": [],
@@ -3266,7 +3266,7 @@
             ]
           }
         ],
-        "note": "数值矩形/整数比例与保留像素已有真实执行；拉直、删除像素和画布交互手柄未实现，完整裁剪工具保持部分。"
+        "note": "数值矩形/整数比例与画布拖动草稿、回车确认/取消都使用 image.crop；草稿不改变选区，绑定原始文档/revision/epoch。拉直、删除像素和拖拽手柄未实现，完整裁剪工具保持部分。"
       }
     },
     {

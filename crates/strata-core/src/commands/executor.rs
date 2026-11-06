@@ -86,6 +86,18 @@ pub struct MarqueeInteraction {
     request: Request,
     epoch: u64,
 }
+#[derive(Clone)]
+pub struct CropInteraction {
+    request: Request,
+    epoch: u64,
+}
+impl CropInteraction {
+    pub fn with_work_cancellation(&self, work: &super::WorkCancellation) -> Self {
+        let mut value = self.clone();
+        value.request.local_cancellation = Some(work.token());
+        value
+    }
+}
 pub struct ExposureInteraction {
     request: Request,
     epoch: u64,
@@ -431,6 +443,24 @@ impl Editor {
             request: self.request(Source::User),
             epoch: self.epoch,
         })
+    }
+    pub fn begin_crop(&self) -> Result<CropInteraction, CommandError> {
+        self.authorize(&Source::User, "image.crop", CommandKind::Mutate)?;
+        self.document.as_ref().ok_or(CommandError::NoDocument)?;
+        Ok(CropInteraction {
+            request: self.request(Source::User),
+            epoch: self.epoch,
+        })
+    }
+    pub fn prepare_crop(
+        &self,
+        interaction: &CropInteraction,
+        params: Value,
+    ) -> Result<PreparedCommand, CommandError> {
+        if interaction.epoch != self.epoch {
+            return Err(CommandError::Stale);
+        }
+        self.prepare(interaction.request.clone(), "image.crop", params)
     }
     pub fn prepare_marquee(
         &self,

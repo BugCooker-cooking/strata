@@ -43,6 +43,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         super.init(window: window)
         let preview = TonalPreviewModel(engine: engine)
         workspace.tonalPreview = preview
+        workspace.cropInput=canvas.cropInput
         preview.onBusy = { [weak self] running in guard let self else { return }; self.canvas.isWorkBusy = self.busy || running }
         preview.onApplying = { [weak self] applying in self?.busy = applying }
         preview.onFrame = { [weak self] in guard let self else { return }; self.canvas.markDirty(); if !self.busy { self.refresh() } }
@@ -218,7 +219,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         case .opacity(let value): layerCommand("layer.set_opacity", ["opacity": value])
         case .blend(let value): layerCommand("layer.set_blend_mode", ["blend_mode": value])
         case .position(let x, let y): layerCommand("layer.set_position", ["x": x, "y": y])
-        case .tool(let tool): workspace.tonalPreview?.cancel(); canvas.movesLayer = tool == .move; canvas.zoomTool = tool == .zoom; canvas.configureSelection(workspace); canvas.configureBrush(workspace); canvas.configurePaint(workspace); window?.makeFirstResponder(canvas)
+        case .tool(let tool): workspace.tonalPreview?.cancel(); canvas.movesLayer = tool == .move; canvas.zoomTool = tool == .zoom; canvas.configureSelection(workspace); canvas.configureBrush(workspace); canvas.configurePaint(workspace);canvas.configureCrop(workspace); window?.makeFirstResponder(canvas)
         case .assistant: toggleAssistant()
         case .panels: togglePanels()
         case .theme(let theme): onTheme?(theme)
@@ -247,12 +248,14 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
             || (snapshot.revision != state?.revision && ["transform.apply","image.orient"].contains(snapshot.history.last?.command ?? "")) {workspace.cloneSource=nil}
         workspace.snapshot = snapshot; window?.isDocumentEdited = snapshot.dirty
         workspace.tonalPreview?.bind(snapshot)
+        workspace.cropInput?.bind(snapshot)
         if let space=NSColorSpace(iccProfileData:Data(engine.workingProfileIcc())){workspace.workingColorSpace=space}
         workspace.selectedLayers=workspace.selectedLayers.intersection(Set(snapshot.layers.map(\.id)))
         canvas.documentOrigin = NSPoint(x: CGFloat(snapshot.frame?.x ?? 0), y: CGFloat(snapshot.frame?.y ?? 0))
         canvas.isSelectionEnabled = workspace.permissions.selectionEdits
         canvas.configureBrush(workspace)
         canvas.configurePaint(workspace)
+        canvas.configureCrop(workspace)
         recovery?.observe(snapshot)
         if let path = engine.projectPath() { documentURL = URL(fileURLWithPath: path); fileName = documentURL!.lastPathComponent }
         workspace.fileName = fileName; window?.title = "\(fileName) — Strata"
@@ -309,6 +312,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
     func perform(_ command: String, _ params: [String: Any], completion: (@MainActor @Sendable (Bool) -> Void)? = nil) {
         guard !busy else { completion?(false); return }
         workspace.tonalPreview?.cancel()
+        workspace.cropInput?.cancel()
         canvas.cancelBenchmarkForDocumentChange()
         do {
             let encoded = try commandJSON(params); busy = true; let engine = engine

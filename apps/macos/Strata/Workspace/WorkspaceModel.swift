@@ -38,7 +38,7 @@ enum EditorTool: String, CaseIterable, Identifiable {
     var title: String { Self.info[self]!.0 }
     var symbol: String { Self.info[self]!.1 }
     var key: String { Self.info[self]!.2 }
-    var available: Bool { [.move, .marquee, .lasso, .selection, .subject, .brush, .eraser, .clone, .heal, .dodge, .bucket, .gradient, .eyedropper, .hand, .zoom].contains(self) }
+    var available: Bool { [.move, .marquee, .lasso, .selection, .subject, .crop, .brush, .eraser, .clone, .heal, .dodge, .bucket, .gradient, .eyedropper, .hand, .zoom].contains(self) }
     var isPaint: Bool { isBrush || [.bucket,.gradient].contains(self) }
     var isBrush: Bool { [.brush,.eraser,.clone,.heal,.dodge].contains(self) }
     var isSelection: Bool { [.marquee, .lasso, .selection].contains(self) }
@@ -81,6 +81,8 @@ final class WorkspaceModel: ObservableObject {
     @Published var assistant: AssistantModel?
     @Published var subjectModel: SubjectModelStore?
     @Published var tonalPreview: TonalPreviewModel?
+    @Published var cropInput:CanvasCropInput?
+    @Published var cropRatio="free"
     @Published var snapshot: EditorSnapshot?
     @Published var thumbnails: [String: NSImage] = [:]
     @Published var fileName = "未命名"
@@ -165,7 +167,7 @@ final class WorkspaceModel: ObservableObject {
     var canRedo: Bool { permissions.history && (snapshot?.historyCursor ?? 0) < (snapshot?.history.count ?? 0) }
     func send(_ action: WorkspaceAction) { self.action?(action) }
     func selectTool(_ tool: EditorTool) {
-        guard !busy, tool.available, tool != .move || permissions.edits, !tool.isPaint || permissions.edits, !tool.isSelection || permissions.selectionEdits else { return }
+        guard !busy, tool.available, ![EditorTool.move,.crop].contains(tool) || permissions.edits, !tool.isPaint || permissions.edits, !tool.isSelection || permissions.selectionEdits else { return }
         if tool == .subject { if permissions.edits { send(.selectSubject) }; return }
         self.tool = tool; send(.tool(tool))
     }

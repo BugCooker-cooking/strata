@@ -1,0 +1,120 @@
+{
+  "date_local": "2026-11-06",
+  "timezone": "Asia/Taipei",
+  "base_checkpoint": "c1c5d9a",
+  "scope": "Native crop drag/ratio/border draft with owned initial-context request; Enter/Apply, Esc/Cancel. Crop handles, straighten and deleting cropped pixels remain open.",
+  "source_sha256": {
+    "apps/macos/Strata/App/MainWindowController.swift": "1f0035cd623455ec243483f3c0ce543eb323a597d93d94960f8fd32cc11325cd",
+    "apps/macos/Strata/Canvas/CanvasCropInput.swift": "d135c0fd6f59dbf57bf176e571f30739e5968c9816e0e6b41c6d5caec78cd838",
+    "apps/macos/Strata/Canvas/CanvasView.swift": "1beab5158d9a2ee78a653767cce9aedd90727b62832370b970c1e7ecc81ca502",
+    "apps/macos/Strata/Workspace/CropControls.swift": "f6998de5b74509b2aa64633667afb083d23543faa4b7dae6f656bf853c9e23d3",
+    "apps/macos/Strata/Workspace/WorkspaceModel.swift": "4f8b9fdc5e7fec2a40ca494a7d75c423d568eb6be58e01c7c8d3cdff59e9cf47",
+    "apps/macos/Strata/Workspace/WorkspaceViews.swift": "d260b698ef36a7d56f65088124c013c495fda45fd3fe95aaf4d6a832be37e734",
+    "apps/macos/StrataTests/CropInputTests.swift": "f5085533bf8bd8fc252df79d7ae4973253c39d4371981a4b88b69908d4731159",
+    "apps/macos/project.yml": "3997096cc6152e03700b05ce824fbecaa62b73b17d43b384f9c01bef01f8b85e",
+    "crates/strata-core/src/commands/executor.rs": "274eb7446037bedc102ad1a09397277cded6f2541bdd1f38afde3c1597516fba",
+    "crates/strata-core/src/commands/mod.rs": "7d855cf3dc9f5728dd9d485da7aa60c49d4288a8ff27169f4cd37f1ab71ec5c0",
+    "crates/strata-core/src/commands/registry.rs": "5c1e7305b61d56c9d54bf51eacf90ab33084f148cea934af102bf5ab098eb72e",
+    "crates/strata-ffi/src/crop.rs": "708864e691290f23f14648fc68a3c8b981564c01d2d07aece7024751eea23acb",
+    "crates/strata-ffi/src/lib.rs": "ee687e8e2530ef6453296024b0917fac16286eb2a41199170ec31e83af20561c"
+  },
+  "verification": {
+    "full_ffi_with_required_gpu": {
+      "passed": 35,
+      "ignored": 1,
+      "failed": 0,
+      "crop_ownership_tests": 5,
+      "log": "build/m7-crop-gesture-ffi-full.final.log"
+    },
+    "full_native_xctest": {
+      "total": 62,
+      "passed": 61,
+      "skipped": 1,
+      "failed": 0,
+      "crop_input_tests": 2,
+      "log": "build/m7-crop-gesture-native-full.final.log"
+    },
+    "arm64_release": {
+      "passed": true,
+      "log": "build/m7-crop-gesture-release.final.log",
+      "swift_wmo_threads_observed": 1,
+      "parallel_wmo_enabled": false
+    },
+    "lint": {
+      "passed": true,
+      "log": "build/m7-crop-gesture-lint.final.log"
+    },
+    "command_examples": {
+      "passed": 111,
+      "log": "build/m7-crop-gesture-commands.final.log"
+    },
+    "ai_audit": {
+      "registered_commands": 111,
+      "mapped_composite_rows": 80,
+      "partial_entrypoints": 9,
+      "unmapped_implemented_rows": 0,
+      "unlinked_registered_commands": 0,
+      "unknown_native_literals": 0,
+      "untyped_root_returns": 0,
+      "final_complete": false
+    },
+    "explicit_skips": [
+      "Real ONNX acceptance remains an explicitly ignored local gate.",
+      "Live real-service XCTest remains opt-in and skipped."
+    ],
+    "prior_baselines": "Full Rust workspace baseline remains f6328bb; core/AI/orientation/crop references remain in the individual later increment records."
+  },
+  "native_manual": {
+    "single_release_instance": true,
+    "fixture": "repository-generated sample-photo.jpg",
+    "free_drag_rect": [
+      125,
+      196,
+      725,
+      995
+    ],
+    "free_draft_left_document_clean": true,
+    "escape_cleared_draft": true,
+    "ratio": [
+      4,
+      3
+    ],
+    "ratio_draft_rect": [
+      125,
+      196,
+      724,
+      543
+    ],
+    "ratio_border_visible": true,
+    "ratio_draft_left_document_clean": true,
+    "return_committed_once": true,
+    "committed_size": [
+      724,
+      543
+    ],
+    "undo_restored_original_clean_size": [
+      1024,
+      1536
+    ],
+    "final_running_strata_instances": 0,
+    "method": "CUA live native AX and screenshot"
+  },
+  "ownership_contracts": [
+    "Cancel before queued apply cannot revive crop.",
+    "Old token cannot revoke a new crop.",
+    "Draft and cancel never alter pixels/selection/history.",
+    "Changed revision, document replacement and AI control epoch reject late crop.",
+    "Cancel waits for no editor/render lock.",
+    "Cancel does not revoke a newer AI request.",
+    "Detaching the native canvas revokes its crop."
+  ],
+  "cloud_builds": {
+    "used": false,
+    "workflow_kept_disabled": true
+  },
+  "limitations": [
+    "Resize/move handles, straightening and cropped-pixel deletion still absent; full crop feature stays partial.",
+    "No new AI command is needed: native draft applies the same strict image.crop implementation; draft tokens are trusted host state and not model-provided.",
+    "All full Photoshop/AI closure, remaining performance/live-model/device/platform/release gates stay open."
+  ]
+}

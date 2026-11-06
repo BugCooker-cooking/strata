@@ -28,6 +28,9 @@ final class CanvasView: NSView {
     private var cloneTool = false
     private var cloneSource:NSPoint?
     private let cloneMarker=CAShapeLayer()
+    private let cropPreview=CAShapeLayer()
+    lazy var cropInput=CanvasCropInput(engine:engine)
+    private var cropTool=false
     var documentOrigin = NSPoint.zero
     private var selectionCommand: String?
     var isSelectionEnabled = true {
@@ -47,7 +50,7 @@ final class CanvasView: NSView {
     var zoomTool = false
     private var pointerTracking: NSTrackingArea?
     var movesLayer = false
-    var isEditingEnabled = true { didSet { if !isEditingEnabled { if !brushInput.running {brushInput.cancel()};if !paintInput.running {paintInput.cancel()} } } }
+    var isEditingEnabled = true { didSet { if !isEditingEnabled { if !brushInput.running {brushInput.cancel()};if !paintInput.running {paintInput.cancel()};if !cropInput.running{cropInput.cancel()} } } }
     var reportNextRestoredFrame = false
     var activeLayer: EditorSnapshot.Layer?
     private var layerDrag: (point: NSPoint, x: Int64, y: Int64, zoom: CGFloat)?
@@ -82,6 +85,11 @@ final class CanvasView: NSView {
         layer?.addSublayer(brushPreview)
         paintGuide.fillColor=nil;paintGuide.strokeColor=NSColor.white.cgColor;paintGuide.lineWidth=1;paintGuide.lineDashPattern=[4,4];layer?.addSublayer(paintGuide)
         cloneMarker.fillColor=nil;cloneMarker.strokeColor=NSColor.white.cgColor;cloneMarker.lineWidth=1;layer?.addSublayer(cloneMarker)
+        cropPreview.fillColor=nil;cropPreview.strokeColor=NSColor.systemBlue.cgColor;cropPreview.lineWidth=1.5;cropPreview.lineDashPattern=[8,4];layer?.addSublayer(cropPreview)
+        cropInput.onChanged={[weak self] in self?.drawCropPreview();self?.markDirty()}
+        cropInput.onRunning={[weak self] running in self?.onBrushRunning?(running)}
+        cropInput.onCommitted={[weak self] in self?.markDirty();self?.onCommitted?()}
+        cropInput.onError={[weak self] error in self?.onError?(error)}
         selectionInput.onChanged = { [weak self] in self?.drawMarqueePreview() }
         selectionInput.onRunning = { [weak self] running in self?.onSelectionRunning?(running) }
         selectionInput.onCommitted = { [weak self] in self?.markDirty(); self?.onCommitted?() }
@@ -141,6 +149,7 @@ final class CanvasView: NSView {
         cancelMarquee()
         brushInput.cancel()
         paintInput.cancel()
+        cropInput.cancel()
         selectionAnts.removeAllAnimations()
         benchmark?.cancel(BenchmarkFailure("Canvas detached before benchmark completed"))
         frameLink?.invalidate()
@@ -260,6 +269,7 @@ final class CanvasView: NSView {
         drawBrushPreview()
         drawPaintGuide()
         drawCloneMarker()
+        drawCropPreview()
     }
     func setSelectionOutline(_ edges: [SelectionEdge]) {
         selectionEdges = edges
@@ -294,6 +304,13 @@ final class CanvasView: NSView {
     private func cancelMarquee() {
         selectionInput.cancel(); lastDrag = nil
     }
+    private func drawCropPreview(){
+        guard let path=cropInput.path(),let frame=engine.artboardOverlay()else{cropPreview.path=nil;return}
+        let zoom=CGFloat(engine.canvasZoom())/scale
+        var transform=CGAffineTransform(a:zoom,b:0,c:0,d:zoom,tx:CGFloat(frame.x)/scale-documentOrigin.x*zoom,ty:CGFloat(frame.y)/scale-documentOrigin.y*zoom)
+        CATransaction.begin();CATransaction.setDisableActions(true);cropPreview.path=path.copy(using:&transform);CATransaction.commit()
+    }
+    func configureCrop(_ model:WorkspaceModel){let enabled=model.tool == .crop;if enabled && !cropTool{cancelLayerDrag()};cropTool=enabled;cropInput.configure(enabled:cropTool,ratio:model.cropRatio)}
     func configureSelection(_ model: WorkspaceModel) {
         let command: String?
         switch model.tool {
@@ -386,6 +403,7 @@ final class CanvasView: NSView {
         guard !isWorkBusy else { return }
         benchmark?.cancel(BenchmarkFailure("User input interrupted benchmark"))
         window?.makeFirstResponder(self)
+        if cropTool{guard isEditingEnabled,let point=documentPoint(convert(event.locationInWindow,from:nil))else{return};cropInput.down(point);return}
         if paintTool{guard let point=documentPoint(convert(event.locationInWindow,from:nil))else{return};paintInput.down(point,background:event.modifierFlags.contains(.option));return}
         if brushTool {
             guard isEditingEnabled, let point = documentPoint(convert(event.locationInWindow,from:nil)) else { return }
@@ -410,6 +428,7 @@ final class CanvasView: NSView {
 
     override func mouseDragged(with event: NSEvent) {
         let point = convert(event.locationInWindow, from: nil)
+        if cropTool{if let document=documentPoint(point){cropInput.drag(document)};return}
         if paintTool{if let document=documentPoint(point){paintInput.drag(document)};return}
         if brushTool { if let point = documentPoint(point) { brushInput.drag(point,pressure:brushPressure(event)) }; return }
         if selectionCommand != nil {
@@ -431,6 +450,7 @@ final class CanvasView: NSView {
     }
 
     override func mouseUp(with event: NSEvent) {
+        if cropTool{if let point=documentPoint(convert(event.locationInWindow,from:nil)){cropInput.up(point)};return}
         if paintTool{if let point=documentPoint(convert(event.locationInWindow,from:nil)){paintInput.up(point)};return}
         if brushTool { if let point = documentPoint(convert(event.locationInWindow,from:nil)) { brushInput.up(point,pressure:brushPressure(event)) }; return }
         if selectionCommand != nil {
@@ -443,7 +463,8 @@ final class CanvasView: NSView {
         catch { onError?(error) }
     }
     override func keyDown(with event: NSEvent) {
-        if event.keyCode == 53 { cancelLayerDrag(); cancelMarquee(); brushInput.cancel();paintInput.cancel() }
+        if event.keyCode == 53 { cancelLayerDrag(); cancelMarquee(); brushInput.cancel();paintInput.cancel();cropInput.cancel() }
+        else if event.keyCode == 36,cropInput.confirm(){return}
         else if event.keyCode == 36, selectionInput.confirm() { return }
         else if !event.modifierFlags.contains(.command), !event.modifierFlags.contains(.control),
                 let key = event.charactersIgnoringModifiers?.uppercased(), onToolKey?(key) == true { return }
