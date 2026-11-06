@@ -148,6 +148,13 @@ pub enum LayerRef {
     Name(String),
 }
 
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema, Hash)]
+#[serde(deny_unknown_fields)]
+pub struct GeneratedCrop {
+    /// Local finite support; None is explicitly empty, unlike no crop metadata.
+    pub bounds: Option<strata_pixels::CoverageRect>,
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct LayerInfo {
@@ -159,6 +166,8 @@ pub struct LayerInfo {
     pub clipped: bool,
     #[serde(default)]
     pub generated_size: Option<[u32; 2]>,
+    #[serde(default)]
+    pub generated_crop: Option<GeneratedCrop>,
     /// Frozen sampling domain for spatial adjustments after canvas-only edits.
     #[serde(default)]
     pub spatial_bounds: Option<strata_pixels::CoverageRect>,
@@ -209,6 +218,7 @@ impl Layer {
                 parent: None,
                 clipped: false,
                 generated_size: None,
+                generated_crop: None,
                 spatial_bounds: None,
                 pass_through: false,
                 fill_opacity: 1.0,

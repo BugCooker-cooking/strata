@@ -1563,6 +1563,11 @@
           "text": "将画板裁到给定位置和尺寸，不重采样或删除原像素。",
           "query": "保留裁剪像素",
           "command": "image.crop"
+        },
+        {
+          "text": "Crop to the given rectangle and explicitly delete outside source pixels while retaining editable layers.",
+          "query": "pixels=preserve or delete",
+          "command": "image.crop"
         }
       ],
       "variants": [
@@ -1570,11 +1575,12 @@
           "command": "image.crop",
           "path": "pixels",
           "values": [
-            "preserve"
+            "preserve",
+            "delete"
           ]
         }
       ],
-      "note": "数值矩形/整数比例、画布拖动/八手柄/框内移动/回车确认/取消都使用 image.crop；草稿不改变选区，绑定原始文档/revision/epoch。拉直与删除像素仍未实现，完整裁剪工具保持部分。"
+      "note": "Numeric/drag/eight-handle crop and preserve/delete use image.crop. Native drafts bind original document/revision/control epoch. Delete requires exact approval; generated fill support persists in manifest v6. Straighten remains open."
     },
     "PS-03-84941ac6e8": {
       "scope": "editing",

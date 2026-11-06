@@ -952,6 +952,102 @@ fn ai_palette_configures_native_state_and_explicit_fill_while_turn_undo_only_rev
         json!([1., 0., 0., 0.5])
     );
 }
+#[test]
+fn deleting_cropped_pixels_pauses_for_exact_ai_approval_and_turn_undo_restores_sources() {
+    let host = Host::new();
+    host.user(
+        "paint.fill",
+        json!({"layer":{"name":"Background"},"color":[0.8,0.2,0.1,0.5]}),
+    );
+    host.user(
+        "layer.fill.gradient",
+        json!({"name":"gradient","start":[1000,3000,5000,65535],"end":[50000,45000,40000,65535]}),
+    );
+    let before = host
+        .editor
+        .lock()
+        .unwrap()
+        .document()
+        .unwrap()
+        .to_archive()
+        .unwrap();
+    let initial = host.snapshot().unwrap();
+    let mut session = host.session_with_prompt(
+        ExecutionMode::Direct,
+        "按给定矩形裁剪，并明确删除框外像素，保留图层结构。",
+    );
+    reply(
+        &mut session,
+        &host,
+        vec![
+            call("search", "search_catalog", json!({"query":"删除裁剪像素"})),
+            call(
+                "describe",
+                "describe_commands",
+                json!({"ids":["image.crop"]}),
+            ),
+        ],
+    );
+    assert!(
+        result(session.poll(&host).unwrap())["matches"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|m| m["id"] == "image.crop")
+    );
+    assert_eq!(
+        result(session.poll(&host).unwrap())["commands"][0]["id"],
+        "image.crop"
+    );
+    reply(
+        &mut session,
+        &host,
+        vec![invoke(
+            "crop-delete",
+            "image.crop",
+            json!({"rect":{"x":2,"y":1,"width":4,"height":5},"pixels":"delete"}),
+        )],
+    );
+    let Step::Paused {
+        question_id,
+        operation,
+        ..
+    } = session.poll(&host).unwrap()
+    else {
+        panic!("deletion always needs exact approval")
+    };
+    assert_eq!(operation.unwrap()["params"]["pixels"], "delete");
+    assert_eq!(host.snapshot().unwrap().revision, initial.revision);
+    let answer = result(
+        session
+            .respond(
+                &host,
+                HostAnswer {
+                    question_id,
+                    answer: String::new(),
+                    approved: true,
+                    resource: None,
+                },
+            )
+            .unwrap(),
+    );
+    assert_eq!(answer["result"]["preserved_external_content"], false);
+    let state = host.snapshot().unwrap();
+    assert_eq!(state.layers.len(), initial.layers.len());
+    assert_eq!(state.history.len(), initial.history.len() + 1);
+    host.editor.lock().unwrap().stop_turn();
+    host.user("edit.undo_turn", json!({"turn_id":session.turn_id()}));
+    assert_eq!(
+        host.editor
+            .lock()
+            .unwrap()
+            .document()
+            .unwrap()
+            .to_archive()
+            .unwrap(),
+        before
+    );
+}
 
 #[test]
 fn inspect_and_direct_queries_and_batches_never_expose_hidden_layers_or_paths() {

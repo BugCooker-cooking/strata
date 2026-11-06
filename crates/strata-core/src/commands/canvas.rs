@@ -124,7 +124,14 @@ pub(super) fn mutate(
             width: bounds.width,
             height: bounds.height,
         };
-        return publish_frame(doc, frame, cancel).map(Some);
+        checked_frame(doc, &frame)?;
+        let deleting = matches!(p.pixels, CropPixels::Delete);
+        if deleting {
+            super::crop_delete::apply(doc, bounds, cancel)?;
+        }
+        let mut result = publish_frame(doc, frame, cancel)?;
+        result["preserved_external_content"] = serde_json::json!(!deleting);
+        return Ok(Some(result));
     }
     if id == "image.reveal_all" {
         let _: Empty = parse(params)?;
@@ -150,13 +157,7 @@ pub(super) fn mutate(
                     cancel,
                 )?,
                 LayerKind::Solid { .. } | LayerKind::Gradient { .. } => {
-                    let [width, height] = info.generated_size.unwrap_or([old.width, old.height]);
-                    Some(CoverageRect {
-                        x: info.x,
-                        y: info.y,
-                        width,
-                        height,
-                    })
+                    doc.generated_canvas_bounds(layer)?
                 }
                 _ => None,
             };

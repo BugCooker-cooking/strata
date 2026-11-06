@@ -176,6 +176,35 @@ pub(super) fn mutate(
             .spatial_bounds
             .map(|b| geometry_pixels::transformed_bounds(b, &transform, Sampling::Nearest))
             .transpose()?;
+        let generated_crop = info
+            .generated_crop
+            .as_ref()
+            .map(|crop| {
+                let bounds = crop
+                    .bounds
+                    .map(|mut b| {
+                        b.x =
+                            b.x.checked_add(info.x)
+                                .ok_or(DocumentError::ResourceLimit)?;
+                        b.y =
+                            b.y.checked_add(info.y)
+                                .ok_or(DocumentError::ResourceLimit)?;
+                        let mut transformed =
+                            geometry_pixels::transformed_bounds(b, &transform, Sampling::Nearest)?;
+                        transformed.x = transformed
+                            .x
+                            .checked_sub(reference_origin[0])
+                            .ok_or(DocumentError::ResourceLimit)?;
+                        transformed.y = transformed
+                            .y
+                            .checked_sub(reference_origin[1])
+                            .ok_or(DocumentError::ResourceLimit)?;
+                        Ok::<_, DocumentError>(transformed)
+                    })
+                    .transpose()?;
+                Ok::<_, DocumentError>(crate::GeneratedCrop { bounds })
+            })
+            .transpose()?;
         check(cancel)?;
         let layer = &mut doc.layers[index];
         if let Some(output) = output {
@@ -196,6 +225,7 @@ pub(super) fn mutate(
             });
         }
         layer.info.spatial_bounds = spatial;
+        layer.info.generated_crop = generated_crop;
         if let LayerKind::Gradient {
             angle: direction, ..
         } = &mut layer.info.kind

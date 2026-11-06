@@ -520,16 +520,13 @@ fn visible_coords(
         if matches!(
             layer.info().kind,
             LayerKind::Solid { .. } | LayerKind::Gradient { .. }
-        ) {
-            let [w, h] = layer
-                .info()
-                .generated_size
-                .unwrap_or([doc.frame().width, doc.frame().height]);
+        ) && let Some(b) = doc.generated_canvas_bounds(layer).map_err(err)?
+        {
             add(
-                x - i128::from(pad[0]),
-                y - i128::from(pad[1]),
-                x + i128::from(w) + i128::from(pad[2]),
-                y + i128::from(h) + i128::from(pad[3]),
+                i128::from(b.x) - i128::from(pad[0]),
+                i128::from(b.y) - i128::from(pad[1]),
+                i128::from(b.x) + i128::from(b.width) + i128::from(pad[2]),
+                i128::from(b.y) + i128::from(b.height) + i128::from(pad[3]),
             )?;
         }
         for coord in layer.pixels().tile_coords() {

@@ -109,7 +109,7 @@ fn exact_reduced_ratio_fits_inside_box_and_bad_ratios_or_delete_flags_are_atomic
     run(&mut e, "edit.undo", json!({}));
     for params in [
         json!({"rect":{"x":0,"y":0,"width":3,"height":3},"pixels":"preserve","aspect_ratio":[4,3]}),
-        json!({"rect":{"x":0,"y":0,"width":10,"height":10},"pixels":"delete"}),
+        json!({"rect":{"x":0,"y":0,"width":10,"height":10},"pixels":"not_a_mode"}),
         json!({"rect":{"x":0,"y":0,"width":10,"height":10},"pixels":"preserve","angle":12}),
         json!({"rect":{"x":0,"y":0,"width":10,"height":10},"pixels":"preserve","aspect_ratio":[0,1]}),
     ] {

@@ -21,7 +21,8 @@ pub use document::{
 };
 pub use ids::{DocumentId, LayerId, StateId};
 pub use layer::{
-    BlendMode, ColorLabel, Layer, LayerInfo, LayerKind, LayerLocks, LayerMaskInfo, LayerRef,
+    BlendMode, ColorLabel, GeneratedCrop, Layer, LayerInfo, LayerKind, LayerLocks, LayerMaskInfo,
+    LayerRef,
 };
 pub use subject::{CanvasPreview, SubjectParams, SubjectSelection, SubjectSelector};
 pub fn version() -> &'static str {

@@ -19,6 +19,7 @@ final class CanvasCropInput:ObservableObject{
     private var token:String?
     private var enabled=false
     private var ratio:[UInt32]?
+    private var deletesPixels=false
     private enum Drag{case create(NSPoint),move(NSPoint,CGRect),resize(CropHandle,CGRect)}
     private var gesture:Drag?
     var onChanged:(()->Void)?
@@ -32,10 +33,11 @@ final class CanvasCropInput:ObservableObject{
         if context?.document != snapshot.documentId || context?.revision != snapshot.revision || context?.control != control{cancel()}
         context=(snapshot.documentId,snapshot.revision,control)
     }
-    func configure(enabled:Bool,ratio:String){
+    func configure(enabled:Bool,ratio:String,deletePixels:Bool=false){
         self.enabled=enabled
         if !enabled{cancel();return}
         guard !running else{return}
+        deletesPixels=deletePixels
         let pair=ratio.split(separator:":").compactMap{UInt32($0)}
         let next=pair.count==2&&pair.allSatisfy({$0>0&&$0<=100000}) ? pair:nil
         guard next != self.ratio else{return}
@@ -102,7 +104,7 @@ final class CanvasCropInput:ObservableObject{
     func confirm()->Bool{
         guard !running,let token else{return false}
         guard let draft=valid(draft ?? .zero),let x=Int64(exactly:draft.minX),let y=Int64(exactly:draft.minY),let w=UInt32(exactly:draft.width),let h=UInt32(exactly:draft.height)else{error="请拖出有效的裁剪矩形。";return true}
-        var params:[String:Any]=["rect":["x":x,"y":y,"width":w,"height":h],"pixels":"preserve"];if let ratio{params["aspect_ratio"]=ratio}
+        var params:[String:Any]=["rect":["x":x,"y":y,"width":w,"height":h],"pixels":deletesPixels ? "delete":"preserve"];if let ratio{params["aspect_ratio"]=ratio}
         do{
             let encoded=try commandJSON(params),engine=engine;gesture=nil;running=true;onRunning?(true)
             Task{[weak self]in

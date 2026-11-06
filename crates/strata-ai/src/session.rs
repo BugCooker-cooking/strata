@@ -972,6 +972,9 @@ fn invocation(call: &ToolCall) -> Result<(String, Value), AiError> {
     }
 }
 fn destructive(id: &str, params: &Value) -> bool {
+    if id == "image.crop" && params["pixels"] == "delete" {
+        return true;
+    }
     if id == "select.subject" && params["accept_ambiguous"] == true {
         return true;
     }

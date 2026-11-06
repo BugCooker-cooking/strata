@@ -173,7 +173,7 @@
 | PS-08-8917363943 | 绘画 | 历史记录艺术画笔 | ✗ | 重新核对 | 待验收 |
 | PS-09-7cc6b0bb65 | 变换与裁剪 | 移动工具（含吸附） | P0 | 部分实现 | 整数移动/组与链接蒙版/原生拖动已实现；吸附仍待补齐 · [M7 移动与几何边界](../research/2026-11-m7-transform-progress.md) |
 | PS-09-4f3d9835a7 | 变换与裁剪 | 自由变换：缩放 / 旋转 / 斜切 / 扭曲 / 透视 / 翻转 | P0 | 部分实现 | 整层/链接蒙版与选区像素提升/软边/合回/轮廓同步已有核心、AI/FFI/Metal/完整原生/Release 和单窗口证据；生成/组/文字与自由变换手柄仍待补齐 · [M7 整层变换/视图检查点](../research/2026-11-m7-transform-progress.md) · [M7 选区内像素](../research/2026-11-m7-selected-transform-progress.md) |
-| PS-09-7d349372b5 | 变换与裁剪 | 裁剪工具（拉直、比例、是否删除裁剪像素） | P0 | 部分实现 | 数值/拖动/比例/八手柄/框内移动/确认取消/会话绑定已有本机核心、FFI、原生/Release/实看证据；拉直、删除像素仍待补齐 · [M7 裁剪/显示全部](../research/2026-11-m7-crop-progress.md) · [M7 裁剪拖动会话](../research/2026-11-m7-crop-gesture-progress.md) · [M7 裁剪手柄](../research/2026-11-m7-crop-handles-progress.md) |
+| PS-09-7d349372b5 | 变换与裁剪 | 裁剪工具（拉直、比例、是否删除裁剪像素） | P0 | 部分实现 | Numeric/drag/ratio/handles/move/preserve/delete and owned confirmation/cancel have local core, AI, native, Metal and Release evidence; straighten remains open. · [M7 裁剪/显示全部](../research/2026-11-m7-crop-progress.md) · [M7 裁剪拖动会话](../research/2026-11-m7-crop-gesture-progress.md) · [M7 裁剪手柄](../research/2026-11-m7-crop-handles-progress.md) · [Destructive crop support](../research/2026-11-m7-crop-delete-progress.md) |
 | PS-09-64f3d2a3eb | 变换与裁剪 | 变形 | P1 | 待实现 | 待验收 |
 | PS-09-073c032f33 | 变换与裁剪 | 透视裁剪 | P1 | 待实现 | 待验收 |
 | PS-09-6891bcf56f | 变换与裁剪 | 操控变形 | P2 | 待实现 | 待验收 |

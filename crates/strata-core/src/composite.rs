@@ -168,6 +168,7 @@ fn fingerprint(doc: &Document, coord: TileCoord, layers: usize) -> u64 {
             layer.info.parent.hash(&mut hash);
             layer.info.clipped.hash(&mut hash);
             layer.info.generated_size.hash(&mut hash);
+            layer.info.generated_crop.hash(&mut hash);
             layer.info.spatial_bounds.hash(&mut hash);
             layer.info.pass_through.hash(&mut hash);
             if !layer.info.styles.is_empty() {
@@ -1122,6 +1123,13 @@ pub(crate) fn generated_fill(
             let sx = i128::from(ox) + x as i128 - i128::from(layer.info.x);
             let sy = i128::from(oy) + y as i128 - i128::from(layer.info.y);
             if sx < 0 || sy < 0 || sx >= i128::from(width) || sy >= i128::from(height) {
+                continue;
+            }
+            if let Some(crop) = &layer.info.generated_crop
+                && crop
+                    .bounds
+                    .is_none_or(|b| !b.contains(sx as i64, sy as i64))
+            {
                 continue;
             }
             let px = sx as f64 + 0.5 - w / 2.0;

@@ -799,7 +799,7 @@
   },
   "PS-09-7d349372b5": {
     "implementation": "部分实现",
-    "acceptance": "数值/拖动/比例/八手柄/框内移动/确认取消/会话绑定已有本机核心、FFI、原生/Release/实看证据；拉直、删除像素仍待补齐",
+    "acceptance": "Numeric/drag/ratio/handles/move/preserve/delete and owned confirmation/cancel have local core, AI, native, Metal and Release evidence; straighten remains open.",
     "evidence": [
       {
         "label": "M7 裁剪/显示全部",
@@ -812,6 +812,10 @@
       {
         "label": "M7 裁剪手柄",
         "path": "../research/2026-11-m7-crop-handles-progress.md"
+      },
+      {
+        "label": "Destructive crop support",
+        "path": "../research/2026-11-m7-crop-delete-progress.md"
       }
     ]
   },

@@ -1,0 +1,103 @@
+{
+  "date_local": "2026-11-06",
+  "timezone": "Asia/Taipei",
+  "base_checkpoint": "a740812",
+  "scope": "Explicit pixels=delete crop, exact source cleanup, finite editable generated fill support, manifest v6 and conditional AI approval. Straighten and full Photoshop/AI closure remain open.",
+  "source_sha256": {
+    "apps/macos/Strata/Canvas/CanvasCropInput.swift": "8d7d429c6bb8933a6db8ebde18027d7552156f94b003b447c9d9f90d21db5a89",
+    "apps/macos/Strata/Canvas/CanvasView.swift": "626bef12132125007dccc3616f0a70abec37dbe8867942eb4c340020ade7cbb8",
+    "apps/macos/Strata/Workspace/CropControls.swift": "417542377c9cf6ebe021e9f0a3a763fd8aad8d4d5e65d73458ce02d3ad4ba17f",
+    "apps/macos/Strata/Workspace/WorkspaceModel.swift": "65430b770cb32fa02a6fd1d49154e4cf1e4c27c96f045be5741b5e3171f3c89f",
+    "apps/macos/StrataTests/CropInputTests.swift": "bce382b869592c73be68738724876037631633826a1c0eedbf36ca106c4d3dfd",
+    "crates/strata-ai/src/session.rs": "54f1e472a0996c7f16491f4514ad7952394d3e662de940a7b058eb59b751860d",
+    "crates/strata-ai/tests/replay.rs": "69f33aa85422b90eb24e843931f45056f9d982f973c5eeeeb020edaa5257fde2",
+    "crates/strata-core/src/commands/arrange.rs": "676e590f91ca6289a2a65e4c400c878e19dd74f4ba5576c1901d73d623ede990",
+    "crates/strata-core/src/commands/canvas.rs": "4c59f05b533e0af453572f24f68ca455579b3a4255a7c0cb0c8cf89e91b084d5",
+    "crates/strata-core/src/commands/crop_delete.rs": "f43908263169753a494633d3acd398027850961c78bed43343210a34fde663c5",
+    "crates/strata-core/src/commands/mod.rs": "e252caa6f9990167731418d6a85ca8a7416e7d885d6a9a0c9c09f2cf62aed03e",
+    "crates/strata-core/src/commands/orthogonal.rs": "666dafedb9006da220c03c8e573381b4ede5b69b4470e582d7d260f53ad617cc",
+    "crates/strata-core/src/commands/raster.rs": "8f975bbc881754113b56631af74dca3c7f7d81661dba0d57ee7df2cfb9201eba",
+    "crates/strata-core/src/commands/registry.rs": "fa6c5f24f9465feeb430f19a2b7eb6652a9a07850f9471c41e88539ef426c13c",
+    "crates/strata-core/src/composite.rs": "c50da46b4985c041a903b66c5d0377bf4222656a281bda39e0ec2ff885b8403c",
+    "crates/strata-core/src/document.rs": "6edacb3f859685eed7e2c352872b6268cc27b56d21de76bf1d2ad3dcf3a1a1ed",
+    "crates/strata-core/src/layer.rs": "dbcfac8929aa13d0983ad5193e437e90632e76f6cc5537f4a280b8fb6b5ecfbd",
+    "crates/strata-core/src/lib.rs": "9333ffdb4cdc4e2e4599c22a9831c5ce611ad7ed2f0aba89815e48561ec48e52",
+    "crates/strata-core/src/project.rs": "b5f0abcb06bf3a4198f8a0a7d90e6a0d081118efd7d9717ba274fbc20ceadd32",
+    "crates/strata-core/tests/canvas.rs": "9a4016c319d8c925ed5bb757325180b159ed4763199b294eea12b4a35d128cb6",
+    "crates/strata-core/tests/crop.rs": "84a0656e4163765cf8fe43a1c37cb019771133f1b311747b41cf9f81cb7e42aa",
+    "crates/strata-core/tests/crop_delete.rs": "ea40045e53646883f4fce9cae880d7f909142f1625d7d6f68f5a820264b7fbf4",
+    "crates/strata-core/tests/tonal_adjustments.rs": "3e9da146a256b89b069a7704f05826ca0ea9de706a1ff65011414f4bbc0f18e2",
+    "crates/strata-render/src/scene.rs": "db1a7ccdc1b0f2fecc4d81388225a3ee0017453a126dfe5004e0f4cd031e8a4b",
+    "crates/strata-render/tests/gpu.rs": "732af3724a26200a2a7eef025fbc81efa001ff2be55136d903a9dad6e2df8c18"
+  },
+  "verification": {
+    "focused_core": {
+      "passed": 25,
+      "new_destructive_crop_tests": 6,
+      "canvas_crop_orientation_tonal_regressions": 19,
+      "log": "build/m7-crop-delete-core.log"
+    },
+    "ai": {
+      "passed": 26,
+      "replay_tests": 25,
+      "mapping_contract_tests": 1,
+      "log": "build/m7-crop-delete-ai.log"
+    },
+    "full_native_xctest": {
+      "total": 66,
+      "passed": 65,
+      "skipped": 1,
+      "failed": 0,
+      "log": "build/m7-crop-delete-native.log"
+    },
+    "required_metal_numeric": {
+      "passed": 1,
+      "skipped": 0,
+      "log": "build/m7-crop-delete-gpu.log"
+    },
+    "arm64_release": {
+      "passed": true,
+      "log": "build/m7-crop-delete-release.log"
+    },
+    "lint": {
+      "passed": true,
+      "log": "build/m7-crop-delete-lint.log"
+    },
+    "command_examples": {
+      "registered_commands": 115,
+      "delete_variant_executed": true,
+      "passed": true,
+      "log": "build/m7-crop-delete-commands.log"
+    },
+    "ai_audit": {
+      "mapped_composite_rows": 80,
+      "inventory_rows": 265,
+      "partial_entrypoints": 8,
+      "unmapped_implemented_rows": 0,
+      "unlinked_registered_commands": 0,
+      "unknown_native_literals": 0,
+      "untyped_root_returns": 0,
+      "final_complete": false,
+      "strict_gate": "build/m7-crop-delete-final-ai-gate.log"
+    },
+    "full_rust_baseline": "The 418-pass workspace/82-pass required GPU baseline is a740812; it is not relabeled as a full rerun of this crop increment.",
+    "native_skip": "Live real-service test remains explicitly opt-in and skipped.",
+    "resolved_test_setup": "Low-budget fixture originally could not finish file.new. Fixed to create the document first and inject tracked memory pressure before the crop, so the test exercises crop failure and atomicity."
+  },
+  "native_window_policy": {
+    "gui_delete_executed": false,
+    "delete_acceptance": "Core and native XCTest fixtures exercise the real command and owned gesture; no graphical delete was performed on the live sample window.",
+    "final_cua_inventory_running_instances": 0,
+    "no_additional_acceptance_window_opened": true
+  },
+  "semantics": {
+    "pixels": "Delete outside source RGBA including hidden/alpha-zero RGB; unchanged inside tile versions retained, boundary codes exact, outside blocks removed.",
+    "masks": "Finite cropped coverage preserves linked anchors/enabled flags and remains clipped even after inversion.",
+    "generated": "Editable fill parameters/reference axes kept separately from local finite support, including explicit empty support; expansion/mask removal/profile edits do not regrow old support.",
+    "integrations": "Compositor/cache keys, renderer bounds, reveal, arrange, rasterize and orthogonal image transforms use finite support. Manifest v6 reads old v0..v5; old manifests reject newer support metadata.",
+    "styles": "Editable procedural styles may generate new effects around retained sources; this does not restore deleted raw source samples.",
+    "control": "Pixel/transparency/all locks reject delete; position-only allowed. Same strict crop request, cancellation/budgets/one history/undo. AI delete requires exact approval even in Direct mode."
+  },
+  "cloud_builds": "disabled and not used",
+  "remaining": "Crop straighten/perspective, general image geometry, other incomplete Photoshop capabilities, final full AI audit and performance/model/device/platform/release gates remain open."
+}

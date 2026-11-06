@@ -37,7 +37,7 @@ impl Document {
             previous_selection: self.previous_selection.as_ref().map(TiledMask::layout),
             resolution_dpi: self.resolution_dpi,
             preset: self.preset.clone(),
-            version: 5,
+            version: 6,
             id: self.id,
             state: self.state,
             frame: self.frame.clone(),
@@ -89,7 +89,7 @@ impl Document {
     ) -> Result<Self, DocumentError> {
         let meta: Manifest =
             serde_json::from_value(metadata).map_err(|e| DocumentError::Invalid(e.to_string()))?;
-        if !matches!(meta.version, 0..=5)
+        if !matches!(meta.version, 0..=6)
             || meta.layers.len() > crate::MAX_LAYERS
             || meta.working_icc.len() > 4 * 1024 * 1024
             || meta
@@ -140,6 +140,11 @@ impl Document {
         {
             return Err(DocumentError::Invalid(
                 "frozen canvas/style/spatial references require manifest version 5".into(),
+            ));
+        }
+        if meta.version < 6 && meta.layers.iter().any(|l| l.generated_crop.is_some()) {
+            return Err(DocumentError::Invalid(
+                "finite generated crop requires manifest version 6".into(),
             ));
         }
         if meta.version < 2

@@ -86,6 +86,42 @@ impl Document {
     pub fn layers(&self) -> &[Layer] {
         &self.layers
     }
+    pub fn generated_canvas_bounds(
+        &self,
+        layer: &Layer,
+    ) -> Result<Option<strata_pixels::CoverageRect>, DocumentError> {
+        if !matches!(
+            layer.info.kind,
+            crate::LayerKind::Solid { .. } | crate::LayerKind::Gradient { .. }
+        ) {
+            return Ok(None);
+        }
+        let info = layer.info();
+        let [width, height] = info
+            .generated_size
+            .unwrap_or([self.frame.width, self.frame.height]);
+        let bounds = match &info.generated_crop {
+            Some(crop) => crop.bounds,
+            None => Some(strata_pixels::CoverageRect {
+                x: 0,
+                y: 0,
+                width,
+                height,
+            }),
+        };
+        bounds
+            .map(|mut b| {
+                b.x =
+                    b.x.checked_add(info.x)
+                        .ok_or(DocumentError::ResourceLimit)?;
+                b.y =
+                    b.y.checked_add(info.y)
+                        .ok_or(DocumentError::ResourceLimit)?;
+                b.validate()?;
+                Ok(b)
+            })
+            .transpose()
+    }
     pub fn selection(&self) -> Option<&TiledMask> {
         self.selection.as_ref()
     }
@@ -293,6 +329,30 @@ impl Document {
                     return Err(DocumentError::Invalid(
                         "spatial adjustment sampling bounds".into(),
                     ));
+                }
+            }
+            if let Some(crop) = &info.generated_crop {
+                if !matches!(
+                    info.kind,
+                    crate::LayerKind::Solid { .. } | crate::LayerKind::Gradient { .. }
+                ) || info.generated_size.is_none()
+                {
+                    return Err(DocumentError::Invalid(
+                        "generated crop requires a fill with frozen reference size".into(),
+                    ));
+                }
+                if let Some(b) = crop.bounds {
+                    b.validate()?;
+                    let [width, height] = info.generated_size.unwrap();
+                    if b.x < 0
+                        || b.y < 0
+                        || i128::from(b.x) + i128::from(b.width) > i128::from(width)
+                        || i128::from(b.y) + i128::from(b.height) > i128::from(height)
+                    {
+                        return Err(DocumentError::Invalid(
+                            "generated crop exceeds reference support".into(),
+                        ));
+                    }
                 }
             }
             if info.clipped {

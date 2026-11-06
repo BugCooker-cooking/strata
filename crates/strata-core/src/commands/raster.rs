@@ -54,18 +54,16 @@ fn raster(doc: &Document) -> Result<Raster, CommandError> {
             layer.info.kind,
             LayerKind::Solid { .. } | LayerKind::Gradient { .. }
         ) {
-            let [w, h] = layer
-                .info
-                .generated_size
-                .unwrap_or([doc.frame.width, doc.frame.height]);
+            let Some(bounds) = doc.generated_canvas_bounds(layer)? else {
+                continue;
+            };
+            let (w, h) = (bounds.width, bounds.height);
             let pad = doc.style_outset(layer.id());
-            let x = layer
-                .info
+            let x = bounds
                 .x
                 .checked_sub(pad[0])
                 .ok_or_else(|| CommandError::Invalid("style bounds overflow".into()))?;
-            let y = layer
-                .info
+            let y = bounds
                 .y
                 .checked_sub(pad[1])
                 .ok_or_else(|| CommandError::Invalid("style bounds overflow".into()))?;

@@ -217,7 +217,7 @@ fn legacy_gradient_style_and_spatial_references_freeze_and_survive_manifest_v5()
         }
     );
     let archive = doc.to_archive().unwrap();
-    assert_eq!(archive.metadata["version"], 5);
+    assert_eq!(archive.metadata["version"], 6);
     let reopened = Document::from_archive(archive.clone()).unwrap();
     assert_eq!(
         &compositor.tile(&reopened, coord).unwrap()[..],

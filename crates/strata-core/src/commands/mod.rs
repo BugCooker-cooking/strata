@@ -3,6 +3,7 @@ mod brush;
 mod cancellation;
 mod canvas;
 mod clone_source;
+mod crop_delete;
 mod executor;
 mod export;
 mod filters;
@@ -95,6 +96,7 @@ params!(CanvasSize {
 #[serde(rename_all = "snake_case")]
 pub enum CropPixels {
     Preserve,
+    Delete,
 }
 params!(CropCanvas {
     rect: strata_pixels::CoverageRect,

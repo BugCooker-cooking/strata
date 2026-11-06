@@ -313,7 +313,7 @@ final class CanvasView: NSView {
         let handles=CGMutablePath();for handle in CropHandle.allCases{let point=handle.position(in:draft).applying(transform);handles.addRect(CGRect(x:point.x-3,y:point.y-3,width:6,height:6))}
         CATransaction.begin();CATransaction.setDisableActions(true);cropPreview.path=path.copy(using:&transform);cropHandles.path=handles;CATransaction.commit()
     }
-    func configureCrop(_ model:WorkspaceModel){let enabled=model.tool == .crop;if enabled && !cropTool{cancelLayerDrag()};cropTool=enabled;cropInput.configure(enabled:cropTool,ratio:model.cropRatio)}
+    func configureCrop(_ model:WorkspaceModel){let enabled=model.tool == .crop;if enabled && !cropTool{cancelLayerDrag()};cropTool=enabled;cropInput.configure(enabled:cropTool,ratio:model.cropRatio,deletePixels:model.cropDeletesPixels)}
     func configureSelection(_ model: WorkspaceModel) {
         let command: String?
         switch model.tool {

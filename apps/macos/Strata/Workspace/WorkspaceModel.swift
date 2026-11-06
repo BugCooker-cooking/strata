@@ -83,6 +83,7 @@ final class WorkspaceModel: ObservableObject {
     @Published var tonalPreview: TonalPreviewModel?
     @Published var cropInput:CanvasCropInput?
     @Published var cropRatio="free"
+    @Published var cropDeletesPixels=false
     @Published var snapshot: EditorSnapshot?
     @Published var thumbnails: [String: NSImage] = [:]
     @Published var fileName = "未命名"

@@ -50,16 +50,13 @@ fn bounds(doc: &Document, id: LayerId) -> Result<CoverageRect, CommandError> {
         if matches!(
             layer.info.kind,
             LayerKind::Solid { .. } | LayerKind::Gradient { .. }
-        ) {
-            let [w, h] = layer
-                .info
-                .generated_size
-                .unwrap_or([doc.frame.width, doc.frame.height]);
+        ) && let Some(b) = doc.generated_canvas_bounds(layer)?
+        {
             add(
-                layer.info.x,
-                layer.info.y,
-                layer.info.x + i64::from(w),
-                layer.info.y + i64::from(h),
+                b.x,
+                b.y,
+                b.x + i64::from(b.width),
+                b.y + i64::from(b.height),
             );
         }
         for (coord, tile) in layer.pixels.tiles() {

@@ -492,6 +492,23 @@ Permissions: `bound_document`
         "height"
       ]
     },
+    "GeneratedCrop": {
+      "type": "object",
+      "properties": {
+        "bounds": {
+          "description": "Local finite support; None is explicitly empty, unlike no crop metadata.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CoverageRect"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
     "Glow": {
       "type": "object",
       "properties": {
@@ -642,6 +659,17 @@ Permissions: `bound_document`
           "type": "number",
           "format": "double",
           "default": 1.0
+        },
+        "generated_crop": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GeneratedCrop"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "generated_size": {
           "type": [
@@ -2092,6 +2120,23 @@ Permissions: `bound_document`
         "height"
       ]
     },
+    "GeneratedCrop": {
+      "type": "object",
+      "properties": {
+        "bounds": {
+          "description": "Local finite support; None is explicitly empty, unlike no crop metadata.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CoverageRect"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
     "Glow": {
       "type": "object",
       "properties": {
@@ -2220,6 +2265,17 @@ Permissions: `bound_document`
           "type": "number",
           "format": "double",
           "default": 1.0
+        },
+        "generated_crop": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GeneratedCrop"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "generated_size": {
           "type": [
@@ -17957,7 +18013,7 @@ Permissions: `bound_document`
 
 ## `image.canvas_size` — 画布大小
 
-Resize the artboard only; no resampling, flattening, source deletion or movement of stored layer/mask coordinates. width/height integer 1..100000 subject to the document byte budget. anchor top_left/top/top_right/left/center(default)/right/bottom_left/bottom/bottom_right fixes the corresponding old canvas anchor; center uses floor division for odd differences. Source pixels (including hidden RGB), linked/disabled masks, hierarchy, clipping, styles and locked layers stay editable outside the new frame. Frozen generated-fill/style dimensions and spatial-adjustment sampling domains preserve original appearance when the canvas changes; extension is transparent except for already existing outside content. Current/previous u16 selections clip to the new artboard and expand with zero coverage, with at most 64M selection-copy visits. Does not fill the extension with a new background. Atomic cancellable single history step; manifest v5 persists frozen references and reads legacy v0..v4. Not batchable. 中文：画布大小、扩展画布、缩小画布、锚点、保留画板外像素、不要缩放图像。
+Resize the artboard only; no resampling, flattening, source deletion or movement of stored layer/mask coordinates. width/height integer 1..100000 subject to the document byte budget. anchor top_left/top/top_right/left/center(default)/right/bottom_left/bottom/bottom_right fixes the corresponding old canvas anchor; center uses floor division for odd differences. Source pixels (including hidden RGB), linked/disabled masks, hierarchy, clipping, styles and locked layers stay editable outside the new frame. Frozen generated-fill/style dimensions and spatial-adjustment sampling domains preserve original appearance when the canvas changes; extension is transparent except for already existing outside content. Current/previous u16 selections clip to the new artboard and expand with zero coverage, with at most 64M selection-copy visits. Does not fill the extension with a new background. Atomic cancellable single history step; manifest v6 persists frozen references/crop support and reads legacy v0..v5. Not batchable. 中文：画布大小、扩展画布、缩小画布、锚点、保留画板外像素、不要缩放图像。
 
 Kind: `Mutate` · Undoable: `true` · Batchable: `false`
 
@@ -18092,13 +18148,13 @@ Permissions: `bound_document`
 }
 ```
 
-## `image.crop` — 保留像素的矩形裁剪
+## `image.crop` — 矩形裁剪
 
-Crop the artboard to an explicit canvas-coordinate rect {x,y,width,height}; required pixels=preserve. Source layers, hidden RGB, linked/disabled masks and editable structure remain outside the crop with no resampling/deletion. Optional aspect_ratio [w,h], each integer 1..100000, is reduced to coprime integers; choose the largest exact integer-ratio rectangle inside rect, anchored at rect's top-left. A box too small for one ratio unit rejects. All nine-anchor canvas-size byte/dimension limits, frozen generated/style/spatial references, finite current/previous selection clipping, budgets/cancellation and one-history undo apply. Selection is not the crop source: rect is explicit. Native drag stages a border-only draft anchored to its initial document/revision/control epoch; eight resize handles and inside movement edit only that draft with integer coordinates and optional fixed ratio. Enter applies this same command, Esc cancels without history, changed context rejects late confirmation. Draft tokens are trusted host state, never model parameters. Deleting cropped pixels, straighten rotation and perspective crop remain separate unsupported work; extra delete/angle parameters reject. Not batchable. 中文：矩形裁剪、保留裁剪像素、保留画板外图层、比例裁剪；通过明确矩形修改画板，选区裁到新边界，原始像素不删除。
+Crop the artboard to an explicit canvas-coordinate rect {x,y,width,height}; required pixels=preserve or delete. Preserve keeps source codes/layers/linked masks outside the crop. Delete explicitly clears all outside RGBA codes (including hidden/transparent RGB), drops fully outside tiles, retains unchanged inside tile versions/boundary codes, clips linked/disabled masks to finite crop coverage, and restricts generated fill support without rasterizing or changing original gradient/style reference axes. Empty generated intersection stays explicitly empty; expansion/mask removal cannot regenerate deleted support. Delete affects hidden layers too and rejects affected pixel/transparency/all locks; position-only lock allowed. AI requires exact delete approval even in Direct mode. Both modes retain IDs/tree/clipping/editable definitions/ICC/depth with one atomic undo. Local generated finite crop persists in manifest v6, reading legacy v0..v5. Optional aspect_ratio [w,h], each 1..100000, reduces to coprime integers; largest exact integer-ratio rectangle inside rect anchored at top-left, too-small box rejects. Same canvas byte/dimension, finite current/previous selection clipping/zero extension, frozen references, shared budgets and row cancellation apply; delete boundary work capped at 64M visits. Native border-only drag with eight handles/inside movement binds initial document/revision/control epoch; Enter applies this command, Esc cancels without history, changed context rejects late confirmation. Tokens remain trusted host state, never model parameters. Selection is not a crop source/write clip. Straighten/perspective crop remain unsupported; unknown angle fields reject. Not batchable. 中文：矩形裁剪、比例裁剪、保留裁剪像素、删除裁剪像素、删除画板外原码；保留结构与渐变定义，明确选择是否删除像素。
 
 Kind: `Mutate` · Undoable: `true` · Batchable: `false`
 
-Effects: `document.write`
+Effects: `document.write, pixels.delete_if_requested`
 
 Permissions: `bound_document`
 
@@ -18172,7 +18228,8 @@ Permissions: `bound_document`
     "CropPixels": {
       "type": "string",
       "enum": [
-        "preserve"
+        "preserve",
+        "delete"
       ]
     }
   }
@@ -18256,6 +18313,18 @@ Permissions: `bound_document`
   "pixels": "preserve",
   "rect": {
     "height": 10,
+    "width": 12,
+    "x": 2,
+    "y": 3
+  }
+}
+```
+
+```json
+{
+  "pixels": "delete",
+  "rect": {
+    "height": 9,
     "width": 12,
     "x": 2,
     "y": 3

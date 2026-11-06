@@ -52,4 +52,9 @@ final class CropInputTests:XCTestCase{
         _ = try engine.dispatch(command:"layer.rename",paramsJson:commandJSON(["layer":["name":"Background"],"name":"new revision"]))
         XCTAssertTrue(input.confirm());try await finished(input);let snapshot=try EditorSnapshot.decode(engine.snapshotJson());XCTAssertEqual(snapshot.frame?.width,16);XCTAssertEqual(snapshot.frame?.x,0);XCTAssertEqual(snapshot.history.last?.command,"layer.rename")
     }
+    @MainActor
+    func testExplicitDeleteModeUsesSameOwnedGestureAndExpansionCannotRestoreDeletedPixels()async throws{
+        let(engine,input)=try configured();let before=try EditorSnapshot.decode(engine.snapshotJson());input.configure(enabled:true,ratio:"free",deletePixels:true);input.down(NSPoint(x:3,y:2));input.up(NSPoint(x:11,y:10));XCTAssertEqual(try EditorSnapshot.decode(engine.snapshotJson()).history.count,before.history.count);XCTAssertTrue(input.confirm());try await finished(input);let cropped=try EditorSnapshot.decode(engine.snapshotJson());XCTAssertEqual(cropped.frame?.x,3);XCTAssertEqual(cropped.frame?.width,8);XCTAssertEqual(cropped.history.count,before.history.count+1)
+        _ = try engine.dispatch(command:"image.canvas_size",paramsJson:commandJSON(["width":16,"height":16,"anchor":"center"]));let expanded=try EditorSnapshot.decode(engine.snapshotJson());let outside=try AIJSON.decode(engine.sampleColor(paramsJson:commandJSON(["x":0,"y":0,"sample":"current_layer"]),revision:expanded.revision))["color"].array.compactMap(\.number);XCTAssertEqual(outside,[0,0,0,0]);_ = try engine.dispatch(command:"edit.undo",paramsJson:"{}");_ = try engine.dispatch(command:"edit.undo",paramsJson:"{}");XCTAssertEqual(try EditorSnapshot.decode(engine.snapshotJson()).historyCursor,before.historyCursor)
+    }
 }
