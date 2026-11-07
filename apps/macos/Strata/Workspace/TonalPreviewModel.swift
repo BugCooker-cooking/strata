@@ -22,6 +22,7 @@ final class TonalPreviewModel: ObservableObject {
     var onBusy: ((Bool) -> Void)?
     var onApplying: ((Bool) -> Void)?
     var onFrame: (() -> Void)?
+    var onStarting:(()->Void)?
 
     init(engine: StrataEngine) { self.engine = engine }
     func configureFilter(_ command:String?){
@@ -37,6 +38,7 @@ final class TonalPreviewModel: ObservableObject {
     func setEnabled(_ value: Bool, settings: String?) {
         if !value { cancel(); return }
         guard !applying, context?.control == "user", context?.layer != nil else { return }
+        if !enabled{onStarting?()}
         enabled = true; error = ""; update(settings)
     }
     func update(_ settings: String?) {

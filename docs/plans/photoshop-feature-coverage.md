@@ -172,7 +172,7 @@
 | PS-08-20a38a31c0 | 绘画 | 混合器画笔 | P3 | 待实现 | 待验收 |
 | PS-08-8917363943 | 绘画 | 历史记录艺术画笔 | ✗ | 重新核对 | 待验收 |
 | PS-09-7cc6b0bb65 | 变换与裁剪 | 移动工具（含吸附） | P0 | 部分实现 | 整数移动/组与链接蒙版/原生拖动已实现；吸附仍待补齐 · [M7 移动与几何边界](../research/2026-11-m7-transform-progress.md) |
-| PS-09-4f3d9835a7 | 变换与裁剪 | 自由变换：缩放 / 旋转 / 斜切 / 扭曲 / 透视 / 翻转 | P0 | 部分实现 | 整层/链接蒙版与选区像素提升/软边/合回/轮廓同步已有核心、AI/FFI/Metal/完整原生/Release 和单窗口证据；生成/组/文字与自由变换手柄仍待补齐 · [M7 整层变换/视图检查点](../research/2026-11-m7-transform-progress.md) · [M7 选区内像素](../research/2026-11-m7-selected-transform-progress.md) |
+| PS-09-4f3d9835a7 | 变换与裁剪 | 自由变换：缩放 / 旋转 / 斜切 / 扭曲 / 透视 / 翻转 | P0 | 部分实现 | 画布八手柄及平移/旋转/斜切/扭曲/透视轮廓草稿已到本机增量验收检查点；原生和AI使用同一真实变换命令，恒等无历史。核心22、AI35、无GPU几何桥接13、完整原生92通过/1联网opt-in跳过、两项强制Metal、Release/lint/186参数例子与单窗口整层/选区应用撤销通过。生成/组/文字及连续变形像素反馈仍开放。 · [M7 整层变换/视图检查点](../research/2026-11-m7-transform-progress.md) · [M7 选区内像素](../research/2026-11-m7-selected-transform-progress.md) · [画布手柄实施与验收](../research/2026-11-m7-transform-handles-progress.md) |
 | PS-09-7d349372b5 | 变换与裁剪 | 裁剪工具（拉直、比例、是否删除裁剪像素） | P0 | 部分实现 | 数值/拖框/比例/八手柄/移动/保留与删除裁剪，以及数值/两点/画布拖线拉直已有本机核心、AI、原生、Metal、Release 与单窗口证据；生成/调整/样式/文字的一般几何仍开放。 · [M7 裁剪/显示全部](../research/2026-11-m7-crop-progress.md) · [M7 裁剪拖动会话](../research/2026-11-m7-crop-gesture-progress.md) · [M7 裁剪手柄](../research/2026-11-m7-crop-handles-progress.md) · [Destructive crop support](../research/2026-11-m7-crop-delete-progress.md) · [拉直与内切裁剪](../research/2026-11-m7-straighten-progress.md) · [画布参考线会话](../research/2026-11-m7-straighten-gesture-progress.md) |
 | PS-09-64f3d2a3eb | 变换与裁剪 | 变形 | P1 | 待实现 | 待验收 |
 | PS-09-073c032f33 | 变换与裁剪 | 透视裁剪 | P1 | 待实现 | 待验收 |

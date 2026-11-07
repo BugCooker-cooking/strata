@@ -16,7 +16,13 @@ fn matrix(spec: &TransformGeometry) -> Result<Homography, CommandError> {
         TransformGeometry::Corners {
             source,
             destination,
-        } => Homography::between(*source, *destination),
+        } => Homography::between(*source, *destination).and_then(|value| {
+            if source == destination {
+                Homography::affine([1., 0., 0., 1., 0., 0.])
+            } else {
+                Ok(value)
+            }
+        }),
         TransformGeometry::Components {
             translation,
             scale,
@@ -65,6 +71,65 @@ fn matrix(spec: &TransformGeometry) -> Result<Homography, CommandError> {
     };
     result.map_err(invalid)
 }
+pub(super) fn target(
+    doc: &Document,
+    layer: &LayerRef,
+) -> Result<(crate::LayerId, usize), CommandError> {
+    let target = doc.resolve(layer)?;
+    let index = doc.layers().iter().position(|l| l.id() == target).unwrap();
+    if !matches!(doc.layers()[index].info().kind, LayerKind::Pixel) {
+        return Err(invalid(
+            "transform currently requires a pixel layer; generated/group/text layers are not implicitly rasterized",
+        ));
+    }
+    if doc.layers().iter().any(|l| {
+        (l.id() == target || doc.is_descendant(target, l.id()))
+            && (l.info().locks.all
+                || l.info().locks.pixels
+                || l.info().locks.position
+                || l.info().locks.transparency)
+    }) {
+        return Err(invalid(
+            "unlock pixels, position, transparency and locked ancestors before transform",
+        ));
+    }
+    Ok((target, index))
+}
+pub(super) fn canvas_bounds(
+    doc: &Document,
+    layer: &LayerRef,
+    scope: TransformScope,
+    cancel: &dyn Fn() -> bool,
+) -> Result<LayerBoundsResult, CommandError> {
+    let (layer_id, index) = target(doc, layer)?;
+    if !doc.effective_visibility(layer_id) {
+        return Err(invalid(
+            "canvas transform needs a visible layer and visible ancestors",
+        ));
+    }
+    let bounds = match scope {
+        TransformScope::WholeLayer => {
+            let layer = &doc.layers()[index];
+            // Bound this interactive initialization independently of the later
+            // resampling budget. Include stored alpha-zero RGB/offboard codes.
+            if layer.pixels().tile_count() as u64 * 256 * 256 > 64_000_000 {
+                return Err(DocumentError::ResourceLimit.into());
+            }
+            geometry_pixels::content_bounds(
+                layer.pixels(),
+                [layer.info().x, layer.info().y],
+                cancel,
+            )?
+        }
+        TransformScope::Selection => {
+            let selection = doc
+                .selection()
+                .ok_or_else(|| invalid("select pixels before canvas transform"))?;
+            crate::geometry_masks::coverage_bounds(selection, cancel)?
+        }
+    };
+    Ok(LayerBoundsResult { layer_id, bounds })
+}
 pub(super) fn mutate(
     doc: &mut Document,
     id: &str,
@@ -79,26 +144,8 @@ pub(super) fn mutate(
     }
     let p: TransformApply = parse(params)?;
     let transform = matrix(&p.geometry)?;
-    let target = doc.resolve(&p.layer)?;
-    let index = doc.layers().iter().position(|l| l.id() == target).unwrap();
+    let (target, index) = target(doc, &p.layer)?;
     let layer = doc.layers()[index].clone();
-    if !matches!(layer.info().kind, LayerKind::Pixel) {
-        return Err(invalid(
-            "whole-layer transform currently requires a pixel layer; generated/group/text layers are not implicitly rasterized",
-        ));
-    }
-    if doc.layers().iter().any(|l| {
-        (l.id() == target || doc.is_descendant(target, l.id()))
-            && (l.info().locks.all
-                || l.info().locks.pixels
-                || l.info().locks.position
-                || l.info().locks.transparency)
-    }) || layer.info().locks.transparency
-    {
-        return Err(invalid(
-            "unlock pixels, position, transparency and locked ancestors before whole-layer transform",
-        ));
-    }
     let sampling = match p.interpolation {
         TransformInterpolation::Nearest => Sampling::Nearest,
         TransformInterpolation::Bilinear => Sampling::Bilinear,
@@ -124,7 +171,7 @@ pub(super) fn mutate(
         }
         super::tree::move_position(doc, target, x, y)?;
         return Ok(Some(
-            serde_json::json!({"layer_id":target,"scope":"whole_layer","output_bounds":output_bounds,"source_artboard_clipped":false,"mask_transformed":layer.mask.is_some(),"selection_transformed":false}),
+            serde_json::json!({"layer_id":target,"scope":"whole_layer","output_bounds":output_bounds,"source_artboard_clipped":false,"mask_transformed":layer.mask.is_some(),"selection_transformed":false,"changed":dx!=0 || dy!=0}),
         ));
     }
     let logical = geometry_pixels::transformed_bounds(bounds, &transform, Sampling::Nearest)?;
@@ -178,6 +225,6 @@ pub(super) fn mutate(
         doc.layers[index].info.mask.as_mut().unwrap().enabled = enabled;
     }
     Ok(Some(
-        serde_json::json!({"layer_id":target,"scope":"whole_layer","output_bounds":output_bounds,"source_artboard_clipped":false,"mask_transformed":layer.mask.is_some(),"selection_transformed":false}),
+        serde_json::json!({"layer_id":target,"scope":"whole_layer","output_bounds":output_bounds,"source_artboard_clipped":false,"mask_transformed":layer.mask.is_some(),"selection_transformed":false,"changed":true}),
     ))
 }

@@ -1,4 +1,4 @@
-//! Crop/straighten drafts share one operation-bound cancellable ownership slot.
+//! Native geometry drafts share one operation-bound cancellable ownership slot.
 //! Overlay-only staging never touches editor truth or renderer pixels/history.
 use crate::*;
 pub(crate) struct NativeGeometry {
@@ -21,14 +21,71 @@ fn cancelled() -> StrataError {
 #[uniffi::export]
 impl StrataEngine {
     pub fn begin_crop(&self, document_id: String, revision: u64) -> Result<String, StrataError> {
-        self.begin_geometry(document_id, revision, "image.crop")
+        self.begin_geometry(document_id, revision, "image.crop", None)
     }
     pub fn begin_straighten(
         &self,
         document_id: String,
         revision: u64,
     ) -> Result<String, StrataError> {
-        self.begin_geometry(document_id, revision, "image.straighten")
+        self.begin_geometry(document_id, revision, "image.straighten", None)
+    }
+    pub fn begin_canvas_transform(
+        &self,
+        document_id: String,
+        revision: u64,
+        layer_id: String,
+        scope: String,
+    ) -> Result<String, StrataError> {
+        let layer = serde_json::from_value(json!({"id":layer_id})).map_err(render_error)?;
+        let scope = serde_json::from_value(json!(scope)).map_err(render_error)?;
+        self.begin_geometry(
+            document_id,
+            revision,
+            "transform.apply",
+            Some((layer, scope)),
+        )
+    }
+    /// Bounds scan runs on an immutable editor clone outside the renderer lock.
+    /// The same token can be cancelled while its source rows are being scanned.
+    pub fn canvas_transform_bounds(&self, token: String) -> Result<String, StrataError> {
+        let interaction = {
+            let slot = self.geometry_session.lock().map_err(render_error)?;
+            let value = slot
+                .as_ref()
+                .filter(|c| c.token == token && c.command == "transform.apply" && !c.finishing)
+                .ok_or_else(cancelled)?;
+            value.interaction.with_work_cancellation(&value.work)
+        };
+        let editor = self.lock()?.editor.clone();
+        let bounds = editor
+            .canvas_transform_bounds(&interaction)
+            .map_err(command_error)?;
+        if !self
+            .lock()?
+            .editor
+            .canvas_transform_context_matches(&interaction)
+        {
+            return Err(cancelled());
+        }
+        if self
+            .geometry_session
+            .lock()
+            .map_err(render_error)?
+            .as_ref()
+            .is_none_or(|c| c.token != token || c.finishing)
+        {
+            return Err(cancelled());
+        }
+        serde_json::to_string(&bounds).map_err(render_error)
+    }
+    pub fn end_canvas_transform(
+        &self,
+        token: String,
+        params_json: String,
+        cancel: bool,
+    ) -> Result<(), StrataError> {
+        self.end_geometry(token, params_json, cancel, "transform.apply")
     }
     pub fn end_crop(
         &self,
@@ -48,11 +105,18 @@ impl StrataEngine {
     }
 }
 impl StrataEngine {
+    pub(crate) fn cancel_native_geometry(&self) -> Result<(), StrataError> {
+        if let Some(owned) = self.geometry_session.lock().map_err(render_error)?.take() {
+            owned.cancel();
+        }
+        Ok(())
+    }
     fn begin_geometry(
         &self,
         document_id: String,
         revision: u64,
         command: &'static str,
+        transform: Option<(strata_core::LayerRef, strata_core::commands::TransformScope)>,
     ) -> Result<String, StrataError> {
         let mut inner = self.lock()?;
         if inner.editor.revision() != revision
@@ -76,6 +140,10 @@ impl StrataEngine {
         let interaction = match command {
             "image.crop" => inner.editor.begin_crop(),
             "image.straighten" => inner.editor.begin_straighten(),
+            "transform.apply" => {
+                let (layer, scope) = transform.expect("native transform target");
+                inner.editor.begin_canvas_transform(layer, scope)
+            }
             _ => unreachable!(),
         }
         .map_err(command_error)?;
@@ -130,6 +198,7 @@ impl StrataEngine {
             let prepared = match command {
                 "image.crop" => editor.prepare_crop(&interaction, params.clone()),
                 "image.straighten" => editor.prepare_straighten(&interaction, params.clone()),
+                "transform.apply" => editor.prepare_canvas_transform(&interaction, params.clone()),
                 _ => unreachable!(),
             }
             .map_err(command_error)?;
@@ -573,5 +642,319 @@ mod tests {
         e.detach_canvas().unwrap();
         assert!(e.end_crop(token, params(), false).is_err());
         assert_eq!(e.snapshot_json().unwrap(), snapshot);
+    }
+    fn transform_start(e: &StrataEngine, scope: &str) -> String {
+        let state = e.lock().unwrap().editor.snapshot();
+        e.begin_canvas_transform(
+            state.document_id.unwrap().to_string(),
+            state.revision,
+            state.active_layer.unwrap().to_string(),
+            scope.into(),
+        )
+        .unwrap()
+    }
+    fn transform_parameters(e: &StrataEngine, scope: &str) -> String {
+        json!({"layer":{"id":e.lock().unwrap().editor.snapshot().active_layer},"scope":scope,"geometry":{"type":"corners","source":[[0,0],[16,0],[16,16],[0,16]],"destination":[[2,1],[18,1],[18,17],[2,17]]},"interpolation":"nearest"}).to_string()
+    }
+    #[test]
+    fn canvas_transform_bounds_and_pointer_staging_preserve_truth_and_apply_once() {
+        let e = engine();
+        let before = e.snapshot_json().unwrap();
+        let archive = e
+            .lock()
+            .unwrap()
+            .editor
+            .document()
+            .unwrap()
+            .to_archive()
+            .unwrap();
+        let token = transform_start(&e, "whole_layer");
+        let bounds: Value =
+            serde_json::from_str(&e.canvas_transform_bounds(token.clone()).unwrap()).unwrap();
+        assert_eq!(
+            bounds["bounds"],
+            json!({"x":0,"y":0,"width":16,"height":16})
+        );
+        assert_eq!(e.snapshot_json().unwrap(), before);
+        let params = transform_parameters(&e, "whole_layer");
+        e.end_canvas_transform(token.clone(), params.clone(), false)
+            .unwrap();
+        assert_eq!(
+            e.lock()
+                .unwrap()
+                .editor
+                .snapshot()
+                .history
+                .last()
+                .unwrap()
+                .command,
+            "transform.apply"
+        );
+        assert!(e.end_canvas_transform(token, params, false).is_err());
+        e.dispatch("edit.undo".into(), "{}".into()).unwrap();
+        assert!(
+            e.lock()
+                .unwrap()
+                .editor
+                .document()
+                .unwrap()
+                .to_archive()
+                .unwrap()
+                == archive
+        );
+    }
+    #[test]
+    fn canvas_transform_tokens_cannot_be_used_for_other_operations_or_scopes() {
+        let e = engine();
+        let crop = start(&e);
+        let transform = transform_start(&e, "whole_layer");
+        let before = e.snapshot_json().unwrap();
+        assert!(e.end_crop(transform.clone(), params(), false).is_err());
+        assert!(
+            e.end_straighten(transform.clone(), line_params(), true)
+                .is_err()
+        );
+        assert!(
+            e.end_canvas_transform(crop, transform_parameters(&e, "whole_layer"), false)
+                .is_err()
+        );
+        assert!(
+            e.end_canvas_transform(
+                transform.clone(),
+                transform_parameters(&e, "selection"),
+                false
+            )
+            .is_err()
+        );
+        assert!(
+            e.end_canvas_transform(transform, transform_parameters(&e, "whole_layer"), false)
+                .is_err()
+        );
+        assert_eq!(e.snapshot_json().unwrap(), before);
+        let transform = transform_start(&e, "whole_layer");
+        let crop = start(&e);
+        assert!(e.canvas_transform_bounds(transform.clone()).is_err());
+        assert!(
+            e.end_canvas_transform(transform, "{}".into(), true)
+                .is_err()
+        );
+        e.end_crop(crop, params(), false).unwrap();
+    }
+    #[test]
+    fn newer_filter_preview_or_active_layer_change_revokes_a_transform_draft() {
+        let e = engine();
+        let token = transform_start(&e, "whole_layer");
+        let state = e.lock().unwrap().editor.snapshot();
+        let sequence = e.issue_tonal_preview().unwrap();
+        e.begin_filter_preview(
+            state.active_layer.unwrap().to_string(),
+            "filter.add_noise".into(),
+            state.revision,
+            sequence,
+        )
+        .unwrap();
+        e.preview_filter(json!({"amount":0.05,"seed":42}).to_string(), sequence)
+            .unwrap();
+        assert!(e.end_canvas_transform(token, "{}".into(), true).is_err());
+        e.end_filter_preview_checked(
+            json!({"amount":0.05,"seed":42}).to_string(),
+            false,
+            sequence,
+        )
+        .unwrap();
+        assert_eq!(
+            e.lock()
+                .unwrap()
+                .editor
+                .snapshot()
+                .history
+                .last()
+                .unwrap()
+                .command,
+            "filter.add_noise"
+        );
+        e.dispatch("layer.create".into(), json!({"name":"other"}).to_string())
+            .unwrap();
+        let other = e.lock().unwrap().editor.snapshot().active_layer;
+        e.dispatch(
+            "layer.select".into(),
+            json!({"layer":{"name":"Background"}}).to_string(),
+        )
+        .unwrap();
+        let token = transform_start(&e, "whole_layer");
+        let params = transform_parameters(&e, "whole_layer");
+        e.dispatch(
+            "layer.select".into(),
+            json!({"layer":{"id":other}}).to_string(),
+        )
+        .unwrap();
+        let before = e.snapshot_json().unwrap();
+        assert!(e.canvas_transform_bounds(token.clone()).is_err());
+        assert!(e.end_canvas_transform(token, params, false).is_err());
+        assert_eq!(e.snapshot_json().unwrap(), before);
+    }
+    #[test]
+    fn canvas_transform_cancel_is_nonblocking_and_does_not_revoke_new_ai_work() {
+        let e = engine();
+        let token = transform_start(&e, "whole_layer");
+        let held = e.lock().unwrap();
+        let (tx, rx) = std::sync::mpsc::channel();
+        let worker = e.clone();
+        let cancel = token.clone();
+        let join = std::thread::spawn(move || {
+            tx.send(worker.end_canvas_transform(cancel, "{}".into(), true))
+                .unwrap()
+        });
+        assert!(
+            rx.recv_timeout(std::time::Duration::from_secs(1))
+                .unwrap()
+                .is_ok()
+        );
+        drop(held);
+        join.join().unwrap();
+        assert!(e.canvas_transform_bounds(token).is_err());
+        let token = transform_start(&e, "whole_layer");
+        let (turn, request) = {
+            let mut inner = e.lock().unwrap();
+            let turn = inner.editor.begin_turn().unwrap();
+            let request = inner.editor.request(Source::Ai { turn_id: turn });
+            (turn, request)
+        };
+        e.end_canvas_transform(token, "{}".into(), true).unwrap();
+        let mut inner = e.lock().unwrap();
+        inner
+            .editor
+            .execute(
+                request,
+                "layer.create",
+                json!({"name":"AI unaffected"}),
+                |_| Ok(()),
+            )
+            .unwrap();
+        assert_eq!(
+            inner.editor.snapshot().history.last().unwrap().turn_id,
+            Some(turn)
+        );
+    }
+    #[test]
+    fn canvas_transform_real_metal_commits_shared_scene_and_exact_undo_for_both_scopes() {
+        for scope in ["whole_layer", "selection"] {
+            let mut renderer =
+                match strata_render::Renderer::new_offscreen(strata_render::Viewport {
+                    width: 64,
+                    height: 64,
+                    scale: 1.0,
+                }) {
+                    Ok(value) => value,
+                    Err(strata_render::RenderError::NoAdapter)
+                        if std::env::var_os("STRATA_REQUIRE_GPU").is_none() =>
+                    {
+                        return;
+                    }
+                    Err(error) => panic!("GPU: {error}"),
+                };
+            let e = engine();
+            if scope == "selection" {
+                e.dispatch(
+                    "select.marquee".into(),
+                    json!({"x":3,"y":4,"width":7,"height":6}).to_string(),
+                )
+                .unwrap();
+                e.dispatch("select.feather".into(), json!({"radius":1}).to_string())
+                    .unwrap();
+            }
+            {
+                let mut inner = e.lock().unwrap();
+                let scene = renderer
+                    .prepare_document(inner.editor.document().unwrap(), false)
+                    .unwrap();
+                renderer.commit_document(scene).unwrap();
+                renderer
+                    .set_view(strata_render::ViewTransform {
+                        zoom: 3.,
+                        center_x: 8.,
+                        center_y: 8.,
+                    })
+                    .unwrap();
+                inner.renderer = Some(renderer);
+            }
+            let frame = |e: &StrataEngine| {
+                e.render_frame().unwrap();
+                e.lock()
+                    .unwrap()
+                    .renderer
+                    .as_ref()
+                    .unwrap()
+                    .read_offscreen_rgba()
+                    .unwrap()
+            };
+            let before = frame(&e);
+            let archive = e
+                .lock()
+                .unwrap()
+                .editor
+                .document()
+                .unwrap()
+                .to_archive()
+                .unwrap();
+            let cursor = e.lock().unwrap().editor.snapshot().history_cursor;
+            let token = transform_start(&e, scope);
+            e.canvas_transform_bounds(token.clone()).unwrap();
+            assert!(frame(&e) == before);
+            e.end_canvas_transform(token, transform_parameters(&e, scope), false)
+                .unwrap();
+            assert!(frame(&e) != before);
+            assert_eq!(
+                e.lock().unwrap().editor.snapshot().history_cursor,
+                cursor + 1
+            );
+            {
+                let inner = e.lock().unwrap();
+                let doc = inner.editor.document().unwrap();
+                let cpu = strata_core::composite::Compositor::new(1)
+                    .tile(doc, strata_pixels::TileCoord::new(0, 0).unwrap())
+                    .unwrap();
+                let shown = inner
+                    .renderer
+                    .as_ref()
+                    .unwrap()
+                    .read_offscreen_rgba()
+                    .unwrap();
+                for (x, y) in [(1usize, 1usize), (6, 7), (12, 12)] {
+                    let p = cpu[y * 256 + x];
+                    let offset = ((y * 3 + 9) * 64 + x * 3 + 9) * 4;
+                    for c in 0..3 {
+                        let bg = f64::from(strata_render::CANVAS_BG_SRGB[c]) / 255.;
+                        let bg = if bg <= 0.04045 {
+                            bg / 12.92
+                        } else {
+                            ((bg + 0.055) / 1.055).powf(2.4)
+                        };
+                        let v = f64::from(p[c]) * f64::from(p[3]) + bg * (1. - f64::from(p[3]));
+                        let v = if v <= 0.0031308 {
+                            12.92 * v
+                        } else {
+                            1.055 * v.powf(1. / 2.4) - 0.055
+                        };
+                        assert!(
+                            shown[offset + c].abs_diff((v.clamp(0., 1.) * 255.).round() as u8) <= 3,
+                            "{scope} {x},{y},{c}"
+                        );
+                    }
+                }
+            }
+            e.dispatch("edit.undo".into(), "{}".into()).unwrap();
+            assert!(frame(&e) == before);
+            assert!(
+                e.lock()
+                    .unwrap()
+                    .editor
+                    .document()
+                    .unwrap()
+                    .to_archive()
+                    .unwrap()
+                    == archive
+            );
+        }
     }
 }

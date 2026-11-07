@@ -255,6 +255,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         for (title, action, key) in [("剪切", #selector(MainWindowController.cutPixels(_:)), "x"), ("复制", #selector(MainWindowController.copyPixels(_:)), "c"), ("粘贴", #selector(MainWindowController.pastePixels(_:)), "v"), ("全选", #selector(MainWindowController.selectAllPixels(_:)), "a"),("合并拷贝",#selector(MainWindowController.copyMergedPixels(_:)),"C"),("原位粘贴",#selector(MainWindowController.pasteInPlace(_:)),"V"),("清除",#selector(MainWindowController.clearPixels(_:)),"")] {
             let item=edit.addItem(withTitle: title, action: action, keyEquivalent: key);item.target=controller
         }
+        edit.addItem(.separator())
+        let transform=edit.addItem(withTitle:"自由变换",action:#selector(MainWindowController.beginCanvasTransform),keyEquivalent:"t");transform.target=controller
         let editItem = NSMenuItem(title: "编辑", action: nil, keyEquivalent: ""); editItem.submenu = edit; bar.addItem(editItem)
         for (title, action, key) in [
             ("适合屏幕", #selector(MainWindowController.fit), "0"),

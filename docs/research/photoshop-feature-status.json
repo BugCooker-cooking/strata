@@ -737,7 +737,7 @@
   },
   "PS-09-4f3d9835a7": {
     "implementation": "部分实现",
-    "acceptance": "整层/链接蒙版与选区像素提升/软边/合回/轮廓同步已有核心、AI/FFI/Metal/完整原生/Release 和单窗口证据；生成/组/文字与自由变换手柄仍待补齐",
+    "acceptance": "画布八手柄及平移/旋转/斜切/扭曲/透视轮廓草稿已到本机增量验收检查点；原生和AI使用同一真实变换命令，恒等无历史。核心22、AI35、无GPU几何桥接13、完整原生92通过/1联网opt-in跳过、两项强制Metal、Release/lint/186参数例子与单窗口整层/选区应用撤销通过。生成/组/文字及连续变形像素反馈仍开放。",
     "evidence": [
       {
         "label": "M7 整层变换/视图检查点",
@@ -746,6 +746,10 @@
       {
         "label": "M7 选区内像素",
         "path": "../research/2026-11-m7-selected-transform-progress.md"
+      },
+      {
+        "label": "画布手柄实施与验收",
+        "path": "../research/2026-11-m7-transform-handles-progress.md"
       }
     ]
   },

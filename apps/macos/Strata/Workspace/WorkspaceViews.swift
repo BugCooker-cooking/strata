@@ -37,7 +37,7 @@ struct ToolRail: View {
                         if index > 0 { Rectangle().fill(Color(nsColor: WorkspaceColors.border)).frame(height: 1).padding(.horizontal, 10) }
                         ForEach(group) { tool in
                             WorkspaceIconButton(title: "\(tool.title)\(tool.key.isEmpty ? "" : " (\(tool.key))")", symbol: tool.symbol,
-                                enabled: !model.busy && tool.available && (![EditorTool.move, .subject, .crop].contains(tool) || model.permissions.edits) && (!tool.isPaint || model.permissions.edits) && (!tool.isSelection || model.permissions.selectionEdits), selected: model.tool == tool) { model.selectTool(tool) }
+                                enabled: !model.busy && tool.available && (![EditorTool.move, .freeTransform, .subject, .crop].contains(tool) || model.permissions.edits) && (!tool.isPaint || model.permissions.edits) && (!tool.isSelection || model.permissions.selectionEdits), selected: model.tool == tool) { model.selectTool(tool) }
                         }
                     }
                 }.padding(.top, 8)
@@ -63,6 +63,8 @@ struct ToolOptionsBar: View {
                 SelectionToolOptions(model: model)
             case .crop:
                 if let input=model.cropInput{CropToolOptions(model:model,input:input)}
+            case .freeTransform:
+                Text("拖动手柄调整轮廓 · 回车应用 · Esc 取消").foregroundStyle(Color(nsColor:WorkspaceColors.secondary))
             case .move:
                 Text("当前图层").foregroundStyle(Color(nsColor: WorkspaceColors.secondary))
                 Text(model.selected?.name ?? "未选择").lineLimit(1).frame(maxWidth: 180, alignment: .leading)

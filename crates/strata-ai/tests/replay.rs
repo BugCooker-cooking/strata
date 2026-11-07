@@ -315,6 +315,114 @@ fn filter_prompts_discover_describe_invoke_real_edits_and_undo_the_ai_turn() {
 }
 
 #[test]
+fn canvas_handle_corner_payloads_use_real_ai_transform_approval_and_undo() {
+    for (name, destination) in [
+        ("缩放", json!([[0, 0], [12, 0], [12, 4], [0, 4]])),
+        ("旋转", json!([[8, 0], [8, 8], [0, 8], [0, 0]])),
+        ("斜切", json!([[2, 0], [10, 0], [8, 8], [0, 8]])),
+        ("扭曲", json!([[-1, 2], [8, 0], [9, 9], [0, 8]])),
+        ("透视", json!([[2, 0], [6, 0], [8, 8], [0, 8]])),
+    ] {
+        let host = Host::new();
+        host.user("paint.gradient",json!({"layer":{"name":"Background"},"start":[0.5,0.5],"end":[7.5,7.5],"stops":[{"at":0,"color":[0.1,0.2,0.3,0.5]},{"at":1,"color":[0.9,0.6,0.4,0.8]}]}));
+        let before = host
+            .editor
+            .lock()
+            .unwrap()
+            .document()
+            .unwrap()
+            .to_archive()
+            .unwrap();
+        let initial = host.snapshot().unwrap();
+        let mut session = host.session_with_prompt(
+            ExecutionMode::Direct,
+            &format!("按画布四角对当前像素层做{name}，保留图层与蒙版并允许一次撤销。"),
+        );
+        reply(
+            &mut session,
+            &host,
+            vec![
+                call("search", "search_catalog", json!({"query":name})),
+                call(
+                    "describe",
+                    "describe_commands",
+                    json!({"ids":["transform.apply"]}),
+                ),
+            ],
+        );
+        assert!(
+            result(session.poll(&host).unwrap())["matches"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|x| x["id"] == "transform.apply"),
+            "{name}"
+        );
+        let spec = result(session.poll(&host).unwrap())["commands"][0].clone();
+        assert_eq!(spec["returns"]["additionalProperties"], false);
+        let parameters = json!({"layer":{"id":initial.active_layer},"scope":"whole_layer","geometry":{"type":"corners","source":[[0,0],[8,0],[8,8],[0,8]],"destination":destination},"interpolation":"nearest"});
+        reply(
+            &mut session,
+            &host,
+            vec![invoke("corners", "transform.apply", parameters.clone())],
+        );
+        let Step::Paused {
+            question_id,
+            operation,
+            ..
+        } = session.poll(&host).unwrap()
+        else {
+            panic!("missing exact approval for {name}")
+        };
+        assert_eq!(operation.unwrap()["params"], parameters);
+        assert_eq!(host.snapshot().unwrap().revision, initial.revision);
+        let output = result(
+            session
+                .respond(
+                    &host,
+                    HostAnswer {
+                        question_id,
+                        answer: String::new(),
+                        approved: true,
+                        resource: None,
+                    },
+                )
+                .unwrap(),
+        );
+        assert_eq!(output["result"]["changed"], true);
+        assert_eq!(
+            host.snapshot().unwrap().history.len(),
+            initial.history.len() + 1
+        );
+        assert!(
+            host.editor
+                .lock()
+                .unwrap()
+                .document()
+                .unwrap()
+                .to_archive()
+                .unwrap()
+                .tiles
+                != before.tiles,
+            "{name} did not change source samples or geometry"
+        );
+        host.editor.lock().unwrap().stop_turn();
+        host.user("edit.undo_turn", json!({"turn_id":session.turn_id()}));
+        assert!(
+            host.editor
+                .lock()
+                .unwrap()
+                .document()
+                .unwrap()
+                .to_archive()
+                .unwrap()
+                == before,
+            "{name} turn undo changed archive"
+        );
+    }
+}
+
+#[test]
 fn transform_prompt_discovers_bounds_invokes_after_exact_approval_and_undoes_turn() {
     let host = Host::new();
     host.user(

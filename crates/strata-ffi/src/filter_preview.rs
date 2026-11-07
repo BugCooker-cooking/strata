@@ -56,6 +56,7 @@ impl StrataEngine {
                 "finish the active canvas gesture before filter preview",
             ));
         }
+        self.cancel_native_geometry()?;
         crate::tonal_preview::restore(&mut inner)?;
         let interaction = inner
             .editor

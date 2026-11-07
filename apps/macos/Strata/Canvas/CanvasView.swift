@@ -36,6 +36,10 @@ final class CanvasView: NSView {
     private var straightenTool=false
     private let straightenGuide=CAShapeLayer()
     private let straightenEndpoints=CAShapeLayer()
+    lazy var transformInput=CanvasTransformInput(engine:engine)
+    private var transformTool=false
+    private let transformBorder=CAShapeLayer()
+    private let transformHandles=CAShapeLayer()
     var documentOrigin = NSPoint.zero
     private var selectionCommand: String?
     var isSelectionEnabled = true {
@@ -55,7 +59,7 @@ final class CanvasView: NSView {
     var zoomTool = false
     private var pointerTracking: NSTrackingArea?
     var movesLayer = false
-    var isEditingEnabled = true { didSet { if !isEditingEnabled { if !brushInput.running {brushInput.cancel()};if !paintInput.running {paintInput.cancel()};if !cropInput.running{cropInput.cancel()};if !straightenInput.running{straightenInput.cancel()} } } }
+    var isEditingEnabled = true { didSet { if !isEditingEnabled { if !brushInput.running {brushInput.cancel()};if !paintInput.running {paintInput.cancel()};if !cropInput.running{cropInput.cancel()};if !straightenInput.running{straightenInput.cancel()};if !transformInput.running{transformInput.cancel()} } } }
     var reportNextRestoredFrame = false
     var activeLayer: EditorSnapshot.Layer?
     private var layerDrag: (point: NSPoint, x: Int64, y: Int64, zoom: CGFloat)?
@@ -102,6 +106,12 @@ final class CanvasView: NSView {
         straightenInput.onRunning={[weak self] running in self?.onBrushRunning?(running)}
         straightenInput.onCommitted={[weak self] in self?.markDirty();self?.onCommitted?()}
         straightenInput.onError={[weak self] error in self?.onError?(error)}
+        transformBorder.fillColor=nil;transformBorder.strokeColor=NSColor.systemBlue.cgColor;transformBorder.lineWidth=1.5;layer?.addSublayer(transformBorder)
+        transformHandles.fillColor=NSColor.white.cgColor;transformHandles.strokeColor=NSColor.systemBlue.cgColor;transformHandles.lineWidth=1;layer?.addSublayer(transformHandles)
+        transformInput.onChanged={[weak self]in self?.drawTransformPreview();self?.markDirty()}
+        transformInput.onRunning={[weak self]running in self?.onBrushRunning?(running)}
+        transformInput.onCommitted={[weak self]in self?.markDirty();self?.onCommitted?()}
+        transformInput.onError={[weak self]error in self?.onError?(error)}
         selectionInput.onChanged = { [weak self] in self?.drawMarqueePreview() }
         selectionInput.onRunning = { [weak self] running in self?.onSelectionRunning?(running) }
         selectionInput.onCommitted = { [weak self] in self?.markDirty(); self?.onCommitted?() }
@@ -163,6 +173,7 @@ final class CanvasView: NSView {
         paintInput.cancel()
         cropInput.cancel()
         straightenInput.cancel()
+        transformInput.cancel()
         selectionAnts.removeAllAnimations()
         benchmark?.cancel(BenchmarkFailure("Canvas detached before benchmark completed"))
         frameLink?.invalidate()
@@ -284,6 +295,7 @@ final class CanvasView: NSView {
         drawCloneMarker()
         drawCropPreview()
         drawStraightenGuide()
+        drawTransformPreview()
     }
     func setSelectionOutline(_ edges: [SelectionEdge]) {
         selectionEdges = edges
@@ -331,6 +343,25 @@ final class CanvasView: NSView {
         var transform=CGAffineTransform(a:zoom,b:0,c:0,d:zoom,tx:CGFloat(frame.x)/scale-documentOrigin.x*zoom,ty:CGFloat(frame.y)/scale-documentOrigin.y*zoom)
         let endpoints=CGMutablePath();for p in [draft.start,draft.end]{let point=p.applying(transform);endpoints.addEllipse(in:CGRect(x:point.x-3,y:point.y-3,width:6,height:6))}
         CATransaction.begin();CATransaction.setDisableActions(true);straightenGuide.path=path.copy(using:&transform);straightenEndpoints.path=endpoints;CATransaction.commit()
+    }
+    private func drawTransformPreview(){
+        CATransaction.begin();CATransaction.setDisableActions(true);defer{CATransaction.commit()}
+        guard let path=transformInput.path(),let quad=transformInput.draft,let frame=engine.artboardOverlay()else{transformBorder.path=nil;transformHandles.path=nil;return}
+        let zoom=CGFloat(engine.canvasZoom())/scale
+        guard zoom>0 else{return}
+        var transform=CGAffineTransform(a:zoom,b:0,c:0,d:zoom,tx:CGFloat(frame.x)/scale-documentOrigin.x*zoom,ty:CGFloat(frame.y)/scale-documentOrigin.y*zoom)
+        let handles=CGMutablePath()
+        for handle in transformInput.handles{let point=handle.position(in:quad).applying(transform);handles.addRect(CGRect(x:point.x-3,y:point.y-3,width:6,height:6))}
+        let top=TransformHandle.top.position(in:quad).applying(transform),rotation=quad.rotationHandle(distance:24/zoom).applying(transform)
+        handles.move(to:top);handles.addLine(to:rotation);handles.addEllipse(in:CGRect(x:rotation.x-4,y:rotation.y-4,width:8,height:8))
+        transformBorder.strokeColor=(quad.valid ? NSColor.systemBlue:NSColor.systemRed).cgColor
+        transformBorder.path=path.copy(using:&transform);transformHandles.path=handles
+    }
+    func configureTransform(_ model:WorkspaceModel){
+        let enabled=model.tool == .freeTransform
+        if enabled && !transformTool{cancelLayerDrag()}
+        transformTool=enabled
+        transformInput.configure(enabled:enabled,mode:model.canvasTransformMode,scope:model.canvasTransformScope,interpolation:model.canvasTransformInterpolation)
     }
     func configureCrop(_ model:WorkspaceModel){
         let enabled=model.tool == .crop
@@ -431,6 +462,7 @@ final class CanvasView: NSView {
         guard !isWorkBusy else { return }
         benchmark?.cancel(BenchmarkFailure("User input interrupted benchmark"))
         window?.makeFirstResponder(self)
+        if transformTool{guard isEditingEnabled,let point=documentPoint(convert(event.locationInWindow,from:nil))else{return};let zoom=CGFloat(engine.canvasZoom())/scale;transformInput.down(point,hitTolerance:8/max(zoom,0.0001),modifiers:event.modifierFlags);return}
         if straightenTool{guard isEditingEnabled,let point=documentPoint(convert(event.locationInWindow,from:nil))else{return};straightenInput.down(point);return}
         if cropTool{guard isEditingEnabled,let point=documentPoint(convert(event.locationInWindow,from:nil))else{return};let zoom=CGFloat(engine.canvasZoom())/scale;cropInput.down(point,hitTolerance:8/max(zoom,0.0001));return}
         if paintTool{guard let point=documentPoint(convert(event.locationInWindow,from:nil))else{return};paintInput.down(point,background:event.modifierFlags.contains(.option));return}
@@ -457,6 +489,7 @@ final class CanvasView: NSView {
 
     override func mouseDragged(with event: NSEvent) {
         let point = convert(event.locationInWindow, from: nil)
+        if transformTool{if let document=documentPoint(point){transformInput.drag(document,modifiers:event.modifierFlags)};return}
         if straightenTool{if let document=documentPoint(point){straightenInput.drag(document)};return}
         if cropTool{if let document=documentPoint(point){cropInput.drag(document)};return}
         if paintTool{if let document=documentPoint(point){paintInput.drag(document)};return}
@@ -480,6 +513,7 @@ final class CanvasView: NSView {
     }
 
     override func mouseUp(with event: NSEvent) {
+        if transformTool{if let point=documentPoint(convert(event.locationInWindow,from:nil)){transformInput.up(point,modifiers:event.modifierFlags)};return}
         if straightenTool{if let point=documentPoint(convert(event.locationInWindow,from:nil)){straightenInput.up(point)};return}
         if cropTool{if let point=documentPoint(convert(event.locationInWindow,from:nil)){cropInput.up(point)};return}
         if paintTool{if let point=documentPoint(convert(event.locationInWindow,from:nil)){paintInput.up(point)};return}
@@ -494,10 +528,12 @@ final class CanvasView: NSView {
         catch { onError?(error) }
     }
     override func keyDown(with event: NSEvent) {
-        if event.keyCode == 53 { cancelLayerDrag(); cancelMarquee(); brushInput.cancel();paintInput.cancel();cropInput.cancel();straightenInput.cancel() }
+        if event.keyCode == 53 { cancelLayerDrag(); cancelMarquee(); brushInput.cancel();paintInput.cancel();cropInput.cancel();straightenInput.cancel();transformInput.cancel() }
+        else if event.keyCode == 36,transformInput.confirm(){return}
         else if event.keyCode == 36,straightenInput.confirm(){return}
         else if event.keyCode == 36,cropInput.confirm(){return}
         else if event.keyCode == 36, selectionInput.confirm() { return }
+        else if transformTool,[123,124,125,126].contains(event.keyCode),!event.modifierFlags.contains(.command),!event.modifierFlags.contains(.control){let amount:CGFloat=event.modifierFlags.contains(.shift) ? 10:1;let dx:CGFloat=event.keyCode==123 ? -amount:event.keyCode==124 ? amount:0;let dy:CGFloat=event.keyCode==126 ? -amount:event.keyCode==125 ? amount:0;if transformInput.nudge(x:dx,y:dy){return}else{super.keyDown(with:event)}}
         else if !event.modifierFlags.contains(.command), !event.modifierFlags.contains(.control),
                 let key = event.charactersIgnoringModifiers?.uppercased(), onToolKey?(key) == true { return }
         else { super.keyDown(with: event) }

@@ -1,0 +1,199 @@
+{
+  "date_local": "2026-11-07",
+  "timezone": "Asia/Taipei",
+  "base_checkpoint": "3a2dec1",
+  "branch": "codex/v1-remaining",
+  "scope": "Native pixel-layer and selected-pixel transform quad handles, immutable original-context ownership, same strict transform.apply as native numeric UI and AI. Current increment checkpoint, not complete Photoshop/general editable geometry or live warped-pixel feedback.",
+  "source_sha256": {
+    "apps/macos/Strata/App/AppDelegate.swift": "8fddea81755a3c5b0ce71af8c9733d978888878f405f909ef38180677e265d10",
+    "apps/macos/Strata/App/MainWindowController.swift": "a9a347d0fdf3557ae443221eb355b0e744e1a7b05f095189afb808ccca01b2cf",
+    "apps/macos/Strata/Canvas/CanvasView.swift": "d9363c3ec74f3c0724300f9817c1b84409215df04506f4c28c85a0103cea2afe",
+    "apps/macos/Strata/Canvas/CanvasTransformInput.swift": "87f52277fbf7654fc651f0af0a76dad55ed39ae1aa192217519134f867f4088c",
+    "apps/macos/Strata/Workspace/TonalPreviewModel.swift": "80abb1bf74f112bce27eddf4b1c6e18fc7664f1ca7c3f02d2ae8f14dbfd3e5b4",
+    "apps/macos/Strata/Workspace/TransformControls.swift": "3c84084abdb2a4613aa5926cc1c08d1ff38b734bbfdf0b2dc2938b8cf2979db2",
+    "apps/macos/Strata/Workspace/WorkspaceModel.swift": "cc8375ed08c2e91dc0a1f745795c72de3529c0baa24d51b3f81bcb28dc04cf8e",
+    "apps/macos/Strata/Workspace/WorkspaceViews.swift": "75e5943a4a529d66c08b9e64e9bd2d79c633314cb5bf8482c1a7716194602309",
+    "apps/macos/StrataTests/CanvasTransformTests.swift": "26a29b4032642cd1690b28010e8f8e7ea5029a6114295482e403b231faa3d959",
+    "crates/strata-core/src/commands/executor.rs": "0edaefc2a86bd2133009e7f5b44d55c7036b82d3dab77029000a35c245fbd8aa",
+    "crates/strata-core/src/commands/mod.rs": "6964ab22849ca24eedc34d3996a67f3e3c275864e4e9f77ce817e52eaaa6584e",
+    "crates/strata-core/src/commands/registry.rs": "73bf84a0b0f9d13734580b9963fc93079d56c963027b19d89ec656a138dd8267",
+    "crates/strata-core/src/commands/transform.rs": "e0543ef9bbfdf7d6a8d12028b1701c3fccad6ef6e0971d2889246d1a40797552",
+    "crates/strata-core/src/commands/transform_selection.rs": "c63c35ad53f6ab6fe1ffc66765a146185195a2bc8ea07e752e72f579757a3f53",
+    "crates/strata-core/tests/canvas_transform.rs": "861dc86d6ccd3104631c88c7c3ffeb02b3f68cd0cd19d44e7a60840d9d9fe9a0",
+    "crates/strata-ai/tests/replay.rs": "ec5a217d87b7e473428dc55da8c5a438c6d801bb958fcf47e2673f92338bae89",
+    "crates/strata-ffi/src/crop.rs": "f89d39a357dd416478c4cdeac73a15fd380ab97ca551a73d466a53524a4f614e",
+    "crates/strata-ffi/src/filter_preview.rs": "b7e52de6bdf057d4e528b01d91d9065177f042778fe1594f5811af644fab85e6",
+    "crates/strata-ffi/src/tonal_preview.rs": "680b71c55ecd80e8461b8fbbae1ba14bfd71b27410e15a4487214f03f53074b6",
+    "tools/strata-devtool/src/main.rs": "4349d00fd6646d426953a135565badeee89a482c55c90b1620942e4cc83a1f28"
+  },
+  "log_sha256": {
+    "build/m7-transform-handles-core.final.log": "8a2c873d7ef169c2c45676036e09112bfbc33172eb0a22ca14088904d97192ce",
+    "build/m7-transform-handles-owned-context.final.log": "dfc3d2bb7ae5b3a4d55eb148c7c5b86f2c873abfc60716e6786365ffdfcfd317",
+    "build/m7-transform-handles-ai.log": "b1e3ead5b1b587c5e1612302c28e63261a09c77ddebd1dd75ab71fc512f426f4",
+    "build/m7-transform-handles-bridge.log": "cf4a4b585f800d1165de9d3727af5909d85e2953645c34db733e3ffebd0e7de9",
+    "build/m7-transform-handles-native.log": "63282f3192151f115ff918b892dbf5ea116d7cc150e2f1148b2f0791740ca1f4",
+    "build/m7-transform-handles-native-fixed.log": "ed4fb724cdf4fe09d22843a3adcb50cc8a6c99247b28b80086872ac71c3c581e",
+    "build/m7-transform-handles-metal.log": "797e64a8bee9ac502d99c1693d580809d3cd7a47baba1b1783d978a03e5cbdad",
+    "build/m7-transform-handles-metal-geometry-regression.log": "4e399b2e1d982f29c06325d0d52c5e85d15cdbfb77681556101fd2fa49ded747",
+    "build/m7-transform-handles-lint.final.log": "d9e6d32fa2c150d6e9ef222ec033e26040f8530f2644fddcfbed2b3c7d1f237a",
+    "build/m7-transform-handles-commands.final.log": "9f11bb3ff311e1c3d4025f4b1c8a986971fe0cbfdc8d5de26cb60b9d55e08472",
+    "build/m7-transform-handles-release.log": "a9bc8a4dc204749075dfd6157ca860d3d89ec49a5fafc41dfc5ce9e387fbc76c",
+    "build/m7-transform-handles-final-ai-gate.log": "58775cd558643dbf55e44703bbdc00f7f6982cb47d878a0c39d4f6ad5cfe0375"
+  },
+  "checks": {
+    "core": {
+      "passed": 22,
+      "failed": 0,
+      "ignored": 0,
+      "log": "build/m7-transform-handles-core.final.log",
+      "owned_context_tests": 6,
+      "previous_whole_transform_tests": 7,
+      "previous_selection_transform_tests": 9
+    },
+    "final_owned_context_recheck": {
+      "passed": 6,
+      "failed": 0,
+      "ignored": 0,
+      "log": "build/m7-transform-handles-owned-context.final.log",
+      "note": "Adds an actual alpha-zero hidden-RGB source to the negative/offboard bounds check; same production core."
+    },
+    "ai": {
+      "passed": 35,
+      "failed": 0,
+      "ignored": 0,
+      "log": "build/m7-transform-handles-ai.log",
+      "replay_tests": 34,
+      "prompt_mapping_contract": 1,
+      "real_quad_methods": [
+        "scale",
+        "rotate",
+        "skew",
+        "distort",
+        "perspective"
+      ],
+      "real_changes_and_exact_approval_and_turn_undo": true
+    },
+    "bridge": {
+      "passed": 13,
+      "failed": 0,
+      "ignored": 0,
+      "log": "build/m7-transform-handles-bridge.log",
+      "gpu_used": false,
+      "explicitly_skipped_gpu_cases": [
+        "straighten_owned_draft_metal_keeps_staging_readonly_and_commits_or_undoes_the_same_scene",
+        "canvas_transform_real_metal_commits_shared_scene_and_exact_undo_for_both_scopes"
+      ]
+    },
+    "native": {
+      "total": 93,
+      "passed": 92,
+      "failed": 0,
+      "skipped": 1,
+      "new_canvas_transform_tests": 8,
+      "skipped_reason": "Live model service test requires explicit opt-in; no model request in this continuation.",
+      "build_jobs": 2,
+      "parallel_testing": false,
+      "log": "build/m7-transform-handles-native-fixed.log",
+      "initial_compile_failure": "build/m7-transform-handles-native.log: test-only ambiguous .nan corrected to CGFloat.nan; initial tests did not run."
+    },
+    "required_metal": {
+      "passed": 2,
+      "skipped": 0,
+      "required_gpu_environment": true,
+      "canvas": {
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0,
+        "log": "build/m7-transform-handles-metal.log",
+        "scopes": [
+          "whole_layer",
+          "selection"
+        ],
+        "checks": "Original staged scene unchanged; one shared native command apply, CPU numerical display reference, exact undo scene/archive."
+      },
+      "shared_straighten_regression": {
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0,
+        "log": "build/m7-transform-handles-metal-geometry-regression.log"
+      }
+    },
+    "arm64_app_release": {
+      "passed": true,
+      "log": "build/m7-transform-handles-release.log",
+      "build_jobs": 2,
+      "binary_sha256": "e2280329379c8b0f51243663c1c97161628bb5858c6594afdff149ec958fc81b"
+    },
+    "lint": {
+      "passed": true,
+      "log": "build/m7-transform-handles-lint.final.log",
+      "checks": [
+        "rustfmt",
+        "workspace all-target Clippy -D warnings",
+        "portability",
+        "Swift lint",
+        "generated feature coverage"
+      ],
+      "resolved_initial_issue": "Redundant Ok/question-mark wrapper in bridge serialization removed; behavior unchanged."
+    },
+    "command_examples": {
+      "passed": true,
+      "registered_commands": 124,
+      "parameter_examples": 186,
+      "all_transform_examples_require_changed_true": true,
+      "log": "build/m7-transform-handles-commands.final.log",
+      "resolved_initial_metadata_check": "Directory export was read before its async process finished; regenerated the completed catalog/audit and reran make commands successfully."
+    },
+    "ai_audit": {
+      "mapped_composite_rows": 87,
+      "inventory_rows": 265,
+      "partial_entrypoints": 9,
+      "unmapped_implemented": [],
+      "unknown_native_literals": {},
+      "final_complete": false,
+      "strict_final_gate_expected_exit_code": 1,
+      "log": "build/m7-transform-handles-final-ai-gate.log"
+    }
+  },
+  "semantics": {
+    "geometry": "Eight scale handles, inside move, center rotation handle; skew edge projection, individual-corner/edge distort, paired perspective-corner motion along the dominant local axis. Shift constrains uniform scale/translation direction/15-degree rotation; Option scales about quad center. Keyboard arrows nudge1px or10px with Shift. Source four corners stay fixed across all draft operations.",
+    "feedback": "Pointer motion draws an outline only; image pixels update on Enter/apply. Escape/cancel has no history. Invalid/nonfinite/nonconvex draft cannot apply; restore last valid quad on release. Continuous warped-image feedback remains open and is explicitly described in native UI/AI registry.",
+    "ownership": "Same geometry slot as crop/straighten, operation-bound UUID token and local cancellation. Original session/document/revision/control epoch, layer and scope captured before source scan. Immutable source scan outside editor/render lock; final prepare AND commit recheck active layer. Old/wrong operation/layer/scope tokens cannot overwrite a newer gesture or AI work. A later filter/tonal preview revokes the earlier native geometry slot.",
+    "no_op": "Exact identity across components/affine/matrix/corners returns changed=false. Identical valid source/destination corners normalize after validation to exact identity. No revision/history/dirty/current-layer reset; strict return now includes changed and denies extra fields.",
+    "resources": "Canvas source bounds limited to64M stored-source visits; row cancellation in original bounds/coverage and existing sampler budgets. Shared pooled sampler/mask/selection limits and true ICC/depth retained. Cancellation does not wait for editor/render lock. No new source-rasterization implementation in Swift.",
+    "support": "Explicit visible active pixel layer/visible ancestors, unlocked pixels/position/transparency/all including ancestors. whole_layer includes alpha-zero hidden RGB/offboard; selection uses true coverage bounds and existing lift/complement/warp/composite implementation. Generated/group/text general geometry still rejects."
+  },
+  "manual": {
+    "single_release_instance": true,
+    "fixture": "repository sample-photo.jpg",
+    "fixture_sha256_before_and_after": "c1006da29913609963479b8641c0e6f6a43ff2c6d8b2f907c91a6daf1afaa2ea",
+    "size": [
+      1024,
+      1536
+    ],
+    "depth": 8,
+    "profile": "sRGB (assumed)",
+    "dpi": 72,
+    "scale_104_percent_view": "Drag bottom-right outline from1490,1867 to1278,1549 screenshot coordinates; original pixels/dirty state unchanged until Enter, actual image then matched smaller outline; one history named pixel transform and one undo restored clean original.",
+    "rotation": "Drag independent top circle to a rotated quad, source picture unchanged; Escape removed draft and kept clean.",
+    "zoomed_perspective": "After zoom from104% to66%, paired top corners moved symmetrically when top-left dragged; actual apply and one undo restored clean original.",
+    "distort": "At66% a dragged top-left corner alone changed quad; cancelled without dirtying. Exact skew and all mode pixel applications are covered by native/AI/core tests, not claimed as manual cases.",
+    "identity_and_arrows": "An identity confirmation kept clean/no new undo; arrow inputs followed by Escape kept clean. Exact nudge distance is asserted in XCTest, not inferred from the live screenshot.",
+    "selection": "Created rectangle210,433 size513x679; numeric panel selection scope passed into canvas handles. Inside drag then Enter moved pixels and selection together; one undo restored original selection, second undo removed only the acceptance selection and restored clean original.",
+    "last_document_clean": true,
+    "app_quit_observed": true,
+    "post_exit_strata_and_xctest_instances": 0,
+    "user_other_apps_preserved": true,
+    "method": "CUA native AX states/screenshots, explicit pointer drag and keys. No screenshot-file artifact is asserted."
+  },
+  "cloud": {
+    "used": false,
+    "workflow_state": "disabled_manually",
+    "automatic_triggers": false,
+    "manual_dispatch_only": true,
+    "no_jobs_enabled_dispatched_rerun_or_awaited": true
+  },
+  "live_model_requests": 0,
+  "delivery": "Existing authorization covers private origin/codex/v1-remaining and existing draftPR1, no merge/release/visibility change. This record is captured before the containing commit; delivery is verified in Git history and PR.",
+  "remaining": "Full Photoshop, generated/group/text general transforms, continuous warped-image canvas feedback, editable typography, final per-feature AI closure and independent performance/model/platform/hardware/release gates remain open."
+}

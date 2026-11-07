@@ -48,7 +48,9 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         workspace.tonalPreview = preview
         workspace.cropInput=canvas.cropInput
         workspace.straightenInput=canvas.straightenInput
+        workspace.transformInput=canvas.transformInput
         workspace.colorPanel=ColorPanelModel(engine:engine)
+        preview.onStarting = {[weak self]in self?.workspace.cropInput?.cancel();self?.workspace.straightenInput?.cancel();self?.workspace.transformInput?.cancel()}
         preview.onBusy = { [weak self] running in guard let self else { return }; self.canvas.isWorkBusy = self.busy || running }
         preview.onApplying = { [weak self] applying in self?.busy = applying }
         preview.onFrame = { [weak self] in guard let self else { return }; self.canvas.markDirty();self.refreshDisplayOutline(); if !self.busy { self.refresh() } }
@@ -163,6 +165,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         case #selector(convertToEightBit): workspace.permissions.edits && workspace.hasDocument && state?.bitDepth != 8
         case #selector(convertToSixteenBit): workspace.permissions.edits && workspace.hasDocument && state?.bitDepth != 16
         case #selector(autoTone),#selector(autoContrast),#selector(autoColor): workspace.permissions.edits && selected?.kind?.kind=="pixel" && selected?.visible == true && selected?.locks?.all != true && selected?.locks?.pixels != true
+        case #selector(beginCanvasTransform): workspace.permissions.edits && selected?.kind?.kind=="pixel" && selected?.visible == true && selected?.locks?.all != true && selected?.locks?.pixels != true && selected?.locks?.position != true && selected?.locks?.transparency != true
         case #selector(saveDocument), #selector(saveAs), #selector(exportDocument), #selector(placeImage), #selector(convertToSRGB), #selector(convertToP3),#selector(assignSRGB),#selector(assignP3): workspace.permissions.edits && workspace.hasDocument
         case #selector(openImage), #selector(newTab), #selector(openRecent(_:)): !busy
         default: true
@@ -226,7 +229,11 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         case .opacity(let value): layerCommand("layer.set_opacity", ["opacity": value])
         case .blend(let value): layerCommand("layer.set_blend_mode", ["blend_mode": value])
         case .position(let x, let y): layerCommand("layer.set_position", ["x": x, "y": y])
-        case .tool(let tool): workspace.tonalPreview?.cancel(); canvas.movesLayer = tool == .move; canvas.zoomTool = tool == .zoom; canvas.configureSelection(workspace); canvas.configureBrush(workspace); canvas.configurePaint(workspace);canvas.configureCrop(workspace); window?.makeFirstResponder(canvas)
+        case .tool(let tool):
+            workspace.tonalPreview?.cancel();canvas.movesLayer=tool == .move;canvas.zoomTool=tool == .zoom;canvas.configureSelection(workspace);canvas.configureBrush(workspace);canvas.configurePaint(workspace);canvas.configureCrop(workspace);canvas.configureTransform(workspace)
+            if tool == .freeTransform{workspace.inspector = .transform;if !canvas.transformInput.hasDraft && !canvas.transformInput.running{canvas.transformInput.start()}}
+            window?.makeFirstResponder(canvas)
+        case .configureCanvasTransform:canvas.configureTransform(workspace)
         case .assistant: toggleAssistant()
         case .panels: togglePanels()
         case .theme(let theme): onTheme?(theme)
@@ -258,6 +265,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         workspace.tonalPreview?.bind(snapshot)
         workspace.cropInput?.bind(snapshot)
         workspace.straightenInput?.bind(snapshot)
+        workspace.transformInput?.bind(snapshot)
         if let space=NSColorSpace(iccProfileData:Data(engine.workingProfileIcc())){workspace.workingColorSpace=space}
         if let colors=snapshot.paintColors{workspace.installPaintColors(colors)}
         workspace.colorPanel?.bind(snapshot)
@@ -267,6 +275,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         canvas.configureBrush(workspace)
         canvas.configurePaint(workspace)
         canvas.configureCrop(workspace)
+        canvas.configureTransform(workspace)
         recovery?.observe(snapshot)
         if let path = engine.projectPath() { documentURL = URL(fileURLWithPath: path); fileName = documentURL!.lastPathComponent }
         workspace.fileName = fileName; window?.title = "\(fileName) — Strata"
@@ -325,6 +334,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         workspace.tonalPreview?.cancel()
         workspace.cropInput?.cancel()
         workspace.straightenInput?.cancel()
+        workspace.transformInput?.cancel()
         canvas.cancelBenchmarkForDocumentChange()
         do {
             let encoded = try commandJSON(params); busy = true; let engine = engine
@@ -383,6 +393,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
     @objc func redo() { if let textEditor { textEditor.undoManager?.redo() } else if workspace.canRedo { perform("edit.redo", [:]) } }
     @objc func convertToEightBit(){perform("image.convert_bit_depth",["bit_depth":8])}
     @objc func autoTone(){autoCorrect("tone")}
+    @objc func beginCanvasTransform(){workspace.selectTool(.freeTransform)}
     @objc func autoContrast(){autoCorrect("contrast")}
     @objc func autoColor(){autoCorrect("color")}
     private func autoCorrect(_ method:String){guard let layer=selected else{return};perform("image.auto",["layer":["id":layer.id],"settings":["method":method]])}

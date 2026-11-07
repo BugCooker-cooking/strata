@@ -60,7 +60,7 @@ pub(super) fn apply(
     let layer = doc.layers[index].clone();
     let offset = [layer.info.x, layer.info.y];
     let output_bounds = geometry_pixels::transformed_bounds(bounds, transform, sampling)?;
-    let answer = || serde_json::json!({"layer_id":layer.id(),"scope":"selection","output_bounds":output_bounds,"source_artboard_clipped":false,"mask_transformed":false,"selection_transformed":true});
+    let answer = || serde_json::json!({"layer_id":layer.id(),"scope":"selection","output_bounds":output_bounds,"source_artboard_clipped":false,"mask_transformed":false,"selection_transformed":true,"changed":transform.integer_translation()!=Some([0,0])});
     if transform.integer_translation() == Some([0, 0]) {
         check(cancel)?;
         return Ok(answer());

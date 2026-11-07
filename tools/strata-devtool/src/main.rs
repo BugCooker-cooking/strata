@@ -326,6 +326,9 @@ fn examples() -> Result<(), Box<dyn Error>> {
                     "automatic correction example did not execute a real pixel change".into(),
                 );
             }
+            if spec.id == "transform.apply" && result["changed"] != true {
+                return Err("transform example did not execute a real geometry change".into());
+            }
         }
     }
     println!(

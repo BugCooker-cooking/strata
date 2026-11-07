@@ -63,6 +63,7 @@ impl StrataEngine {
                 message: "finish the active canvas gesture before tonal preview".into(),
             });
         }
+        self.cancel_native_geometry()?;
         restore(&mut inner)?;
         let interaction = inner.editor.begin_tonal(target).map_err(command_error)?;
         let doc = inner.editor.document().cloned();

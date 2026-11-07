@@ -33,18 +33,19 @@ enum WorkspaceColors {
 }
 
 enum EditorTool: String, CaseIterable, Identifiable {
-    case move, marquee, lasso, selection, subject, crop, eyedropper, heal, clone, brush, eraser, bucket, gradient, dodge, text, pen, shape, hand, zoom
+    case move, freeTransform, marquee, lasso, selection, subject, crop, eyedropper, heal, clone, brush, eraser, bucket, gradient, dodge, text, pen, shape, hand, zoom
     var id: String { rawValue }
     var title: String { Self.info[self]!.0 }
     var symbol: String { Self.info[self]!.1 }
     var key: String { Self.info[self]!.2 }
-    var available: Bool { [.move, .marquee, .lasso, .selection, .subject, .crop, .brush, .eraser, .clone, .heal, .dodge, .bucket, .gradient, .eyedropper, .hand, .zoom].contains(self) }
+    var available: Bool { [.move, .freeTransform, .marquee, .lasso, .selection, .subject, .crop, .brush, .eraser, .clone, .heal, .dodge, .bucket, .gradient, .eyedropper, .hand, .zoom].contains(self) }
     var isPaint: Bool { isBrush || [.bucket,.gradient].contains(self) }
     var isBrush: Bool { [.brush,.eraser,.clone,.heal,.dodge].contains(self) }
     var isSelection: Bool { [.marquee, .lasso, .selection].contains(self) }
-    static let groups: [[EditorTool]] = [[.move], [.marquee, .lasso, .selection, .subject], [.crop, .eyedropper], [.heal, .clone, .brush, .eraser, .bucket, .gradient, .dodge], [.text, .pen, .shape], [.hand, .zoom]]
+    static let groups: [[EditorTool]] = [[.move,.freeTransform], [.marquee, .lasso, .selection, .subject], [.crop, .eyedropper], [.heal, .clone, .brush, .eraser, .bucket, .gradient, .dodge], [.text, .pen, .shape], [.hand, .zoom]]
     private static let info: [EditorTool: (String, String, String)] = [
         .move: ("移动", "cursorarrow", "V"), .marquee: ("矩形选框", "rectangle.dashed", "M"),
+        .freeTransform: ("自由变换", "arrow.up.left.and.arrow.down.right", ""),
         .lasso: ("套索", "lasso", "L"), .selection: ("快速选择", "wand.and.rays", "W"),
         .subject: ("选择主体", "person.crop.rectangle", ""), .crop: ("裁剪", "crop", "C"),
         .eyedropper: ("吸管", "eyedropper", "I"), .heal: ("修复画笔", "bandage", "J"),
@@ -83,6 +84,10 @@ final class WorkspaceModel: ObservableObject {
     @Published var tonalPreview: TonalPreviewModel?
     @Published var cropInput:CanvasCropInput?
     @Published var straightenInput:CanvasStraightenInput?
+    @Published var transformInput:CanvasTransformInput?
+    @Published var canvasTransformMode="scale"
+    @Published var canvasTransformScope="whole_layer"
+    @Published var canvasTransformInterpolation="bilinear"
     @Published var colorPanel:ColorPanelModel?
     @Published var cropMode="crop"
     @Published var cropRatio="free"
@@ -174,7 +179,7 @@ final class WorkspaceModel: ObservableObject {
     var canRedo: Bool { permissions.history && (snapshot?.historyCursor ?? 0) < (snapshot?.history.count ?? 0) }
     func send(_ action: WorkspaceAction) { self.action?(action) }
     func selectTool(_ tool: EditorTool) {
-        guard !busy, tool.available, ![EditorTool.move,.crop].contains(tool) || permissions.edits, !tool.isPaint || permissions.edits, !tool.isSelection || permissions.selectionEdits else { return }
+        guard !busy, tool.available, ![EditorTool.move,.freeTransform,.crop].contains(tool) || permissions.edits, !tool.isPaint || permissions.edits, !tool.isSelection || permissions.selectionEdits else { return }
         if tool == .subject { if permissions.edits { send(.selectSubject) }; return }
         self.tool = tool; send(.tool(tool))
     }
@@ -192,6 +197,7 @@ final class WorkspaceModel: ObservableObject {
 }
 
 enum WorkspaceAction {
+    case configureCanvasTransform
     case alignSelected(String),distributeSelected(String)
     case groupSelected
     case cancelWork

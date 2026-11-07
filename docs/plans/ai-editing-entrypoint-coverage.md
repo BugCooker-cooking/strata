@@ -2,7 +2,7 @@
 
 当前开发期审计快照。完整编辑功能与最终 AI 审计仍未闭环；不得把注册数量当作全部功能覆盖。
 
-真实注册命令 124；参数示例 185；综合功能 265；已有映射 87。
+真实注册命令 124；参数示例 186；综合功能 265；已有映射 87。
 
 已实现但未映射 0；部分入口 9；原生未知命令引用 0；未类型化返回 0。
 
@@ -176,7 +176,7 @@
 | PS-08-20a38a31c0 | 混合器画笔 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-08-8917363943 | 历史记录艺术画笔 | 重新核对 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-09-7cc6b0bb65 | 移动工具（含吸附） | 部分实现 | 部分入口 | `layer.select`、`layer.set_position` · 选择可见目标图层，使用稳定 ID。 · 已有整数位置与原生拖动、单次提交/取消及组联动；吸附仍未实现，因此综合移动工具条目保持部分实现。 |
-| PS-09-4f3d9835a7 | 自由变换：缩放 / 旋转 / 斜切 / 扭曲 / 透视 / 翻转 | 部分实现 | 部分入口 | `layer.pixel_bounds`、`transform.apply` · 把整个像素图层围绕给定轴心旋转 15 度，保留画板外内容。 · 整层像素/链接蒙版及选区像素的真实提升/变换/合回已接入；软边按 source-over 余量保留，目标不被原选区重复裁切。生成/组/文字自由变换及交互手柄仍未实现。 |
+| PS-09-4f3d9835a7 | 自由变换：缩放 / 旋转 / 斜切 / 扭曲 / 透视 / 翻转 | 部分实现 | 部分入口 | `layer.pixel_bounds`、`transform.apply` · 把整个像素图层围绕给定轴心旋转 15 度，保留画板外内容。 · 整层像素/链接蒙版及选区像素的真实提升/变换/合回已接入，软边按 source-over 余量保留，目标不被原选区重复裁切。画布八手柄/平移/旋转/斜切/扭曲/透视与按键草稿已实现，使用原始文档/版本/层/范围/控制权绑定的同一四角命令。核心、AI五种真实四角调用/精确确认/回合撤销、桥接、完整原生、整层/软选区与共享拉直强制Metal、arm64 Release、lint/参数例子及单窗口整层/选区应用撤销通过。恒等变换不制造历史。生成/组/文字一般变换及连续画布像素反馈仍未实现，综合条目与最终AI审计保持部分覆盖。 |
 | PS-09-7d349372b5 | 裁剪工具（拉直、比例、是否删除裁剪像素） | 部分实现 | 部分入口 | `image.crop`、`image.straighten` · 用指定画布矩形和 4:3 比例裁剪画板，保留所有裁剪外像素与图层。 · Numeric rectangle/aspect, owned canvas drag/handles/move and preserve/delete share real crop commands. Numeric or two-point horizontal/vertical straightening composes rotation and a safe preserving crop in one history step. Canvas-dragged lines stage a guide, bind original document/revision/control/operation, and confirm through the same image.straighten command. Generated/adjustment/style/text arbitrary geometry remains open. Native pointer input uses an operation-bound owned draft; it does not introduce a separate editing implementation or change AI parameters. |
 | PS-09-64f3d2a3eb | 变形 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-09-073c032f33 | 透视裁剪 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |

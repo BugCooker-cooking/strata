@@ -1387,9 +1387,19 @@
           "text": "把选区内像素向右移动 20px，图层位置与蒙版保持，选区轮廓随内容移动。",
           "query": "选区内像素",
           "command": "transform.apply"
+        },
+        {
+          "text": "读取当前像素层边界，按给定的四个目标角点复现画布手柄的透视调整，保留蒙版且一次撤销。",
+          "query": "画布手柄",
+          "command": "transform.apply"
+        },
+        {
+          "text": "Reproduce native canvas handles by mapping four source canvas corners to four destination corners, preserving editable layer metadata and one-step undo.",
+          "query": "Native canvas handles",
+          "command": "transform.apply"
         }
       ],
-      "note": "整层像素/链接蒙版及选区像素的真实提升/变换/合回已接入；软边按 source-over 余量保留，目标不被原选区重复裁切。生成/组/文字自由变换及交互手柄仍未实现。",
+      "note": "整层像素/链接蒙版及选区像素的真实提升/变换/合回已接入，软边按 source-over 余量保留，目标不被原选区重复裁切。画布八手柄/平移/旋转/斜切/扭曲/透视与按键草稿已实现，使用原始文档/版本/层/范围/控制权绑定的同一四角命令。核心、AI五种真实四角调用/精确确认/回合撤销、桥接、完整原生、整层/软选区与共享拉直强制Metal、arm64 Release、lint/参数例子及单窗口整层/选区应用撤销通过。恒等变换不制造历史。生成/组/文字一般变换及连续画布像素反馈仍未实现，综合条目与最终AI审计保持部分覆盖。",
       "variants": [
         {
           "command": "transform.apply",

@@ -92,6 +92,7 @@ pub struct GeometryInteraction {
     request: Request,
     epoch: u64,
     command: &'static str,
+    transform_target: Option<(LayerId, TransformScope)>,
 }
 pub type CropInteraction = GeometryInteraction;
 pub type StraightenInteraction = GeometryInteraction;
@@ -251,6 +252,7 @@ pub struct PreparedCommand {
     result: Value,
     selected: Option<LayerId>,
     replay: bool,
+    required_active_layer: Option<LayerId>,
 }
 impl PreparedCommand {
     pub fn work_expired(&self) -> bool {
@@ -466,7 +468,73 @@ impl Editor {
             request: self.request(Source::User),
             epoch: self.epoch,
             command,
+            transform_target: None,
         })
+    }
+    pub fn begin_canvas_transform(
+        &self,
+        layer: LayerRef,
+        scope: TransformScope,
+    ) -> Result<GeometryInteraction, CommandError> {
+        let mut interaction = self.begin_geometry("transform.apply")?;
+        let doc = self.document().ok_or(CommandError::NoDocument)?;
+        let (target, _) = super::transform::target(doc, &layer)?;
+        if doc.active_layer() != Some(target) || !doc.effective_visibility(target) {
+            return Err(CommandError::Invalid(
+                "canvas transform must start on the active visible pixel layer".into(),
+            ));
+        }
+        interaction.transform_target = Some((target, scope));
+        Ok(interaction)
+    }
+    pub fn canvas_transform_bounds(
+        &self,
+        interaction: &GeometryInteraction,
+    ) -> Result<LayerBoundsResult, CommandError> {
+        let (layer, scope) = self.check_canvas_transform(interaction)?;
+        super::transform::canvas_bounds(
+            self.document().ok_or(CommandError::NoDocument)?,
+            &LayerRef::Id(layer),
+            scope,
+            &|| interaction.request.expired(),
+        )
+    }
+    pub fn canvas_transform_context_matches(&self, interaction: &GeometryInteraction) -> bool {
+        self.check_canvas_transform(interaction).is_ok()
+    }
+    fn check_canvas_transform(
+        &self,
+        interaction: &GeometryInteraction,
+    ) -> Result<(LayerId, TransformScope), CommandError> {
+        self.check_request(&interaction.request)?;
+        let (layer, scope) = interaction.transform_target.ok_or(CommandError::Stale)?;
+        if interaction.command != "transform.apply"
+            || interaction.epoch != self.epoch
+            || self.document().and_then(Document::active_layer) != Some(layer)
+        {
+            return Err(CommandError::Stale);
+        }
+        Ok((layer, scope))
+    }
+    pub fn prepare_canvas_transform(
+        &self,
+        interaction: &GeometryInteraction,
+        params: Value,
+    ) -> Result<PreparedCommand, CommandError> {
+        let (layer, scope) = self.check_canvas_transform(interaction)?;
+        let parsed: TransformApply = parse(params.clone())?;
+        let target = self
+            .document()
+            .ok_or(CommandError::NoDocument)?
+            .resolve(&parsed.layer)?;
+        if target != layer || parsed.scope != scope {
+            return Err(CommandError::Invalid(
+                "canvas transform layer and scope are anchored to their initial values".into(),
+            ));
+        }
+        let mut prepared = self.prepare_geometry(interaction, "transform.apply", params)?;
+        prepared.required_active_layer = Some(layer);
+        Ok(prepared)
     }
     pub fn prepare_crop(
         &self,
@@ -1022,6 +1090,7 @@ impl Editor {
                 result: old.result.clone(),
                 selected: self.selected,
                 replay: true,
+                required_active_layer: None,
             });
         }
         self.authorize(&request.source, id, kind)?;
@@ -1170,7 +1239,14 @@ impl Editor {
                 } else if let Some(result) =
                     super::transform::mutate(doc, id, params.clone(), &|| request.expired())?
                 {
-                    (Action::Edit, result)
+                    (
+                        if result["changed"] == false {
+                            Action::Query
+                        } else {
+                            Action::Edit
+                        },
+                        result,
+                    )
                 } else if let Some(result) =
                     super::depth::mutate(doc, id, params.clone(), &|| request.expired())?
                 {
@@ -1460,6 +1536,7 @@ impl Editor {
             result,
             selected,
             replay: false,
+            required_active_layer: None,
         })
     }
     pub fn commit(&mut self, prepared: PreparedCommand) -> Result<Value, CommandError> {
@@ -1496,6 +1573,12 @@ impl Editor {
             self.check_request(&prepared.request)?;
         }
         if prepared.epoch != self.epoch {
+            return Err(CommandError::Stale);
+        }
+        if prepared
+            .required_active_layer
+            .is_some_and(|layer| self.document().and_then(Document::active_layer) != Some(layer))
+        {
             return Err(CommandError::Stale);
         }
         self.authorize(
@@ -1552,6 +1635,7 @@ impl Editor {
                     | "image.straighten"
                     | "image.convert_bit_depth"
                     | "image.auto"
+                    | "transform.apply"
             ) && prepared.result["changed"] == false);
         match prepared.action {
             Action::PaintColors(colors) => {

@@ -430,7 +430,7 @@ pub struct StraightenImageResult {
     pub preserved_external_content: bool,
     pub preserved_layer_structure: bool,
 }
-#[derive(Clone, Copy, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum TransformScope {
     WholeLayer,
@@ -473,6 +473,7 @@ params!(TransformApply {
     interpolation: TransformInterpolation
 });
 #[derive(Serialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
 pub struct TransformResult {
     pub layer_id: crate::LayerId,
     pub scope: TransformScope,
@@ -480,8 +481,10 @@ pub struct TransformResult {
     pub source_artboard_clipped: bool,
     pub mask_transformed: bool,
     pub selection_transformed: bool,
+    pub changed: bool,
 }
 #[derive(Serialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
 pub struct LayerBoundsResult {
     pub layer_id: crate::LayerId,
     pub bounds: Option<strata_pixels::CoverageRect>,
