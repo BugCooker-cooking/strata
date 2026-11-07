@@ -590,7 +590,12 @@ impl Editor {
     ) -> Result<TonalInteraction, CommandError> {
         if !matches!(
             command,
-            "filter.gaussian_blur" | "filter.unsharp_mask" | "filter.add_noise" | "transform.apply"
+            "filter.gaussian_blur"
+                | "filter.unsharp_mask"
+                | "filter.add_noise"
+                | "filter.high_pass"
+                | "transform.apply"
+                | "image.auto"
         ) {
             return Err(CommandError::Invalid(
                 "unsupported pixel filter preview".into(),
@@ -618,7 +623,12 @@ impl Editor {
         }
         if !matches!(
             command,
-            "filter.gaussian_blur" | "filter.unsharp_mask" | "filter.add_noise" | "transform.apply"
+            "filter.gaussian_blur"
+                | "filter.unsharp_mask"
+                | "filter.add_noise"
+                | "filter.high_pass"
+                | "transform.apply"
+                | "image.auto"
         ) {
             return Err(CommandError::Invalid(
                 "unsupported pixel filter preview".into(),
@@ -1229,9 +1239,27 @@ impl Editor {
                 {
                     (Action::Edit, result)
                 } else if let Some(result) =
+                    super::auto_correct::mutate(doc, id, params.clone(), &|| request.expired())?
+                {
+                    (
+                        if result["changed"] == false {
+                            Action::Query
+                        } else {
+                            Action::Edit
+                        },
+                        result,
+                    )
+                } else if let Some(result) =
                     super::filters::mutate(doc, id, params.clone(), &|| request.expired())?
                 {
-                    (Action::Edit, result)
+                    (
+                        if id == "filter.high_pass" && result["touched_tiles"] == 0 {
+                            Action::Query
+                        } else {
+                            Action::Edit
+                        },
+                        result,
+                    )
                 } else if let Some(result) =
                     super::tonal_brush::mutate(doc, id, params.clone(), &|| request.expired())?
                 {
@@ -1511,6 +1539,7 @@ impl Editor {
             self.resource(resource, &prepared.request, false)?;
         }
         let keeps_layer_selection = matches!(prepared.action, Action::PaintColors(_))
+            || (prepared.command == "filter.high_pass" && prepared.result["touched_tiles"] == 0)
             || matches!(
                 prepared.command.as_str(),
                 "paint.colors.get" | "paint.colors.describe"
@@ -1522,6 +1551,7 @@ impl Editor {
                     | "image.resize"
                     | "image.straighten"
                     | "image.convert_bit_depth"
+                    | "image.auto"
             ) && prepared.result["changed"] == false);
         match prepared.action {
             Action::PaintColors(colors) => {

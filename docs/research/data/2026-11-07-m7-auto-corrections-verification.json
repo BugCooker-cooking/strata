@@ -1,0 +1,176 @@
+{
+  "date_local": "2026-11-07",
+  "timezone": "Asia/Taipei",
+  "base_checkpoint": "273c471",
+  "branch": "codex/v1-remaining",
+  "scope": "Actual automatic contrast/tone/color pixel-layer algorithms, shared strict command, native menu/preview wiring and executed AI invocation/undo. Native/hardware/application local gates were subsequently completed in the linked closure followup; Git delivery is in the containing commit/PR.",
+  "source_sha256": {
+    "apps/macos/Strata/App/AppDelegate.swift": "731582a6cfd9602d749b4dd85249f7f0a4861801fe8efffccdd10c644e8fd153",
+    "apps/macos/Strata/App/MainWindowController.swift": "541845a02988052c7976b4d8c6e7e7617f5dc9438eb612b2d17087a2e0a258fb",
+    "apps/macos/Strata/Workspace/FilterControls.swift": "23bd40513933ea3491ae936f44f321d0bae7ff0664a8866c599895cc44c86e0a",
+    "apps/macos/Strata/Workspace/WorkspaceModel.swift": "cf0d75a43fcc7cbd71bf66e7103b81ae777187b5c1270eef1e1066f8249fceb2",
+    "apps/macos/StrataTests/AutoCorrectionTests.swift": "31bb365c30b2c9da34bf96e46943fd2833c5aa1458d8640c55d377fe4ea8bdd9",
+    "apps/macos/StrataTests/FilterPreviewTests.swift": "86202313b1560c5d8aaca263e9fc37464475fe0558144d9f26a9bf41f5cd6527",
+    "crates/strata-ai/tests/replay.rs": "c5233b60825706fecec186ec485740ce2265b53cf8a7c93c6c3ceddd524668ea",
+    "crates/strata-core/src/commands/auto_correct.rs": "02052aa3692f14493780a4bd822a88194d9e277f2a180ed0ecb6522f08071665",
+    "crates/strata-core/src/commands/executor.rs": "a27329cea98ce2ccfb664707768fc1765a90c94c314a5e2073cb2371c410d7f6",
+    "crates/strata-core/src/commands/mod.rs": "9fbb0bc2824e9c69458180d7cd804a35acb98a149477ea5aa56e3b20679f5023",
+    "crates/strata-core/src/commands/registry.rs": "ad2d707ff8b9e4c8f1b96a6bbc8def30e47ed06cd4af6c4fc98d74496e1db46b",
+    "crates/strata-core/tests/auto_correct.rs": "02758e2cbb75d7ac6c8f812fdb4a29691377cdb8abe473a3599ad12460d9b75b",
+    "crates/strata-ffi/src/filter_preview.rs": "3fa4b32c999eb9eb15012d03b554c8d68badd872f7a69fec7dd504f0bbba2845",
+    "crates/strata-render/tests/gpu.rs": "5dda5d21755e45b5a20750e2b1ddcf18a0f428442821bd29e39daa328a1b9849",
+    "tools/strata-devtool/src/main.rs": "ff746ed0f9bc0692542fc330584fc2311163bb92c230b4ce87c4aeea21fd0099"
+  },
+  "executed_checks": {
+    "core": {
+      "passed": 24,
+      "auto_integrations": 10,
+      "exact_large_integer_percentile": 1,
+      "existing_filter_regressions": 9,
+      "existing_palette_regressions": 4,
+      "integration_log": "build/m7-auto-core.final.log",
+      "unit_log": "build/m7-auto-percentile.final.log"
+    },
+    "ai": {
+      "passed": 33,
+      "replay_tests": 32,
+      "mapping_contract_tests": 1,
+      "auto_method_cases": 3,
+      "log": "build/m7-auto-ai.final.log"
+    },
+    "rust_optimized": {
+      "passed": 10,
+      "scope": "strata-core auto_correct integration target in --release profile; not a macOS App Release build",
+      "log": "build/m7-auto-core-release.log"
+    },
+    "ffi_preview": {
+      "reported_passed": 5,
+      "counted_headless_checks": 4,
+      "legacy_optional_gpu_case": 1,
+      "hardware_required": false,
+      "hardware_acceptance_claimed": false,
+      "note": "One legacy Metal case is allowed to return on NoAdapter. Its ok status is not GPU evidence. Three actual auto methods were added to readonly-stage/cancel/one-candidate-apply behavior.",
+      "log": "build/m7-auto-ffi-preview.final.log"
+    },
+    "command_examples": {
+      "passed": 123,
+      "auto_method_examples": 3,
+      "auto_examples_require_changed_true": true,
+      "log": "build/m7-auto-commands.final.log",
+      "count_note": "123 counts registered commands whose isolated examples ran, not total parameter example cases (the catalog had183)."
+    },
+    "lint": {
+      "passed": true,
+      "log": "build/m7-auto-lint.final.log",
+      "checks": [
+        "rustfmt",
+        "workspace all-target Clippy -D warnings",
+        "portability",
+        "Swift lint",
+        "feature coverage"
+      ]
+    },
+    "ai_audit": {
+      "registered_commands": 123,
+      "mapped_composite_rows": 86,
+      "inventory_rows": 265,
+      "partial_entrypoints": 9,
+      "final_complete": false,
+      "strict_final_gate_expected_failure": "build/m7-auto-final-ai-gate.log"
+    }
+  },
+  "required_metal_attempt": {
+    "status": "setup_failed",
+    "test_reported_failed": 1,
+    "test_passed": 0,
+    "required_gpu_environment": true,
+    "scope": "strata-render gpu::automatic_correction_methods_metal_match_cpu_and_undo_restores_sources",
+    "test_body_numeric_checks_completed": false,
+    "reason": "No GPU adapter available in the current sandbox/permission context. No numerical acceptance occurred.",
+    "log": "build/m7-auto-gpu.log",
+    "source_note": "The setup-only failed attempt preceded the final CPU symmetric-tail correction. Its result never counted as hardware evidence."
+  },
+  "approval_service_failures": [
+    {
+      "action": "Read local process inventory",
+      "http_status": 401,
+      "code": "token_expired",
+      "action_executed": false,
+      "interpretation": "Automatic review authentication failed; not an unsafe-action determination."
+    },
+    {
+      "action": "Generate native project and run authorized local XCTest targets",
+      "http_status": 401,
+      "code": "token_expired",
+      "action_executed": false,
+      "interpretation": "Same approval service authentication failure; no elevation bypass attempted."
+    }
+  ],
+  "semantics": {
+    "statistics": "Exact65536-bin raw encoded working-RGB histograms, u16 selection*alpha integer weights; u128 percentile ranks retain low-weight units beyond f64 integer precision. Same floor tail weight is excluded from both ends, including exact percentage ties.",
+    "methods": "contrast pools RGB endpoints; tone uses per-channel endpoints; color adds upper weighted median-neutralization gamma clamped .1..10, with geometric strength0..1. Flat channels identity; strength0 equals tone. Gray-world median assumption is explicit, not Adobe proprietary code equivalence.",
+    "publication": "Full coverage quantizes mapped source-depth codes directly, consistent upward half-code ties within1e-9. Soft coverage blends original/transformed colors once through actual ICC linear P3. Preserve alpha/hidden RGB/zero coverage/off-artboard samples, masks/styles/tree/ICC/depth.",
+    "visibility_and_locks": "Explicit visible pixel layer and visible ancestors only; nonpixel hidden sources reject before statistics. Pixel/all and ancestor locks reject; transparency/position locks allowed.",
+    "history": "One atomic history with exact archive/AI-turn undo; no eligible data or no actual code change yields no revision/dirty/history/current-layer change, including concurrent new selection.",
+    "resources": "At most64M sample visits, pooled histograms/LUT/index/tile/output reservations and row/LUT cancellation. Tested budget pressure, actual output cancellation, stale preview context and failed display preparation.",
+    "integration": "Image menu three direct operations; filter controls share same command and existing original-document/layer/revision single-preview slot. Native source/lint present but native execution still pending."
+  },
+  "cloud_builds": {
+    "used": false,
+    "automatic_triggers_modified": false,
+    "workflow_last_known_state": "disabled_manually",
+    "note": "No cloud jobs enabled/dispatched/rerun/awaited; no push occurred this turn."
+  },
+  "live_models": {
+    "requests_started_this_turn": 0,
+    "m3_keychain_gate": "unchanged, separate prior limitation"
+  },
+  "remaining": "Full Photoshop editing, final per-feature AI closure and independent continuous performance/model-quality/hardware/platform/release gates remain open. Initial approval/GPU/native/App/manual blockers were resolved by the linked local closure record.",
+  "source_snapshot_note": "Original fingerprints identify the earlier core/AI verification checkpoint. Current accepted code and native test fixture fingerprints are in2026-11-07-m7-auto-high-pass-native-closure.json. The only source edit during resumed acceptance was a native test fixture correction; production algorithms were unchanged.",
+  "followup": {
+    "date_local": "2026-11-07",
+    "user_direction": "Approval-service login will be handled later; continue independent development.",
+    "new_capability": "filter.high_pass",
+    "verification": "2026-11-07-m7-high-pass-verification.json",
+    "approval_retries_after_deferral": 0
+  },
+  "initial_pending_gates": {
+    "native_xctest": {
+      "status": "blocked_before_execution",
+      "intended_targets": [
+        "StrataTests/AutoCorrectionTests",
+        "StrataTests/FilterPreviewTests"
+      ],
+      "reason": "Automatic approval review could not authenticate; token_expired HTTP401. The project-generation/test command was not started."
+    },
+    "macos_app_release": {
+      "status": "pending",
+      "note": "Only optimized Rust integration tests ran. The native application was not rebuilt."
+    },
+    "native_manual": {
+      "status": "pending",
+      "windows_opened_this_turn": 0
+    },
+    "git_commit": {
+      "status": "not_executed",
+      "working_tree": "uncommitted implementation/tests/docs available for review"
+    },
+    "remote_push_pr_update": {
+      "status": "not_executed",
+      "note": "Existing draft PR and previously pushed checkpoint remain unchanged this turn."
+    }
+  },
+  "closure_followup": {
+    "date_local": "2026-11-07",
+    "record": "2026-11-07-m7-auto-high-pass-native-closure.json",
+    "approval_service_restored": true,
+    "native_final_unique_passed": 84,
+    "native_explicit_opt_in_skipped": 1,
+    "required_real_metal_tests_passed": 3,
+    "arm64_app_release_passed": true,
+    "single_window_manual_passed": true,
+    "final_running_instances": 0,
+    "scope": "Native/GPU/App/manual local increment gates completed after login recovery. Git delivery is recorded in the containing commit/PR; full Photoshop and final AI remain open.",
+    "native_unresolved_failures": 0
+  }
+}

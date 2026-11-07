@@ -2,7 +2,7 @@
 
 当前开发期审计快照。完整编辑功能与最终 AI 审计仍未闭环；不得把注册数量当作全部功能覆盖。
 
-真实注册命令 122；参数示例 180；综合功能 265；已有映射 85。
+真实注册命令 124；参数示例 185；综合功能 265；已有映射 87。
 
 已实现但未映射 0；部分入口 9；原生未知命令引用 0；未类型化返回 0。
 
@@ -64,7 +64,7 @@
 | PS-03-84941ac6e8 | 显示全部 | 已实现 | 已映射 | `image.reveal_all` · 扩展画板，显示全部可见源图层与样式边界，恢复被画板遮住的内容。 · 以可见源图层/生成填充和自身/祖先样式的保守边界扩展，不移动/缩放内容；隐藏层不参与，蒙版/剪贴/零透明度可能让边界大于最小可见 alpha 范围。 |
 | PS-03-51294954aa | 裁切（去透明边） | 已实现 | 已映射 | `image.trim` · Trim all fully transparent borders while preserving original editable layers. · Visible composite alpha>0 within the current frame, independent side booleans. No display quantization; hidden RGB/layers do not count. Sources remain stored. Tight repeat is a no-op without history; fully transparent input rejects. |
 | PS-03-0f4e217715 | 复制文档 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
-| PS-03-691c261ce9 | 自动色调 / 自动对比度 / 自动颜色 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
+| PS-03-691c261ce9 | 自动色调 / 自动对比度 / 自动颜色 | 已实现 | 已映射 | `image.auto` · 给当前像素层做自动色调，每端裁切0.5%，保留选区外像素和透明度。 · All three real methods, explicit visible raw pixel-layer input, exact alpha/selection weighted histograms with symmetric integer tail ranks, direct full-coverage codes and one soft linear blend. Exact approval, actual invokes and AI-turn archive undo verified. Native menu/parameters/shared preview, required real Metal/CPU/undo, arm64 App Release and single-window acceptance now passed after approval login recovered. The initial native preview fixture was already full-range and correctly no-op; a limited-range fixture fixed its incorrect history expectation. Full Photoshop, continuous performance, live-model quality and final per-feature AI closure remain separate and open. |
 | PS-03-c10dd16a58 | RGB 模式 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-03-484489e467 | 灰度模式 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-03-67a3559782 | CMYK 模式 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
@@ -190,7 +190,7 @@
 | PS-10-5785be70cb | USM 锐化 | 已实现 | 已映射 | `filter.unsharp_mask` · 对当前像素图层做数量 120%、标准差 1px 的 USM 锐化。 |
 | PS-10-395d09a3e1 | 添加杂色 | 已实现 | 已映射 | `filter.add_noise` · 给当前像素图层添加 2% 单色高斯颗粒，种子为 42。 |
 | PS-10-03bd81f36a | 智能锐化 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
-| PS-10-10e03c578e | 高反差保留 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
+| PS-10-10e03c578e | 高反差保留 | 已实现 | 已映射 | `filter.high_pass` · 给当前像素层做标准差2像素的高反差保留，使用50%工作RGB灰模式，保留原透明度和选区外像素。 · Two real spaces: encoded-working RGB centered on50% working gray (default), and linear P3 centered on0.5 linear light for neutral Strata overlay/soft-light/linear-light sharpening. Alpha-weighted immutable Gaussian halo, one linear soft-selection blend, unchanged masks/styles/source alpha. Native mode controls and original-context preview share the command. Strict schemas, exact replacement approval, both real parameter examples and AI-turn undo verified. Native XCTest, required real Metal display/preview/failure restoration, arm64 App Release and single-window previews/applies/undo passed. Full Photoshop, continuous performance/live-model quality and final AI closure remain open. |
 | PS-10-c323ce2dc1 | 减少杂色 / 中间值 / 蒙尘与划痕 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-10-4cd844c0cb | 动感模糊 / 表面模糊 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-10-a5da48d57a | 最大值 / 最小值 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |

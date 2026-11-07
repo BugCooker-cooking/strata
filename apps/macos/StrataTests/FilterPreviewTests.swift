@@ -65,14 +65,14 @@ final class FilterPreviewTests:XCTestCase{
     private func configured()throws->(StrataEngine,TonalPreviewModel){
         let engine=StrataEngine(listener:EngineEvents{_ in})
         _ = try engine.dispatch(command:"file.new",paramsJson:commandJSON(["width":16,"height":16,"bit_depth":16,"background":[20000,30000,40000,32768]]))
-        _ = try engine.dispatch(command:"paint.gradient",paramsJson:commandJSON(["layer":["name":"Background"],"start":[0.5,0.5],"end":[15.5,15.5],"stops":[["at":0,"color":[0,0,0,1]],["at":1,"color":[1,1,1,1]]]]))
+        _ = try engine.dispatch(command:"paint.gradient",paramsJson:commandJSON(["layer":["name":"Background"],"start":[0.5,0.5],"end":[15.5,15.5],"stops":[["at":0,"color":[0.2,0.3,0.4,1]],["at":1,"color":[0.7,0.9,0.8,1]]]]))
         let preview=TonalPreviewModel(engine:engine);preview.bind(try EditorSnapshot.decode(engine.snapshotJson()));return(engine,preview)
     }
     @MainActor
     private func idle(_ preview:TonalPreviewModel)async throws{for _ in 0..<400{try await Task.sleep(for:.milliseconds(10));if !preview.busy && !preview.applying{return}};XCTFail("Filter preview worker did not finish")}
     @MainActor
     func testEachFilterPreviewsWithoutHistoryAndAppliesOnce()async throws{
-        for (command,params) in [("filter.gaussian_blur",["sigma":1.2] as [String:Any]),("filter.unsharp_mask",["sigma":1.2,"amount":1.5]),("filter.add_noise",["amount":0.08,"seed":42]),("transform.apply",["scope":"whole_layer","geometry":["type":"components","translation":[0.5,0.25]]]),("transform.apply",["scope":"selection","geometry":["type":"components","translation":[4.5,0.25]]])]{
+        for (command,params) in [("filter.gaussian_blur",["sigma":1.2] as [String:Any]),("filter.unsharp_mask",["sigma":1.2,"amount":1.5]),("filter.high_pass",["sigma":1.2]),("filter.high_pass",["sigma":1.2,"space":"linear_p3"]),("filter.add_noise",["amount":0.08,"seed":42]),("image.auto",["settings":["method":"contrast","clip_percent":0]]),("image.auto",["settings":["method":"tone","clip_percent":0]]),("image.auto",["settings":["method":"color","clip_percent":0,"neutralize_strength":0.7]]),("transform.apply",["scope":"whole_layer","geometry":["type":"components","translation":[0.5,0.25]]]),("transform.apply",["scope":"selection","geometry":["type":"components","translation":[4.5,0.25]]])]{
             let(engine,preview)=try configured();if params["scope"] as? String == "selection"{_ = try engine.dispatch(command:"select.marquee",paramsJson:commandJSON(["x":3,"y":3,"width":6,"height":6]));preview.bind(try EditorSnapshot.decode(engine.snapshotJson()))};let before=try engine.snapshotJson();let old=try EditorSnapshot.decode(before)
             preview.configureFilter(command);let parameters=try commandJSON(params);preview.setEnabled(true,settings:parameters);try await idle(preview)
             XCTAssertEqual(try engine.snapshotJson(),before);XCTAssertTrue(preview.error.isEmpty,preview.error)

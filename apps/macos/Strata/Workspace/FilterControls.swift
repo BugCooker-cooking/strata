@@ -11,24 +11,43 @@ struct FilterPanel:View{
     @State private var seed="0"
     @State private var distribution="uniform"
     @State private var monochrome=false
+    @State private var highPassSpace="linear_p3"
+    @State private var autoMethod="tone"
+    @State private var clipPercent=0.5
+    @State private var neutralizePercent=100.0
     private var parameters:[String:Any]?{
+        if command=="image.auto"{
+            guard clipPercent.isFinite,(0...5).contains(clipPercent)else{return nil}
+            var settings:[String:Any]=["method":autoMethod,"clip_percent":clipPercent]
+            if autoMethod=="color"{guard neutralizePercent.isFinite,(0...100).contains(neutralizePercent)else{return nil};settings["neutralize_strength"]=neutralizePercent/100}
+            return ["settings":settings]
+        }
         if command == "filter.add_noise"{
             guard let seed=UInt32(seed),noiseAmount.isFinite,(0...100).contains(noiseAmount)else{return nil}
             return ["amount":noiseAmount/100,"seed":seed,"distribution":distribution,"monochrome":monochrome]
         }
         guard sigma.isFinite,(0.1...64).contains(sigma)else{return nil}
+        if command == "filter.high_pass"{return ["sigma":sigma,"space":highPassSpace]}
         if command == "filter.unsharp_mask"{
             guard amount.isFinite,(0...500).contains(amount),threshold.isFinite,(0...100).contains(threshold)else{return nil}
             return ["sigma":sigma,"amount":amount/100,"threshold":threshold/100]
         }
         return ["sigma":sigma]
     }
-    private var available:Bool{model.selected?.kind?.kind == "pixel"&&model.permissions.edits&&model.selected?.locks?.all != true&&model.selected?.locks?.pixels != true}
+    private var available:Bool{model.selected?.kind?.kind == "pixel"&&model.permissions.edits&&model.selected?.locks?.all != true&&model.selected?.locks?.pixels != true && (command != "image.auto" || model.selected?.visible == true)}
     var body:some View{
         ScrollView{VStack(alignment:.leading,spacing:10){
             Group{
-            Picker("滤镜",selection:$command){Text("高斯模糊").tag("filter.gaussian_blur");Text("USM 锐化").tag("filter.unsharp_mask");Text("添加杂色").tag("filter.add_noise")}.labelsHidden()
-            if command == "filter.add_noise"{
+            Picker("滤镜",selection:$command){Text("高斯模糊").tag("filter.gaussian_blur");Text("USM 锐化").tag("filter.unsharp_mask");Text("高反差保留").tag("filter.high_pass");Text("添加杂色").tag("filter.add_noise");Text("自动色调 / 对比度 / 颜色").tag("image.auto")}.labelsHidden().accessibilityLabel("滤镜与自动校正")
+            if command=="image.auto"{
+                Picker("自动校正方式",selection:$autoMethod){Text("自动色调").tag("tone");Text("自动对比度").tag("contrast");Text("自动颜色").tag("color")}
+                number("每端裁切",value:$clipPercent,unit:"%")
+                if autoMethod=="color"{
+                    number("中间调中和",value:$neutralizePercent,unit:"%")
+                    Text("以通道中位数估计中性中间调，可能改变有意保留的色偏；可降低中和强度。").font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))
+                }
+                Text("分析当前像素层与选区，保留透明度和选区外原码；预览不写历史，应用后可一次撤销。").font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))
+            }else if command == "filter.add_noise"{
                 number("数量",value:$noiseAmount,unit:"%")
                 Picker("分布",selection:$distribution){Text("均匀").tag("uniform");Text("高斯").tag("gaussian")}
                 Toggle("单色",isOn:$monochrome)
@@ -37,6 +56,10 @@ struct FilterPanel:View{
             }else{
                 number("标准差",value:$sigma,unit:"px")
                 Slider(value:$sigma,in:0.1...64).accessibilityLabel("模糊标准差")
+                if command == "filter.high_pass"{
+                    Picker("高反差模式",selection:$highPassSpace){Text("叠加锐化（线性光）").tag("linear_p3");Text("50% 工作 RGB 灰").tag("working_rgb")}
+                    Text("线性光模式让平坦区域在叠加混合中保持中性；工作 RGB 模式生成 50% 编码灰。标准差越大，保留的结构越宽；两者均保留原透明度。").font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))
+                }
                 if command == "filter.unsharp_mask"{
                     number("数量",value:$amount,unit:"%")
                     number("阈值",value:$threshold,unit:"%")

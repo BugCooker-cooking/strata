@@ -268,6 +268,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         let viewItem = NSMenuItem(title: "视图", action: nil, keyEquivalent: ""); viewItem.submenu = view; bar.addItem(viewItem)
         let image=NSMenu(title:"图像")
+        for(title,action)in[("自动色调",#selector(MainWindowController.autoTone)),("自动对比度",#selector(MainWindowController.autoContrast)),("自动颜色",#selector(MainWindowController.autoColor))]{let item=image.addItem(withTitle:title,action:action,keyEquivalent:"");item.target=controller}
+        image.addItem(.separator())
         for(title,action) in [("转换为 8 位 / 通道",#selector(MainWindowController.convertToEightBit)),("转换为 16 位 / 通道",#selector(MainWindowController.convertToSixteenBit))]{let item=image.addItem(withTitle:title,action:action,keyEquivalent:"");item.target=controller}
         let imageItem=NSMenuItem(title:"图像",action:nil,keyEquivalent:"");imageItem.submenu=image;bar.addItem(imageItem)
         let color = NSMenu(title: "色彩")

@@ -1,10 +1,10 @@
 {
   "scope": "Development audit; not a claim that all Photoshop editing is implemented or AI-verified",
-  "registered_commands": 122,
-  "registered_examples": 180,
-  "catalog_sha256": "375ef9c8b4104fa11fee1f3e621bc385f62dbd88ea2056358c7e10f042a6a5e4",
+  "registered_commands": 124,
+  "registered_examples": 185,
+  "catalog_sha256": "86dbc5961f6e79f9e82c358674848a4300c5343a08c62c681df3afd0d51e894d",
   "inventory_rows": 265,
-  "mapped_features": 85,
+  "mapped_features": 87,
   "unmapped_implemented_features": [],
   "partial_entrypoints": [
     "PS-01-894622b1ce",
@@ -51,7 +51,6 @@
     "PS-03-ad24731ea8",
     "PS-03-5f9716e5d8",
     "PS-03-0f4e217715",
-    "PS-03-691c261ce9",
     "PS-03-c10dd16a58",
     "PS-03-484489e467",
     "PS-03-67a3559782",
@@ -126,7 +125,6 @@
     "PS-09-d278290204",
     "PS-09-71958254c4",
     "PS-10-03bd81f36a",
-    "PS-10-10e03c578e",
     "PS-10-c323ce2dc1",
     "PS-10-4cd844c0cb",
     "PS-10-a5da48d57a",
@@ -1265,8 +1263,48 @@
       "name": "自动色调 / 自动对比度 / 自动颜色",
       "priority": "P0",
       "source_line": 112,
-      "implementation": "待实现",
-      "entrypoint": null
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "image.auto"
+        ],
+        "prompts": [
+          {
+            "text": "给当前像素层做自动色调，每端裁切0.5%，保留选区外像素和透明度。",
+            "query": "自动色调",
+            "command": "image.auto"
+          },
+          {
+            "text": "给当前像素层做自动对比度，RGB共用端点，保留图层与蒙版。",
+            "query": "自动对比度",
+            "command": "image.auto"
+          },
+          {
+            "text": "使用自动颜色中和中间调，强度70%，每端裁切0.5%。",
+            "query": "自动颜色",
+            "command": "image.auto"
+          },
+          {
+            "text": "Apply automatic tone correction to the explicit pixel layer and undo the operation as one step.",
+            "query": "Automatic tone contrast and color",
+            "command": "image.auto"
+          }
+        ],
+        "variants": [
+          {
+            "command": "image.auto",
+            "path": "settings.method",
+            "values": [
+              "contrast",
+              "tone",
+              "color"
+            ]
+          }
+        ],
+        "note": "All three real methods, explicit visible raw pixel-layer input, exact alpha/selection weighted histograms with symmetric integer tail ranks, direct full-coverage codes and one soft linear blend. Exact approval, actual invokes and AI-turn archive undo verified. Native menu/parameters/shared preview, required real Metal/CPU/undo, arm64 App Release and single-window acceptance now passed after approval login recovered. The initial native preview fixture was already full-range and correctly no-op; a limited-range fixture fixed its incorrect history expectation. Full Photoshop, continuous performance, live-model quality and final per-feature AI closure remain separate and open."
+      }
     },
     {
       "id": "PS-03-c10dd16a58",
@@ -3702,8 +3740,42 @@
       "name": "高反差保留",
       "priority": "P1",
       "source_line": 275,
-      "implementation": "待实现",
-      "entrypoint": null
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "filter.high_pass"
+        ],
+        "prompts": [
+          {
+            "text": "给当前像素层做标准差2像素的高反差保留，使用50%工作RGB灰模式，保留原透明度和选区外像素。",
+            "query": "高反差保留",
+            "command": "filter.high_pass"
+          },
+          {
+            "text": "Apply high pass with sigma2 in linear_p3 space for neutral overlay sharpening, preserving alpha and masks, then undo as one step.",
+            "query": "High pass",
+            "command": "filter.high_pass"
+          },
+          {
+            "text": "使用线性光高反差保留，让平坦区域在叠加锐化中保持中性。",
+            "query": "高反差保留",
+            "command": "filter.high_pass"
+          }
+        ],
+        "note": "Two real spaces: encoded-working RGB centered on50% working gray (default), and linear P3 centered on0.5 linear light for neutral Strata overlay/soft-light/linear-light sharpening. Alpha-weighted immutable Gaussian halo, one linear soft-selection blend, unchanged masks/styles/source alpha. Native mode controls and original-context preview share the command. Strict schemas, exact replacement approval, both real parameter examples and AI-turn undo verified. Native XCTest, required real Metal display/preview/failure restoration, arm64 App Release and single-window previews/applies/undo passed. Full Photoshop, continuous performance/live-model quality and final AI closure remain open.",
+        "variants": [
+          {
+            "command": "filter.high_pass",
+            "path": "space",
+            "values": [
+              "working_rgb",
+              "linear_p3"
+            ]
+          }
+        ]
+      }
     },
     {
       "id": "PS-10-c323ce2dc1",

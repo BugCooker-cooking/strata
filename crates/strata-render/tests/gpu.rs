@@ -893,13 +893,14 @@ fn dodge_burn_and_sponge_match_linear_cpu_over_canvas_and_keep_alpha() {
 }
 
 #[test]
-fn gaussian_unsharp_and_noise_display_match_linear_cpu_with_changed_alpha() {
+fn gaussian_unsharp_high_pass_and_noise_display_match_linear_cpu_with_changed_alpha() {
     let Some(mut renderer) = renderer() else {
         return;
     };
     for command in [
         "filter.gaussian_blur",
         "filter.unsharp_mask",
+        "filter.high_pass",
         "filter.add_noise",
     ] {
         let mut e = strata_core::Editor::new();
@@ -2014,6 +2015,100 @@ fn document_bit_depth_conversion_metal_preserves_normalized_color_and_undo_sourc
     renderer.commit_document(scene).unwrap();
     renderer.render().unwrap();
     assert_eq!(renderer.read_offscreen_rgba().unwrap(), before);
+}
+
+#[test]
+fn automatic_correction_methods_metal_match_cpu_and_undo_restores_sources() {
+    let Some(mut renderer) = renderer() else {
+        return;
+    };
+    for method in ["tone", "contrast", "color"] {
+        let mut e = strata_core::Editor::new();
+        for (id, p) in [
+            (
+                "file.new",
+                serde_json::json!({"width":16,"height":12,"bit_depth":16,"working_space":"display_p3"}),
+            ),
+            (
+                "paint.gradient",
+                serde_json::json!({"layer":{"name":"Background"},"start":[0.5,0.5],"end":[15.5,11.5],"stops":[{"at":0,"color":[0.2,0.3,0.4,0.5]},{"at":1,"color":[0.7,0.9,0.8,0.9]}]}),
+            ),
+            (
+                "select.marquee",
+                serde_json::json!({"x":2,"y":2,"width":11,"height":8}),
+            ),
+            ("select.feather", serde_json::json!({"radius":1.2})),
+            (
+                "layer.mask.add",
+                serde_json::json!({"layer":{"name":"Background"},"source":"from_selection"}),
+            ),
+        ] {
+            e.execute(e.request(strata_core::Source::Test), id, p, |_| Ok(()))
+                .unwrap();
+        }
+        let before = e.document().unwrap().to_archive().unwrap();
+        let scene = renderer
+            .prepare_document(e.document().unwrap(), false)
+            .unwrap();
+        renderer.commit_document(scene).unwrap();
+        renderer
+            .set_view(ViewTransform {
+                zoom: 3.,
+                center_x: 8.,
+                center_y: 6.,
+            })
+            .unwrap();
+        renderer.render().unwrap();
+        let old_scene = renderer.read_offscreen_rgba().unwrap();
+        let result=e.execute(e.request(strata_core::Source::Test),"image.auto",serde_json::json!({"layer":{"name":"Background"},"settings":{"method":method,"clip_percent":0}}),|_|Ok(())).unwrap();
+        assert_eq!(result["changed"], true);
+        let doc = e.document().unwrap();
+        let scene = renderer.prepare_document(doc, false).unwrap();
+        renderer.commit_document(scene).unwrap();
+        renderer.render().unwrap();
+        let shown = renderer.read_offscreen_rgba().unwrap();
+        let reference = strata_core::composite::Compositor::new(1)
+            .tile(doc, strata_pixels::TileCoord::new(0, 0).unwrap())
+            .unwrap();
+        for (x, y) in [(3usize, 3usize), (8, 5), (12, 8)] {
+            let p = reference[y * 256 + x];
+            let sx = (32. + (x as f32 + 0.5 - 8.) * 3.) as usize;
+            let sy = (32. + (y as f32 + 0.5 - 6.) * 3.) as usize;
+            let actual = pixel(&shown, sx, sy);
+            for c in 0..3 {
+                let bg = f64::from(CANVAS_BG_SRGB[c]) / 255.;
+                let bg = if bg <= 0.04045 {
+                    bg / 12.92
+                } else {
+                    ((bg + 0.055) / 1.055).powf(2.4)
+                };
+                let v = f64::from(p[c]) * f64::from(p[3]) + bg * (1. - f64::from(p[3]));
+                let v = if v <= 0.0031308 {
+                    12.92 * v
+                } else {
+                    1.055 * v.powf(1. / 2.4) - 0.055
+                };
+                assert!(
+                    actual[c].abs_diff((v.clamp(0., 1.) * 255.).round() as u8) <= 3,
+                    "{method} {x},{y},{c}: {actual:?}"
+                );
+            }
+        }
+        e.execute(
+            e.request(strata_core::Source::Test),
+            "edit.undo",
+            serde_json::json!({}),
+            |_| Ok(()),
+        )
+        .unwrap();
+        assert!(e.document().unwrap().to_archive().unwrap() == before);
+        let scene = renderer
+            .prepare_document(e.document().unwrap(), false)
+            .unwrap();
+        renderer.commit_document(scene).unwrap();
+        renderer.render().unwrap();
+        assert_eq!(renderer.read_offscreen_rgba().unwrap(), old_scene);
+    }
 }
 
 #[test]

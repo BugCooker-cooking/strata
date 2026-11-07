@@ -31,6 +31,7 @@ struct Blur {
     bounds: CoverageRect,
     kernel: Vec<f64>,
     radius: usize,
+    high_pass: Option<HighPassSpace>,
     cached: Option<(TileCoord, FilteredTile)>,
     _budget: Reservation,
 }
@@ -40,6 +41,7 @@ impl Blur {
         index: usize,
         bounds: CoverageRect,
         sigma: f64,
+        high_pass: Option<HighPassSpace>,
     ) -> Result<Self, CommandError> {
         if !sigma.is_finite() || !(0.1..=64.0).contains(&sigma) {
             return Err(CommandError::Invalid(
@@ -64,6 +66,7 @@ impl Blur {
             bounds,
             kernel,
             radius,
+            high_pass,
             cached: None,
             _budget: budget,
         })
@@ -91,8 +94,14 @@ impl Blur {
                 let Some(raw) = layer.pixels().tile(coord).map_err(DocumentError::from)? else {
                     continue;
                 };
-                let values = strata_color::to_linear_p3(&raw, 256, 256, self.source.working_icc())
-                    .map_err(DocumentError::from)?;
+                let values = if self.high_pass == Some(HighPassSpace::WorkingRgb) {
+                    None
+                } else {
+                    Some(
+                        strata_color::to_linear_p3(&raw, 256, 256, self.source.working_icc())
+                            .map_err(DocumentError::from)?,
+                    )
+                };
                 let [ox, oy] = coord.origin();
                 let gx = ox + layer.info().x;
                 let gy = oy + layer.info().y;
@@ -121,7 +130,21 @@ impl Blur {
                     let sy = (b.y + y as i64).clamp(frame.y, bottom) - gy;
                     for x in x0..x1 {
                         let sx = (b.x + x as i64).clamp(frame.x, right) - gx;
-                        let p = values[sy as usize * 256 + sx as usize].map(f64::from);
+                        let i = sy as usize * 256 + sx as usize;
+                        let p = if let Some(values) = &values {
+                            values[i].map(f64::from)
+                        } else {
+                            // High-pass low frequency is encoded working RGB,
+                            // normalized from source integer codes directly.
+                            match &*raw {
+                                PixelBuffer::Rgba8(v) => {
+                                    std::array::from_fn(|c| f64::from(v[4 * i + c]) / 255.0)
+                                }
+                                PixelBuffer::Rgba16(v) => {
+                                    std::array::from_fn(|c| f64::from(v[4 * i + c]) / 65535.0)
+                                }
+                            }
+                        };
                         patch[y * b.width as usize + x] =
                             [p[0] * p[3], p[1] * p[3], p[2] * p[3], p[3]];
                     }
@@ -163,7 +186,9 @@ impl Blur {
             .memory_pool()
             .reserve(
                 MemoryKind::Transient,
-                ((pw * ph + ph * w) * 32 + 256 * 256 * 24 + 32768) as u64,
+                ((pw * ph + ph * w) * 32
+                    + 256 * 256 * if self.high_pass.is_some() { 64 } else { 24 }
+                    + 32768) as u64,
             )
             .map_err(DocumentError::from)?;
         let patch = self.patch(
@@ -189,7 +214,9 @@ impl Blur {
                 horizontal[y * w + x] = sum;
             }
         }
-        drop(patch);
+        // High pass needs the original center samples during vertical output.
+        // Existing linear blur/USM release their patch at the original point.
+        let patch = self.high_pass.is_some().then_some(patch);
         let mut values = vec![[0.0f32; 4]; w * h];
         for y in 0..h {
             check(cancel)?;
@@ -202,7 +229,17 @@ impl Blur {
                     }
                 }
                 let alpha = sum[3].clamp(0.0, 1.0);
-                values[y * w + x] = if alpha > 1e-12 {
+                values[y * w + x] = if self.high_pass.is_some() {
+                    let center = patch.as_ref().unwrap()[(y + self.radius) * pw + x + self.radius];
+                    if center[3] > 0.0 && alpha > 1e-12 {
+                        let rgb = std::array::from_fn::<_, 3, _>(|c| {
+                            (0.5 + center[c] / center[3] - sum[c] / alpha).clamp(0.0, 1.0) as f32
+                        });
+                        [rgb[0], rgb[1], rgb[2], center[3] as f32]
+                    } else {
+                        [0.0; 4]
+                    }
+                } else if alpha > 1e-12 {
                     [
                         (sum[0] / alpha) as f32,
                         (sum[1] / alpha) as f32,
@@ -213,6 +250,11 @@ impl Blur {
                     [0.0; 4]
                 };
             }
+        }
+        if self.high_pass == Some(HighPassSpace::WorkingRgb) {
+            check(cancel)?;
+            values = strata_color::working_to_linear_p3(&values, self.source.working_icc())
+                .map_err(DocumentError::from)?;
         }
         Ok(FilteredTile {
             bounds: b,
@@ -341,15 +383,19 @@ pub(super) fn mutate(
 ) -> Result<Option<Value>, CommandError> {
     if !matches!(
         id,
-        "filter.gaussian_blur" | "filter.unsharp_mask" | "filter.add_noise"
+        "filter.gaussian_blur" | "filter.unsharp_mask" | "filter.add_noise" | "filter.high_pass"
     ) {
         return Ok(None);
     }
     check(cancel)?;
-    let (layer, sigma, unsharp, noise_params) = match id {
+    let (layer, sigma, unsharp, noise_params, high_pass) = match id {
         "filter.gaussian_blur" => {
             let p: GaussianBlur = parse(params)?;
-            (p.layer, p.sigma, None, None)
+            (p.layer, p.sigma, None, None, None)
+        }
+        "filter.high_pass" => {
+            let p: HighPass = parse(params)?;
+            (p.layer, p.sigma, None, None, Some(p.space))
         }
         "filter.unsharp_mask" => {
             let p: UnsharpMask = parse(params)?;
@@ -362,7 +408,7 @@ pub(super) fn mutate(
                     "USM amount must be 0..5 and threshold 0..1 linear RGB".into(),
                 ));
             }
-            (p.layer, p.sigma, Some((p.amount, p.threshold)), None)
+            (p.layer, p.sigma, Some((p.amount, p.threshold)), None, None)
         }
         _ => {
             let p: AddNoise = parse(params)?;
@@ -371,7 +417,7 @@ pub(super) fn mutate(
                     "noise amount must be 0..1 working RGB".into(),
                 ));
             }
-            (p.layer.clone(), 2.0, None, Some(p))
+            (p.layer.clone(), 2.0, None, Some(p), None)
         }
     };
     if !sigma.is_finite() || !(0.1..=64.0).contains(&sigma) {
@@ -394,6 +440,20 @@ pub(super) fn mutate(
     let Some(bounds) = coverage.content_bounds().map_err(DocumentError::from)? else {
         return Ok(Some(empty()));
     };
+    if high_pass.is_some() {
+        let frame = doc.frame();
+        let width = (bounds.x + i64::from(bounds.width))
+            .min(frame.x + i64::from(frame.width))
+            .saturating_sub(bounds.x.max(frame.x))
+            .max(0) as u64;
+        let height = (bounds.y + i64::from(bounds.height))
+            .min(frame.y + i64::from(frame.height))
+            .saturating_sub(bounds.y.max(frame.y))
+            .max(0) as u64;
+        if width.saturating_mul(height) > 64_000_000 {
+            return Err(DocumentError::ResourceLimit.into());
+        }
+    }
     if let Some(p) = noise_params {
         let mut source = Noise {
             source: doc.clone(),
@@ -415,13 +475,13 @@ pub(super) fn mutate(
             cancel,
         )?));
     }
-    let mut blur = Blur::new(doc, index, bounds, sigma)?;
+    let mut blur = Blur::new(doc, index, bounds, sigma, high_pass)?;
     Ok(Some(super::pixel_transform::apply(
         doc,
         layer,
         &coverage,
         |old, x, y| {
-            if unsharp.is_some() && old[3] == 0.0 {
+            if (unsharp.is_some() || high_pass.is_some()) && old[3] == 0.0 {
                 return Ok(old);
             }
             let filtered = blur.pixel(x, y, cancel)?;
@@ -440,6 +500,8 @@ pub(super) fn mutate(
                     (f64::from(old[2]) + amount * delta[2]).clamp(0.0, 1.0) as f32,
                     old[3],
                 ])
+            } else if high_pass.is_some() {
+                Ok([filtered[0], filtered[1], filtered[2], old[3]])
             } else {
                 Ok(filtered)
             }

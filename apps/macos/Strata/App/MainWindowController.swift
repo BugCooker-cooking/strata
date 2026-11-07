@@ -162,6 +162,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         case #selector(redo): canRedo
         case #selector(convertToEightBit): workspace.permissions.edits && workspace.hasDocument && state?.bitDepth != 8
         case #selector(convertToSixteenBit): workspace.permissions.edits && workspace.hasDocument && state?.bitDepth != 16
+        case #selector(autoTone),#selector(autoContrast),#selector(autoColor): workspace.permissions.edits && selected?.kind?.kind=="pixel" && selected?.visible == true && selected?.locks?.all != true && selected?.locks?.pixels != true
         case #selector(saveDocument), #selector(saveAs), #selector(exportDocument), #selector(placeImage), #selector(convertToSRGB), #selector(convertToP3),#selector(assignSRGB),#selector(assignP3): workspace.permissions.edits && workspace.hasDocument
         case #selector(openImage), #selector(newTab), #selector(openRecent(_:)): !busy
         default: true
@@ -381,6 +382,10 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
     @objc func undo() { if let textEditor { textEditor.undoManager?.undo() } else if workspace.canUndo { perform("edit.undo", [:]) } }
     @objc func redo() { if let textEditor { textEditor.undoManager?.redo() } else if workspace.canRedo { perform("edit.redo", [:]) } }
     @objc func convertToEightBit(){perform("image.convert_bit_depth",["bit_depth":8])}
+    @objc func autoTone(){autoCorrect("tone")}
+    @objc func autoContrast(){autoCorrect("contrast")}
+    @objc func autoColor(){autoCorrect("color")}
+    private func autoCorrect(_ method:String){guard let layer=selected else{return};perform("image.auto",["layer":["id":layer.id],"settings":["method":method]])}
     @objc func convertToSixteenBit(){perform("image.convert_bit_depth",["bit_depth":16])}
     @objc func convertToSRGB() { perform("color.convert", ["space": "srgb"]) }
     @objc func convertToP3() { perform("color.convert", ["space": "display_p3"]) }

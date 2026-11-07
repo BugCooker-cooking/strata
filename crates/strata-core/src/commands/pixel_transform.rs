@@ -85,11 +85,13 @@ pub(super) fn apply(
             if weights.iter().all(|v| *v == 0) {
                 continue;
             }
-            let mut pixels = doc.layers[index]
+            let original = doc.layers[index]
                 .pixels
                 .tile(coord)
-                .map_err(DocumentError::from)?
-                .map(|v| (*v).clone())
+                .map_err(DocumentError::from)?;
+            let mut pixels = original
+                .as_deref()
+                .cloned()
                 .unwrap_or_else(|| match doc.format {
                     PixelFormat::Rgba8 => PixelBuffer::Rgba8(vec![0; 256 * 256 * 4]),
                     PixelFormat::Rgba16 => PixelBuffer::Rgba16(vec![0; 256 * 256 * 4]),
@@ -161,6 +163,11 @@ pub(super) fn apply(
                     }
                     super::brush::set_alpha(&mut pixels, i, alphas[i]);
                 }
+            }
+            // A floating/ICC intermediate may differ while every final source
+            // code is unchanged. Do not publish a new tile/history for that.
+            if original.as_deref().is_some_and(|old| *old == pixels) {
+                continue;
             }
             doc.layers[index]
                 .pixels

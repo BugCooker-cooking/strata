@@ -1,0 +1,270 @@
+{
+  "date_local": "2026-11-07",
+  "timezone": "Asia/Taipei",
+  "base_checkpoint": "273c471",
+  "branch": "codex/v1-remaining",
+  "scope": "Resumed local acceptance after user restored Codex approval login: automatic contrast/tone/color and both high-pass spaces. Local increment checkpoint only, not full Photoshop or final AI closure.",
+  "approval_service": {
+    "restored": true,
+    "read_only_process_inventory_executed": true,
+    "native_and_required_gpu_commands_executed": true,
+    "prior_401_did_not_count_as_an_unsafe_action_determination": true,
+    "no_approval_bypass": true
+  },
+  "source_sha256": {
+    "apps/macos/Strata/App/AppDelegate.swift": "731582a6cfd9602d749b4dd85249f7f0a4861801fe8efffccdd10c644e8fd153",
+    "apps/macos/Strata/App/MainWindowController.swift": "541845a02988052c7976b4d8c6e7e7617f5dc9438eb612b2d17087a2e0a258fb",
+    "apps/macos/Strata/Workspace/FilterControls.swift": "6e90e44653edceb8ffe20425cfde9237b06c072379e5db60e58d971d27734cee",
+    "apps/macos/Strata/Workspace/WorkspaceModel.swift": "b73ca05fff51f567dce8e61cb9f2c634166459aad0b9b06553ae0c3026f2e8c6",
+    "apps/macos/StrataTests/AutoCorrectionTests.swift": "31bb365c30b2c9da34bf96e46943fd2833c5aa1458d8640c55d377fe4ea8bdd9",
+    "apps/macos/StrataTests/FilterPreviewTests.swift": "a9ad78b631f65d8aeab9b2be9be61fe8aa2efb40fb03041a52c257f530b3c781",
+    "crates/strata-ai/tests/replay.rs": "a9cfc5d08b6e2a0edf427efb9c8c9f3bfddc5513da6de3af8496895987584709",
+    "crates/strata-core/src/commands/auto_correct.rs": "02052aa3692f14493780a4bd822a88194d9e277f2a180ed0ecb6522f08071665",
+    "crates/strata-core/src/commands/executor.rs": "1e7c3bfcb8f15ee509f7eb49c5c37770fd238d7fb8686b348057ab9b6e66e9d5",
+    "crates/strata-core/src/commands/filters.rs": "a9486d96108ec0515fbc3ab2e8988e965ef09d9772f241c89e3d803be11aa4c3",
+    "crates/strata-core/src/commands/mod.rs": "cb0081d62eea7bc3c1e54eeb9641d233126af4037df3fda9dffc5c679b6b5798",
+    "crates/strata-core/src/commands/pixel_transform.rs": "ababedc6a89fa94d7bb267c99f7038603f8d8f76e4eea6fca5418a1f93901083",
+    "crates/strata-core/src/commands/registry.rs": "0cd390dacea4bd675f151b218b2d583482dfcdf7e0a967e7ac2226ce742c0b13",
+    "crates/strata-core/tests/auto_correct.rs": "02758e2cbb75d7ac6c8f812fdb4a29691377cdb8abe473a3599ad12460d9b75b",
+    "crates/strata-core/tests/filters.rs": "0786013f0534cd5c5e10ac09d3a10d2c86c5d14c3881a3506ed7542e19615ccf",
+    "crates/strata-ffi/src/filter_preview.rs": "cc73f4a3e8e656bed8651561cd5038acd18076703d7679570c3aad27098e1649",
+    "crates/strata-render/tests/gpu.rs": "c614d74051f2f03773227b74f46014c7052e790a801faf462de45416fa7de6d8",
+    "tools/strata-devtool/src/main.rs": "090e750dafba5d5f49136cc0718fb993d0244cdae72076e1359f3dba3f641196"
+  },
+  "log_sha256": {
+    "build/m7-auto-high-pass-project.log": "26faa608b8fa43e0ebee31d3abf0212498bc1029679f53e2ed5868d64ea4357f",
+    "build/m7-auto-high-pass-native.log": "c79d7bbba58300f86986da3a3300f359800ab8f33cb64431b3b671653e760bb5",
+    "build/m7-auto-high-pass-native-filter-fixed.log": "dd6662266dabda64f12ee82749d275e055f7698b423b5664188f8daf75aaf1f9",
+    "build/m7-auto-high-pass-metal-auto.log": "6c7de8f5a8ac1bf997907f7135d3a4372ec70fec8074ae3996c093477244343b",
+    "build/m7-auto-high-pass-metal-filters.log": "5a4ca0a01fd1af5f069c4fa1c0db37450fef4f7532e41d849baa22cdda077247",
+    "build/m7-auto-high-pass-metal-preview.log": "5b059453956a82116a18e3d8957af0c2cce6eb83bfb5a3327ea525adb123400d",
+    "build/m7-auto-high-pass-release.log": "bca7a651327aed5fbc584010dae8dfe6f7f7728838eabcfab28f18e54e281764",
+    "build/m7-auto-high-pass-swiftlint-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "build/m7-auto-high-pass-final-entrypoints.log": "ed5b63b0a9b6fee552ceff71cfaae223cac9c0c009900b657019d95ad4f30750",
+    "build/m7-auto-high-pass-final-ai-gate.log": "58775cd558643dbf55e44703bbdc00f7f6982cb47d878a0c39d4f6ad5cfe0375"
+  },
+  "native": {
+    "project_generation_passed": true,
+    "build_jobs": 2,
+    "parallel_testing": false,
+    "initial_complete_bundle": {
+      "total": 85,
+      "passed": 83,
+      "failed_test_functions": 1,
+      "failed_assertions": 9,
+      "explicit_live_network_opt_in_skips": 1,
+      "log": "build/m7-auto-high-pass-native.log"
+    },
+    "resolved_failure": {
+      "test": "FilterPreviewTests.testEachFilterPreviewsWithoutHistoryAndAppliesOnce",
+      "cause": "Its original0..1 black/white gradient was already full-range. Three image.auto variants correctly returned no-op, while the shared test incorrectly expected new history.",
+      "fix": "Use a bounded multichannel gradient [.2,.3,.4] to [.7,.9,.8] that actually needs correction. Preserve production no-op/history behavior.",
+      "changed_file": "apps/macos/StrataTests/FilterPreviewTests.swift"
+    },
+    "affected_suite_rerun": {
+      "passed": 11,
+      "failed": 0,
+      "skipped": 0,
+      "log": "build/m7-auto-high-pass-native-filter-fixed.log"
+    },
+    "final_unique_case_coverage": {
+      "total": 85,
+      "passed": 84,
+      "failed": 0,
+      "skipped": 1,
+      "scope": "Union of initial full bundle and the11-test affected suite rerun. This is not a claim of a second all-green full-bundle invocation."
+    },
+    "final_case_status": {
+      "AISettingsTests.testDocumentConversationsAreIndependentAtomicAndContainNoImagesOrCredentials": "passed",
+      "AISettingsTests.testKeysAreIsolatedByDestinationModelAndProviderAndNeverStoredInPreferences": "passed",
+      "AISettingsTests.testNativeAssistantBindsDocumentWithoutNetworkingAndRestoresUserControlAfterStop": "passed",
+      "AISettingsTests.testNewConversationPreservesHistoryAndReadsLegacyRecords": "passed",
+      "AISettingsTests.testRemoteHttpRequiresExplicitOptInAndLocalProviderStaysOnLoopback": "passed",
+      "AutoCorrectionTests.testDirectNativeAutomaticCommandsHaveOneUndoAndNoopPreservesRevision": "passed",
+      "AutoCorrectionTests.testSwitchingAutomaticMethodsKeepsTruthAndCancellingQueuedApplyCannotPublish": "passed",
+      "BenchmarkTests.testCallbackRateUsesDisplayDivisorAtOrAboveSixtyWhenAvailable": "passed",
+      "BenchmarkTests.testEmptyAndSingleSamplesCannotPass": "passed",
+      "BenchmarkTests.testLongStallsAreNotDiscarded": "passed",
+      "BenchmarkTests.testSixtyHzSequencePassesHostThreshold": "passed",
+      "BitDepthTests.testSixteenToEightUsesQuantizedCodesAndUndoRestoresNativeSamplePrecision": "passed",
+      "BitDepthTests.testWholeDocumentDepthChangesKeepNativeLayersMasksProfileAndOneUndo": "passed",
+      "BridgeTests.testCommandHistoryProjectRoundtripAndExport": "passed",
+      "BridgeTests.testCoreVersion": "passed",
+      "BridgeTests.testMetalLayerAttachResizeDetachPreservesDocument": "passed",
+      "BridgeTests.testMissingFileDoesNotReplaceDocument": "passed",
+      "BridgeTests.testOpenImageDeliversMainThreadEvent": "passed",
+      "BridgeTests.testProjectTypeKeepsSingleExtensionInSavePanel": "passed",
+      "BrushInputTests.testBrushAndEraserStageInputThenCommitExactlyOneHistory": "passed",
+      "BrushInputTests.testCloneNeedsSourceAndAlignedModeKeepsOffsetAcrossStrokes": "passed",
+      "BrushInputTests.testDodgeBurnAndSpongeUseNestedInputAndKeepSourceAlpha": "passed",
+      "BrushInputTests.testEscapeAndConfigurationChangeCancelUncommittedStroke": "passed",
+      "BrushInputTests.testHealingBrushKeepsTargetToneAndCommitsOneNestedStroke": "passed",
+      "BrushInputTests.testMaskStrokeAndForegroundBackgroundSwapUseNativeSettings": "passed",
+      "BrushInputTests.testSpotHealingNeedsNoSourceAndUsesNestedAtomicStroke": "passed",
+      "ClipboardTests.testNamedClipboardWithoutImageDoesNotGrantDocumentAccess": "passed",
+      "ClipboardTests.testNativeClipboardRoundtripUsesNamedPasteboardAndPreservesOrigin": "passed",
+      "ColorPanelTests.testAsyncPanelReadNeverPublishesOlderPaletteValuesAfterRapidUpdates": "passed",
+      "ColorPanelTests.testFormattedPanelReadsAndWritesDoNotInvalidateAnOwnedCropDraft": "passed",
+      "ColorPanelTests.testHsbAndHexDraftsShareCoreConversionAndKeepTheOtherTarget": "passed",
+      "ColorPanelTests.testInvalidDraftsCannotGenerateAnExecutablePayload": "passed",
+      "ColorPanelTests.testRgbDraftUsesTheSelectedDocumentCodeDepthAndCoreParsesTheSameSubmittedPayload": "passed",
+      "CropInputTests.testAllEightHandlesResizeOppositeEdgesAndKeepDraftOutOfHistory": "passed",
+      "CropInputTests.testDraggingRatioAndCancellationNeverEditSelectionPixelsOrHistoryUntilConfirm": "passed",
+      "CropInputTests.testExplicitDeleteModeUsesSameOwnedGestureAndExpansionCannotRestoreDeletedPixels": "passed",
+      "CropInputTests.testMoveAndRatioResizeCommitDisplayedRectAndKeepInitialRevisionBinding": "passed",
+      "CropInputTests.testNativeTrimPreservesPixelLayerAndTightRepeatDoesNotMakeHistory": "passed",
+      "CropInputTests.testNewDocumentAndCancelBeforeQueuedApplyCannotRetargetDraft": "passed",
+      "ExportOptionsTests.testLossyWebPModeHasQualityAndKeepsJpegMatteOutOfItsPayload": "passed",
+      "ExportOptionsTests.testQualityIsValidatedAndWebPIsExplicitlyLossless": "passed",
+      "ExportOptionsTests.testResizeDimensionsAndAspectLockRejectInvalidOrUnboundedOutput": "passed",
+      "ExportOptionsTests.testSixteenBitQuantizationRequiresConfirmationAndFormatsKeepExtensionInSync": "passed",
+      "FilterPreviewTests.testArbitraryImageAngleExpandsNativeFrameAndUndoKeepsLayerIds": "passed",
+      "FilterPreviewTests.testCancellationBeforeApplyWorkerStartsCannotReviveTheFilter": "passed",
+      "FilterPreviewTests.testCanvasSizeNativeCommandKeepsSelectionValidAndHasOneUndoStep": "passed",
+      "FilterPreviewTests.testChangingModeAndContextCannotCommitAnOldPreview": "passed",
+      "FilterPreviewTests.testCropAndRevealNativeCommandsKeepLayerPositionAndUndoToCleanGeometry": "passed",
+      "FilterPreviewTests.testEachFilterPreviewsWithoutHistoryAndAppliesOnce": "passed",
+      "FilterPreviewTests.testImageSizeAspectConstraintRoundsFromTheOriginalRatioAndRejectsInvalidInput": "passed",
+      "FilterPreviewTests.testImageSizeSamplingRetainsNativeLayerIdsAndOneUndoStep": "passed",
+      "FilterPreviewTests.testStraightenAngleAndLineAreOneNativeUndoIncludingSafeCrop": "passed",
+      "FilterPreviewTests.testTransformCornerInputRejectsMissingExtraAndNonfiniteCoordinates": "passed",
+      "FilterPreviewTests.testWholeImageOrientationKeepsNativeLayerStructureAndEachVariantUndoes": "passed",
+      "LiveAITests.testConfiguredServiceWithBothProtocols": "skipped",
+      "NewDocumentOptionsTests.testInvalidInputDisablesCreateAndCustomEditsClearPreset": "passed",
+      "NewDocumentOptionsTests.testPresetsDepthSpaceAndBackgroundProduceTheCoreContract": "passed",
+      "PaintColorStateTests.testNativePickerSampleSwapAndResetShareCorePaletteAndPreserveDocument": "passed",
+      "PaintFillInputTests.testBucketAndReadOnlySamplerHaveDifferentHistoryEffects": "passed",
+      "PaintFillInputTests.testEachGradientShapeCommitsOnceAfterDragAndCancelKeepsHistory": "passed",
+      "RecoveryTests.testIdleDeadlineBusyDeferralAndEditsDuringCheckpoint": "passed",
+      "RecoveryTests.testRealIdleMonitorWritesCheckpointAndSuccessfulSaveCleansIt": "passed",
+      "SelectionInputTests.testEllipseAndWandCommitOnceAndQuickWaitsForBothBrushClasses": "passed",
+      "SelectionInputTests.testPolygonStagesUntilReturnAndEscapeCancelsWithoutHistory": "passed",
+      "StraightenInputTests.testCancelBeforeQueuedApplyToolSwitchAndNewDocumentKeepTruth": "passed",
+      "StraightenInputTests.testDraggingOnlyDrawsGuideAndOneConfirmationCommitsRotationAndCrop": "passed",
+      "StraightenInputTests.testGuideValidationAndZeroCorrectionNeverWriteDocumentHistory": "passed",
+      "StraightenInputTests.testLateDraftAfterRevisionChangeCannotCommitAndPaletteChangesKeepTheOriginalGuide": "passed",
+      "StraightenInputTests.testSteepLineCanChangeAxisAndSamplingWithoutRetargetingTheDraft": "passed",
+      "SubjectModelStoreTests.testAssetMetadataContainsExactSupportedVersionAndLicense": "passed",
+      "SubjectModelStoreTests.testInvalidOversizedAndSymlinkImportsPreserveInstalledFileAndCleanStaging": "passed",
+      "TonalAdjustmentTests.testCurvePreviewUsesCoreInterpolationAtAllControlKnots": "passed",
+      "TonalAdjustmentTests.testDraftCommitCreatesOneHistoryAndUndoRestoresPriorCurveAndMask": "passed",
+      "TonalAdjustmentTests.testDraftRetainsEveryChannelAndSerializesStrictTonalSettings": "passed",
+      "TonalAdjustmentTests.testEveryPointColorDraftKeepsStrictCompleteSettingsThroughNativeDispatch": "passed",
+      "TonalPreviewTests.testApplyBeforeFirstPreviewAndValidationErrorKeepOneHistoryBoundary": "passed",
+      "TonalPreviewTests.testCancelBeforeDebounceAndContextChangeCannotCommitOrRetarget": "passed",
+      "TonalPreviewTests.testQuickOffOnSequenceRestartsPreviewWithoutCommit": "passed",
+      "TonalPreviewTests.testRapidPreviewEditsKeepDocumentHistoryAndApplyOnlyTheLatestSettings": "passed",
+      "WorkspaceTests.testBusyNavigationAndExplicitCancellationKeepTheWorkspaceResponsive": "passed",
+      "WorkspaceTests.testControlPolicyPreservesViewAccessAndFailsClosed": "passed",
+      "WorkspaceTests.testDocumentEnginesKeepSelectionHistoryAndDepthIndependent": "passed",
+      "WorkspaceTests.testMemoryPressureCallbackRunsOnUtilityQueueAndPreservesDocument": "passed",
+      "WorkspaceTests.testMinimumWorkspaceKeepsAllThreePanelsInsideContentBounds": "passed",
+      "WorkspaceTests.testRecentFilesAreNormalizedDeduplicatedCappedAndPersistent": "passed"
+    }
+  },
+  "required_real_metal": {
+    "environment": "STRATA_REQUIRE_GPU=1; NoAdapter is a failure, never an accepted skip.",
+    "passed_tests": 3,
+    "skipped": 0,
+    "checks": [
+      {
+        "test": "automatic_correction_methods_metal_match_cpu_and_undo_restores_sources",
+        "cases": "contrast/tone/color with soft selection/mask; CPU reference and exact restored scene",
+        "log": "build/m7-auto-high-pass-metal-auto.log"
+      },
+      {
+        "test": "gaussian_unsharp_high_pass_and_noise_display_match_linear_cpu_with_changed_alpha",
+        "cases": "Gaussian/USM/default working-RGB high pass/noise, alpha and CPU display reference",
+        "log": "build/m7-auto-high-pass-metal-filters.log"
+      },
+      {
+        "test": "filter_preview::tests::metal_preview_failure_restores_original_scene_and_cached_apply_keeps_display",
+        "cases": "Gaussian/USM/noise and working_rgb/linear_p3 high pass; preview, failed apply restoration, exact cached apply and undo",
+        "log": "build/m7-auto-high-pass-metal-preview.log"
+      }
+    ]
+  },
+  "arm64_app_release": {
+    "passed": true,
+    "build_jobs": 2,
+    "swift_wmo_backend_threads": 1,
+    "log": "build/m7-auto-high-pass-release.log",
+    "binary": "build/DerivedData/Build/Products/Release/Strata.app/Contents/MacOS/Strata",
+    "binary_sha256": "47ce73a2bc17269e2150905a2c71ad036eb9405a928180b81ab31d6164880e40"
+  },
+  "native_manual": {
+    "single_release_instance": true,
+    "fixture": "repository-provided generated sample-photo.jpg",
+    "size": [
+      1024,
+      1536
+    ],
+    "depth": 8,
+    "profile": "sRGB (assumed)",
+    "dpi": 72,
+    "auto_menu": {
+      "methods": [
+        "tone",
+        "contrast",
+        "color"
+      ],
+      "each_real_change_single_history": true,
+      "each_undo_restored_clean_original": true
+    },
+    "auto_parameters": {
+      "method": "color",
+      "clip_percent": 0.5,
+      "neutralize_strength": 0.7,
+      "preview_and_cancel_kept_document_clean": true,
+      "preview_apply_then_one_undo_restored_clean_original": true
+    },
+    "high_pass": {
+      "sigma": 2,
+      "spaces": [
+        "linear_p3",
+        "working_rgb"
+      ],
+      "native_default_space": "linear_p3",
+      "both_previews_changed_display_without_dirtying_document": true,
+      "both_applied_then_one_undo_restored_original": true,
+      "history_title": "高反差保留",
+      "visual_check": "Linear mode shows light-gray detail; working RGB mode shows50% encoded-gray detail, matching the documented different neutral points."
+    },
+    "final_document_clean": true,
+    "app_quit_observed_via_cua": true,
+    "post_exit_strata_and_xctest_processes": 0,
+    "user_other_apps_preserved": true,
+    "fixture_sha256_before_and_after": "c1006da29913609963479b8641c0e6f6a43ff2c6d8b2f907c91a6daf1afaa2ea",
+    "method": "Native CUA AX states/screenshots and explicit controls/menu/undo; no separate screenshot file artifact is asserted."
+  },
+  "final_swift_lint": {
+    "passed": true,
+    "log": "build/m7-auto-high-pass-swiftlint-final.log"
+  },
+  "prior_core_ai_lint_commands": "See automatic-correction and high-pass verification records. Production algorithm sources unchanged during this continuation; only the native test fixture and acceptance documentation changed.",
+  "cloud": {
+    "used": false,
+    "automatic_triggers": false,
+    "workflow_state_verified": "disabled_manually",
+    "workflow_id": 404259113,
+    "manual_dispatch_only": true,
+    "no_jobs_enabled_dispatched_rerun_or_awaited": true
+  },
+  "model_requests_started": 0,
+  "delivery": {
+    "policy": "Existing authorization: private origin/codex/v1-remaining and existing draft PR#1; no merge/release/visibility change. Record captured before its containing commit; use Git history/PR for delivery state."
+  },
+  "remaining": "Full Photoshop capabilities and final per-feature AI audit; independent continuous performance, live-model quality, actual macOS14/other hardware/platform, physical inputs, signing/notarization/release gates remain open.",
+  "final_ai_mapping_contract": {
+    "passed": 1,
+    "failed": 0,
+    "log": "build/m7-auto-high-pass-final-entrypoints.log",
+    "note": "Rechecked after acceptance notes updated. Prompt queries/strict descriptions still resolve real registered commands."
+  },
+  "final_ai_closure_gate": {
+    "complete": false,
+    "expected_exit_code": 1,
+    "log": "build/m7-auto-high-pass-final-ai-gate.log",
+    "note": "Full Photoshop and final per-feature AI coverage remain incomplete; this local increment does not satisfy that separate gate."
+  }
+}

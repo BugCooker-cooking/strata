@@ -912,5 +912,25 @@
         "path": "../research/2026-11-m7-color-panel-progress.md"
       }
     ]
+  },
+  "PS-03-691c261ce9": {
+    "implementation": "已实现",
+    "acceptance": "三种自动校正的核心/AI/原生/强制真实Metal/arm64 Release及单窗口菜单、70%中和预览取消/应用/撤销通过；当前设备已达增量验收检查点，持续大图性能、模型质量及完整PS门槛独立保留。",
+    "evidence": [
+      {
+        "label": "自动校正进展",
+        "path": "../research/2026-11-m7-auto-corrections-progress.md"
+      }
+    ]
+  },
+  "PS-10-10e03c578e": {
+    "implementation": "已实现",
+    "acceptance": "工作RGB/线性P3双空间、独立数值/双位深/ICC/选区/资源/撤销和AI调用通过；原生预览、强制真实Metal、arm64 Release及单窗口两种模式应用/撤销通过，完整PS与持续性能门槛独立保留。",
+    "evidence": [
+      {
+        "label": "高反差保留进展",
+        "path": "../research/2026-11-m7-high-pass-progress.md"
+      }
+    ]
   }
 }

@@ -1341,6 +1341,224 @@ fn arbitrary_image_rotation_is_discoverable_requires_exact_approval_and_undoes_o
 }
 
 #[test]
+fn high_pass_prompts_describe_require_exact_approval_invoke_and_undo_real_codes() {
+    for (query, space) in [
+        ("高反差保留", "working_rgb"),
+        ("High pass", "working_rgb"),
+        ("高反差保留", "linear_p3"),
+        ("High pass", "linear_p3"),
+    ] {
+        let host = Host::new();
+        host.user("paint.gradient", json!({"layer":{"name":"Background"},"start":[0.5,0.5],"end":[7.5,7.5],"stops":[{"at":0,"color":[0.2,0.3,0.4,1]},{"at":1,"color":[0.7,0.9,0.8,1]}]}));
+        let before = host
+            .editor
+            .lock()
+            .unwrap()
+            .document()
+            .unwrap()
+            .to_archive()
+            .unwrap();
+        let initial = host.snapshot().unwrap();
+        let mut session = host.session_with_prompt(ExecutionMode::Direct, "给当前像素层应用标准差2像素的高反差保留，保留透明度、蒙版和选区外原码。 / Apply high pass with sigma2.");
+        reply(
+            &mut session,
+            &host,
+            vec![
+                call("search", "search_catalog", json!({"query":query})),
+                call(
+                    "describe",
+                    "describe_commands",
+                    json!({"ids":["filter.high_pass"]}),
+                ),
+            ],
+        );
+        assert!(
+            result(session.poll(&host).unwrap())["matches"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|m| m["id"] == "filter.high_pass")
+        );
+        let spec = result(session.poll(&host).unwrap())["commands"][0].clone();
+        assert_eq!(spec["params"]["additionalProperties"], false);
+        assert_eq!(spec["returns"]["additionalProperties"], false);
+        assert_eq!(spec["batchable"], false);
+        assert!(
+            spec["effects"]
+                .as_array()
+                .unwrap()
+                .contains(&json!("pixels.replace"))
+        );
+        let params = json!({"layer":{"id":initial.active_layer},"sigma":2,"space":space});
+        reply(
+            &mut session,
+            &host,
+            vec![invoke("high-pass", "filter.high_pass", params.clone())],
+        );
+        let Step::Paused {
+            question_id,
+            operation,
+            ..
+        } = session.poll(&host).unwrap()
+        else {
+            panic!("missing exact replacement approval")
+        };
+        assert_eq!(operation.unwrap()["params"], params);
+        assert_eq!(host.snapshot().unwrap().revision, initial.revision);
+        let answer = result(
+            session
+                .respond(
+                    &host,
+                    HostAnswer {
+                        question_id,
+                        answer: String::new(),
+                        approved: true,
+                        resource: None,
+                    },
+                )
+                .unwrap(),
+        );
+        assert!(answer["result"]["touched_tiles"].as_u64().unwrap() > 0);
+        let after = host
+            .editor
+            .lock()
+            .unwrap()
+            .document()
+            .unwrap()
+            .to_archive()
+            .unwrap();
+        assert!(
+            after.tiles != before.tiles,
+            "high pass did not edit raw codes"
+        );
+        assert_eq!(
+            host.snapshot().unwrap().history.len(),
+            initial.history.len() + 1
+        );
+        assert_eq!(
+            host.snapshot().unwrap().history.last().unwrap().command,
+            "filter.high_pass"
+        );
+        host.editor.lock().unwrap().stop_turn();
+        host.user("edit.undo_turn", json!({"turn_id":session.turn_id()}));
+        assert!(
+            host.editor
+                .lock()
+                .unwrap()
+                .document()
+                .unwrap()
+                .to_archive()
+                .unwrap()
+                == before,
+            "high-pass AI turn undo changed source archive"
+        );
+    }
+}
+
+#[test]
+fn automatic_correction_methods_discover_describe_require_exact_approval_and_undo_the_turn() {
+    for (method, query) in [
+        ("tone", "自动色调"),
+        ("contrast", "自动对比度"),
+        ("color", "自动颜色"),
+    ] {
+        let host = Host::new();
+        host.user("paint.gradient",json!({"layer":{"name":"Background"},"start":[0.5,0.5],"end":[7.5,7.5],"stops":[{"at":0,"color":[0.2,0.3,0.4,1]},{"at":1,"color":[0.7,0.9,0.8,1]}]}));
+        let before = host
+            .editor
+            .lock()
+            .unwrap()
+            .document()
+            .unwrap()
+            .to_archive()
+            .unwrap();
+        let initial = host.snapshot().unwrap();
+        let mut session = host.session_with_prompt(
+            ExecutionMode::Direct,
+            "对当前像素层做自动校正，保留原图层、蒙版和精度，允许一次撤销。",
+        );
+        reply(
+            &mut session,
+            &host,
+            vec![
+                call("search", "search_catalog", json!({"query":query})),
+                call(
+                    "describe",
+                    "describe_commands",
+                    json!({"ids":["image.auto"]}),
+                ),
+            ],
+        );
+        assert!(
+            result(session.poll(&host).unwrap())["matches"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|m| m["id"] == "image.auto")
+        );
+        let spec = result(session.poll(&host).unwrap())["commands"][0].clone();
+        assert_eq!(spec["returns"]["additionalProperties"], false);
+        assert_eq!(spec["batchable"], false);
+        let mut settings = json!({"method":method,"clip_percent":0.5});
+        if method == "color" {
+            settings["neutralize_strength"] = json!(0.7);
+        }
+        reply(
+            &mut session,
+            &host,
+            vec![invoke(
+                "auto",
+                "image.auto",
+                json!({"layer":{"name":"Background"},"settings":settings}),
+            )],
+        );
+        let Step::Paused {
+            question_id,
+            operation,
+            ..
+        } = session.poll(&host).unwrap()
+        else {
+            panic!()
+        };
+        assert_eq!(operation.unwrap()["params"]["settings"], settings);
+        assert_eq!(host.snapshot().unwrap().revision, initial.revision);
+        let answer = result(
+            session
+                .respond(
+                    &host,
+                    HostAnswer {
+                        question_id,
+                        answer: String::new(),
+                        approved: true,
+                        resource: None,
+                    },
+                )
+                .unwrap(),
+        );
+        assert_eq!(answer["result"]["method"], method);
+        assert_eq!(answer["result"]["changed"], true);
+        assert!(answer["result"]["sampled_pixels"].as_u64().unwrap() > 0);
+        assert_eq!(
+            host.snapshot().unwrap().history.len(),
+            initial.history.len() + 1
+        );
+        host.editor.lock().unwrap().stop_turn();
+        host.user("edit.undo_turn", json!({"turn_id":session.turn_id()}));
+        assert!(
+            host.editor
+                .lock()
+                .unwrap()
+                .document()
+                .unwrap()
+                .to_archive()
+                .unwrap()
+                == before,
+            "AI auto turn undo changed source archive"
+        );
+    }
+}
+
+#[test]
 fn image_size_modes_are_discoverable_require_exact_approval_and_undo_the_turn() {
     for mode in ["nearest", "bilinear", "area"] {
         let host = Host::new();

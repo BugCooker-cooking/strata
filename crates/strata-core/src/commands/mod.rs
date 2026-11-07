@@ -1,4 +1,5 @@
 mod arrange;
+mod auto_correct;
 mod brush;
 mod cancellation;
 mod canvas;
@@ -54,6 +55,60 @@ macro_rules! params {
     };
 }
 params!(Empty {});
+fn auto_clip_percent() -> f64 {
+    0.5
+}
+fn auto_neutralize() -> f64 {
+    1.0
+}
+#[derive(Clone, Copy, Debug, Serialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum AutoCorrectionMode {
+    Contrast,
+    Tone,
+    Color,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(tag = "method", rename_all = "snake_case", deny_unknown_fields)]
+pub enum AutoCorrectionSettings {
+    Contrast {
+        #[serde(default = "auto_clip_percent")]
+        #[schemars(range(min = 0, max = 5))]
+        clip_percent: f64,
+    },
+    Tone {
+        #[serde(default = "auto_clip_percent")]
+        #[schemars(range(min = 0, max = 5))]
+        clip_percent: f64,
+    },
+    Color {
+        #[serde(default = "auto_clip_percent")]
+        #[schemars(range(min = 0, max = 5))]
+        clip_percent: f64,
+        #[serde(default = "auto_neutralize")]
+        #[schemars(range(min = 0, max = 1))]
+        neutralize_strength: f64,
+    },
+}
+params!(AutoCorrect {
+    layer: LayerRef,
+    settings: AutoCorrectionSettings
+});
+#[derive(Serialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct AutoCorrectionResult {
+    pub layer_id: crate::LayerId,
+    pub method: AutoCorrectionMode,
+    pub clip_percent: f64,
+    pub neutralize_strength: f64,
+    pub input_black: [f64; 3],
+    pub input_white: [f64; 3],
+    pub gamma: [f64; 3],
+    pub sampled_pixels: u64,
+    pub weighted_samples: f64,
+    pub touched_tiles: usize,
+    pub changed: bool,
+}
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(try_from = "u8", into = "u8")]
 pub enum ImageBitDepth {
@@ -446,6 +501,21 @@ params!(GaussianBlur {
     #[schemars(range(min = 0.1, max = 64.0))]
     sigma: f64
 });
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum HighPassSpace {
+    #[default]
+    WorkingRgb,
+    LinearP3,
+}
+params!(HighPass {
+    layer: LayerRef,
+    #[serde(default = "filter_sigma")]
+    #[schemars(range(min = 0.1, max = 64.0))]
+    sigma: f64,
+    #[serde(default)]
+    space: HighPassSpace
+});
 params!(UnsharpMask {
     layer: LayerRef,
     #[serde(default = "filter_sigma")]
@@ -812,6 +882,7 @@ params!(SpongeStroke {
     vibrance: bool
 });
 #[derive(Serialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
 pub struct BrushResult {
     pub layer_id: crate::LayerId,
     pub target: BrushTarget,

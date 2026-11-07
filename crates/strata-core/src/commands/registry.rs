@@ -959,6 +959,24 @@ fn build_catalog() -> Vec<CommandSpec> {
         json!({"layer":{"name":"Background"},"sigma":2})
     );
     command!(
+        "image.auto",
+        AutoCorrect,
+        Mutate,
+        "自动色调 / 对比度 / 颜色",
+        "Automatic tone contrast and color",
+        "Automatically correct an explicit visible unlocked pixel layer (visible ancestors required, so hidden-layer source statistics are not disclosed), using immutable raw working-RGB source inside the artboard and current selection. settings.method=contrast pools all three RGB histograms to derive one shared black/white stretch; tone derives each RGB channel stretch independently; color adds a midtone-neutralization gamma per channel. clip_percent0..5 (default .5) is removed independently from each tail using exact65536-bin encoded source-code histograms weighted by u16 selection*source alpha; integer totals/quantiles never lose precision through an8-bit preview or floating total. Upper weighted median estimates neutral midtones for color: t=(median-black)/(white-black), target_gamma=clamp(log(t)/log(.5),.1,10) if0<t<1, otherwise1; gamma=target_gamma^neutralize_strength, strength0..1(default1). Stretch then pow(value,1/gamma); flat-range channels stay exact identity. This gray-world median assumption can alter intentional color casts; strength0 gives the same correction as tone. All formats use actual encoded working RGB, not an Adobe proprietary algorithm equivalence claim. Full selection writes mapped8/16-bit RGB codes directly with one nearest-code quantization (half-code ties within1e-9 code round upward consistently); soft selection blends original/transformed colors once in linear P3 through the actual ICC. Preserve original alpha, alpha-zero hidden RGB, zero-selection/off-artboard samples, layer masks/definitions/styles/structure/ICC/depth. Layer/ancestor pixel/all locks reject; transparency/position locks allowed because alpha/geometry do not change. No nonpixel implicit rasterization, no visible-composite/other-layer input. At most64M sample visits, bounded exact histograms/LUTs and per-tile pooled scratch/output, row/quantile/LUT cancellation, one atomic history and exact undo. No eligible selected opaque samples or no actual code change returns changed=false with no revision/history/dirty/current-layer change. Not batchable; exact AI pixels.replace approval. Shared native/AI command and one-slot cancellable original-context display preview. 中文：自动色调、自动对比度、自动颜色、自动校正、端点裁切、分通道对比度、中间调中和、灰世界、当前像素层。",
+        json!({"layer":{"name":"Background"},"settings":{"method":"tone","clip_percent":0.5}})
+    );
+    command!(
+        "filter.high_pass",
+        HighPass,
+        Mutate,
+        "高反差保留",
+        "High pass",
+        "Retain fine detail on an explicit unlocked pixel layer: compute clamp(0.5 + source - Gaussian(source),0,1) per RGB channel, preserving source alpha. space=working_rgb(default) operates in encoded document-working RGB and produces 50% working gray in flat areas; space=linear_p3 operates in linear Display P3 and centers flat areas on0.5 linear light, the neutral point for Strata overlay/soft-light/linear-light blending. Choose linear_p3 for overlay sharpening without darkening flat areas; working gray is not the neutral point of those linear blend modes. sigma 0.1..64 canvas pixels (default2), radius ceil(3*sigma); normalized separable Gaussian with double-precision alpha-weighted accumulation and unpremultiplication, so transparent hidden RGB never creates fringes. Low frequency and subtraction use the same chosen space; filter.gaussian_blur remains linear light. Both modes are documented algorithms, not an Adobe proprietary equivalence claim. Clamp sampling at artboard edges; missing source inside artboard is transparent. Use immutable raw layer input, not the visible composite or the selection-clipped input. Current u16 selection affects publication once in linear P3 through the actual ICC. Preserve exact source alpha, fully transparent hidden RGB and all zero-selection/off-artboard codes, masks/styles/structure/ICC and8/16-bit depth; RGB is quantized only at final publication with normal ICC floating precision. Pixel/all or ancestor locks reject, position/transparency locks allowed; nonpixel targets reject without rasterization. At most64M pixels in the artboard-clipped selection bounding rectangle; one cached output tile and bounded halo at most640x640, pooled scratch/source/output budgets and row cancellation. An unchanged final code tile is not published; touched_tiles=0 has no history/revision/dirty/current-layer change. One atomic history/undo, not batchable, exact AI pixels.replace approval. Native parameters and cancellable one-slot original-context preview use this same command. 中文：高反差保留/高通滤镜从原像素减去同空间的透明度加权高斯低频，再加中性值并截到0–1。工作RGB模式得到50%编码灰；线性P3模式适用于叠加锐化，在叠加/柔光/线性光混合中保持平坦区域中性。标准差0.1–64像素，保留原透明度、隐藏RGB、选区外原码和蒙版，选区软边只混合一次。实际变化可一次撤销，零变化无历史；逐次像素替换授权与原生参数/预览同源。关键词：保留细节、灰底纹理、边缘细节、线性高反差、50%灰。",
+        json!({"layer":{"name":"Background"},"sigma":2})
+    );
+    command!(
         "filter.unsharp_mask",
         UnsharpMask,
         Mutate,
@@ -1131,6 +1149,7 @@ fn build_catalog() -> Vec<CommandSpec> {
     );
     for item in &mut list {
         item.returns = match item.id {
+            "image.auto" => schemars::schema_for!(AutoCorrectionResult),
             "image.rotate" => schemars::schema_for!(RotateImageResult),
             "image.resize" => schemars::schema_for!(ResizeImageResult),
             "image.straighten" => schemars::schema_for!(StraightenImageResult),
@@ -1155,6 +1174,7 @@ fn build_catalog() -> Vec<CommandSpec> {
             | "paint.bucket"
             | "paint.gradient"
             | "filter.gaussian_blur"
+            | "filter.high_pass"
             | "filter.unsharp_mask"
             | "filter.add_noise" => schemars::schema_for!(BrushResult),
             "retouch.dodge" | "retouch.burn" | "retouch.sponge" => {
@@ -1319,6 +1339,17 @@ fn build_catalog() -> Vec<CommandSpec> {
                 item.examples
                     .push(json!({"width":23,"height":19,"interpolation":interpolation}));
             }
+        }
+        if item.id == "image.auto" {
+            item.examples.push(json!({"layer":{"name":"Background"},"settings":{"method":"contrast","clip_percent":0}}));
+            item.examples.push(json!({"layer":{"name":"Background"},"settings":{"method":"color","clip_percent":1,"neutralize_strength":0.7}}));
+            item.batchable = false;
+            item.effects.push("pixels.replace");
+        }
+        if item.id == "filter.high_pass" {
+            item.effects.push("pixels.replace");
+            item.examples
+                .push(json!({"layer":{"name":"Background"},"sigma":2,"space":"linear_p3"}));
         }
         if item.id == "image.straighten" {
             item.examples.push(json!({"reference":{"type":"line","start":[2,4],"end":[13,5],"align":"horizontal"},"crop":true,"interpolation":"nearest"}));

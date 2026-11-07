@@ -79,6 +79,13 @@ fn examples() -> Result<(), Box<dyn Error>> {
             };
             let mut args = example.clone();
             match spec.id {
+                "image.auto" | "filter.high_pass" => {
+                    run(
+                        &mut editor,
+                        "paint.gradient",
+                        json!({"layer":{"name":"Background"},"start":[0.5,0.5],"end":[15.5,15.5],"stops":[{"at":0,"color":[0.2,0.3,0.4,1]},{"at":1,"color":[0.7,0.9,0.8,1]}]}),
+                    )?;
+                }
                 "image.convert_bit_depth" => {
                     let depth = if args["bit_depth"] == 16 { 8 } else { 16 };
                     let color = if depth == 8 {
@@ -310,6 +317,14 @@ fn examples() -> Result<(), Box<dyn Error>> {
             let result = run(&mut editor, spec.id, args)?;
             if !result.is_object() {
                 return Err(format!("{} returned non-object", spec.id).into());
+            }
+            if spec.id == "filter.high_pass" && result["touched_tiles"].as_u64().unwrap_or(0) == 0 {
+                return Err("high-pass example did not change any source tile".into());
+            }
+            if spec.id == "image.auto" && result["changed"] != true {
+                return Err(
+                    "automatic correction example did not execute a real pixel change".into(),
+                );
             }
         }
     }

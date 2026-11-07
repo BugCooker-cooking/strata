@@ -294,7 +294,21 @@ mod tests {
         for (command, params) in [
             ("filter.gaussian_blur", json!({"sigma":0.8})),
             ("filter.unsharp_mask", json!({"sigma":0.8,"amount":1.2})),
+            ("filter.high_pass", json!({"sigma":0.8})),
+            ("filter.high_pass", json!({"sigma":0.8,"space":"linear_p3"})),
             ("filter.add_noise", json!({"amount":0.08,"seed":42})),
+            (
+                "image.auto",
+                json!({"settings":{"method":"contrast","clip_percent":0}}),
+            ),
+            (
+                "image.auto",
+                json!({"settings":{"method":"tone","clip_percent":0}}),
+            ),
+            (
+                "image.auto",
+                json!({"settings":{"method":"color","clip_percent":0,"neutralize_strength":0.7}}),
+            ),
             (
                 "transform.apply",
                 json!({"scope":"whole_layer","geometry":{"type":"components","translation":[0.5,0.25]}}),
@@ -479,6 +493,8 @@ mod tests {
         for (command, params) in [
             ("filter.gaussian_blur", json!({"sigma":0.8})),
             ("filter.unsharp_mask", json!({"sigma":0.8,"amount":1.2})),
+            ("filter.high_pass", json!({"sigma":0.8})),
+            ("filter.high_pass", json!({"sigma":0.8,"space":"linear_p3"})),
             ("filter.add_noise", json!({"amount":0.08,"seed":42})),
         ] {
             let mut renderer =

@@ -1,0 +1,201 @@
+{
+  "date_local": "2026-11-07",
+  "timezone": "Asia/Taipei",
+  "base_checkpoint": "273c471",
+  "branch": "codex/v1-remaining",
+  "scope": "Real high-pass filtering in encoded working RGB or linear P3, original-context preview and native parameter wiring, executable command examples and actual AI permission/invocation/turn undo. Native/hardware/application local gates were subsequently completed in the linked closure followup; Git delivery is in the containing commit/PR.",
+  "user_direction": "Handle Codex approval-service login later; continue independent development. Existing local-only testing and single native instance constraints remain.",
+  "source_sha256": {
+    "crates/strata-core/src/commands/mod.rs": "cb0081d62eea7bc3c1e54eeb9641d233126af4037df3fda9dffc5c679b6b5798",
+    "crates/strata-core/src/commands/filters.rs": "a9486d96108ec0515fbc3ab2e8988e965ef09d9772f241c89e3d803be11aa4c3",
+    "crates/strata-core/src/commands/pixel_transform.rs": "ababedc6a89fa94d7bb267c99f7038603f8d8f76e4eea6fca5418a1f93901083",
+    "crates/strata-core/src/commands/executor.rs": "1e7c3bfcb8f15ee509f7eb49c5c37770fd238d7fb8686b348057ab9b6e66e9d5",
+    "crates/strata-core/src/commands/registry.rs": "0cd390dacea4bd675f151b218b2d583482dfcdf7e0a967e7ac2226ce742c0b13",
+    "crates/strata-core/tests/filters.rs": "0786013f0534cd5c5e10ac09d3a10d2c86c5d14c3881a3506ed7542e19615ccf",
+    "apps/macos/Strata/Workspace/FilterControls.swift": "6e90e44653edceb8ffe20425cfde9237b06c072379e5db60e58d971d27734cee",
+    "apps/macos/Strata/Workspace/WorkspaceModel.swift": "b73ca05fff51f567dce8e61cb9f2c634166459aad0b9b06553ae0c3026f2e8c6",
+    "apps/macos/StrataTests/FilterPreviewTests.swift": "237a1c5feb564368d1c9795db7cdb489ab9f1cb8a6bc039798f81506f132c9d7",
+    "crates/strata-ai/tests/replay.rs": "a9cfc5d08b6e2a0edf427efb9c8c9f3bfddc5513da6de3af8496895987584709",
+    "crates/strata-ffi/src/filter_preview.rs": "cc73f4a3e8e656bed8651561cd5038acd18076703d7679570c3aad27098e1649",
+    "crates/strata-render/tests/gpu.rs": "c614d74051f2f03773227b74f46014c7052e790a801faf462de45416fa7de6d8",
+    "tools/strata-devtool/src/main.rs": "090e750dafba5d5f49136cc0718fb993d0244cdae72076e1359f3dba3f641196",
+    "docs/research/ai-editing-entrypoints.json": "65e2382e12b8966ee85d38812690badf4e82abcaf6b4ad85d683fd5274f9ca75",
+    "docs/commands/reference.md": "4b5fd1380c95f0f6b5eca3627bd8699b101bec28b4464e9e1fce73c69f28dc18"
+  },
+  "log_sha256": {
+    "build/m7-high-pass-core-regression.log": "acc30f700f986b4120306ec44839b35ab8fbc017e8c031fec9adc84bbb242985",
+    "build/m7-high-pass-core.final.log": "e66b0734a745c816026f1f79f3d217e68033a1c522df74c6c1f26158c05fcc6d",
+    "build/m7-high-pass-ai.final.log": "56785c5f94fdfa1496b4d469c48883c5cf4083d87838c63f6f658e950b9dc4f9",
+    "build/m7-high-pass-ffi.final.log": "99850aa645e5938ce5ed9c1c31611d3ea896f2c68bf5f52c325b3b08282ef0d5",
+    "build/m7-high-pass-rust-release.log": "51527343e903b675562b0448896a2a49ce1ff00442e3770d4e9a5309adbf8560",
+    "build/m7-high-pass-lint.log": "eddcdd50280afb2ded227844308bcfb7a72fc331d5ed9a99ab7e088db73777b1",
+    "build/m7-high-pass-commands.log": "33d285dc3131efdc5f6fde892f3051157fb02b038f91b62ada7e8101e2e4ddc9",
+    "build/m7-high-pass-final-ai-gate.log": "58775cd558643dbf55e44703bbdc00f7f6982cb47d878a0c39d4f6ad5cfe0375"
+  },
+  "executed_checks": {
+    "first_stage_full_core_regression": {
+      "passed": 286,
+      "failed": 0,
+      "ignored": 0,
+      "log": "build/m7-high-pass-core-regression.log",
+      "source_sha256": {
+        "crates/strata-core/src/commands/mod.rs": "43f1a81790b4a6eb749fb2a585697f181cc9ad69972c88da8459bf4e91c863d3",
+        "crates/strata-core/src/commands/filters.rs": "6fd2de2545e4a2b50f7b925ccf133f4e5833b9878d776d2fea3bfe018d7abe02",
+        "crates/strata-core/src/commands/pixel_transform.rs": "ababedc6a89fa94d7bb267c99f7038603f8d8f76e4eea6fca5418a1f93901083",
+        "crates/strata-core/src/commands/executor.rs": "1e7c3bfcb8f15ee509f7eb49c5c37770fd238d7fb8686b348057ab9b6e66e9d5",
+        "crates/strata-core/src/commands/registry.rs": "65fd0df3a36e25f757c4e621c3542f3713ed9e30558e7dcb3373998d7c1506c4",
+        "crates/strata-core/tests/filters.rs": "e28b1a543ce63bfc03d421f652c4e9c0687cc32b8c8ef717a1eb88b503ed3a25",
+        "crates/strata-core/src/commands/auto_correct.rs": "02052aa3692f14493780a4bd822a88194d9e277f2a180ed0ecb6522f08071665",
+        "crates/strata-core/tests/auto_correct.rs": "02758e2cbb75d7ac6c8f812fdb4a29691377cdb8abe473a3599ad12460d9b75b"
+      },
+      "scope": "Full strata-core before adding the optional linear_p3 high-pass mode:285 unit/integration checks plus1 compile-fail documentation check. Shared pixel publication no-op comparison was already present. Do not present this as a full final-source run."
+    },
+    "final_core_subset": {
+      "passed": 28,
+      "failed": 0,
+      "ignored": 0,
+      "log": "build/m7-high-pass-core.final.log",
+      "high_pass_tests": 9,
+      "previous_filter_tests": 9,
+      "auto_correction_tests": 10,
+      "scope": "Final numerical implementation of both high-pass spaces. A later bilingual registry-description-only edit was exercised by final AI/command/lint checks."
+    },
+    "final_ai": {
+      "passed": 34,
+      "failed": 0,
+      "ignored": 0,
+      "log": "build/m7-high-pass-ai.final.log",
+      "replay_tests": 33,
+      "mapping_contract_tests": 1,
+      "high_pass_actual_approval_invoke_undo_cases": 4,
+      "spaces": [
+        "working_rgb",
+        "linear_p3"
+      ],
+      "languages": [
+        "Chinese",
+        "English"
+      ]
+    },
+    "final_headless_preview": {
+      "passed": 4,
+      "failed": 0,
+      "ignored": 0,
+      "log": "build/m7-high-pass-ffi.final.log",
+      "gpu_used": false,
+      "explicitly_skipped_test": "metal_preview_failure_restores_original_scene_and_cached_apply_keeps_display",
+      "scope": "Four headless filter preview session/cancellation/atomic-apply checks. Both high-pass spaces and three automatic correction methods execute staged candidate changes. No GPU checks counted."
+    },
+    "rust_optimized": {
+      "passed": 9,
+      "failed": 0,
+      "ignored": 0,
+      "log": "build/m7-high-pass-rust-release.log",
+      "scope": "Optimized Rust high-pass integration tests only; not a macOS App Release build."
+    },
+    "command_examples": {
+      "registered_commands": 124,
+      "parameter_example_cases": 185,
+      "high_pass_examples": 2,
+      "high_pass_examples_require_touched_tiles": true,
+      "auto_examples_require_changed_true": true,
+      "passed": true,
+      "log": "build/m7-high-pass-commands.log"
+    },
+    "lint": {
+      "passed": true,
+      "checks": [
+        "rustfmt",
+        "workspace all-target Clippy -D warnings",
+        "portability",
+        "Swift lint",
+        "generated feature coverage"
+      ],
+      "log": "build/m7-high-pass-lint.log"
+    },
+    "ai_development_audit": {
+      "registered_commands": 124,
+      "mapped_composite_rows": 87,
+      "inventory_rows": 265,
+      "partial_entrypoints": 9,
+      "unmapped_implemented": [],
+      "unknown_native_command_references": {},
+      "untyped_command_returns": [],
+      "final_complete": false,
+      "strict_final_gate_exit_code": 1,
+      "strict_final_gate_expected_failure_log": "build/m7-high-pass-final-ai-gate.log"
+    },
+    "diff_and_generated_documents": {
+      "diff_check": true,
+      "feature_coverage_check": true,
+      "ai_entrypoints_check": true,
+      "command_reference_check": true
+    }
+  },
+  "semantics": {
+    "spaces": "working_rgb(default): exact-source-code normalization then alpha-weighted Gaussian in encoded working RGB; flat colors yield50% encoded gray. linear_p3: alpha-weighted Gaussian and residual in linear Display P3, flat colors yield0.5 linear light, the neutral point for current overlay/soft-light/linear-light. Native defaults to linear_p3 and explicitly offers both choices. Both compute clamp(.5+source-low,0,1); not Adobe proprietary equivalence.",
+    "sampling": "Immutable input, separable normalized Gaussian with f64 accumulation; sigma.1..64, radius ceil(3*sigma). Full input halo independent of current selection, clamp at artboard edges, missing source inside artboard transparent, ignore alpha-zero hidden RGB.",
+    "publication": "Current u16 selection blends once in linear P3 through actual ICC, final source-depth8/16-bit quantization only. Exact alpha, transparent hidden RGB, zero coverage/off-artboard samples, masks/styles/structure/ICC retained. Compare final source tile codes before publishing to avoid no-op writes.",
+    "history": "One atomic edit/undo and exact project roundtrip. touched_tiles=0 keeps revision/history/dirty and newer current-layer selection. Fixed the executor no-op path uncovered by actual tests.",
+    "limits": "64M artboard-clipped selection bounding-box pixels; one output-tile cache, bounded halo, shared pool scratch/source/output reservations and row cancellation. Runtime cancellation is observed after scratch allocation; it does not claim an instruction-specific convolution checkpoint.",
+    "permissions": "Explicit pixel target; reject pixel/all and corresponding ancestor locks, allow transparency/position locks. Nonpixel rejects without rasterization. Exact AI pixels.replace approval before invocation even in direct mode.",
+    "native": "Same FilterPanel mode/sigma and original-context preview command as AI; native code now compiled and executed, both spaces accepted in one Release window. See closure record."
+  },
+  "approval_service": {
+    "retry_count_this_continuation": 0,
+    "prior_failure": "Automatic approval review authentication401/token_expired. Action not executed; not an unsafe-action determination.",
+    "user_chose_to_handle_later": true,
+    "restored_in_closure_followup": true
+  },
+  "cloud_builds": {
+    "used": false,
+    "pushes": 0,
+    "workflow_file": "Only workflow_dispatch; automatic triggers remain absent. Remote workflow last known disabled_manually; no cloud state changed."
+  },
+  "live_models": {
+    "requests_started_this_continuation": 0,
+    "separate_m3_keychain_gate": "Unchanged; not retried."
+  },
+  "remaining": "Full Photoshop editing, final per-feature AI closure and independent continuous performance/model-quality/hardware/platform/release gates remain open. Initial approval/GPU/native/App/manual blockers were resolved by the linked local closure record.",
+  "initial_pending_gates": {
+    "native_xctest": {
+      "status": "pending",
+      "reason": "Prior automatic approval-service authentication failed with401/token_expired before execution. User chose to handle login later. No retry or bypass this continuation.",
+      "targets": [
+        "StrataTests/AutoCorrectionTests",
+        "StrataTests/FilterPreviewTests"
+      ]
+    },
+    "required_real_metal": {
+      "status": "pending",
+      "reason": "Earlier auto-correction attempt returned NoAdapter without numerical body execution. No new GPU attempt this continuation; no hardware pass claimed. High-pass shader-display comparison and FFI real-Metal preview cases are wired and remain unexecuted."
+    },
+    "macos_app_release": {
+      "status": "pending",
+      "rust_optimized_tests_are_not_app_release": true
+    },
+    "native_manual": {
+      "status": "pending",
+      "windows_opened_this_continuation": 0,
+      "running_user_instance_count": "Not inspected; prior process inventory did not execute."
+    },
+    "git_commit_push_pr": {
+      "status": "not_executed",
+      "working_tree": "Uncommitted reviewable increment; HEAD/origin checkpoint273c471 unchanged. No remote update this continuation."
+    }
+  },
+  "closure_followup": {
+    "date_local": "2026-11-07",
+    "record": "2026-11-07-m7-auto-high-pass-native-closure.json",
+    "approval_service_restored": true,
+    "native_final_unique_passed": 84,
+    "native_explicit_opt_in_skipped": 1,
+    "required_real_metal_tests_passed": 3,
+    "arm64_app_release_passed": true,
+    "single_window_manual_passed": true,
+    "final_running_instances": 0,
+    "scope": "Native/GPU/App/manual local increment gates completed after login recovery. Git delivery is recorded in the containing commit/PR; full Photoshop and final AI remain open.",
+    "native_unresolved_failures": 0
+  },
+  "source_snapshot_note": "Original fingerprints identify the earlier core/AI verification checkpoint. Current accepted code and native test fixture fingerprints are in2026-11-07-m7-auto-high-pass-native-closure.json. The only source edit during resumed acceptance was a native test fixture correction; production algorithms were unchanged."
+}
