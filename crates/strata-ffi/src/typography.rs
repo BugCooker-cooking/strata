@@ -187,7 +187,11 @@ mod tests {
             Err(error) => panic!("GPU: {error}"),
         };
         let e = engine();
-        e.dispatch("type.create".into(), params()).unwrap();
+        let mut transparent: Value = serde_json::from_str(&params()).unwrap();
+        transparent["color"] = json!([0, 0, 0, 0]);
+        e.dispatch("type.create".into(), transparent.to_string())
+            .unwrap();
+        e.dispatch("transform.apply".into(),json!({"layer":{"name":"Type"},"scope":"whole_layer","geometry":{"type":"components","scale":[1.1,0.9],"rotation_degrees":13,"shear_degrees":[6,0],"pivot":[35,28]}}).to_string()).unwrap();
         e.dispatch("layer.set_styles".into(),json!({"layer":{"name":"Type"},"styles":{"stroke":{"color":[10001,50001,30003,65535],"size":1,"position":"outside"},"drop_shadow":{"color":[0,0,0,32769],"offset_x":2,"offset_y":2,"blur":1}}}).to_string()).unwrap();
         {
             let mut inner = e.lock().unwrap();

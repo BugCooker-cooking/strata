@@ -236,7 +236,22 @@ fn catalog_is_lazy_bilingual_bounded_and_has_no_unimplemented_commands() {
     }
     assert!(catalog::describe(&[]).is_err());
     assert!(catalog::browse(Some("unknown")).is_err());
-    assert!(catalog::describe(&["type.create".into()]).is_err());
+    assert!(catalog::describe(&["type.on_path".into()]).is_err());
+    let text = catalog::describe(&[
+        "type.fonts".into(),
+        "type.create".into(),
+        "type.inspect".into(),
+        "type.update".into(),
+    ])
+    .unwrap();
+    assert_eq!(text["commands"].as_array().unwrap().len(), 4);
+    assert!(
+        text["commands"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|c| c["params"]["additionalProperties"] == false)
+    );
     let export = catalog::describe(&["file.export".into()]).unwrap();
     assert!(
         export["commands"][0]["host_resource_workflow"]

@@ -439,6 +439,154 @@ fn editable_text_is_discovered_created_updated_and_turn_undone_without_font_path
 }
 
 #[test]
+fn retained_text_geometry_uses_exact_ai_approval_reedit_and_turn_undo() {
+    for (command, geometry) in [
+        (
+            "transform.apply",
+            json!({"layer":{"name":"Type"},"scope":"whole_layer","geometry":{"type":"components","scale":[1.2,0.8],"rotation_degrees":12,"pivot":[8,12]}}),
+        ),
+        ("image.orient", json!({"operation":"rotate_90_cw"})),
+        ("image.rotate", json!({"angle_degrees":12})),
+        (
+            "image.resize",
+            json!({"width":12,"height":6,"interpolation":"area"}),
+        ),
+        (
+            "image.straighten",
+            json!({"reference":{"type":"angle","angle_degrees":5},"crop":false}),
+        ),
+    ] {
+        let host = Host::new();
+        host.user("type.create",json!({"name":"Type","spec":{"text":"AI 中文","font":"sans","font_size":16,"layout":{"type":"point"}},"color":[0.2,0.4,0.8,1],"x":1,"y":18}));
+        let before = host
+            .editor
+            .lock()
+            .unwrap()
+            .document()
+            .unwrap()
+            .to_archive()
+            .unwrap();
+        let original = host.snapshot().unwrap();
+        let mut session = host.session_with_prompt(
+            ExecutionMode::Direct,
+            "变换可编辑文字并重新改字，保留原文、蒙版、裁剪和整轮撤销。",
+        );
+        reply(
+            &mut session,
+            &host,
+            vec![
+                call(
+                    "discover",
+                    "search_catalog",
+                    json!({"query":"可编辑文字变换"}),
+                ),
+                call(
+                    "describe",
+                    "describe_commands",
+                    json!({"ids":[command,"type.inspect","type.update"]}),
+                ),
+                invoke(
+                    "bounds",
+                    "layer.pixel_bounds",
+                    json!({"layer":{"name":"Type"}}),
+                ),
+            ],
+        );
+        assert!(
+            result(session.poll(&host).unwrap())["matches"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|x| x["id"] == "transform.apply")
+        );
+        let described = result(session.poll(&host).unwrap());
+        assert_eq!(
+            described["commands"][0]["params"]["additionalProperties"],
+            false
+        );
+        assert!(
+            result(session.poll(&host).unwrap())["result"]["bounds"]["width"]
+                .as_u64()
+                .unwrap()
+                > 0
+        );
+        reply(
+            &mut session,
+            &host,
+            vec![invoke("geometry", command, geometry.clone())],
+        );
+        let Step::Paused {
+            question_id,
+            operation,
+            ..
+        } = session.poll(&host).unwrap()
+        else {
+            panic!("missing exact geometry approval for {command}")
+        };
+        assert_eq!(operation.unwrap()["params"], geometry);
+        assert_eq!(host.snapshot().unwrap().revision, original.revision);
+        let applied = result(
+            session
+                .respond(
+                    &host,
+                    HostAnswer {
+                        question_id,
+                        answer: String::new(),
+                        approved: true,
+                        resource: None,
+                    },
+                )
+                .unwrap(),
+        );
+        assert!(applied.get("result").is_some(), "{command}: {applied}");
+        reply(
+            &mut session,
+            &host,
+            vec![invoke(
+                "inspect",
+                "type.inspect",
+                json!({"layer":{"name":"Type"}}),
+            )],
+        );
+        let inspected = result(session.poll(&host).unwrap())["result"]["definition"].clone();
+        assert_eq!(inspected["spec"]["text"], "AI 中文");
+        assert!(!inspected["operations"].as_array().unwrap().is_empty());
+        let mut spec = inspected["spec"].clone();
+        spec["text"] = json!("重编辑 Serif");
+        spec["font"] = json!("serif");
+        reply(
+            &mut session,
+            &host,
+            vec![invoke(
+                "reedit",
+                "type.update",
+                json!({"layer":{"name":"Type"},"spec":spec,"color":[0.8,0.2,0.1,1]}),
+            )],
+        );
+        let edited = result(session.poll(&host).unwrap())["result"].clone();
+        assert_eq!(edited["changed"], true);
+        assert_eq!(edited["definition"]["operations"], inspected["operations"]);
+        assert_eq!(
+            host.snapshot().unwrap().history_cursor,
+            original.history_cursor + 2
+        );
+        host.editor.lock().unwrap().stop_turn();
+        host.user("edit.undo_turn", json!({"turn_id":session.turn_id()}));
+        assert!(
+            host.editor
+                .lock()
+                .unwrap()
+                .document()
+                .unwrap()
+                .to_archive()
+                .unwrap()
+                == before,
+            "{command} AI turn undo"
+        );
+    }
+}
+
+#[test]
 fn canvas_handle_corner_payloads_use_real_ai_transform_approval_and_undo() {
     for (name, destination) in [
         ("缩放", json!([[0, 0], [12, 0], [12, 4], [0, 4]])),

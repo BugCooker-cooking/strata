@@ -1,0 +1,233 @@
+{
+  "date_local": "2026-11-07",
+  "timezone": "Asia/Taipei",
+  "base_checkpoint": "01272c1",
+  "branch": "codex/v1-remaining",
+  "scope": "Retained whole-text projective geometry and ordered destructive crop; unstyled text image rotate/resize/straighten; transparent-black source bounds. This is an automated local checkpoint with native manual acceptance still pending Mac unlock, not complete Photoshop.",
+  "source_sha256": {
+    "Cargo.toml": "6106d3379063b942570a59fbcdbb292a801083f2a22eff3676e3cd84846505f0",
+    "apps/macos/Strata/App/MainWindowController.swift": "460c022285d84ce3ce41a4dbf7908ca2cff94da622bbc3d86629516f4af75069",
+    "apps/macos/Strata/Canvas/CanvasTransformInput.swift": "1c1440cb1c38609c1af323a392727958883a8df1dffae7f97beeed3c30c80acd",
+    "apps/macos/Strata/Engine/EditorSnapshot.swift": "969b63a42123914555f689e5f968fa97b6645736dad8cfb9177139c933993e3c",
+    "apps/macos/Strata/Workspace/TextEditingModel.swift": "94814ccabbfdb500c56fa8974ebfe6f3f7360b75997567a431d571c71f823058",
+    "apps/macos/Strata/Workspace/TransformControls.swift": "d11dd4f7ecd6e7a34388586c856159909619bf125e72972c93025e2d24177547",
+    "apps/macos/StrataTests/EditableTextTests.swift": "e55b793ea41069678ae96b6839959cd7a493b93146614383da5717ebc8bfa28f",
+    "crates/strata-ai/tests/protocol.rs": "e97f56731a16070adbfc631cb6fbc0f02c40e5f3e6f6afc82d22a7fa7fe0befb",
+    "crates/strata-ai/tests/replay.rs": "17c12f786ac489e7731cf5e66689641ebbb6477391f9d20963774506072e9c9b",
+    "crates/strata-core/src/commands/crop_delete.rs": "b1e1ba51454cecd4a6fedcbbd44e5fe53df77bc728109180e1fc2cd15cff859c",
+    "crates/strata-core/src/commands/executor.rs": "449b418f45d30e37ffa10c243e47a69aabb87d7289c6c2ccba53149764434b59",
+    "crates/strata-core/src/commands/mod.rs": "c2929b68342eaf225abf84c0dd19d8d2c8e23a460345206e77bfea018948574b",
+    "crates/strata-core/src/commands/orthogonal.rs": "49f7a7e3fe76d3da53f55529ceb47f0f4d201cb8aeea5eea8e02a9d3267f2455",
+    "crates/strata-core/src/commands/registry.rs": "02db896a15c32383c375b4ca25b44f49e31df39ebd96a6a981e37bebb3eac899",
+    "crates/strata-core/src/commands/resize_image.rs": "413001a3be76769d66fc47a1a89cef0325fed59a6788ff23ff686a4a4b586265",
+    "crates/strata-core/src/commands/rotate_image.rs": "961e8c0361efa161deb0c8e09315d06bf23b33bb66144c62da91febadb6901ba",
+    "crates/strata-core/src/commands/transform.rs": "cd1bff041b2bba0314620a6bbf8925c6852bc40a148e5aebc90e2e2af15054b4",
+    "crates/strata-core/src/commands/typography.rs": "a857ae6eee27674b225cc0aad1f2f4f9fd564dc7432a6cf5872bf382050c1a36",
+    "crates/strata-core/src/geometry.rs": "268752155768181587968e5137fb502c19f5f0a3e59c89207fc55dfcf80870cb",
+    "crates/strata-core/src/project.rs": "eceb69c7ddd2ea265508c43157033a6fb16f0f3da9a7dc689a4439d6c502cbfb",
+    "crates/strata-core/src/typography.rs": "27078c97053936954582f6d49fe46a5084ad7c0f08beb3c12b144c4747e3cfaf",
+    "crates/strata-core/tests/text_geometry.rs": "b2fa5ab608c179f5d31ce3803ee37580155698ddae62d648080eef8db66f167c",
+    "crates/strata-core/tests/typography.rs": "b1424b2156bac847fa1219bc0b54e39c75c408df2ea44388ceca381029089ddd",
+    "crates/strata-ffi/src/typography.rs": "e79f84530733a752d38ccb489a5f984ed15e5d593b747feb0b009c9f965ae54e",
+    "tools/strata-devtool/src/main.rs": "3e3a7e6d74d0f0a49d472b3fc550bb1c18042407cbc4d0cda9316fd86d1d3ed9"
+  },
+  "log_sha256": {
+    "build/m7-text-geometry-core.fixed.log": "6db20d4dc305df485143d9ea7eb78f374584bf081ef970582e9bb025215d880e",
+    "build/m7-text-geometry-type.final.log": "b59a06557361d07cefc85d1cd0aba164624a443a9f36a41f3b359c1e4c5b8a66",
+    "build/m7-text-geometry-ai.fixed.log": "6ecb0a33c11bff9e2bac5f228124a954a5c65231a6976fb399bb23fe1e8aba76",
+    "build/m7-text-geometry-workspace.log": "67656d6ba4fb07e475e2e4ce35010480cb213a3ebbaa39bc81a9486aa5420e2d",
+    "build/m7-text-geometry-workspace.fixed.log": "6503746611554a4245bac743e35c6b74d3e1c9ce483bfe2c8c927c6249969ac6",
+    "build/m7-text-geometry-platform-native.log": "bb47a9569a0d34caf7e3c964de9570b9d40f3ced31f38a9fc149e89d85fbc2ea",
+    "build/m7-text-geometry-workspace-tail.log": "5f6240d3fe09a81d310ee6f395f547dccd748bba81dfdfc1c3dd226c482cc5da",
+    "build/m7-text-geometry-workspace-doc.log": "adfaeda2e50579c4338d6af44dfeb9dd93e564920716a7884e0c5e1a70f2e881",
+    "build/m7-text-geometry-typography.final.log": "8cf279e5cbd7cfdc56beeba529c26c2af469ca260ece076e8f2a043d5490cfd9",
+    "build/m7-text-geometry-ffi.log": "68bcec036f221d0b2b232844571458696f9db692339e05271bb2b6240f3102af",
+    "build/m7-text-geometry-native.log": "c7676c92117a250a782af94cd55e035bfc87f23f6545bfa0e900e14a79383a51",
+    "build/m7-text-geometry-metal.log": "4f7a1f884629e09e94088cc52e064809a70551757f0663c44b73e24264c39839",
+    "build/m7-text-geometry-transparent-core.log": "1eeb766972cb90f7e507b4f22679b22b7859bc5b71429b2d7925b41bbc8daba8",
+    "build/m7-text-geometry-native-transparent.log": "3afd475f2138bf022f9c8952c76194e81cc4effd3973113b4e8767d435dc11ba",
+    "build/m7-text-geometry-metal.final.log": "0e21b88199561de0823fbc23aaf6b8d23443b9412ae2b9c40a1194ecddfaed3c",
+    "build/m7-text-geometry-lint.final.log": "a25970f7ad6aef62035c2694e16d2c38d0a57f3c8bf10c4a5415867fda6f71c9",
+    "build/m7-text-geometry-commands.log": "baabebe29eb5203cfa9dc34c3bd6673daecac44a997aac4c8eb87eb7ddd63219",
+    "build/m7-text-geometry-release.log": "766329de2f2a5170d44bb32ce2ec00512e1e6d0efbc95a4a7a9812bf5c8a7890",
+    "build/m7-text-geometry-final-ai-gate.log": "58775cd558643dbf55e44703bbdc00f7f6982cb47d878a0c39d4f6ad5cfe0375"
+  },
+  "checks": {
+    "workspace_main": {
+      "completed_passed": 430,
+      "exit_code": 101,
+      "log": "build/m7-text-geometry-workspace.fixed.log",
+      "reason": "Two sandboxed platform HEIC encoders unavailable; partial3 platform passes not added to430. All earlier suites passed. Core310 complete, before later transparent-edge addition."
+    },
+    "platform_normal_permissions": {
+      "passed": 5,
+      "failed": 0,
+      "ignored": 0,
+      "log": "build/m7-text-geometry-platform-native.log"
+    },
+    "workspace_remaining_text_and_bindgen": {
+      "passed": 4,
+      "failed": 0,
+      "ignored": 0,
+      "log": "build/m7-text-geometry-workspace-tail.log"
+    },
+    "workspace_doc_tests": {
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "log": "build/m7-text-geometry-workspace-doc.log"
+    },
+    "workspace_unique_completed_before_last_edge": 440,
+    "initial_stale_protocol_assertion": "Initial workspace stopped at old type.create-is-unimplemented assertion. Replaced with type.on_path rejection plus actual four-command strict discovery. Subsequent protocol suite passed.",
+    "final_text_transform_subset": {
+      "passed": 31,
+      "failed": 0,
+      "ignored": 0,
+      "log": "build/m7-text-geometry-transparent-core.log",
+      "new_geometry_tests": 10,
+      "note": "Includes new transparent-black readonly bounds/owned handles/visible-after-alpha-edit/independent lattice reference. Other text, transform and owned context cases rechecked; not a second complete workspace run."
+    },
+    "expanded_mask_bake_subset": {
+      "passed": 8,
+      "failed": 0,
+      "ignored": 0,
+      "log": "build/m7-text-geometry-typography.final.log",
+      "note": "Adds actual text mask apply and rasterize plus exact source restoration on undo."
+    },
+    "ai": {
+      "passed": 37,
+      "failed": 0,
+      "ignored": 0,
+      "log": "build/m7-text-geometry-ai.fixed.log",
+      "geometry_operations": [
+        "transform.apply",
+        "image.orient",
+        "image.rotate",
+        "image.resize",
+        "image.straighten"
+      ],
+      "actual_exact_approval_reedit_turn_undo": true,
+      "note": "Deterministic tool replay, no live model request. Final directory/examples cover later wording and readonly bounds contract."
+    },
+    "ffi_headless": {
+      "passed": 2,
+      "failed": 0,
+      "ignored": 0,
+      "log": "build/m7-text-geometry-ffi.log",
+      "note": "Two original-context/execute/undo cases; GPU explicitly filtered out here and required separately."
+    },
+    "native_full": {
+      "total": 99,
+      "passed": 98,
+      "failed": 0,
+      "skipped": 1,
+      "log": "build/m7-text-geometry-native.log",
+      "skip_reason": "Live service opt-in disabled; no network request.",
+      "jobs": 2,
+      "parallel_testing": false
+    },
+    "native_final_text_subset": {
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0,
+      "log": "build/m7-text-geometry-native-transparent.log",
+      "note": "After final empty-cache fallback, transparent source reads native handles, transforms, re-edits and raises alpha; source/geometry and step undo preserved. Not another complete native-suite run."
+    },
+    "final_required_metal": {
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "log": "build/m7-text-geometry-metal.final.log",
+      "required_gpu": true,
+      "skipped": 0,
+      "note": "Transparent text first transforms, then gains glyph/color/alpha with stroke/shadow. Real offscreen Metal compares CPU numerical samples and exact scene/archive undo without stale textures."
+    },
+    "lint": {
+      "passed": true,
+      "log": "build/m7-text-geometry-lint.final.log",
+      "checks": [
+        "rustfmt",
+        "workspace all-target Clippy -D warnings",
+        "portability",
+        "Swift lint",
+        "generated feature coverage"
+      ]
+    },
+    "executable_examples": {
+      "passed": true,
+      "commands": 128,
+      "examples": 192,
+      "log": "build/m7-text-geometry-commands.log",
+      "new_example": "Actual editable text through transform.apply, not a registration-only placeholder."
+    },
+    "release": {
+      "passed": true,
+      "log": "build/m7-text-geometry-release.log",
+      "architecture": "arm64",
+      "jobs": 2,
+      "swift_backend_threads": 1,
+      "binary_sha256": "ae2925183d08f115288228f3f3e901d3690b0a0d945662e0cb24377656260110",
+      "note": "Existing PointColorControls redundant nil-coalescing warnings and no-AppIntents metadata notice remain; no build error."
+    }
+  },
+  "semantics": {
+    "pipeline": "Version1 source layout/color plus max32 ordered local transform/crop/resize stages. Adjacent transforms compose before coverage sampling. Crop barriers cannot commute across transforms; actual deletion order survives source edits. Source layout values remain original-layout values.",
+    "color": "Straight document8/16-bit working RGB remains exact; transform/size sample u16 glyph coverage. Nearest lattice integer rules retain codes; bilinear/area have independent references. Font coverage itself remains8-bit expanded to u16.",
+    "geometry": "All whole-layer transform variants including projective. Native numeric/owned canvas handles and AI share transform.apply. Selection scope still requires explicit pixel rasterization. image.orient includes text/styles; arbitrary rotation/straighten/resize support unstyled text, with generated/adjustment/style general geometry still open.",
+    "empty_cache": "Only empty RGBA text caches use bounded retained glyph coverage for readonly actual ink bounds. Fully transparent black can transform before alpha edit; whitespace/deleted ink remains null. Queries do not populate pixel cache, history or revision.",
+    "persistence": "Manifest8 for retained operations,7 for operation-free text and6 otherwise. Legacy v7 crop is imported into ordered stages on first geometry. Old manifests reject newer payloads. float_roundtrip fixes observed1ULP JSON coefficient drift on real file reopen.",
+    "resources": "Original font/source limits, memory pool, row/glyph cancellation remain.64M accumulated transformed coverage visits per rebuild. Resize replays share the command work budget; stage overflow, horizon on longer source, resource or display failure leaves original truth intact.",
+    "mask_apply": "Existing native label Apply and rasterize and shared layer.mask.apply explicitly bake editable text to pixels; description and real exact undo check updated."
+  },
+  "ai_audit": {
+    "registered_commands": 128,
+    "registered_examples": 192,
+    "inventory_rows": 265,
+    "mapped_features": 90,
+    "partial_entrypoints": [
+      "PS-01-894622b1ce",
+      "PS-04-cb66199f15",
+      "PS-04-853e6d30f3",
+      "PS-16-8de06204ac",
+      "PS-09-4f3d9835a7",
+      "PS-09-7cc6b0bb65",
+      "PS-09-7d349372b5",
+      "PS-03-5f9716e5d8",
+      "PS-03-ad24731ea8",
+      "PS-11-4490121dad",
+      "PS-11-a524877cb6"
+    ],
+    "unmapped_implemented_features": [],
+    "unknown_native_command_references": {},
+    "untyped_command_returns": [],
+    "commands_without_feature_links": [],
+    "final_audit_complete": false
+  },
+  "manual": {
+    "status": "awaiting_manual_mac_unlock",
+    "launch_attempted_once": true,
+    "pre_launch_strata_and_xctest_instances": 0,
+    "bundled_sample_and_original_notices_verified_equal": true,
+    "intended_fixture_sha256": "c1006da29913609963479b8641c0e6f6a43ff2c6d8b2f907c91a6daf1afaa2ea",
+    "native_ui_observed": false,
+    "gui_edits_performed": false,
+    "tool_result": "Mac locked; automatic unlock paused due to physical input. User asked to unlock manually. Single launched instance retained for the pending acceptance; no extra instance opened.",
+    "final_fixture_restore_and_quit_verified": false
+  },
+  "cloud": {
+    "used": false,
+    "manual_dispatch_only_in_yaml": true,
+    "no_jobs_enabled_dispatched_rerun_or_awaited": true,
+    "workflow_live_state_requires_recheck_before_next_push": true
+  },
+  "live_model_requests": 0,
+  "remaining": [
+    "Pending single-window native geometry acceptance requires manual Mac unlock",
+    "Full Photoshop and final per-feature AI closure",
+    "Generated/group transforms and continuous warped-pixel feedback",
+    "System/imported fonts, inline caret, rich spans and advanced typography",
+    "Current Linux build, macOS14, independent hardware/performance/live-model/quality gates"
+  ],
+  "delivery": "Development branch and existing draftPR1 authorized; no merge, release, visibility change or cloud execution. This record is not a claim of final manual closure.",
+  "strict_final_gate_expected_exit_code": 1
+}

@@ -79,6 +79,13 @@ fn examples() -> Result<(), Box<dyn Error>> {
             };
             let mut args = example.clone();
             match spec.id {
+                "transform.apply" if args["layer"]["name"] == "TypeGeometry" => {
+                    run(
+                        &mut editor,
+                        "type.create",
+                        json!({"name":"TypeGeometry","spec":{"text":"Type","font":"sans","font_size":16,"layout":{"type":"point"}},"color":[0.2,0.4,0.8,1],"x":1,"y":18}),
+                    )?;
+                }
                 "type.update" | "type.inspect" => {
                     run(
                         &mut editor,

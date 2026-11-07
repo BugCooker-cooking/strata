@@ -2,7 +2,7 @@
 
 当前开发期审计快照。完整编辑功能与最终 AI 审计仍未闭环；不得把注册数量当作全部功能覆盖。
 
-真实注册命令 128；参数示例 191；综合功能 265；已有映射 90。
+真实注册命令 128；参数示例 192；综合功能 265；已有映射 90。
 
 已实现但未映射 0；部分入口 11；原生未知命令引用 0；未类型化返回 0。
 
@@ -58,9 +58,9 @@
 | PS-02-21ab73cf70 | 功能搜索 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-02-b2fd2e2a88 | 清理缓存 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-02-bc773443d0 | 拼写检查、查找替换文本 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
-| PS-03-ad24731ea8 | 图像大小（多种重采样算法） | 部分实现 | 部分入口 | `image.resize` · 将图像大小改为512乘768像素，使用面积缩小并保留独立图层和蒙版。 · Pixels and unstyled groups have real size edits and all three sampling modes, with exact AI replacement approval and one-history turn undo. Editable fill/adjustment/style/text sizing and other professional resamplers remain open; do not interpret this partial entry as complete image sizing. |
+| PS-03-ad24731ea8 | 图像大小（多种重采样算法） | 部分实现 | 部分入口 | `image.resize` · 将图像大小改为512乘768像素，使用面积缩小并保留独立图层和蒙版。 · Pixels, retained-source unstyled text and unstyled groups have real size edits and all three sampling modes, with exact AI replacement approval and one-history turn undo. Editable fill/adjustment/style sizing and other professional resamplers remain open; do not interpret this partial entry as complete image sizing. |
 | PS-03-45c2eea14c | 画布大小 | 已实现 | 已映射 | `image.canvas_size` · 固定画布右下角，把画布扩展到给定宽高，保留所有画板外内容，不缩放图层。 · 画布边界编辑保留结构与原码；生成填充/样式和空间调色冻结参考，选区裁到新边界，扩展覆盖为零。图像缩放与删除裁剪像素属于其他命令。 |
-| PS-03-5f9716e5d8 | 图像旋转 / 翻转 | 部分实现 | 部分入口 | `image.orient`、`image.rotate`、`image.straighten` · 将整幅图像顺时针旋转 90 度，同时保留可编辑图层、链接蒙版和选区。 · All current types support exact orthogonal orientations. Pixel layers and unstyled groups support general angles and numeric/two-point straightening with optional safe inscribed crop. Generated/adjustment/style/text general geometry remains open; native canvas-dragged reference lines share the same operation/context-bound command; native/AI use identical commands with exact replacement approval and one-step undo. Native pointer input uses an operation-bound owned draft; it does not introduce a separate editing implementation or change AI parameters. |
+| PS-03-5f9716e5d8 | 图像旋转 / 翻转 | 部分实现 | 部分入口 | `image.orient`、`image.rotate`、`image.straighten` · 将整幅图像顺时针旋转 90 度，同时保留可编辑图层、链接蒙版和选区。 · All current types support exact orthogonal orientations. Pixel layers, unstyled text and unstyled groups support general angles and numeric/two-point straightening with optional safe inscribed crop. Generated/adjustment/style general geometry remains open; native canvas-dragged reference lines share the same operation/context-bound command; native/AI use identical commands with exact replacement approval and one-step undo. Native pointer input uses an operation-bound owned draft; it does not introduce a separate editing implementation or change AI parameters. |
 | PS-03-84941ac6e8 | 显示全部 | 已实现 | 已映射 | `image.reveal_all` · 扩展画板，显示全部可见源图层与样式边界，恢复被画板遮住的内容。 · 以可见源图层/生成填充和自身/祖先样式的保守边界扩展，不移动/缩放内容；隐藏层不参与，蒙版/剪贴/零透明度可能让边界大于最小可见 alpha 范围。 |
 | PS-03-51294954aa | 裁切（去透明边） | 已实现 | 已映射 | `image.trim` · Trim all fully transparent borders while preserving original editable layers. · Visible composite alpha>0 within the current frame, independent side booleans. No display quantization; hidden RGB/layers do not count. Sources remain stored. Tight repeat is a no-op without history; fully transparent input rejects. |
 | PS-03-0f4e217715 | 复制文档 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
@@ -176,7 +176,7 @@
 | PS-08-20a38a31c0 | 混合器画笔 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-08-8917363943 | 历史记录艺术画笔 | 重新核对 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-09-7cc6b0bb65 | 移动工具（含吸附） | 部分实现 | 部分入口 | `layer.select`、`layer.set_position` · 选择可见目标图层，使用稳定 ID。 · 已有整数位置与原生拖动、单次提交/取消及组联动；吸附仍未实现，因此综合移动工具条目保持部分实现。 |
-| PS-09-4f3d9835a7 | 自由变换：缩放 / 旋转 / 斜切 / 扭曲 / 透视 / 翻转 | 部分实现 | 部分入口 | `layer.pixel_bounds`、`transform.apply` · 把整个像素图层围绕给定轴心旋转 15 度，保留画板外内容。 · 整层像素/链接蒙版及选区像素的真实提升/变换/合回已接入，软边按 source-over 余量保留，目标不被原选区重复裁切。画布八手柄/平移/旋转/斜切/扭曲/透视与按键草稿已实现，使用原始文档/版本/层/范围/控制权绑定的同一四角命令。核心、AI五种真实四角调用/精确确认/回合撤销、桥接、完整原生、整层/软选区与共享拉直强制Metal、arm64 Release、lint/参数例子及单窗口整层/选区应用撤销通过。恒等变换不制造历史。生成/组/文字一般变换及连续画布像素反馈仍未实现，综合条目与最终AI审计保持部分覆盖。 |
+| PS-09-4f3d9835a7 | 自由变换：缩放 / 旋转 / 斜切 / 扭曲 / 透视 / 翻转 | 部分实现 | 部分入口 | `layer.pixel_bounds`、`transform.apply` · 把整个像素图层围绕给定轴心旋转 15 度，保留画板外内容。 · 整层像素/链接蒙版及选区像素的真实提升/变换/合回已接入，软边按 source-over 余量保留，目标不被原选区重复裁切。画布八手柄/平移/旋转/斜切/扭曲/透视与按键草稿已实现，使用原始文档/版本/层/范围/控制权绑定的同一四角命令。核心、AI五种真实四角调用/精确确认/回合撤销、桥接、完整原生、整层/软选区与共享拉直强制Metal、arm64 Release、lint/参数例子及单窗口整层/选区应用撤销通过。恒等变换不制造历史。整文字层的保留源透视/旋转/缩放已接入，裁剪按原次序重建，正在补齐本机原生/AI证据。生成/组变换及连续画布像素反馈仍未实现，综合条目与最终AI审计保持部分覆盖。 |
 | PS-09-7d349372b5 | 裁剪工具（拉直、比例、是否删除裁剪像素） | 部分实现 | 部分入口 | `image.crop`、`image.straighten` · 用指定画布矩形和 4:3 比例裁剪画板，保留所有裁剪外像素与图层。 · Numeric rectangle/aspect, owned canvas drag/handles/move and preserve/delete share real crop commands. Numeric or two-point horizontal/vertical straightening composes rotation and a safe preserving crop in one history step. Canvas-dragged lines stage a guide, bind original document/revision/control/operation, and confirm through the same image.straighten command. Generated/adjustment/style/text arbitrary geometry remains open. Native pointer input uses an operation-bound owned draft; it does not introduce a separate editing implementation or change AI parameters. |
 | PS-09-64f3d2a3eb | 变形 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-09-073c032f33 | 透视裁剪 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
@@ -209,8 +209,8 @@
 | PS-10-c5d0281f10 | 滤镜库（47 个旧式艺术滤镜） | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-10-dca9e3ce4b | 火焰 / 树 / 图片框 | 重新核对 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-10-1e9f8da0f7 | 防抖 | 重新核对 | 待实现/待核对 | 保留最终入口与提示核对任务 |
-| PS-11-4490121dad | 横排文字（点文字 / 段落文字） | 部分实现 | 部分入口 | `type.fonts`、`type.create`、`type.update`、`type.inspect` · 在指定位置新建可编辑中文点文字，使用内置sans字体，保留原文和一次撤销。 · Real retained-source point/paragraph layout and deterministic bundled CJK glyphs; shared native/AI core. Native T placement/edit panel is wired, acceptance still in progress. Canvas insertion cursor/rich spans and all font imports remain open; mapping is partial, not a placeholder endpoint. |
-| PS-11-a524877cb6 | 字体、字号、颜色、行距、字距、对齐 | 部分实现 | 部分入口 | `type.fonts`、`type.create`、`type.update`、`type.inspect` · 列出内置字体及版本，不读取系统字体路径。 · Three pinned licensed built-in fonts, uniform font/size/straight working RGBA/line-height/tracking/alignment/paragraph box. No host path exposed. System/arbitrary font importing, rich character-span styles and typography beyond this implementation remain open; acceptance currently in progress. |
+| PS-11-4490121dad | 横排文字（点文字 / 段落文字） | 部分实现 | 部分入口 | `type.fonts`、`type.create`、`type.update`、`type.inspect` · 在指定位置新建可编辑中文点文字，使用内置sans字体，保留原文和一次撤销。 · Retained-source point/paragraph layout and fixed CJK glyphs passed the01272c1 local checkpoint. Whole-layer geometry/ordered crop and source re-edit are now connected and under incremental local verification. Inline caret/rich spans/font imports remain open; partial mapping is not a placeholder endpoint. |
+| PS-11-a524877cb6 | 字体、字号、颜色、行距、字距、对齐 | 部分实现 | 部分入口 | `type.fonts`、`type.create`、`type.update`、`type.inspect` · 列出内置字体及版本，不读取系统字体路径。 · Three pinned licensed built-in fonts, uniform font/size/straight working RGBA/line-height/tracking/alignment/paragraph box. No host path exposed. System/arbitrary font importing, rich character-span styles and typography beyond this implementation remain open; the01272c1 base passed local acceptance; retained geometry is under the next incremental gate. |
 | PS-11-cf9b897491 | 栅格化文字 | 已实现 | 已映射 | `layer.rasterize`、`type.inspect` · 把当前可编辑文字层显式栅格化，保留显示样式，允许一次撤销恢复原文与排版。 · Existing real layer.rasterize handles the actual text glyph source through the same compositor/masks/styles; core save/recovery/rasterize/undo checks passed. Native/Metal/App Release/manual acceptance is still pending and not inferred from this mapping. |
 | PS-11-c6c65f4de6 | 直排文字 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-11-0a97b13dc8 | 文字变形 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |

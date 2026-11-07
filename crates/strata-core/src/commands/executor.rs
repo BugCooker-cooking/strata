@@ -481,7 +481,8 @@ impl Editor {
         let (target, _) = super::transform::target(doc, &layer)?;
         if doc.active_layer() != Some(target) || !doc.effective_visibility(target) {
             return Err(CommandError::Invalid(
-                "canvas transform must start on the active visible pixel layer".into(),
+                "canvas transform must start on the active visible pixel or editable text layer"
+                    .into(),
             ));
         }
         interaction.transform_target = Some((target, scope));
@@ -1142,18 +1143,17 @@ impl Editor {
                         let doc = self.document().ok_or(CommandError::NoDocument)?;
                         let target = doc.resolve(&p.layer)?;
                         let layer = doc.layers().iter().find(|l| l.id() == target).unwrap();
-                        if !matches!(layer.info().kind, crate::LayerKind::Pixel)
-                            || !doc.effective_visibility(target)
+                        if !matches!(
+                            layer.info().kind,
+                            crate::LayerKind::Pixel | crate::LayerKind::Text { .. }
+                        ) || !doc.effective_visibility(target)
                         {
                             return Err(CommandError::Invalid(
-                                "bounds query requires a visible pixel layer".into(),
+                                "bounds query requires a visible pixel or editable text layer"
+                                    .into(),
                             ));
                         }
-                        let bounds = crate::geometry_pixels::content_bounds(
-                            layer.pixels(),
-                            [layer.info().x, layer.info().y],
-                            &|| request.expired(),
-                        )?;
+                        let bounds = super::transform::bounds(doc, layer, &|| request.expired())?;
                         json!({"layer_id":target,"bounds":bounds})
                     } else if id == "paint.sample_color" {
                         super::paint::sample(

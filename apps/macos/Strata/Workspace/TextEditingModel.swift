@@ -98,7 +98,7 @@ struct TextEditingPanel:View{
             number("文字透明度",value:$text.alpha,unit:"%")
             Text("颜色按当前工作 RGB 百分比；点文字 Y 为首行基线，段落为框左上角。溢出内容保留，可增大段落框显示。").font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))
             HStack{Button(text.creating ? "创建文字":"应用文字修改"){editingContent=false;text.apply()}.buttonStyle(WorkspaceButtonStyle(selected:true)).disabled(!text.canApply);Button(text.creating ? "恢复默认":"恢复当前值"){text.revert()}.buttonStyle(WorkspaceButtonStyle())}
-            Text("修改在应用后更新画布，可一次撤销。").font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))
+            Text("修改在应用后更新画布，保留已有几何与删除裁剪，可一次撤销。").font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))
             if !text.error.isEmpty{Text(text.error).font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.danger)).textSelection(.enabled)}
             if text.parameters==nil{Text("请检查字号、行距、字距、颜色及整数段落尺寸。").font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))}
         }.padding(12).disabled(!model.permissions.edits || text.running)}.onChange(of:text.placementID){_,_ in editingContent=true}.onChange(of:text.layout){_,_ in model.send(.configureText)}

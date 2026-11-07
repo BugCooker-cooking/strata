@@ -134,6 +134,15 @@ pub struct Homography {
     inverse: Matrix,
 }
 impl Homography {
+    /// Row-major coefficients of the normalized mapping.
+    pub fn values(&self) -> [f64; 9] {
+        std::array::from_fn(|i| self.forward[i / 3][i % 3])
+    }
+    /// Apply this mapping first and `next` second.
+    pub fn then(&self, next: &Self) -> Result<Self, GeometryError> {
+        let result = multiply(next.forward, self.forward);
+        Self::new(std::array::from_fn(|i| result[i / 3][i % 3]))
+    }
     pub fn new(values: [f64; 9]) -> Result<Self, GeometryError> {
         if values.iter().any(|v| !v.is_finite()) {
             return Err(GeometryError::NonFinite);

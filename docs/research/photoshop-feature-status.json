@@ -737,7 +737,7 @@
   },
   "PS-09-4f3d9835a7": {
     "implementation": "部分实现",
-    "acceptance": "画布八手柄及平移/旋转/斜切/扭曲/透视轮廓草稿已到本机增量验收检查点；原生和AI使用同一真实变换命令，恒等无历史。核心22、AI35、无GPU几何桥接13、完整原生92通过/1联网opt-in跳过、两项强制Metal、Release/lint/186参数例子与单窗口整层/选区应用撤销通过。生成/组/文字及连续变形像素反馈仍开放。",
+    "acceptance": "Whole editable text now supports retained-source scale/rotate/skew/distort/perspective/flip through the same native/AI command. Ordered crop, transparent-black glyph bounds, exact re-edit/undo, numerical references, AI invocation, native tests and required Metal passed. Pixel/selection acceptance remains valid. Release/lint and192 parameter examples passed; current single-window text geometry acceptance awaits manual Mac unlock. Generated/group transforms and continuous warped-pixel feedback remain open.",
     "evidence": [
       {
         "label": "M7 整层变换/视图检查点",
@@ -750,6 +750,10 @@
       {
         "label": "画布手柄实施与验收",
         "path": "../research/2026-11-m7-transform-handles-progress.md"
+      },
+      {
+        "label": "Retained text geometry / ordered crop",
+        "path": "../research/2026-11-m7-text-geometry-progress.md"
       }
     ]
   },
@@ -843,7 +847,7 @@
   },
   "PS-03-5f9716e5d8": {
     "implementation": "部分实现",
-    "acceptance": "全部当前层类型支持五种正交方向；像素层/无样式组支持任意角度及数值/两点/画布参考线拉直、安全内切裁剪，已有本机与单窗口证据；生成/调整/样式/文字的一般几何仍开放。",
+    "acceptance": "All current types, including text, support five exact orthogonal orientations. Pixels, unstyled text and groups support general angles/straightening; text retains source, ordered crop and geometry. Local automated gates passed; current text geometry manual acceptance awaits Mac unlock. Generated/adjustment/style arbitrary geometry remains open.",
     "evidence": [
       {
         "label": "M7 整图正交变换",
@@ -860,6 +864,10 @@
       {
         "label": "画布参考线会话",
         "path": "../research/2026-11-m7-straighten-gesture-progress.md"
+      },
+      {
+        "label": "Retained text geometry / ordered crop",
+        "path": "../research/2026-11-m7-text-geometry-progress.md"
       }
     ]
   },
@@ -875,11 +883,15 @@
   },
   "PS-03-ad24731ea8": {
     "implementation": "部分实现",
-    "acceptance": "像素层/无样式组的最近邻、双线性和面积重采样已实现；生成/调整/样式/文字及其他专业算法仍待后续。",
+    "acceptance": "Nearest/bilinear/area size changes now include retained-source unstyled text as well as pixels/groups. Local independent coverage references, source re-edit, persistence/undo, AI and native gates passed; current text geometry manual acceptance awaits Mac unlock. Editable fill/adjustment/style sizing and other professional algorithms remain open.",
     "evidence": [
       {
         "label": "尺寸重采样进展",
         "path": "../research/2026-11-m7-resize-progress.md"
+      },
+      {
+        "label": "Retained text geometry / ordered crop",
+        "path": "../research/2026-11-m7-text-geometry-progress.md"
       }
     ]
   },
@@ -939,21 +951,29 @@
   },
   "PS-11-4490121dad": {
     "implementation": "部分实现",
-    "acceptance": "固定内置字体的真实横排点/段落文字与原文/属性/AI命令已到本机增量检查点。排版4、完整核心301及后来8项文字专项、AI36、桥接2通过；原生唯一覆盖98例（97通过/1联网opt-in跳过）、文字强制Metal、Release/lint/191参数例子及单窗口通过。系统字体/任意导入、画布内光标/富文本与一般文字几何仍开放。",
+    "acceptance": "Retained horizontal point/paragraph text passed the01272c1 local checkpoint. This increment adds ordered source geometry/crop, transparent glyph bounds and re-edit, with10 geometry checks and automated native/Metal/Release/lint/192 examples passed; single-window geometry acceptance awaits Mac unlock. Font imports, inline caret, rich spans and other typography remain open.",
     "evidence": [
       {
         "label": "可编辑文字进展",
         "path": "../research/2026-11-m7-editable-text-progress.md"
+      },
+      {
+        "label": "Retained text geometry / ordered crop",
+        "path": "../research/2026-11-m7-text-geometry-progress.md"
       }
     ]
   },
   "PS-11-a524877cb6": {
     "implementation": "部分实现",
-    "acceptance": "固定内置字体的真实横排点/段落文字与原文/属性/AI命令已到本机增量检查点。排版4、完整核心301及后来8项文字专项、AI36、桥接2通过；原生唯一覆盖98例（97通过/1联网opt-in跳过）、文字强制Metal、Release/lint/191参数例子及单窗口通过。系统字体/任意导入、画布内光标/富文本与一般文字几何仍开放。",
+    "acceptance": "Bundled fixed fonts and uniform font/size/working color/leading/tracking/alignment retain source through geometry and cropping. Base text acceptance passed; current geometry automated gates passed and manual gate awaits Mac unlock. System/imported fonts, rich spans and advanced typography remain open.",
     "evidence": [
       {
         "label": "可编辑文字进展",
         "path": "../research/2026-11-m7-editable-text-progress.md"
+      },
+      {
+        "label": "Retained text geometry / ordered crop",
+        "path": "../research/2026-11-m7-text-geometry-progress.md"
       }
     ]
   },

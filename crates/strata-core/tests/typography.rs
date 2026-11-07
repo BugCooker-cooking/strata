@@ -249,6 +249,22 @@ fn text_source_survives_real_save_recovery_rasterization_masks_styles_and_depth_
     };
     run(&mut e, "edit.undo", json!({}));
     assert!(archive(&e) == before);
+    run(&mut e, "layer.mask.apply", json!({"layer":{"id":id}}));
+    assert!(matches!(
+        e.document().unwrap().layers().last().unwrap().info().kind,
+        LayerKind::Pixel
+    ));
+    assert!(
+        e.document()
+            .unwrap()
+            .layers()
+            .last()
+            .unwrap()
+            .mask()
+            .is_none()
+    );
+    run(&mut e, "edit.undo", json!({}));
+    assert!(archive(&e) == before);
     run(&mut e, "image.convert_bit_depth", json!({"bit_depth":8}));
     let definition = run(&mut e, "type.inspect", json!({"layer":{"id":id}}))["definition"].clone();
     assert!(
@@ -314,21 +330,10 @@ fn crop_keeps_text_editable_and_reedit_cannot_regrow_deleted_support() {
     assert!(archive(&e) == original);
 }
 #[test]
-fn unsupported_text_geometry_rejects_and_old_manifests_cannot_claim_new_text() {
+fn old_manifests_cannot_claim_new_text_and_low_memory_creation_is_atomic() {
     let mut e = editor(16, "srgb");
     create(&mut e, "中文");
     let before = archive(&e);
-    for (id, p) in [
-        ("image.orient", json!({"operation":"rotate_90_cw"})),
-        ("image.resize", json!({"width":100,"height":100})),
-        ("image.rotate", json!({"angle_degrees":12})),
-    ] {
-        assert!(
-            e.execute(e.request(Source::User), id, p, |_| Ok(()))
-                .is_err()
-        );
-        assert!(archive(&e) == before);
-    }
     let mut old = before;
     old.metadata["version"] = json!(6);
     assert!(Document::from_archive(old).is_err());

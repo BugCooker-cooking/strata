@@ -37,7 +37,9 @@ impl Document {
             previous_selection: self.previous_selection.as_ref().map(TiledMask::layout),
             resolution_dpi: self.resolution_dpi,
             preset: self.preset.clone(),
-            version: if self
+            version: if self.layers.iter().any(|l|matches!(&l.info.kind, crate::LayerKind::Text{text} if !text.operations.is_empty())) {
+                8
+            } else if self
                 .layers
                 .iter()
                 .any(|l| matches!(l.info.kind, crate::LayerKind::Text { .. }))
@@ -97,7 +99,7 @@ impl Document {
     ) -> Result<Self, DocumentError> {
         let meta: Manifest =
             serde_json::from_value(metadata).map_err(|e| DocumentError::Invalid(e.to_string()))?;
-        if !matches!(meta.version, 0..=7)
+        if !matches!(meta.version, 0..=8)
             || meta.layers.len() > crate::MAX_LAYERS
             || meta.working_icc.len() > 4 * 1024 * 1024
             || meta
@@ -163,6 +165,15 @@ impl Document {
         {
             return Err(DocumentError::Invalid(
                 "editable text requires manifest version7".into(),
+            ));
+        }
+        if meta.version < 8
+            && meta.layers.iter().any(
+                |l| matches!(&l.kind,crate::LayerKind::Text{text} if !text.operations.is_empty()),
+            )
+        {
+            return Err(DocumentError::Invalid(
+                "retained text geometry requires manifest version8".into(),
             ));
         }
         if meta.version < 2

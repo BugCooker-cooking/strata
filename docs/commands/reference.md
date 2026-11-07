@@ -347,6 +347,14 @@ Permissions: `bound_document`
         "cjk"
       ]
     },
+    "ResizeInterpolation": {
+      "type": "string",
+      "enum": [
+        "nearest",
+        "bilinear",
+        "area"
+      ]
+    },
     "TextAlign": {
       "type": "string",
       "enum": [
@@ -370,6 +378,13 @@ Permissions: `bound_document`
           },
           "maxItems": 4,
           "minItems": 4
+        },
+        "operations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TextOperation"
+          },
+          "maxItems": 32
         },
         "spec": {
           "$ref": "#/$defs/TextSpec"
@@ -489,6 +504,110 @@ Permissions: `bound_document`
         "fonts_used"
       ]
     },
+    "TextOperation": {
+      "description": "Retained local-coordinate operations replay from shaped source, never from a\npreviously published bitmap. Crop barriers preserve actual deletion order.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "interpolation": {
+              "$ref": "#/$defs/TransformInterpolation"
+            },
+            "matrix": {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "format": "double"
+              },
+              "maxItems": 9,
+              "minItems": 9
+            },
+            "type": {
+              "type": "string",
+              "const": "transform"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "matrix",
+            "interpolation"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "bounds": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/CoverageRect"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": {
+              "type": "string",
+              "const": "crop"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "interpolation": {
+              "$ref": "#/$defs/ResizeInterpolation"
+            },
+            "origin": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "maxItems": 2,
+              "minItems": 2
+            },
+            "source": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "format": "uint32",
+                "minimum": 0
+              },
+              "maxItems": 2,
+              "minItems": 2
+            },
+            "target": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "format": "uint32",
+                "minimum": 0
+              },
+              "maxItems": 2,
+              "minItems": 2
+            },
+            "type": {
+              "type": "string",
+              "const": "resize"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "origin",
+            "source",
+            "target",
+            "interpolation"
+          ]
+        }
+      ]
+    },
     "TextSpec": {
       "type": "object",
       "properties": {
@@ -535,6 +654,13 @@ Permissions: `bound_document`
       "required": [
         "text",
         "layout"
+      ]
+    },
+    "TransformInterpolation": {
+      "type": "string",
+      "enum": [
+        "nearest",
+        "bilinear"
       ]
     }
   }
@@ -594,7 +720,7 @@ Permissions: `bound_document`
 
 ## `type.update` — 修改可编辑文字
 
-Replace the complete text spec and normalized working RGBA color of an explicit editable text layer through the same portable shaper/raster/compositor as type.create. Use type.inspect first, preserve its original text/style fields you are not changing, and supply full spec; input never takes a system font path or image snapshot. Preserve layer ID/name/position/visibility/opacity/blend/clipping/parent/styles and u16 mask/selection. Destructive-crop local support remains permanent for later edits, preventing discarded text ink from regrowing; source text stays editable. Pixel/transparency/all or ancestor locks reject; position-only locks allow editing. Identical validated spec and final color codes return changed=false without history/revision/dirty/current-layer change; otherwise publish once with exact undo. Same text length/font/glyph/memory/cancellation limits as creation. Rendering cache is derived from retained source/style at document depth, not an editable screenshot. Native and AI use the same command. 中文：编辑文字、修改文本、替换文字内容、字体、字号、文字颜色、行距、字距、对齐、段落宽高、文字属性；参数完整替换，一次撤销。
+Replace the complete text spec and normalized working RGBA color of an explicit editable text layer through the same portable shaper/raster/compositor as type.create. Use type.inspect first, preserve its original text/style fields you are not changing, and supply full spec; input never takes a system font path or image snapshot. Preserve layer ID/name/position/visibility/opacity/blend/clipping/parent/styles and u16 mask/selection. Retained geometry/crop/size operations replay from the new source; uniform RGB stays exact and only glyph coverage is sampled. Adjacent transforms compose before sampling, crop barriers retain operation order; at most32 retained stages and64M transform destination visits per text re-render. Text metrics describe original source layout; layer.pixel_bounds reports final transformed ink. If a longer source crosses a stored projective horizon, reject atomically and keep old source. Destructive-crop local support remains permanent for later edits, preventing discarded text ink from regrowing; source text stays editable. Pixel/transparency/all or ancestor locks reject; position-only locks allow editing. Identical validated spec and final color codes return changed=false without history/revision/dirty/current-layer change; otherwise publish once with exact undo. Same text length/font/glyph/memory/cancellation limits as creation. Rendering cache is derived from retained source/style at document depth, not an editable screenshot. Native and AI use the same command. 中文：编辑文字、修改文本、替换文字内容、字体、字号、文字颜色、行距、字距、对齐、段落宽高、文字属性；参数完整替换，一次撤销。
 
 Kind: `Mutate` · Undoable: `true` · Batchable: `false`
 
@@ -853,6 +979,14 @@ Permissions: `bound_document`
         "cjk"
       ]
     },
+    "ResizeInterpolation": {
+      "type": "string",
+      "enum": [
+        "nearest",
+        "bilinear",
+        "area"
+      ]
+    },
     "TextAlign": {
       "type": "string",
       "enum": [
@@ -876,6 +1010,13 @@ Permissions: `bound_document`
           },
           "maxItems": 4,
           "minItems": 4
+        },
+        "operations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TextOperation"
+          },
+          "maxItems": 32
         },
         "spec": {
           "$ref": "#/$defs/TextSpec"
@@ -995,6 +1136,110 @@ Permissions: `bound_document`
         "fonts_used"
       ]
     },
+    "TextOperation": {
+      "description": "Retained local-coordinate operations replay from shaped source, never from a\npreviously published bitmap. Crop barriers preserve actual deletion order.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "interpolation": {
+              "$ref": "#/$defs/TransformInterpolation"
+            },
+            "matrix": {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "format": "double"
+              },
+              "maxItems": 9,
+              "minItems": 9
+            },
+            "type": {
+              "type": "string",
+              "const": "transform"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "matrix",
+            "interpolation"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "bounds": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/CoverageRect"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": {
+              "type": "string",
+              "const": "crop"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "interpolation": {
+              "$ref": "#/$defs/ResizeInterpolation"
+            },
+            "origin": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "maxItems": 2,
+              "minItems": 2
+            },
+            "source": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "format": "uint32",
+                "minimum": 0
+              },
+              "maxItems": 2,
+              "minItems": 2
+            },
+            "target": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "format": "uint32",
+                "minimum": 0
+              },
+              "maxItems": 2,
+              "minItems": 2
+            },
+            "type": {
+              "type": "string",
+              "const": "resize"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "origin",
+            "source",
+            "target",
+            "interpolation"
+          ]
+        }
+      ]
+    },
     "TextSpec": {
       "type": "object",
       "properties": {
@@ -1042,6 +1287,13 @@ Permissions: `bound_document`
         "text",
         "layout"
       ]
+    },
+    "TransformInterpolation": {
+      "type": "string",
+      "enum": [
+        "nearest",
+        "bilinear"
+      ]
     }
   }
 }
@@ -1078,7 +1330,7 @@ Permissions: `bound_document`
 
 ## `type.inspect` — 读取文字源和排版
 
-Read source Unicode, full uniform type spec, pinned typography version and encoded8/16-bit working RGBA codes from an explicit visible editable text layer with visible ancestors; metrics is null on this lightweight query. Use the document bit depth to normalize definition.color codes before sending type.update (divide by255 or65535). It never shapes, rasterizes, grants font/file resources or changes selection/history/revision/current layer. Missing/nontext/hidden targets reject. 中文：读取文字、文字内容、文字排版、字体属性、可编辑文本源、段落参数。
+Read source Unicode, full uniform type spec, pinned typography version and encoded8/16-bit working RGBA codes from an explicit visible editable text layer with visible ancestors; metrics is null on this lightweight query. definition.operations (omitted if empty) retains local-coordinate transforms/crop barriers/resizes in execution order. type.update preserves them without accepting geometry as text parameters. Use transform.apply or image geometry commands to change geometry. Use the document bit depth to normalize definition.color codes before sending type.update (divide by255 or65535). It never shapes, rasterizes, grants font/file resources or changes selection/history/revision/current layer. Missing/nontext/hidden targets reject. 中文：读取文字、文字内容、文字排版、字体属性、可编辑文本源、段落参数。
 
 Kind: `Query` · Undoable: `false` · Batchable: `false`
 
@@ -1213,6 +1465,14 @@ Permissions: `bound_document`
         "cjk"
       ]
     },
+    "ResizeInterpolation": {
+      "type": "string",
+      "enum": [
+        "nearest",
+        "bilinear",
+        "area"
+      ]
+    },
     "TextAlign": {
       "type": "string",
       "enum": [
@@ -1236,6 +1496,13 @@ Permissions: `bound_document`
           },
           "maxItems": 4,
           "minItems": 4
+        },
+        "operations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TextOperation"
+          },
+          "maxItems": 32
         },
         "spec": {
           "$ref": "#/$defs/TextSpec"
@@ -1355,6 +1622,110 @@ Permissions: `bound_document`
         "fonts_used"
       ]
     },
+    "TextOperation": {
+      "description": "Retained local-coordinate operations replay from shaped source, never from a\npreviously published bitmap. Crop barriers preserve actual deletion order.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "interpolation": {
+              "$ref": "#/$defs/TransformInterpolation"
+            },
+            "matrix": {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "format": "double"
+              },
+              "maxItems": 9,
+              "minItems": 9
+            },
+            "type": {
+              "type": "string",
+              "const": "transform"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "matrix",
+            "interpolation"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "bounds": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/CoverageRect"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": {
+              "type": "string",
+              "const": "crop"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "interpolation": {
+              "$ref": "#/$defs/ResizeInterpolation"
+            },
+            "origin": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "maxItems": 2,
+              "minItems": 2
+            },
+            "source": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "format": "uint32",
+                "minimum": 0
+              },
+              "maxItems": 2,
+              "minItems": 2
+            },
+            "target": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "format": "uint32",
+                "minimum": 0
+              },
+              "maxItems": 2,
+              "minItems": 2
+            },
+            "type": {
+              "type": "string",
+              "const": "resize"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "origin",
+            "source",
+            "target",
+            "interpolation"
+          ]
+        }
+      ]
+    },
     "TextSpec": {
       "type": "object",
       "properties": {
@@ -1401,6 +1772,13 @@ Permissions: `bound_document`
       "required": [
         "text",
         "layout"
+      ]
+    },
+    "TransformInterpolation": {
+      "type": "string",
+      "enum": [
+        "nearest",
+        "bilinear"
       ]
     }
   }
@@ -2616,6 +2994,14 @@ Permissions: `bound_document`
         "version"
       ]
     },
+    "ResizeInterpolation": {
+      "type": "string",
+      "enum": [
+        "nearest",
+        "bilinear",
+        "area"
+      ]
+    },
     "Shadow": {
       "type": "object",
       "properties": {
@@ -2720,6 +3106,13 @@ Permissions: `bound_document`
           "maxItems": 4,
           "minItems": 4
         },
+        "operations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TextOperation"
+          },
+          "maxItems": 32
+        },
         "spec": {
           "$ref": "#/$defs/TextSpec"
         },
@@ -2776,6 +3169,110 @@ Permissions: `bound_document`
             "type",
             "width",
             "height"
+          ]
+        }
+      ]
+    },
+    "TextOperation": {
+      "description": "Retained local-coordinate operations replay from shaped source, never from a\npreviously published bitmap. Crop barriers preserve actual deletion order.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "interpolation": {
+              "$ref": "#/$defs/TransformInterpolation"
+            },
+            "matrix": {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "format": "double"
+              },
+              "maxItems": 9,
+              "minItems": 9
+            },
+            "type": {
+              "type": "string",
+              "const": "transform"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "matrix",
+            "interpolation"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "bounds": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/CoverageRect"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": {
+              "type": "string",
+              "const": "crop"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "interpolation": {
+              "$ref": "#/$defs/ResizeInterpolation"
+            },
+            "origin": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "maxItems": 2,
+              "minItems": 2
+            },
+            "source": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "format": "uint32",
+                "minimum": 0
+              },
+              "maxItems": 2,
+              "minItems": 2
+            },
+            "target": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "format": "uint32",
+                "minimum": 0
+              },
+              "maxItems": 2,
+              "minItems": 2
+            },
+            "type": {
+              "type": "string",
+              "const": "resize"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "origin",
+            "source",
+            "target",
+            "interpolation"
           ]
         }
       ]
@@ -3479,6 +3976,13 @@ Permissions: `bound_document`
             "type"
           ]
         }
+      ]
+    },
+    "TransformInterpolation": {
+      "type": "string",
+      "enum": [
+        "nearest",
+        "bilinear"
       ]
     }
   }
@@ -4346,6 +4850,14 @@ Permissions: `bound_document`
         "color"
       ]
     },
+    "ResizeInterpolation": {
+      "type": "string",
+      "enum": [
+        "nearest",
+        "bilinear",
+        "area"
+      ]
+    },
     "Shadow": {
       "type": "object",
       "properties": {
@@ -4442,6 +4954,13 @@ Permissions: `bound_document`
           "maxItems": 4,
           "minItems": 4
         },
+        "operations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TextOperation"
+          },
+          "maxItems": 32
+        },
         "spec": {
           "$ref": "#/$defs/TextSpec"
         },
@@ -4498,6 +5017,110 @@ Permissions: `bound_document`
             "type",
             "width",
             "height"
+          ]
+        }
+      ]
+    },
+    "TextOperation": {
+      "description": "Retained local-coordinate operations replay from shaped source, never from a\npreviously published bitmap. Crop barriers preserve actual deletion order.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "interpolation": {
+              "$ref": "#/$defs/TransformInterpolation"
+            },
+            "matrix": {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "format": "double"
+              },
+              "maxItems": 9,
+              "minItems": 9
+            },
+            "type": {
+              "type": "string",
+              "const": "transform"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "matrix",
+            "interpolation"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "bounds": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/CoverageRect"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": {
+              "type": "string",
+              "const": "crop"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "interpolation": {
+              "$ref": "#/$defs/ResizeInterpolation"
+            },
+            "origin": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "maxItems": 2,
+              "minItems": 2
+            },
+            "source": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "format": "uint32",
+                "minimum": 0
+              },
+              "maxItems": 2,
+              "minItems": 2
+            },
+            "target": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "format": "uint32",
+                "minimum": 0
+              },
+              "maxItems": 2,
+              "minItems": 2
+            },
+            "type": {
+              "type": "string",
+              "const": "resize"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "origin",
+            "source",
+            "target",
+            "interpolation"
           ]
         }
       ]
@@ -5201,6 +5824,13 @@ Permissions: `bound_document`
             "type"
           ]
         }
+      ]
+    },
+    "TransformInterpolation": {
+      "type": "string",
+      "enum": [
+        "nearest",
+        "bilinear"
       ]
     }
   }
@@ -9961,7 +10591,7 @@ Permissions: `bound_document`
 
 ## `layer.mask.apply` — 应用蒙版
 
-Multiply a pixel layer's original alpha by its enabled u16 mask without rewriting hidden RGB. Locked pixels/transparency are protected; fills/groups are rasterized with the mask baked. Adjustments require explicit bake_backdrop=true.
+Multiply a pixel layer's original alpha by its enabled u16 mask without rewriting hidden RGB. Locked pixels/transparency are protected; fills/groups/editable text are rasterized with the mask baked. Applying a text mask explicitly bakes its source/layout/geometry into a pixel layer; native UI labels this Apply and rasterize. One undo restores the editable text and mask. Adjustments require explicit bake_backdrop=true. 中文：应用蒙版；文字层会应用并栅格化，失去可编辑原文，一次撤销可完整恢复。
 
 Kind: `Mutate` · Undoable: `true` · Batchable: `true`
 
@@ -19660,7 +20290,7 @@ Permissions: `bound_document`
 
 ## `layer.pixel_bounds` — 像素图层边界
 
-Read finite occupied canvas bounds of an explicit visible pixel layer, including stored transparent hidden RGB. Sparse tiles scan with cancellation; query never changes samples/history. Invisible layer/ancestor or non-pixel target rejected. Null means no stored content. Use before transform.apply to choose source corners or pivot; coordinates include layer offset. Not batchable. 中文：像素图层边界、内容尺寸、变换轴心。
+Read finite occupied canvas bounds of an explicit visible pixel or editable text layer, including stored transparent hidden RGB. Sparse tiles scan with cancellation; query never changes samples/history. An editable text layer with no stored RGBA codes (for example fully transparent black) uses its retained glyph coverage, geometry and crop to measure ink instead; this bounded source-only fallback reserves the same font/mask memory and supports cancellation without writing a render cache. Whitespace/fully deleted ink still reports null. Invisible layer/ancestor or other non-pixel/non-text target rejected. Null means no stored content. Use before transform.apply to choose source corners or pivot; coordinates include layer offset. Not batchable. 中文：像素图层边界、内容尺寸、变换轴心。
 
 Kind: `Query` · Undoable: `false` · Batchable: `false`
 
@@ -19795,7 +20425,7 @@ Permissions: `bound_document`
 
 ## `transform.apply` — 像素自由变换
 
-Transform an explicit pixel layer and linked u16 mask from immutable source, preserving canvas-external content, selection and styles. Required scope=whole_layer or selection. whole_layer transforms all stored pixels and linked mask, leaving selection unchanged. selection requires nonempty document coverage: lift nontransparent source once with u16 selection into 16-bit temporary tiles, keep a source-over complement r=(a-s)/(1-s) with s=selected alpha, warp that immutable lift, then composite over remainder in premultiplied linear light. This complement reconstructs identity alpha and differs from simply multiplying original alpha by (1-coverage). Never clip the destination again by old selection. Move current selection through the same geometry/interpolation, clip coverage to the artboard, store old selection for reselect; keep layer position/styles/linked mask unchanged in selection mode. Zero-coverage and original alpha-zero hidden RGB remain exact at source; selected fully opaque coverage carries exact visible codes. Identity transform is exact and returns changed=false with no history/revision/dirty/current-layer change, in both scopes; identical valid source/destination corners normalize to exact identity. Nonidentity operations return changed=true. Pixel destinations outside artboard stay stored even if selection outline clips away. RGB lifting/warp and destination composite remain bounded/cancellable/pooled; no 8-bit intermediate for soft coverage. Generated/group/text transforms remain unsupported; never rasterize/drop them implicitly. Native canvas handles now stage the same corners payload with fixed original document/revision/control/layer/scope ownership: eight scale handles, center-based rotation, skew, distort, paired-corner perspective, translation and keyboard nudge. Shift constrains ratio/direction/15-degree rotation, Option scales about center. Pointer motion previews only the quad; Enter applies once and Escape cancels. Continuous warped-image feedback remains separate; the existing numeric panel can still display a pixel preview. geometry.type=components: translation [x,y], scale [sx,sy] (negative flips), rotation_degrees, shear_degrees [x,y], pivot canvas [x,y]; order scale, shear, rotation, translation around pivot. affine values [a,b,c,d,tx,ty]. matrix values row-major [a,c,tx,b,d,ty,p,q,w], projective division. corners maps four cyclic convex source corners to destination corners; canvas coordinates, reversed orientation allowed. Use layer.pixel_bounds for actual source extent. interpolation nearest/bilinear (default): nearest floating edge ties within 1e-9 source pixel choose the positive-side sample; integer centers keep exact codes, fractions premultiplied linear P3 with actual ICC. Empty pixel layers reject. Exact integer translation only changes the layer position and keeps source/mask tile versions; signed axis permutations use integer pixel-center mapping even at large canvas offsets. Other output tiles are rebased to the transformed logical bounds, and the layer position reports that origin. Reject singular/horizon/unbounded or >64M-output visits; independent RGB/mask eight-tile/4096-decode caches, shared reservations/row cancellation. Reject pixel/position/transparency/all and ancestor locks. Linked mask flag preserved, anchors rebound. One atomic history, not batchable. 中文：自由变换、整层像素、选区内像素、移动选中区域、缩放、旋转、斜切、扭曲、透视、水平翻转、垂直翻转、画布手柄、八手柄、旋转圆点、四角草稿、等比缩放、中心缩放、回车应用、Esc取消；画布拖动显示轮廓，应用时用同一命令更新像素，恒等变换不写历史。
+Transform an explicit pixel or editable text layer and linked u16 mask from immutable source, preserving canvas-external content, selection and styles. Required scope=whole_layer or selection. whole_layer transforms all stored pixels and linked mask, leaving selection unchanged. selection requires nonempty document coverage: lift nontransparent source once with u16 selection into 16-bit temporary tiles, keep a source-over complement r=(a-s)/(1-s) with s=selected alpha, warp that immutable lift, then composite over remainder in premultiplied linear light. This complement reconstructs identity alpha and differs from simply multiplying original alpha by (1-coverage). Never clip the destination again by old selection. Move current selection through the same geometry/interpolation, clip coverage to the artboard, store old selection for reselect; keep layer position/styles/linked mask unchanged in selection mode. Zero-coverage and original alpha-zero hidden RGB remain exact at source; selected fully opaque coverage carries exact visible codes. Identity transform is exact and returns changed=false with no history/revision/dirty/current-layer change, in both scopes; identical valid source/destination corners normalize to exact identity. Nonidentity operations return changed=true. Pixel destinations outside artboard stay stored even if selection outline clips away. RGB lifting/warp and destination composite remain bounded/cancellable/pooled; no 8-bit intermediate for soft coverage. Editable text supports whole_layer with all geometry variants, including perspective, and retains Unicode/style plus a local geometry pipeline (manifest8). Reshape original source and transform uniform-color glyph coverage; adjacent transforms compose before sampling and crop barriers stay ordered. Exact nearest lattice operations preserve glyph codes; bilinear interpolates u16 coverage without RGB/ICC round trips. Re-edit preserves geometry. Selection scope rejects text: explicitly rasterize first or choose whole_layer. Layer storage position rebases to transformed content. Empty text ink rejects. At most32 retained stages and64M transformed coverage visits per text re-render; glyph/source/shared-memory limits still apply. Generated/group transforms remain unsupported; never rasterize/drop them implicitly. Native canvas handles now stage the same corners payload with fixed original document/revision/control/layer/scope ownership: eight scale handles, center-based rotation, skew, distort, paired-corner perspective, translation and keyboard nudge. Shift constrains ratio/direction/15-degree rotation, Option scales about center. Pointer motion previews only the quad; Enter applies once and Escape cancels. Continuous warped-image feedback remains separate; the existing numeric panel can still display a pixel preview. geometry.type=components: translation [x,y], scale [sx,sy] (negative flips), rotation_degrees, shear_degrees [x,y], pivot canvas [x,y]; order scale, shear, rotation, translation around pivot. affine values [a,b,c,d,tx,ty]. matrix values row-major [a,c,tx,b,d,ty,p,q,w], projective division. corners maps four cyclic convex source corners to destination corners; canvas coordinates, reversed orientation allowed. Use layer.pixel_bounds for actual source extent. interpolation nearest/bilinear (default): nearest floating edge ties within 1e-9 source pixel choose the positive-side sample; integer centers keep exact codes, fractions premultiplied linear P3 with actual ICC. Empty pixel layers reject. Exact integer translation only changes the layer position and keeps source/mask tile versions; signed axis permutations use integer pixel-center mapping even at large canvas offsets. Other output tiles are rebased to the transformed logical bounds, and the layer position reports that origin. Reject singular/horizon/unbounded or >64M-output visits; independent RGB/mask eight-tile/4096-decode caches, shared reservations/row cancellation. Reject pixel/position/transparency/all and ancestor locks. Linked mask flag preserved, anchors rebound. One atomic history, not batchable. 中文：自由变换、可编辑文字变换、保留文字源旋转、整层像素、选区内像素、移动选中区域、缩放、旋转、斜切、扭曲、透视、水平翻转、垂直翻转、画布手柄、八手柄、旋转圆点、四角草稿、等比缩放、中心缩放、回车应用、Esc取消；画布拖动显示轮廓，应用时用同一命令更新像素，恒等变换不写历史。
 
 Kind: `Mutate` · Undoable: `true` · Batchable: `false`
 
@@ -20152,6 +20782,28 @@ Permissions: `bound_document`
   "interpolation": "nearest",
   "layer": {
     "name": "Background"
+  },
+  "scope": "whole_layer"
+}
+```
+
+```json
+{
+  "geometry": {
+    "pivot": [
+      8,
+      8
+    ],
+    "rotation_degrees": 15,
+    "scale": [
+      1.2,
+      0.8
+    ],
+    "type": "components"
+  },
+  "interpolation": "bilinear",
+  "layer": {
+    "name": "TypeGeometry"
   },
   "scope": "whole_layer"
 }
@@ -20640,7 +21292,7 @@ Permissions: `bound_document`
 
 ## `image.orient` — 图像旋转与翻转
 
-Apply a whole-document exact signed-axis permutation: operation rotate_90_cw, rotate_90_ccw, rotate_180, flip_horizontal or flip_vertical. Keep the artboard top-left fixed; quarter turns swap width/height. Transform all stored source pixels including off-artboard/hidden layers and transparent hidden RGB, all linked/disabled u16 masks and current/previous selections. Preserve hierarchy, clipping, IDs, working ICC/depth and editable pixel/fill/group/adjustment definitions. Rotate/reflect gradient and gradient-overlay axes, swap frozen dimensions, map spatial adjustment domains and shadow offset vectors; radius/scale stay unchanged under these isometries. No rasterization or source artboard clipping. Exact nearest lattice sampling preserves integer codes. Existing procedural dissolve still uses its deterministic destination canvas-coordinate pattern, not a rotated random bitmap. Reject any layer pixel/position/transparency/all lock, unrepresentable/out-of-range geometry, >64M raster/mask/reference bound visits or shared memory/cache limits; atomic cancellation and one-history undo. All current layer kinds supported; future text/smart objects need their own support. Not batchable; AI requires exact content-replacement approval. Arbitrary-angle image rotation/straighten is separate unsupported work. 中文：整幅图像旋转、顺时针90度、逆时针90度、180度、图像水平翻转、图像垂直翻转；同步保留可编辑图层、蒙版、选区与画板外内容。
+Apply a whole-document exact signed-axis permutation: operation rotate_90_cw, rotate_90_ccw, rotate_180, flip_horizontal or flip_vertical. Keep the artboard top-left fixed; quarter turns swap width/height. Transform all stored source pixels including off-artboard/hidden layers and transparent hidden RGB, all linked/disabled u16 masks and current/previous selections. Preserve hierarchy, clipping, IDs, working ICC/depth and editable pixel/fill/group/adjustment definitions. Rotate/reflect gradient and gradient-overlay axes, swap frozen dimensions, map spatial adjustment domains and shadow offset vectors; radius/scale stay unchanged under these isometries. No rasterization or source artboard clipping. Exact nearest lattice sampling preserves integer codes. Existing procedural dissolve still uses its deterministic destination canvas-coordinate pattern, not a rotated random bitmap. Reject any layer pixel/position/transparency/all lock, unrepresentable/out-of-range geometry, >64M raster/mask/reference bound visits or shared memory/cache limits; atomic cancellation and one-history undo. All current layer kinds supported, including retained-source text: glyph coverage and ordered crop/geometry transform while Unicode/style remain editable. Future smart objects need their own support. Not batchable; AI requires exact content-replacement approval. Arbitrary-angle image rotation/straighten uses its separate partial-type commands. 中文：整幅图像旋转、顺时针90度、逆时针90度、180度、图像水平翻转、图像垂直翻转；同步保留可编辑图层、蒙版、选区与画板外内容。
 
 Kind: `Mutate` · Undoable: `true` · Batchable: `false`
 
@@ -21694,7 +22346,7 @@ Permissions: `bound_document`
 
 ## `image.rotate` — 整图任意角度旋转
 
-Rotate the layered image clockwise by finite angle_degrees +/-360000 (normalized modulo360); interpolation nearest/bilinear(default). General angles currently support every pixel layer and unstyled group, including hidden/off-artboard stored pixels, linked/disabled u16 masks and current/previous selections. Generated fills/adjustments, active styles and frozen style references reject before work; no implicit rasterization. Exact 90/180/270 degrees reuse image.orient and its support for all current types/finite generated crops/styles. Exact multiples of360 are no-ops with no history/revision/dirty/current-layer change. For general angles, rotate around old artboard center and translate its conservative half-source-pixel reconstruction envelope to the old artboard top-left; new canvas dimensions enclose that envelope independent of interpolation, so nearest may show an extra transparent border. Pixel source outside the old artboard is never clipped; it can stay outside the new frame. Integer layer storage origins rebase to transformed source bounds. Document selections transform/rebind to the new artboard, layer/group masks keep transformed finite support and enabled flags. ICC/depth/tree/IDs/clipping remain; fractions use premultiplied linear light, nearest preserves sampled codes and picks the positive-side sample for floating edge ties within 1e-9 source pixel. Reject any layer/ancestor pixel/position/transparency/all lock or existing 64M-output, eight-tile/4096-source-decode, coordinate and shared memory limits. Prepare from immutable source, row cancellation, atomic one-history undo, not batchable, exact AI content-replacement approval. This partial image-rotation capability does not complete general editable fill/style/text geometry or straighten/crop integration. 中文：整图任意角度旋转、旋转图像、顺时针角度、逆时针角度；扩展画板，保留像素层/组、蒙版、选区和画板外内容。
+Rotate the layered image clockwise by finite angle_degrees +/-360000 (normalized modulo360); interpolation nearest/bilinear(default). General angles currently support every pixel layer, unstyled editable text and unstyled group, including hidden/off-artboard stored pixels, linked/disabled u16 masks and current/previous selections. Generated fills/adjustments, active styles and frozen style references reject before work; no implicit rasterization. Exact 90/180/270 degrees reuse image.orient and its support for all current types/finite generated crops/styles. Exact multiples of360 are no-ops with no history/revision/dirty/current-layer change. For general angles, rotate around old artboard center and translate its conservative half-source-pixel reconstruction envelope to the old artboard top-left; new canvas dimensions enclose that envelope independent of interpolation, so nearest may show an extra transparent border. Pixel source outside the old artboard is never clipped; it can stay outside the new frame. Integer layer storage origins rebase to transformed source bounds. Document selections transform/rebind to the new artboard, layer/group masks keep transformed finite support and enabled flags. ICC/depth/tree/IDs/clipping remain; fractions use premultiplied linear light, nearest preserves sampled codes and picks the positive-side sample for floating edge ties within 1e-9 source pixel. Reject any layer/ancestor pixel/position/transparency/all lock or existing 64M-output, eight-tile/4096-source-decode, coordinate and shared memory limits. Prepare from immutable source, row cancellation, atomic one-history undo, not batchable, exact AI content-replacement approval. This partial image-rotation capability does not complete general editable fill/style geometry. Text retains source plus the ordered geometry pipeline; re-edit preserves orientation and crop barriers. 中文：整图任意角度旋转、旋转图像、顺时针角度、逆时针角度；扩展画板，保留像素层/组、蒙版、选区和画板外内容。
 
 Kind: `Mutate` · Undoable: `true` · Batchable: `false`
 
@@ -21825,7 +22477,7 @@ Permissions: `bound_document`
 
 ## `image.resize` — 图像大小与重采样
 
-Resize the actual image to integer width/height 1..100000 pixels while keeping the old artboard top-left and document DPI. Supports all pixel layers and unstyled groups, including hidden/off-artboard source pixels, layer/group masks (enabled flag retained) and current/previous u16 selections. Preserve IDs/tree/clipping/ICC/bit depth; do not flatten or clip to the old/new artboard. Generated fills/adjustments, active styles and frozen style references explicitly reject before resampling; their editable sizing support remains open. interpolation=nearest copies exact source codes (including transparent hidden RGB); bilinear samples pixel centers in premultiplied linear light with actual ICC; area(default) integrates exact pixel-box overlap on each reducing axis and uses bilinear on equal/enlarging axes. Finite interior/off-artboard source edges filter against transparent zero, with conservative half-source-pixel support for bilinear axes; only source edges exactly coinciding with the old artboard edge extend their sample so a full opaque image keeps opaque borders. Area reduction uses exact pixel-box overlap normalization. Rational canvas coordinates preserve sample phase at large offsets. Source bounds scale with floor/ceil and integer layer storage origins rebase; this can retain a partial edge pixel beyond the new artboard. Selections rebind to the exact new frame, never reapply old selection to image pixels. Equal dimensions are a no-op with no history/revision/dirty/current-layer changes even on unsupported or locked layers. Reject affected layer/ancestor pixel/position/transparency/all locks. At most 64M destination visits and 256M sample taps across layers/masks/selections per command, eight cached source tiles/4096 decoded loads per raster, shared reservations and row/inner-loop cancellation. Prepare from immutable sources, publish one atomic history step with exact undo, not batchable; exact AI pixels.replace approval. Native and AI share this implementation. 中文：图像大小、调整图像尺寸、像素尺寸、重采样、最近邻、双线性、面积缩小、抗混叠；保留图层蒙版与画板外像素。
+Resize the actual image to integer width/height 1..100000 pixels while keeping the old artboard top-left and document DPI. Supports all pixel layers, unstyled editable text and unstyled groups, including hidden/off-artboard source pixels, layer/group masks (enabled flag retained) and current/previous u16 selections. Preserve IDs/tree/clipping/ICC/bit depth; do not flatten or clip to the old/new artboard. Generated fills/adjustments, active styles and frozen style references explicitly reject before resampling; their editable sizing support remains open. Text retains source and ordered sizing/crop operations, replaying the same selected nearest/bilinear/area u16 glyph coverage sampler after source edits. Font size/box remain source-layout values; transformed ink bounds are queried separately. interpolation=nearest copies exact source codes (including transparent hidden RGB); bilinear samples pixel centers in premultiplied linear light with actual ICC; area(default) integrates exact pixel-box overlap on each reducing axis and uses bilinear on equal/enlarging axes. Finite interior/off-artboard source edges filter against transparent zero, with conservative half-source-pixel support for bilinear axes; only source edges exactly coinciding with the old artboard edge extend their sample so a full opaque image keeps opaque borders. Area reduction uses exact pixel-box overlap normalization. Rational canvas coordinates preserve sample phase at large offsets. Source bounds scale with floor/ceil and integer layer storage origins rebase; this can retain a partial edge pixel beyond the new artboard. Selections rebind to the exact new frame, never reapply old selection to image pixels. Equal dimensions are a no-op with no history/revision/dirty/current-layer changes even on unsupported or locked layers. Reject affected layer/ancestor pixel/position/transparency/all locks. At most 64M destination visits and 256M sample taps across layers/masks/selections per command, eight cached source tiles/4096 decoded loads per raster, shared reservations and row/inner-loop cancellation. Prepare from immutable sources, publish one atomic history step with exact undo, not batchable; exact AI pixels.replace approval. Native and AI share this implementation. 中文：图像大小、调整图像尺寸、像素尺寸、重采样、最近邻、双线性、面积缩小、抗混叠；保留图层蒙版与画板外像素。
 
 Kind: `Mutate` · Undoable: `true` · Batchable: `false`
 
@@ -21988,7 +22640,7 @@ Permissions: `bound_document`
 
 ## `image.straighten` — 拉直图像与自动裁剪
 
-Straighten all pixel layers and unstyled groups in one atomic history step using reference.type=angle (clockwise angle_degrees +/-45) or line (distinct start/end canvas points, align horizontal/vertical). A reference line computes the shortest unoriented correction toward the requested axis; choose the other axis if correction exceeds45 degrees. Points must be finite inside +/-1e12 and at least1e-6 pixel apart. crop=true(default) uses the rotated original artboard, not visible-content alpha, to compute an analytical largest centered continuous inscribed rectangle, then rounds its edges inward and verifies inverse corners. Bilinear uses an additional half-source-pixel inset so an originally opaque image cannot gain transparent corner interpolation; integer alignment may conservatively remove extra edge pixels. An image too narrow for a nonempty safe integer rectangle rejects before sampling; set crop=false to retain the expanded rotation artboard. No content-aware filling, deletion or implicit rasterization. Same immutable resampler/limits/locks/partial-type restrictions as image.rotate; preserve layer IDs/tree/depth/ICC, hidden/off-artboard sources, enabled flags and layer/group/current/previous masks. Source content outside the cropped frame remains stored; selection binds to final frame. Exactly zero correction is unchanged-state no-op, even with crop=true. Native numeric and canvas-dragged reference lines use the same strict parameters/output as AI, with pixels.replace approval for AI. A native line stages only a guide, binds the original document/revision/control epoch and operation-specific ownership token, and applies on Enter or its button; Escape, tool/document/revision/control changes cancel it without revoking newer AI work. Horizontal/vertical, crop and interpolation remain adjustable before confirmation. One undo restores rotation and crop. Generated fills/adjustments/styles/text arbitrary geometry remains open. 中文：拉直、水平线校正、垂直线校正、按两点参考线拉直、画布拖线拉直、参考线草稿、回车应用、Esc取消、校正地平线、自动裁掉旋转空角、保留像素裁剪。
+Straighten all pixel layers, unstyled editable text and unstyled groups in one atomic history step using reference.type=angle (clockwise angle_degrees +/-45) or line (distinct start/end canvas points, align horizontal/vertical). A reference line computes the shortest unoriented correction toward the requested axis; choose the other axis if correction exceeds45 degrees. Points must be finite inside +/-1e12 and at least1e-6 pixel apart. crop=true(default) uses the rotated original artboard, not visible-content alpha, to compute an analytical largest centered continuous inscribed rectangle, then rounds its edges inward and verifies inverse corners. Bilinear uses an additional half-source-pixel inset so an originally opaque image cannot gain transparent corner interpolation; integer alignment may conservatively remove extra edge pixels. An image too narrow for a nonempty safe integer rectangle rejects before sampling; set crop=false to retain the expanded rotation artboard. No content-aware filling, deletion or implicit rasterization. Same immutable resampler/limits/locks/partial-type restrictions as image.rotate; preserve layer IDs/tree/depth/ICC, hidden/off-artboard sources, enabled flags and layer/group/current/previous masks. Source content outside the cropped frame remains stored; selection binds to final frame. Exactly zero correction is unchanged-state no-op, even with crop=true. Native numeric and canvas-dragged reference lines use the same strict parameters/output as AI, with pixels.replace approval for AI. A native line stages only a guide, binds the original document/revision/control epoch and operation-specific ownership token, and applies on Enter or its button; Escape, tool/document/revision/control changes cancel it without revoking newer AI work. Horizontal/vertical, crop and interpolation remain adjustable before confirmation. One undo restores rotation and crop. Generated fills/adjustments/styles arbitrary geometry remains open; text retains source and ordered geometry/crop stages. 中文：拉直、水平线校正、垂直线校正、按两点参考线拉直、画布拖线拉直、参考线草稿、回车应用、Esc取消、校正地平线、自动裁掉旋转空角、保留像素裁剪。
 
 Kind: `Mutate` · Undoable: `true` · Batchable: `false`
 

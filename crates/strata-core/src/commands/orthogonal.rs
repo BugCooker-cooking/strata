@@ -33,15 +33,6 @@ pub(super) fn mutate(
     }
     check(cancel)?;
     let p: OrientImage = parse(params)?;
-    if doc
-        .layers
-        .iter()
-        .any(|l| matches!(l.info().kind, LayerKind::Text { .. }))
-    {
-        return Err(invalid(
-            "editable text orientation is not yet supported; rasterize it explicitly before image orientation",
-        ));
-    }
     if doc.layers.iter().any(|l| {
         let lock = l.info().locks;
         lock.all || lock.pixels || lock.position || lock.transparency
@@ -109,7 +100,7 @@ pub(super) fn mutate(
         // Exhaustive on purpose: a new editable layer kind must explicitly
         // implement orientation instead of silently keeping its old payload.
         let has_pixels = match &info.kind {
-            LayerKind::Text { .. } => unreachable!("text rejected before orientation work"),
+            LayerKind::Text { .. } => false,
             LayerKind::Pixel => true,
             LayerKind::Group
             | LayerKind::Solid { .. }
@@ -216,9 +207,26 @@ pub(super) fn mutate(
             })
             .transpose()?;
         check(cancel)?;
+        let text = if matches!(info.kind, LayerKind::Text { .. }) {
+            Some(crate::typography::transformed_layer(
+                old,
+                &transform,
+                TransformInterpolation::Nearest,
+                reference_origin,
+                doc.format,
+                pool.clone(),
+                cancel,
+            )?)
+        } else {
+            None
+        };
         let layer = &mut doc.layers[index];
         if let Some(output) = output {
             layer.pixels = output;
+        }
+        if let Some(text) = text {
+            layer.pixels = text.pixels;
+            layer.info.kind = text.info.kind;
         }
         layer.info.x = reference_origin[0];
         layer.info.y = reference_origin[1];
@@ -235,7 +243,11 @@ pub(super) fn mutate(
             });
         }
         layer.info.spatial_bounds = spatial;
-        layer.info.generated_crop = generated_crop;
+        layer.info.generated_crop = if matches!(info.kind, LayerKind::Text { .. }) {
+            None
+        } else {
+            generated_crop
+        };
         if let LayerKind::Gradient {
             angle: direction, ..
         } = &mut layer.info.kind

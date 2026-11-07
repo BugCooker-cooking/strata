@@ -1,4 +1,4 @@
-//! Pixel-layer/selected-pixel projective transforms. Editable generated/group
+//! Pixel/text-layer and selected-pixel projective transforms. Generated/group
 //! transforms remain separate work, never silent rasterization.
 use super::*;
 use crate::{
@@ -77,9 +77,12 @@ pub(super) fn target(
 ) -> Result<(crate::LayerId, usize), CommandError> {
     let target = doc.resolve(layer)?;
     let index = doc.layers().iter().position(|l| l.id() == target).unwrap();
-    if !matches!(doc.layers()[index].info().kind, LayerKind::Pixel) {
+    if !matches!(
+        doc.layers()[index].info().kind,
+        LayerKind::Pixel | LayerKind::Text { .. }
+    ) {
         return Err(invalid(
-            "transform currently requires a pixel layer; generated/group/text layers are not implicitly rasterized",
+            "transform requires a pixel or editable text layer; generated/group layers are not implicitly rasterized",
         ));
     }
     if doc.layers().iter().any(|l| {
@@ -115,13 +118,14 @@ pub(super) fn canvas_bounds(
             if layer.pixels().tile_count() as u64 * 256 * 256 > 64_000_000 {
                 return Err(DocumentError::ResourceLimit.into());
             }
-            geometry_pixels::content_bounds(
-                layer.pixels(),
-                [layer.info().x, layer.info().y],
-                cancel,
-            )?
+            bounds(doc, layer, cancel)?
         }
         TransformScope::Selection => {
+            if !matches!(doc.layers()[index].info().kind, LayerKind::Pixel) {
+                return Err(invalid(
+                    "selection transform requires pixels; rasterize text explicitly or choose whole_layer",
+                ));
+            }
             let selection = doc
                 .selection()
                 .ok_or_else(|| invalid("select pixels before canvas transform"))?;
@@ -129,6 +133,37 @@ pub(super) fn canvas_bounds(
         }
     };
     Ok(LayerBoundsResult { layer_id, bounds })
+}
+pub(super) fn bounds(
+    doc: &Document,
+    layer: &crate::Layer,
+    cancel: &dyn Fn() -> bool,
+) -> Result<Option<strata_pixels::CoverageRect>, DocumentError> {
+    let bounds =
+        geometry_pixels::content_bounds(layer.pixels(), [layer.info().x, layer.info().y], cancel)?;
+    if bounds.is_some() {
+        return Ok(bounds);
+    }
+    let LayerKind::Text { text } = &layer.info().kind else {
+        return Ok(None);
+    };
+    crate::typography::ink_bounds(
+        text,
+        doc.format,
+        layer.info().generated_crop.as_ref(),
+        doc.memory_pool(),
+        cancel,
+    )?
+    .map(|mut b| {
+        b.x =
+            b.x.checked_add(layer.info().x)
+                .ok_or(DocumentError::ResourceLimit)?;
+        b.y =
+            b.y.checked_add(layer.info().y)
+                .ok_or(DocumentError::ResourceLimit)?;
+        Ok(b)
+    })
+    .transpose()
 }
 pub(super) fn mutate(
     doc: &mut Document,
@@ -152,12 +187,17 @@ pub(super) fn mutate(
     };
     let offset = [layer.info().x, layer.info().y];
     if matches!(p.scope, TransformScope::Selection) {
+        if !matches!(layer.info().kind, LayerKind::Pixel) {
+            return Err(invalid(
+                "selection transform requires pixels; rasterize text explicitly or choose whole_layer",
+            ));
+        }
         return super::transform_selection::apply(doc, index, &transform, sampling, cancel)
             .map(Some)
             .map_err(CommandError::from);
     }
-    let bounds = geometry_pixels::content_bounds(layer.pixels(), offset, cancel)?
-        .ok_or_else(|| invalid("pixel layer is empty; there is no geometry to transform"))?;
+    let bounds = bounds(doc, &layer, cancel)?
+        .ok_or_else(|| invalid("layer has no stored pixels or text ink to transform"))?;
     let output_bounds = geometry_pixels::transformed_bounds(bounds, &transform, sampling)?;
     if let Some([dx, dy]) = transform.integer_translation() {
         let x = offset[0]
@@ -176,19 +216,36 @@ pub(super) fn mutate(
     }
     let logical = geometry_pixels::transformed_bounds(bounds, &transform, Sampling::Nearest)?;
     let origin = [logical.x, logical.y];
-    let output = geometry_pixels::transform_pixels_at(
-        PixelSource {
-            pixels: layer.pixels(),
-            offset,
-            bounds,
-            icc: doc.working_icc(),
-        },
-        &transform,
-        sampling,
-        origin,
-        doc.memory_pool(),
-        cancel,
-    )?;
+    let text = if matches!(layer.info().kind, LayerKind::Text { .. }) {
+        Some(crate::typography::transformed_layer(
+            &layer,
+            &transform,
+            p.interpolation,
+            origin,
+            doc.format,
+            doc.memory_pool(),
+            cancel,
+        )?)
+    } else {
+        None
+    };
+    let output = if let Some(text) = &text {
+        text.pixels.clone()
+    } else {
+        geometry_pixels::transform_pixels_at(
+            PixelSource {
+                pixels: layer.pixels(),
+                offset,
+                bounds,
+                icc: doc.working_icc(),
+            },
+            &transform,
+            sampling,
+            origin,
+            doc.memory_pool(),
+            cancel,
+        )?
+    };
     let mask = if let (Some(mask), Some(info)) = (&layer.mask, &layer.info().mask) {
         let offset = [
             layer
@@ -217,6 +274,10 @@ pub(super) fn mutate(
         return Err(CommandError::Expired);
     }
     doc.layers[index].pixels = output;
+    if let Some(text) = text {
+        doc.layers[index].info.kind = text.info.kind;
+        doc.layers[index].info.generated_crop = None;
+    }
     doc.layers[index].info.x = origin[0];
     doc.layers[index].info.y = origin[1];
     if let Some(mask) = mask {
@@ -224,6 +285,16 @@ pub(super) fn mutate(
         super::local::attach(&mut doc.layers[index], mask);
         doc.layers[index].info.mask.as_mut().unwrap().enabled = enabled;
     }
+    let output_bounds = if matches!(layer.info().kind, LayerKind::Text { .. }) {
+        geometry_pixels::content_bounds(
+            doc.layers[index].pixels(),
+            [doc.layers[index].info.x, doc.layers[index].info.y],
+            cancel,
+        )?
+        .unwrap_or(output_bounds)
+    } else {
+        output_bounds
+    };
     Ok(Some(
         serde_json::json!({"layer_id":target,"scope":"whole_layer","output_bounds":output_bounds,"source_artboard_clipped":false,"mask_transformed":layer.mask.is_some(),"selection_transformed":false,"changed":true}),
     ))

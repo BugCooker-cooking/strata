@@ -405,14 +405,14 @@ pub struct RotateImageResult {
     pub source_artboard_clipped: bool,
     pub preserved_layer_structure: bool,
 }
-#[derive(Clone, Copy, Debug, Default, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum TransformInterpolation {
     Nearest,
     #[default]
     Bilinear,
 }
-#[derive(Clone, Copy, Debug, Default, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum ResizeInterpolation {
     Nearest,

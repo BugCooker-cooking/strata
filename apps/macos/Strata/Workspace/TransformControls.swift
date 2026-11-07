@@ -37,16 +37,16 @@ struct TransformPanel:View{
         }
         return ["scope":scope,"geometry":geometry,"interpolation":interpolation]
     }
-    private var available:Bool{model.permissions.edits&&model.selected?.kind?.kind == "pixel"&&model.selected?.locks?.all != true&&model.selected?.locks?.pixels != true&&model.selected?.locks?.position != true&&model.selected?.locks?.transparency != true && (scope != "selection" || model.snapshot?.selectionExtent != nil)}
+    private var available:Bool{model.permissions.edits&&model.selected?.canTransform(scope:scope)==true && (scope != "selection" || model.snapshot?.selectionExtent != nil)}
     var body:some View{
         ScrollView{VStack(alignment:.leading,spacing:10){
             if model.tool == .freeTransform,let input=model.transformInput{
                 CanvasTransformControls(model:model,input:input)
             }else{
-            Text("像素自由变换").fontWeight(.medium)
+            Text("自由变换").fontWeight(.medium)
             Button("使用画布手柄（⌘T）"){model.canvasTransformScope=scope;model.canvasTransformInterpolation=interpolation;model.selectTool(.freeTransform)}.buttonStyle(WorkspaceButtonStyle()).disabled(!available)
-            Picker("变换范围",selection:$scope){Text("整个像素图层").tag("whole_layer");Text("选区内像素").tag("selection")}.disabled(preview.applying)
-            Text(scope == "selection" ? "提升选中像素后变换并合回；选区轮廓同步，图层位置与蒙版保留。" : "当前选区保持不变；整层像素与链接蒙版一起变换，保留画板外内容。").font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))
+            Picker("变换范围",selection:$scope){Text("整个图层").tag("whole_layer");Text("选区内像素").tag("selection").disabled(model.selected?.kind?.kind=="text")}.disabled(preview.applying)
+            Text(scope == "selection" ? "提升选中像素后变换并合回；选区轮廓同步，图层位置与蒙版保留。" : "当前选区保持不变；图层内容与链接蒙版一起变换，文字保留原文。").font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))
             Group{
             Picker("变换方式",selection:$mode){Text("数值变换").tag("components");Text("四角透视").tag("corners")}.labelsHidden()
             if mode == "corners"{
@@ -63,14 +63,14 @@ struct TransformPanel:View{
                 HStack{Button("水平翻转"){scaleX = -scaleX};Button("垂直翻转"){scaleY = -scaleY}}.buttonStyle(WorkspaceButtonStyle())
                 Button("轴心设为画板中心"){if let f=model.snapshot?.frame{pivotX=Double(f.x)+Double(f.width)/2;pivotY=Double(f.y)+Double(f.height)/2}}.buttonStyle(WorkspaceButtonStyle())
             }
-            Picker("重采样",selection:$interpolation){Text("最近邻（保留整数采样）").tag("nearest");Text("双线性（线性光）").tag("bilinear")}
+            Picker("重采样",selection:$interpolation){Text("最近邻（保留整数采样）").tag("nearest");Text("双线性").tag("bilinear")}
             }.disabled(preview.applying)
             TonalPreviewControls(preview:preview,parameters:parameters.flatMap{try? commandJSON($0)},filterCommand:"transform.apply").disabled(!available)
             HStack{
                 Button("应用变换"){commit()}.buttonStyle(WorkspaceButtonStyle(selected:true)).disabled(!available||parameters == nil||preview.applying)
                 Button("取消预览"){preview.cancel()}.buttonStyle(WorkspaceButtonStyle()).disabled(!preview.enabled && !preview.busy && !preview.applying)
             }
-            if !available{Text("请选择未锁定像素层；选区模式需要非空选区。生成图层和图层组的自由变换仍待支持。").font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))}
+            if !available{Text("请选择未锁定像素或文字层；选区模式仅支持像素层。生成图层和图层组仍待支持。").font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))}
             }
             Divider()
             ImageSizePanel(model:model)
@@ -95,11 +95,11 @@ struct TransformPanel:View{
 private struct CanvasTransformControls:View{
     @ObservedObject var model:WorkspaceModel
     @ObservedObject var input:CanvasTransformInput
-    private var available:Bool{model.permissions.edits&&model.selected?.kind?.kind=="pixel"&&model.selected?.visible==true&&model.selected?.locks?.all != true&&model.selected?.locks?.pixels != true&&model.selected?.locks?.position != true&&model.selected?.locks?.transparency != true && (model.canvasTransformScope != "selection" || model.snapshot?.selectionExtent != nil)}
+    private var available:Bool{model.permissions.edits&&model.selected?.canTransform(scope:model.canvasTransformScope)==true&&model.selected?.visible==true && (model.canvasTransformScope != "selection" || model.snapshot?.selectionExtent != nil)}
     var body:some View{
         VStack(alignment:.leading,spacing:8){
             Text("画布自由变换").fontWeight(.medium)
-            Picker("变换范围",selection:$model.canvasTransformScope){Text("整个像素图层").tag("whole_layer");Text("选区内像素").tag("selection")}.disabled(input.hasDraft||input.running)
+            Picker("变换范围",selection:$model.canvasTransformScope){Text("整个图层").tag("whole_layer");Text("选区内像素").tag("selection").disabled(model.selected?.kind?.kind=="text")}.disabled(input.hasDraft||input.running)
             Picker("手柄模式",selection:$model.canvasTransformMode){ForEach(CanvasTransformMode.allCases,id:\.self){Text($0.title).tag($0.rawValue)}}.disabled(input.running)
             Picker("重采样",selection:$model.canvasTransformInterpolation){Text("最近邻").tag("nearest");Text("双线性").tag("bilinear")}.disabled(input.running)
             Text("拖动角点或边缘手柄，框内拖动平移；上方圆点旋转。Shift 约束比例、方向或 15° 旋转，Option 围绕中心缩放。透视模式用角点控制对应边。").font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))
@@ -110,7 +110,7 @@ private struct CanvasTransformControls:View{
                 Button("取消"){input.cancel()}.buttonStyle(WorkspaceButtonStyle()).disabled(!input.hasDraft && !input.running)
             }
             if !input.error.isEmpty{Text(input.error).font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.danger))}
-            if !available && !input.running{Text("请选择可编辑的可见像素图层；选区范围需要非空选区。").font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))}
+            if !available && !input.running{Text("请选择未锁定的可见像素或文字层；选区范围仅支持像素层且需要非空选区。").font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))}
         }.onChange(of:model.canvasTransformMode){_,_ in model.send(.configureCanvasTransform)}
             .onChange(of:model.canvasTransformScope){_,_ in model.send(.configureCanvasTransform)}
             .onChange(of:model.canvasTransformInterpolation){_,_ in model.send(.configureCanvasTransform)}

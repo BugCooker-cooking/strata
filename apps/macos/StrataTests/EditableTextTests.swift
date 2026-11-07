@@ -40,4 +40,22 @@ final class EditableTextTests:XCTestCase{
     func testIdenticalNativeApplyDoesNotCreateAnotherHistory()async throws{
         let(engine,text)=try configured();text.content="Noop 中文";text.newText(at:NSPoint(x:8,y:40));text.apply();try await idle(text);let before=try EditorSnapshot.decode(engine.snapshotJson());text.apply();try await idle(text);let after=try EditorSnapshot.decode(engine.snapshotJson());XCTAssertEqual(after.revision,before.revision);XCTAssertEqual(after.historyCursor,before.historyCursor);XCTAssertEqual(after.dirty,before.dirty)
     }
+    @MainActor
+    func testCanvasTransformAndReeditKeepSourceAndUseSharedHistory()async throws{
+        let(engine,text)=try configured();text.content="变换 Type";text.fontSize=24;text.alpha=0;text.newText(at:NSPoint(x:8,y:40));text.apply();try await idle(text)
+        let before=try EditorSnapshot.decode(engine.snapshotJson()),input=CanvasTransformInput(engine:engine)
+        XCTAssertTrue(before.layers.last?.canTransform(scope:"whole_layer")==true);XCTAssertFalse(before.layers.last?.canTransform(scope:"selection")==true)
+        input.bind(before);input.configure(enabled:true);input.start()
+        for _ in 0..<500{if !input.running{break};try await Task.sleep(for:.milliseconds(10))}
+        XCTAssertTrue(input.canConfirm,input.error);let quad=try XCTUnwrap(input.draft),corner=quad.points[2]
+        input.down(corner,hitTolerance:0.1);input.up(NSPoint(x:corner.x+20,y:corner.y+10));XCTAssertTrue(input.confirm())
+        for _ in 0..<500{if !input.running{break};try await Task.sleep(for:.milliseconds(10))}
+        XCTAssertFalse(input.running);XCTAssertTrue(input.error.isEmpty,input.error)
+        let transformed=try EditorSnapshot.decode(engine.snapshotJson()),operations=try XCTUnwrap(transformed.layers.last?.kind?.text?["operations"].array)
+        XCTAssertEqual(transformed.historyCursor,before.historyCursor+1);XCTAssertEqual(operations.count,1)
+        text.bind(transformed);text.content="重编辑 Serif";text.font="serif";text.alpha=100;text.apply();try await idle(text);XCTAssertTrue(text.error.isEmpty,text.error)
+        let edited=try EditorSnapshot.decode(engine.snapshotJson());XCTAssertEqual(edited.layers.last?.kind?.kind,"text");XCTAssertEqual(edited.layers.last?.kind?.text?["spec"]["text"].string,"重编辑 Serif");XCTAssertEqual(edited.layers.last?.kind?.text?["operations"],transformed.layers.last?.kind?.text?["operations"])
+        _ = try engine.dispatch(command:"edit.undo",paramsJson:"{}");let restored=try EditorSnapshot.decode(engine.snapshotJson());XCTAssertEqual(restored.layers.last?.kind?.text,transformed.layers.last?.kind?.text)
+        _ = try engine.dispatch(command:"edit.undo",paramsJson:"{}");XCTAssertEqual(try EditorSnapshot.decode(engine.snapshotJson()).layers.last?.kind?.text,before.layers.last?.kind?.text)
+    }
 }

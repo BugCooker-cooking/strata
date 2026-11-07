@@ -1397,9 +1397,19 @@
           "text": "Reproduce native canvas handles by mapping four source canvas corners to four destination corners, preserving editable layer metadata and one-step undo.",
           "query": "Native canvas handles",
           "command": "transform.apply"
+        },
+        {
+          "text": "旋转整个可编辑文字层15度，再修改中文内容，保留原文、透视关系和删除裁剪。",
+          "query": "可编辑文字变换",
+          "command": "transform.apply"
+        },
+        {
+          "text": "Transform editable text through canvas corners, retain source and re-edit it after perspective.",
+          "query": "Editable text supports whole_layer",
+          "command": "transform.apply"
         }
       ],
-      "note": "整层像素/链接蒙版及选区像素的真实提升/变换/合回已接入，软边按 source-over 余量保留，目标不被原选区重复裁切。画布八手柄/平移/旋转/斜切/扭曲/透视与按键草稿已实现，使用原始文档/版本/层/范围/控制权绑定的同一四角命令。核心、AI五种真实四角调用/精确确认/回合撤销、桥接、完整原生、整层/软选区与共享拉直强制Metal、arm64 Release、lint/参数例子及单窗口整层/选区应用撤销通过。恒等变换不制造历史。生成/组/文字一般变换及连续画布像素反馈仍未实现，综合条目与最终AI审计保持部分覆盖。",
+      "note": "整层像素/链接蒙版及选区像素的真实提升/变换/合回已接入，软边按 source-over 余量保留，目标不被原选区重复裁切。画布八手柄/平移/旋转/斜切/扭曲/透视与按键草稿已实现，使用原始文档/版本/层/范围/控制权绑定的同一四角命令。核心、AI五种真实四角调用/精确确认/回合撤销、桥接、完整原生、整层/软选区与共享拉直强制Metal、arm64 Release、lint/参数例子及单窗口整层/选区应用撤销通过。恒等变换不制造历史。整文字层的保留源透视/旋转/缩放已接入，裁剪按原次序重建，正在补齐本机原生/AI证据。生成/组变换及连续画布像素反馈仍未实现，综合条目与最终AI审计保持部分覆盖。",
       "variants": [
         {
           "command": "transform.apply",
@@ -1679,7 +1689,7 @@
           ]
         }
       ],
-      "note": "All current types support exact orthogonal orientations. Pixel layers and unstyled groups support general angles and numeric/two-point straightening with optional safe inscribed crop. Generated/adjustment/style/text general geometry remains open; native canvas-dragged reference lines share the same operation/context-bound command; native/AI use identical commands with exact replacement approval and one-step undo. Native pointer input uses an operation-bound owned draft; it does not introduce a separate editing implementation or change AI parameters."
+      "note": "All current types support exact orthogonal orientations. Pixel layers, unstyled text and unstyled groups support general angles and numeric/two-point straightening with optional safe inscribed crop. Generated/adjustment/style general geometry remains open; native canvas-dragged reference lines share the same operation/context-bound command; native/AI use identical commands with exact replacement approval and one-step undo. Native pointer input uses an operation-bound owned draft; it does not introduce a separate editing implementation or change AI parameters."
     },
     "PS-03-51294954aa": {
       "scope": "editing",
@@ -1730,7 +1740,7 @@
           ]
         }
       ],
-      "note": "Pixels and unstyled groups have real size edits and all three sampling modes, with exact AI replacement approval and one-history turn undo. Editable fill/adjustment/style/text sizing and other professional resamplers remain open; do not interpret this partial entry as complete image sizing."
+      "note": "Pixels, retained-source unstyled text and unstyled groups have real size edits and all three sampling modes, with exact AI replacement approval and one-history turn undo. Editable fill/adjustment/style sizing and other professional resamplers remain open; do not interpret this partial entry as complete image sizing."
     },
     "PS-03-692d64115b": {
       "scope": "editing",
@@ -1972,7 +1982,7 @@
           ]
         }
       ],
-      "note": "Real retained-source point/paragraph layout and deterministic bundled CJK glyphs; shared native/AI core. Native T placement/edit panel is wired, acceptance still in progress. Canvas insertion cursor/rich spans and all font imports remain open; mapping is partial, not a placeholder endpoint."
+      "note": "Retained-source point/paragraph layout and fixed CJK glyphs passed the01272c1 local checkpoint. Whole-layer geometry/ordered crop and source re-edit are now connected and under incremental local verification. Inline caret/rich spans/font imports remain open; partial mapping is not a placeholder endpoint."
     },
     "PS-11-a524877cb6": {
       "scope": "editing",
@@ -2021,7 +2031,7 @@
           ]
         }
       ],
-      "note": "Three pinned licensed built-in fonts, uniform font/size/straight working RGBA/line-height/tracking/alignment/paragraph box. No host path exposed. System/arbitrary font importing, rich character-span styles and typography beyond this implementation remain open; acceptance currently in progress."
+      "note": "Three pinned licensed built-in fonts, uniform font/size/straight working RGBA/line-height/tracking/alignment/paragraph box. No host path exposed. System/arbitrary font importing, rich character-span styles and typography beyond this implementation remain open; the01272c1 base passed local acceptance; retained geometry is under the next incremental gate."
     },
     "PS-11-cf9b897491": {
       "scope": "editing",

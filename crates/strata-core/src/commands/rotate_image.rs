@@ -1,4 +1,4 @@
-//! Arbitrary rotation for pixel layers and unstyled groups. Unsupported editable
+//! Arbitrary rotation for pixels, unstyled text and groups. Unsupported editable
 //! types are rejected before sampling; quarter turns reuse full-type isometries.
 use super::*;
 use crate::{
@@ -109,9 +109,8 @@ pub(super) fn mutate(
     for layer in &doc.layers {
         let info = layer.info();
         match &info.kind {
-            LayerKind::Pixel | LayerKind::Group => {}
+            LayerKind::Pixel | LayerKind::Text { .. } | LayerKind::Group => {}
             LayerKind::Solid { .. }
-            | LayerKind::Text { .. }
             | LayerKind::Gradient { .. }
             | LayerKind::Exposure { .. }
             | LayerKind::HueSaturation { .. }
@@ -194,23 +193,40 @@ pub(super) fn mutate(
                 .map_err(invalid)?;
             [p[0].floor() as i64, p[1].floor() as i64]
         };
-        let output = bounds
-            .map(|bounds| {
-                geometry_pixels::transform_pixels_at(
-                    PixelSource {
-                        pixels: layer.pixels(),
-                        offset,
-                        bounds,
-                        icc: source.working_icc(),
-                    },
-                    &transform,
-                    sampling,
-                    origin,
-                    pool.clone(),
-                    cancel,
-                )
-            })
-            .transpose()?;
+        let text = if matches!(info.kind, LayerKind::Text { .. }) {
+            Some(crate::typography::transformed_layer(
+                layer,
+                &transform,
+                p.interpolation,
+                origin,
+                doc.format,
+                pool.clone(),
+                cancel,
+            )?)
+        } else {
+            None
+        };
+        let output = if text.is_some() {
+            None
+        } else {
+            bounds
+                .map(|bounds| {
+                    geometry_pixels::transform_pixels_at(
+                        PixelSource {
+                            pixels: layer.pixels(),
+                            offset,
+                            bounds,
+                            icc: source.working_icc(),
+                        },
+                        &transform,
+                        sampling,
+                        origin,
+                        pool.clone(),
+                        cancel,
+                    )
+                })
+                .transpose()?
+        };
         let mask = if let (Some(mask), Some(meta)) = (&layer.mask, &info.mask) {
             Some(warp_mask(
                 mask,
@@ -230,6 +246,11 @@ pub(super) fn mutate(
         let target = &mut doc.layers[index];
         if let Some(output) = output {
             target.pixels = output;
+        }
+        if let Some(text) = text {
+            target.pixels = text.pixels;
+            target.info.kind = text.info.kind;
+            target.info.generated_crop = None;
         }
         target.info.x = origin[0];
         target.info.y = origin[1];

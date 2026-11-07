@@ -96,6 +96,7 @@ pub(super) fn mutate(
             version: strata_text::VERSION,
             spec: p.spec.into(),
             color: color(doc, p.color)?,
+            operations: Vec::new(),
         };
         let (pixels, metrics) = raster(&definition, doc.format, None, doc.memory_pool(), cancel)?;
         let mut layer = Layer::new(p.name, pixels);
@@ -142,6 +143,7 @@ pub(super) fn mutate(
         version: strata_text::VERSION,
         spec: p.spec.into(),
         color: color(doc, p.color)?,
+        operations: old.operations.clone(),
     };
     definition.validate(doc.format)?;
     if *old == definition {

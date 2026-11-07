@@ -140,7 +140,7 @@ final class CanvasTransformInput:ObservableObject{
                 let json=try await aiEngineWork{try engine.canvasTransformBounds(token:owner)}
                 guard self.generation==current,self.token==owner else{return}
                 let value=try AIJSON.decode(json)["bounds"]
-                guard let x=value["x"].number,let y=value["y"].number,let w=value["width"].number,let h=value["height"].number,w>0,h>0 else{throw CanvasTransformFailure(message:"没有可变换的像素或选区。")}
+                guard let x=value["x"].number,let y=value["y"].number,let w=value["width"].number,let h=value["height"].number,w>0,h>0 else{throw CanvasTransformFailure(message:"没有可变换的内容或选区。")}
                 let quad=TransformQuad(rect:CGRect(x:x,y:y,width:w,height:h));guard quad.valid else{throw CanvasTransformFailure(message:"变换边界超出有效范围。")}
                 self.source=quad;self.draft=quad;self.lastValid=quad
             }catch{

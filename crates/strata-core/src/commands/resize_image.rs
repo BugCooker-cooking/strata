@@ -45,9 +45,8 @@ pub(super) fn mutate(
     for layer in &doc.layers {
         let info = layer.info();
         match &info.kind {
-            LayerKind::Pixel | LayerKind::Group => {}
+            LayerKind::Pixel | LayerKind::Text { .. } | LayerKind::Group => {}
             LayerKind::Solid { .. }
-            | LayerKind::Text { .. }
             | LayerKind::Gradient { .. }
             | LayerKind::Exposure { .. }
             | LayerKind::HueSaturation { .. }
@@ -121,23 +120,43 @@ pub(super) fn mutate(
         let info = layer.info();
         let offset = [info.x, info.y];
         let bounds = geometry_pixels::content_bounds(layer.pixels(), offset, cancel)?;
-        let output = bounds
-            .map(|bounds| {
-                geometry_resize::pixels(
-                    PixelSource {
-                        pixels: layer.pixels(),
-                        offset,
-                        bounds,
-                        icc: source.working_icc(),
-                    },
-                    geometry,
-                    p.interpolation,
-                    pool.clone(),
-                    &mut work,
-                    cancel,
-                )
-            })
-            .transpose()?;
+        let text = if matches!(info.kind, LayerKind::Text { .. }) {
+            Some(crate::typography::resized_layer(
+                layer,
+                crate::typography::ResizeText {
+                    frame: &before,
+                    size: [p.width, p.height],
+                    interpolation: p.interpolation,
+                },
+                doc.format,
+                pool.clone(),
+                &mut work,
+                cancel,
+            )?)
+        } else {
+            None
+        };
+        let output = if text.is_some() {
+            None
+        } else {
+            bounds
+                .map(|bounds| {
+                    geometry_resize::pixels(
+                        PixelSource {
+                            pixels: layer.pixels(),
+                            offset,
+                            bounds,
+                            icc: source.working_icc(),
+                        },
+                        geometry,
+                        p.interpolation,
+                        pool.clone(),
+                        &mut work,
+                        cancel,
+                    )
+                })
+                .transpose()?
+        };
         let origin = if let Some((_, origin)) = &output {
             *origin
         } else {
@@ -168,8 +187,14 @@ pub(super) fn mutate(
         if let Some((output, _)) = output {
             target.pixels = output;
         }
-        target.info.x = origin[0];
-        target.info.y = origin[1];
+        if let Some(text) = text {
+            target.pixels = text.pixels;
+            target.info.kind = text.info.kind;
+            target.info.generated_crop = None;
+        } else {
+            target.info.x = origin[0];
+            target.info.y = origin[1];
+        }
         if let Some(mask) = mask {
             super::local::attach(target, mask);
             target.info.mask.as_mut().unwrap().enabled = info.mask.as_ref().unwrap().enabled;

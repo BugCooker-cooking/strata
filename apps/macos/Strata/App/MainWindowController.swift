@@ -169,7 +169,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         case #selector(convertToEightBit): workspace.permissions.edits && workspace.hasDocument && state?.bitDepth != 8
         case #selector(convertToSixteenBit): workspace.permissions.edits && workspace.hasDocument && state?.bitDepth != 16
         case #selector(autoTone),#selector(autoContrast),#selector(autoColor): workspace.permissions.edits && selected?.kind?.kind=="pixel" && selected?.visible == true && selected?.locks?.all != true && selected?.locks?.pixels != true
-        case #selector(beginCanvasTransform): workspace.permissions.edits && selected?.kind?.kind=="pixel" && selected?.visible == true && selected?.locks?.all != true && selected?.locks?.pixels != true && selected?.locks?.position != true && selected?.locks?.transparency != true
+        case #selector(beginCanvasTransform): workspace.permissions.edits && selected?.canTransform(scope:"whole_layer")==true && selected?.visible == true
         case #selector(saveDocument), #selector(saveAs), #selector(exportDocument), #selector(placeImage), #selector(convertToSRGB), #selector(convertToP3),#selector(assignSRGB),#selector(assignP3): workspace.permissions.edits && workspace.hasDocument
         case #selector(openImage), #selector(newTab), #selector(openRecent(_:)): !busy
         default: true
@@ -268,6 +268,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         if snapshot.documentId != state?.documentId
             || (snapshot.revision != state?.revision && ["transform.apply","image.orient","image.rotate","image.resize","image.straighten"].contains(snapshot.history.last?.command ?? "")) {workspace.cloneSource=nil}
         workspace.snapshot = snapshot; window?.isDocumentEdited = snapshot.dirty
+        if workspace.selected?.kind?.kind=="text"{workspace.canvasTransformScope="whole_layer"}
         workspace.tonalPreview?.bind(snapshot)
         workspace.cropInput?.bind(snapshot)
         workspace.straightenInput?.bind(snapshot)
