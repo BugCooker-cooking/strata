@@ -11,6 +11,9 @@ final class CanvasChromeView: NSView {
     private let map = CanvasNavigator()
     private var frameOverlay: ArtboardOverlay?
     private var controlSubscription: AnyCancellable?
+    private var canvasLeading:NSLayoutConstraint!
+    private var canvasTop:NSLayoutConstraint!
+    private var documentOrigin=NSPoint.zero
     override var isFlipped: Bool { true }
 
     init(canvas: CanvasView, model: WorkspaceModel) {
@@ -21,9 +24,11 @@ final class CanvasChromeView: NSView {
         let banner = NSHostingView(rootView: CanvasControlBanner(model: model)); banner.isHidden = true
         wantsLayer = true
         for view in [canvas, horizontal, vertical, zoom, map, empty, banner] { addSubview(view); view.translatesAutoresizingMaskIntoConstraints = false }
+        canvasLeading=canvas.leadingAnchor.constraint(equalTo:leadingAnchor,constant:18)
+        canvasTop=canvas.topAnchor.constraint(equalTo:topAnchor,constant:18)
         NSLayoutConstraint.activate([
             empty.centerXAnchor.constraint(equalTo: canvas.centerXAnchor), empty.centerYAnchor.constraint(equalTo: canvas.centerYAnchor),
-            canvas.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 18), canvas.topAnchor.constraint(equalTo: topAnchor, constant: 18),
+            canvasLeading,canvasTop,
             canvas.trailingAnchor.constraint(equalTo: trailingAnchor), canvas.bottomAnchor.constraint(equalTo: bottomAnchor),
             horizontal.leadingAnchor.constraint(equalTo: canvas.leadingAnchor), horizontal.trailingAnchor.constraint(equalTo: trailingAnchor), horizontal.topAnchor.constraint(equalTo: topAnchor), horizontal.heightAnchor.constraint(equalToConstant: 18),
             vertical.leadingAnchor.constraint(equalTo: leadingAnchor), vertical.topAnchor.constraint(equalTo: canvas.topAnchor), vertical.bottomAnchor.constraint(equalTo: bottomAnchor), vertical.widthAnchor.constraint(equalToConstant: 18),
@@ -31,18 +36,26 @@ final class CanvasChromeView: NSView {
             map.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -12), map.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -12), map.widthAnchor.constraint(equalToConstant: 132), map.heightAnchor.constraint(equalToConstant: 88)
             , banner.topAnchor.constraint(equalTo: canvas.topAnchor, constant: 5), banner.leadingAnchor.constraint(equalTo: canvas.leadingAnchor, constant: 5), banner.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -5), banner.heightAnchor.constraint(equalToConstant: 36)
         ])
-        controlSubscription = model.$snapshot.sink { [weak self, weak banner] snapshot in
+        controlSubscription = model.$snapshot.sink { [weak self, weak banner, weak model] snapshot in
             let control = snapshot?.control?.kind ?? "user"
             banner?.isHidden = control == "user"
             self?.layer?.borderWidth = control == "user" ? 0 : 2
             self?.layer?.borderColor = (control == "paused" ? WorkspaceColors.warning : WorkspaceColors.ai).cgColor
+            guard let self else{return}
+            self.documentOrigin=NSPoint(x:Double(snapshot?.frame?.x ?? 0),y:Double(snapshot?.frame?.y ?? 0))
+            let shown=snapshot?.presentation?.rulersVisible ?? true
+            self.horizontal.isHidden = !shown;self.vertical.isHidden = !shown
+            let inset:CGFloat=shown ? 18:0
+            if self.canvasLeading.constant != inset{self.canvasLeading.constant=inset;self.canvasTop.constant=inset;self.needsLayout=true}
+            self.horizontal.onGuide = { [weak self,weak model]phase,event in self?.rulerGuide(phase,event:event,axis:"horizontal",model:model) }
+            self.vertical.onGuide = { [weak self,weak model]phase,event in self?.rulerGuide(phase,event:event,axis:"vertical",model:model) }
         }
         canvas.onViewChanged = { [weak self] frame, zoom, scale in
             guard let self else { return }
             self.frameOverlay = frame
             if abs(self.readout.zoom - zoom) > 0.0005 { self.readout.zoom = zoom }
-            self.horizontal.origin = CGFloat(frame?.x ?? 0) / scale
-            self.vertical.origin = CGFloat(frame?.y ?? 0) / scale
+            self.horizontal.origin = CGFloat(frame?.x ?? 0) / scale-self.documentOrigin.x*zoom/scale
+            self.vertical.origin = CGFloat(frame?.y ?? 0) / scale-self.documentOrigin.y*zoom/scale
             self.horizontal.unitScale = zoom / scale; self.vertical.unitScale = zoom / scale
             self.horizontal.needsDisplay = true; self.vertical.needsDisplay = true
             self.map.artboard = frame.map { CGRect(x: CGFloat($0.x) / scale, y: CGFloat($0.y) / scale, width: CGFloat($0.width) / scale, height: CGFloat($0.height) / scale) }
@@ -51,13 +64,20 @@ final class CanvasChromeView: NSView {
         canvas.onPointerMoved = { [weak self] point in
             guard let self, let frame = self.frameOverlay else { return }
             let scale = self.window?.backingScaleFactor ?? 1
-            let x = (point.x * scale - CGFloat(frame.x)) / self.readout.zoom
-            let y = (point.y * scale - CGFloat(frame.y)) / self.readout.zoom
+            let x = self.documentOrigin.x+(point.x * scale - CGFloat(frame.x)) / self.readout.zoom
+            let y = self.documentOrigin.y+(point.y * scale - CGFloat(frame.y)) / self.readout.zoom
             self.readout.coordinates = String(format: "X %.0f  Y %.0f", x, y)
         }
         map.onNavigate = { [weak canvas] dx, dy in canvas?.panByPoints(dx: dx, dy: dy) }
     }
     required init?(coder: NSCoder) { nil }
+    private func rulerGuide(_ phase:Int,event:NSEvent,axis:String,model:WorkspaceModel?){
+        guard let model,!model.busy,let point=canvas.documentPoint(canvas.convert(event.locationInWindow,from:nil))else{return}
+        let value=Double(axis=="vertical" ? point.x:point.y)
+        if phase==0{canvas.guideInput.begin(axis:axis,position:value)}
+        else if phase==1{canvas.guideInput.move(position:value)}
+        else{let local=canvas.convert(event.locationInWindow,from:nil);if canvas.bounds.contains(local){canvas.guideInput.move(position:value);_ = canvas.guideInput.finish()}else{canvas.guideInput.cancel()}}
+    }
     override func draw(_ dirtyRect: NSRect) { WorkspaceColors.panel.setFill(); dirtyRect.fill() }
 }
 
@@ -111,9 +131,13 @@ private final class CanvasRuler: NSView {
     var origin: CGFloat = 0
     var unitScale: CGFloat = 1
     let vertical: Bool
+    var onGuide:((Int,NSEvent)->Void)?
     override var isFlipped: Bool { true }
     init(vertical: Bool) { self.vertical = vertical; super.init(frame: .zero); setAccessibilityElement(false) }
     required init?(coder: NSCoder) { nil }
+    override func mouseDown(with event:NSEvent){onGuide?(0,event)}
+    override func mouseDragged(with event:NSEvent){onGuide?(1,event)}
+    override func mouseUp(with event:NSEvent){onGuide?(2,event)}
     override func draw(_ dirtyRect: NSRect) {
         WorkspaceColors.panel.setFill(); bounds.fill()
         guard unitScale > 0, unitScale.isFinite else { return }

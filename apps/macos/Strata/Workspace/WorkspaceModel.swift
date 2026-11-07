@@ -56,7 +56,7 @@ enum EditorTool: String, CaseIterable, Identifiable {
         .hand: ("抓手", "hand.draw", "H"), .zoom: ("缩放", "magnifyingglass", "Z")]
 }
 
-enum InspectorTab: String, CaseIterable { case properties = "属性", adjustments = "调整", filters = "滤镜", transform = "变换", color="颜色", history = "历史" }
+enum InspectorTab: String, CaseIterable { case properties = "属性", adjustments = "调整", filters = "滤镜", transform = "变换", color="颜色", guides="参考线", history = "历史" }
 
 /// One policy shared by panels, menu validation and keyboard actions. Core remains authoritative.
 struct WorkspacePermissions {
@@ -86,6 +86,8 @@ final class WorkspaceModel: ObservableObject {
     @Published var straightenInput:CanvasStraightenInput?
     @Published var transformInput:CanvasTransformInput?
     @Published var textEditing:TextEditingModel?
+    @Published var guideInput:CanvasGuideInput?
+    @Published var snapInput:CanvasSnapInput?
     @Published var canvasTransformMode="scale"
     @Published var canvasTransformScope="whole_layer"
     @Published var canvasTransformInterpolation="bilinear"
@@ -231,7 +233,7 @@ private let commandTitles: [String: String] = [
      "type.create":"新建可编辑文字","type.update":"编辑文字",
      "filter.gaussian_blur":"高斯模糊", "filter.unsharp_mask":"USM 锐化", "filter.high_pass":"高反差保留", "filter.add_noise":"添加杂色", "image.auto":"自动色调 / 对比度 / 颜色", "transform.apply":"像素自由变换", "image.canvas_size":"画布大小", "image.crop":"矩形裁剪", "image.reveal_all":"显示全部可见图层内容", "image.orient":"图像旋转与翻转", "image.trim":"裁去透明边", "image.rotate":"整图任意角度旋转", "image.resize":"图像大小与重采样", "image.straighten":"拉直图像与自动裁剪", "image.convert_bit_depth":"转换文档位深",
      "layer.create": "新建图层", "layer.duplicate": "复制图层", "layer.delete": "删除图层", "layer.rename": "重命名图层",
-     "layer.set_position": "移动图层", "layer.set_visibility": "图层显隐", "layer.set_opacity": "调整不透明度",
+     "layer.set_position": "移动图层", "layer.snap_position":"吸附移动图层", "view.guides.add":"新建参考线", "view.guides.update":"修改参考线", "view.guides.delete":"删除参考线", "view.guides.clear":"清除参考线", "layer.set_visibility": "图层显隐", "layer.set_opacity": "调整不透明度",
      "layer.set_blend_mode": "混合模式", "layer.move_order": "调整顺序", "color.convert": "转换色彩空间", "color.assign":"指定色彩配置",
      "batch": "批量编辑", "document.batch": "批量编辑", "file.save": "保存工程", "file.save_as": "另存工程", "file.export": "导出图片",
      "file.place": "置入图片", "select.subject": "选择主体", "select.marquee": "矩形选区",

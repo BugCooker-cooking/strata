@@ -171,7 +171,7 @@
 | PS-08-2b199ba19e | 绘画 | 历史记录画笔 | P2 | 待实现 | 待验收 |
 | PS-08-20a38a31c0 | 绘画 | 混合器画笔 | P3 | 待实现 | 待验收 |
 | PS-08-8917363943 | 绘画 | 历史记录艺术画笔 | ✗ | 重新核对 | 待验收 |
-| PS-09-7cc6b0bb65 | 变换与裁剪 | 移动工具（含吸附） | P0 | 部分实现 | 整数移动/组与链接蒙版/原生拖动已实现；吸附仍待补齐 · [M7 移动与几何边界](../research/2026-11-m7-transform-progress.md) |
+| PS-09-7cc6b0bb65 | 变换与裁剪 | 移动工具（含吸附） | P0 | 部分实现 | Persistent guide CRUD/pagination, versioned ruler/guide/snap presentation and shared V-tool/numeric/AI integer edge-center snapping reached an automated local checkpoint. Full core324 then final13 guide checks, AI45, bridge2, native102 (101passed/1live-network opt-in skipped), required Metal1, lint and136commands/200examples passed; arm64 Release compiled. Single-window manual text/guide acceptance awaits Mac unlock; no test instance remains. Sustained performance and the full composite feature scope remain open. · [M7 移动与几何边界](../research/2026-11-m7-transform-progress.md) · [Guides and snap local progress](../research/2026-11-m7-guides-snap-progress.md) |
 | PS-09-4f3d9835a7 | 变换与裁剪 | 自由变换：缩放 / 旋转 / 斜切 / 扭曲 / 透视 / 翻转 | P0 | 部分实现 | Whole editable text now supports retained-source scale/rotate/skew/distort/perspective/flip through the same native/AI command. Ordered crop, transparent-black glyph bounds, exact re-edit/undo, numerical references, AI invocation, native tests and required Metal passed. Pixel/selection acceptance remains valid. Release/lint and192 parameter examples passed; current single-window text geometry acceptance awaits manual Mac unlock. Generated/group transforms and continuous warped-pixel feedback remain open. · [M7 整层变换/视图检查点](../research/2026-11-m7-transform-progress.md) · [M7 选区内像素](../research/2026-11-m7-selected-transform-progress.md) · [画布手柄实施与验收](../research/2026-11-m7-transform-handles-progress.md) · [Retained text geometry / ordered crop](../research/2026-11-m7-text-geometry-progress.md) |
 | PS-09-7d349372b5 | 变换与裁剪 | 裁剪工具（拉直、比例、是否删除裁剪像素） | P0 | 部分实现 | 数值/拖框/比例/八手柄/移动/保留与删除裁剪，以及数值/两点/画布拖线拉直已有本机核心、AI、原生、Metal、Release 与单窗口证据；生成/调整/样式/文字的一般几何仍开放。 · [M7 裁剪/显示全部](../research/2026-11-m7-crop-progress.md) · [M7 裁剪拖动会话](../research/2026-11-m7-crop-gesture-progress.md) · [M7 裁剪手柄](../research/2026-11-m7-crop-handles-progress.md) · [Destructive crop support](../research/2026-11-m7-crop-delete-progress.md) · [拉直与内切裁剪](../research/2026-11-m7-straighten-progress.md) · [画布参考线会话](../research/2026-11-m7-straighten-gesture-progress.md) |
 | PS-09-64f3d2a3eb | 变换与裁剪 | 变形 | P1 | 待实现 | 待验收 |
@@ -235,7 +235,7 @@
 | PS-13-1b8faab964 | RAW 照片显影 | AI 蒙版（主体 / 天空 / 人物）🤖、AI 降噪 🤖、镜头模糊 🤖 | P3 | 待实现 | 待验收 |
 | PS-14-cf2715aeb6 | 视图与导航 | 缩放 / 抓手 / 适合屏幕 / 100% | P0 | 已实现 | 既有 M1 导航；绝对 100% 命令的 Retina 数值与单窗口实看通过，保持文档干净 · [M7 整层变换/视图检查点](../research/2026-11-m7-transform-progress.md) |
 | PS-14-c9a6761937 | 视图与导航 | 多文档标签页 | P0 | 待实现 | 待验收 |
-| PS-14-de2fd3ca59 | 视图与导航 | 标尺 / 参考线 / 对齐吸附 | P0 | 待实现 | 待验收 |
+| PS-14-de2fd3ca59 | 视图与导航 | 标尺 / 参考线 / 对齐吸附 | P0 | 部分实现 | Persistent guide CRUD/pagination, versioned ruler/guide/snap presentation and shared V-tool/numeric/AI integer edge-center snapping reached an automated local checkpoint. Full core324 then final13 guide checks, AI45, bridge2, native102 (101passed/1live-network opt-in skipped), required Metal1, lint and136commands/200examples passed; arm64 Release compiled. Single-window manual text/guide acceptance awaits Mac unlock; no test instance remains. Sustained performance and the full composite feature scope remain open. · [Guides and snap local progress](../research/2026-11-m7-guides-snap-progress.md) |
 | PS-14-810f37be85 | 视图与导航 | 旋转视图 | P1 | 待实现 | 待验收 |
 | PS-14-15d282cc9a | 视图与导航 | 智能参考线 | P1 | 待实现 | 待验收 |
 | PS-14-3e68cd79ce | 视图与导航 | 网格 / 像素网格 | P1 | 待实现 | 待验收 |
@@ -272,6 +272,6 @@
 | PS-19-d9de9483c3 | Adobe 的 AI 功能 | 移除干扰物（行人、电线）/ 反射去除 🤖 | P3 | 待实现 | 待验收 |
 | PS-19-ef0365d914 | Adobe 的 AI 功能 | Neural Filters：皮肤平滑、智能肖像、上色、超级缩放、JPEG 伪影去除、照片修复、风格转换、妆容迁移、景观混合器、深度模糊、色彩转移 🤖 | P3 | 待实现 | 待验收 |
 
-综合功能条目：265。实现状态：已实现 68；已实现（M3 集成中） 11；待实现 166；部分实现 11；重新核对 9。
+综合功能条目：265。实现状态：已实现 68；已实现（M3 集成中） 11；待实现 165；部分实现 12；重新核对 9。
 
 源清单行号可由 --json 查询。该数量是综合条目数，不能当作独立子功能总数或完成百分比。

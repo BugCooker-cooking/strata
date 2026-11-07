@@ -46,6 +46,14 @@ final class CanvasView: NSView {
     private var textParagraph=false
     private var textContext:(document:String?,revision:UInt64,layer:String?,control:String)?
     private let textGuide=CAShapeLayer()
+    lazy var guideInput=CanvasGuideInput(engine:engine)
+    lazy var snapInput=CanvasSnapInput(engine:engine)
+    private var guides:[EditorSnapshot.Guide]=[]
+    private var presentation=EditorSnapshot.Presentation.defaults
+    private var guideMoveTool=false
+    private var guideTool:EditorTool?
+    private let guideLines=CAShapeLayer()
+    private let guideDraft=CAShapeLayer()
     var onTextPlacement:((NSPoint,CGRect?)->Void)?
     var documentOrigin = NSPoint.zero
     private var selectionCommand: String?
@@ -120,6 +128,15 @@ final class CanvasView: NSView {
         transformInput.onCommitted={[weak self]in self?.markDirty();self?.onCommitted?()}
         transformInput.onError={[weak self]error in self?.onError?(error)}
         textGuide.fillColor=nil;textGuide.strokeColor=NSColor.systemBlue.cgColor;textGuide.lineWidth=1;textGuide.lineDashPattern=[4,3];layer?.addSublayer(textGuide)
+        guideLines.fillColor=nil;guideLines.strokeColor=NSColor.cyan.withAlphaComponent(0.75).cgColor;guideLines.lineWidth=0.75;layer?.addSublayer(guideLines)
+        guideDraft.fillColor=nil;guideDraft.strokeColor=NSColor.systemYellow.cgColor;guideDraft.lineWidth=1;guideDraft.lineDashPattern=[4,3];layer?.addSublayer(guideDraft)
+        guideInput.onChanged={[weak self]in self?.drawGuides();self?.markDirty()}
+        guideInput.onRunning={[weak self]running in self?.onBrushRunning?(running)}
+        guideInput.onCommitted={[weak self]in self?.onCommitted?();self?.markDirty()}
+        guideInput.onBegan={[weak self]in guard let self else{return};self.window?.makeFirstResponder(self);self.cancelLayerDrag();self.snapInput.cancel();self.cropInput.cancel();self.straightenInput.cancel();self.transformInput.cancel()}
+        snapInput.onBegan={[weak self]in self?.guideInput.cancel();self?.cropInput.cancel();self?.straightenInput.cancel();self?.transformInput.cancel()}
+        snapInput.onFrame={[weak self]in self?.onCommitted?();self?.markDirty()}
+        snapInput.onApplying={[weak self]running in self?.onBrushRunning?(running)}
         selectionInput.onChanged = { [weak self] in self?.drawMarqueePreview() }
         selectionInput.onRunning = { [weak self] running in self?.onSelectionRunning?(running) }
         selectionInput.onCommitted = { [weak self] in self?.markDirty(); self?.onCommitted?() }
@@ -182,6 +199,7 @@ final class CanvasView: NSView {
         cropInput.cancel()
         straightenInput.cancel()
         transformInput.cancel()
+        guideInput.cancel();snapInput.cancel()
         textStart=nil;textRectangle=nil;textGuide.path=nil
         selectionAnts.removeAllAnimations()
         benchmark?.cancel(BenchmarkFailure("Canvas detached before benchmark completed"))
@@ -306,6 +324,7 @@ final class CanvasView: NSView {
         drawStraightenGuide()
         drawTransformPreview()
         drawTextGuide()
+        drawGuides()
     }
     func setSelectionOutline(_ edges: [SelectionEdge]) {
         selectionEdges = edges
@@ -318,12 +337,39 @@ final class CanvasView: NSView {
         } else { selectionAnts.removeAllAnimations() }
         markDirty()
     }
-    private func documentPoint(_ point: NSPoint) -> NSPoint? {
+    func documentPoint(_ point: NSPoint) -> NSPoint? {
         guard let frame = engine.artboardOverlay() else { return nil }
         let zoom = CGFloat(engine.canvasZoom())
         guard zoom > 0 else { return nil }
         return NSPoint(x: documentOrigin.x + (point.x * scale - CGFloat(frame.x)) / zoom,
                        y: documentOrigin.y + (point.y * scale - CGFloat(frame.y)) / zoom)
+    }
+    func configureGuides(_ model:WorkspaceModel){
+        if guideTool != model.tool,!guideInput.running{guideInput.cancel()};guideTool=model.tool
+        if let state=model.snapshot{guideInput.bind(state);snapInput.bind(state);guides=state.guides ?? [];presentation=state.presentation ?? .defaults}
+        let enabled=model.tool == .move && model.permissions.edits
+        if guideMoveTool && !enabled{snapInput.cancel()}
+        if !model.permissions.edits{guideInput.cancel();snapInput.cancel()}
+        guideMoveTool=enabled;drawGuides()
+    }
+    private func drawGuides(){
+        guard let frame=engine.artboardOverlay()else{guideLines.path=nil;guideDraft.path=nil;return}
+        let zoom=CGFloat(engine.canvasZoom())/scale
+        func line(_ axis:String,_ value:Double,_ path:CGMutablePath){
+            if axis=="vertical"{let x=CGFloat(frame.x)/scale+(CGFloat(value)-documentOrigin.x)*zoom;guard x.isFinite else{return};path.move(to:NSPoint(x:x,y:0));path.addLine(to:NSPoint(x:x,y:bounds.height))}
+            else{let y=CGFloat(frame.y)/scale+(CGFloat(value)-documentOrigin.y)*zoom;guard y.isFinite else{return};path.move(to:NSPoint(x:0,y:y));path.addLine(to:NSPoint(x:bounds.width,y:y))}
+        }
+        CATransaction.begin();CATransaction.setDisableActions(true);defer{CATransaction.commit()}
+        let path=CGMutablePath();if presentation.guidesVisible{for g in guides{line(g.axis,g.position,path)}};guideLines.path=path
+        let draft=CGMutablePath();if let g=guideInput.draft{line(g.axis,g.position,draft)};guideDraft.path=draft
+    }
+    private func hitGuide(_ point:NSPoint)->EditorSnapshot.Guide?{
+        guard presentation.guidesVisible,!presentation.guidesLocked else{return nil}
+        let tolerance=5/max(0.000001,Double(engine.canvasZoom())/Double(scale))
+        return guides.filter{abs(($0.axis=="vertical" ? Double(point.x):Double(point.y))-$0.position)<=tolerance}.min{a,b in
+            let da=abs((a.axis=="vertical" ? Double(point.x):Double(point.y))-a.position),db=abs((b.axis=="vertical" ? Double(point.x):Double(point.y))-b.position)
+            return da==db ? a.id<b.id:da<db
+        }
     }
     private func drawMarqueePreview() {
         guard let frame = engine.artboardOverlay() else { return }
@@ -497,6 +543,7 @@ final class CanvasView: NSView {
         guard !isWorkBusy else { return }
         benchmark?.cancel(BenchmarkFailure("User input interrupted benchmark"))
         window?.makeFirstResponder(self)
+        if guideMoveTool,let point=documentPoint(convert(event.locationInWindow,from:nil)),let guide=hitGuide(point){guideInput.begin(axis:guide.axis,position:guide.position,guide:guide.id);return}
         if textTool{if let point=documentPoint(convert(event.locationInWindow,from:nil)){beginTextPlacement(point)};return}
         if transformTool{guard isEditingEnabled,let point=documentPoint(convert(event.locationInWindow,from:nil))else{return};let zoom=CGFloat(engine.canvasZoom())/scale;transformInput.down(point,hitTolerance:8/max(zoom,0.0001),modifiers:event.modifierFlags);return}
         if straightenTool{guard isEditingEnabled,let point=documentPoint(convert(event.locationInWindow,from:nil))else{return};straightenInput.down(point);return}
@@ -518,6 +565,8 @@ final class CanvasView: NSView {
         }
         lastDrag = convert(event.locationInWindow, from: nil)
         if movesLayer, isEditingEnabled, let layer = activeLayer, let point = lastDrag {
+            if presentation.snapEnabled && !layer.visible{lastDrag=nil;return}
+            if presentation.snapEnabled,let document=documentPoint(point),snapInput.begin(at:document,canvasPixelsPerPoint:Double(scale)/Double(max(0.000001,engine.canvasZoom()))){lastDrag=nil;return}
             do { try engine.beginLayerMove(layerId: layer.id); layerDrag = (point, layer.x, layer.y, CGFloat(engine.canvasZoom())); layerPosition = (layer.x, layer.y) }
             catch { onError?(error); lastDrag = nil }
         }
@@ -525,6 +574,8 @@ final class CanvasView: NSView {
 
     override func mouseDragged(with event: NSEvent) {
         let point = convert(event.locationInWindow, from: nil)
+        if let draft=guideInput.draft,let document=documentPoint(point){guideInput.move(position:Double(draft.axis=="vertical" ? document.x:document.y));return}
+        if snapInput.active{if let document=documentPoint(point){snapInput.move(to:document)};return}
         if textTool{if let end=documentPoint(point){updateTextPlacement(end)};return}
         if transformTool{if let document=documentPoint(point){transformInput.drag(document,modifiers:event.modifierFlags)};return}
         if straightenTool{if let document=documentPoint(point){straightenInput.drag(document)};return}
@@ -550,6 +601,8 @@ final class CanvasView: NSView {
     }
 
     override func mouseUp(with event: NSEvent) {
+        if guideInput.draft != nil{_ = guideInput.finish();return}
+        if snapInput.active{if let document=documentPoint(convert(event.locationInWindow,from:nil)){snapInput.finish(at:document)}else{snapInput.cancel()};return}
         if textTool{if let end=documentPoint(convert(event.locationInWindow,from:nil)){endTextPlacement(end)}else{textStart=nil;textRectangle=nil;drawTextGuide()};return}
         if transformTool{if let point=documentPoint(convert(event.locationInWindow,from:nil)){transformInput.up(point,modifiers:event.modifierFlags)};return}
         if straightenTool{if let point=documentPoint(convert(event.locationInWindow,from:nil)){straightenInput.up(point)};return}
@@ -566,7 +619,7 @@ final class CanvasView: NSView {
         catch { onError?(error) }
     }
     override func keyDown(with event: NSEvent) {
-        if event.keyCode == 53 { cancelLayerDrag(); cancelMarquee(); brushInput.cancel();paintInput.cancel();cropInput.cancel();straightenInput.cancel();transformInput.cancel();textStart=nil;textRectangle=nil;drawTextGuide() }
+        if event.keyCode == 53 { guideInput.cancel();snapInput.cancel();cancelLayerDrag(); cancelMarquee(); brushInput.cancel();paintInput.cancel();cropInput.cancel();straightenInput.cancel();transformInput.cancel();textStart=nil;textRectangle=nil;drawTextGuide() }
         else if event.keyCode == 36,transformInput.confirm(){return}
         else if event.keyCode == 36,straightenInput.confirm(){return}
         else if event.keyCode == 36,cropInput.confirm(){return}

@@ -1,6 +1,13 @@
 import Foundation
 
 struct EditorSnapshot: Decodable, Sendable {
+    struct Guide:Decodable,Sendable,Equatable{let id:String;let name:String;let axis:String;let position:Double}
+    struct Presentation:Decodable,Sendable,Equatable{
+        let rulersVisible:Bool;let guidesVisible:Bool;let guidesLocked:Bool;let snapEnabled:Bool;let snapTolerance:Double;let snapArtboard:Bool;let version:UInt64
+        static let defaults=Presentation(rulersVisible:true,guidesVisible:true,guidesLocked:false,snapEnabled:false,snapTolerance:6,snapArtboard:true,version:0)
+    }
+    let guides:[Guide]?
+    let presentation:Presentation?
     struct PaintColors:Decodable,Sendable{let foreground:[Double];let background:[Double];let version:UInt64}
     let paintColors:PaintColors?
     struct Control: Decodable, Sendable { let kind: String; let turnId: String? }

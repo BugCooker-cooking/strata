@@ -797,11 +797,15 @@
   },
   "PS-09-7cc6b0bb65": {
     "implementation": "部分实现",
-    "acceptance": "整数移动/组与链接蒙版/原生拖动已实现；吸附仍待补齐",
+    "acceptance": "Persistent guide CRUD/pagination, versioned ruler/guide/snap presentation and shared V-tool/numeric/AI integer edge-center snapping reached an automated local checkpoint. Full core324 then final13 guide checks, AI45, bridge2, native102 (101passed/1live-network opt-in skipped), required Metal1, lint and136commands/200examples passed; arm64 Release compiled. Single-window manual text/guide acceptance awaits Mac unlock; no test instance remains. Sustained performance and the full composite feature scope remain open.",
     "evidence": [
       {
         "label": "M7 移动与几何边界",
         "path": "../research/2026-11-m7-transform-progress.md"
+      },
+      {
+        "label": "Guides and snap local progress",
+        "path": "../research/2026-11-m7-guides-snap-progress.md"
       }
     ]
   },
@@ -984,6 +988,16 @@
       {
         "label": "可编辑文字进展",
         "path": "../research/2026-11-m7-editable-text-progress.md"
+      }
+    ]
+  },
+  "PS-14-de2fd3ca59": {
+    "implementation": "部分实现",
+    "acceptance": "Persistent guide CRUD/pagination, versioned ruler/guide/snap presentation and shared V-tool/numeric/AI integer edge-center snapping reached an automated local checkpoint. Full core324 then final13 guide checks, AI45, bridge2, native102 (101passed/1live-network opt-in skipped), required Metal1, lint and136commands/200examples passed; arm64 Release compiled. Single-window manual text/guide acceptance awaits Mac unlock; no test instance remains. Sustained performance and the full composite feature scope remain open.",
+    "evidence": [
+      {
+        "label": "Guides and snap local progress",
+        "path": "../research/2026-11-m7-guides-snap-progress.md"
       }
     ]
   }

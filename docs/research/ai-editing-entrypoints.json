@@ -1551,7 +1551,10 @@
       "coverage": "partial",
       "commands": [
         "layer.select",
-        "layer.set_position"
+        "layer.set_position",
+        "layer.snap_position",
+        "view.presentation.get",
+        "view.presentation.set"
       ],
       "prompts": [
         {
@@ -1563,9 +1566,14 @@
           "text": "把指定图层移动到画布坐标 X=-20、Y=30，保留画板外像素与链接蒙版。",
           "query": "移动图层",
           "command": "layer.set_position"
+        },
+        {
+          "text": "Move the visible group to integer coordinates then snap its content edges or center to the nearest guide; keep every child and linked mask.",
+          "query": "Move layer with guide snapping",
+          "command": "layer.snap_position"
         }
       ],
-      "note": "已有整数位置与原生拖动、单次提交/取消及组联动；吸附仍未实现，因此综合移动工具条目保持部分实现。"
+      "note": "已有整数位置与原生拖动、单次提交/取消及组联动；吸附仍未实现，因此综合移动工具条目保持部分实现。 Actual guide/artboard snapping and shared V-tool preview are implemented and under current local verification; do not mark complete before native acceptance."
     },
     "PS-09-7d349372b5": {
       "scope": "editing",
@@ -2053,6 +2061,67 @@
         }
       ],
       "note": "Existing real layer.rasterize handles the actual text glyph source through the same compositor/masks/styles; core save/recovery/rasterize/undo checks passed. Native/Metal/App Release/manual acceptance is still pending and not inferred from this mapping."
+    },
+    "PS-14-de2fd3ca59": {
+      "scope": "editing",
+      "coverage": "partial",
+      "commands": [
+        "view.guides.list",
+        "view.guides.add",
+        "view.guides.update",
+        "view.guides.delete",
+        "view.guides.clear",
+        "view.presentation.get",
+        "view.presentation.set",
+        "layer.snap_position"
+      ],
+      "prompts": [
+        {
+          "text": "在画布X=120.5建立垂直参考线，保留稳定ID并允许撤销。",
+          "query": "新建参考线",
+          "command": "view.guides.add"
+        },
+        {
+          "text": "分页读取当前文档的全部参考线，再按ID把指定参考线移动到新的绝对坐标。",
+          "query": "读取参考线",
+          "command": "view.guides.list"
+        },
+        {
+          "text": "Hide rulers and lock reference lines without changing image pixels or document history.",
+          "query": "ruler and snap presentation",
+          "command": "view.presentation.set"
+        },
+        {
+          "text": "开启吸附，以6个屏幕点为阈值，保留当前文档和历史。",
+          "query": "开启吸附",
+          "command": "view.presentation.set"
+        },
+        {
+          "text": "把当前图层的内容边缘吸附到最近参考线，返回整数位置与半像素残差。",
+          "query": "移动吸附",
+          "command": "layer.snap_position"
+        }
+      ],
+      "variants": [
+        {
+          "command": "view.guides.add",
+          "path": "axis",
+          "values": [
+            "horizontal",
+            "vertical"
+          ]
+        },
+        {
+          "command": "layer.snap_position",
+          "path": "anchors",
+          "values": [
+            "edges",
+            "center",
+            "edges_and_center"
+          ]
+        }
+      ],
+      "note": "Actual persistent guide CRUD/paginated list, versioned editor presentation, content-edge/center integer snapping and shared native pointer/preview wiring under local verification. Guide-only history never prepares source rendering. Canvas references remain fixed during image geometry. Source/permission/history/undo/persistence checks in progress; native single-window still pending Mac unlock; do not mark closed before evidence."
     }
   }
 }

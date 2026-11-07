@@ -8,6 +8,7 @@ pub mod geometry;
 pub mod geometry_masks;
 pub mod geometry_pixels;
 mod geometry_resize;
+mod guides;
 mod ids;
 mod layer;
 mod project;
@@ -21,7 +22,8 @@ pub use document::{
     Document, DocumentCandidate, DocumentError, Frame, MAX_DOCUMENT_BYTES, MAX_FLAT_IMAGE_BYTES,
     MAX_LAYERS,
 };
-pub use ids::{DocumentId, LayerId, StateId};
+pub use guides::{Guide, GuideAxis, GuideRef, MAX_GUIDES, Presentation};
+pub use ids::{DocumentId, GuideId, LayerId, StateId};
 pub use layer::{
     BlendMode, ColorLabel, GeneratedCrop, Layer, LayerInfo, LayerKind, LayerLocks, LayerMaskInfo,
     LayerRef,

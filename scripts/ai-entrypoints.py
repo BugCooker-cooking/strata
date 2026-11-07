@@ -86,7 +86,13 @@ def audit(catalog):
         for line, value in enumerate(path.read_text().splitlines(), 1):
             for match in PATTERN.finditer(value):
                 native.setdefault(match[1], []).append(f'{path.relative_to(ROOT)}:{line}')
-    unknown_native = {name: locations for name, locations in native.items() if name not in specs}
+    # Native routers sometimes compare a namespace prefix instead of invoking a
+    # command. Retain that evidence and require at least one real implementation
+    # under it; a typo or an entirely future namespace still fails this gate.
+    native_prefixes = {name: locations for name, locations in native.items() if name.endswith('.')}
+    unknown_native = {name: locations for name, locations in native.items()
+                      if name not in specs and not (name in native_prefixes
+                                                   and any(command.startswith(name) for command in specs))}
     untyped = sorted(name for name, spec in specs.items()
                      if not any(key in spec['returns'] for key in ['type', 'properties', '$ref', 'oneOf', 'anyOf', 'enum', 'const']))
     mapped_commands = {name for entry in mappings.values() for name in entry['commands']}
@@ -107,6 +113,7 @@ def audit(catalog):
         'inventory_rows': len(rows), 'mapped_features': len(mappings),
         'unmapped_implemented_features': unmapped, 'partial_entrypoints': partial,
         'unfinished_features': unfinished, 'unknown_native_command_references': unknown_native,
+        'native_dispatch_prefixes': native_prefixes,
         'untyped_command_returns': untyped, 'commands_without_feature_links': sorted(set(specs) - mapped_commands),
         'final_audit_complete': complete,
         'limits': ['Native audit finds literal references; dynamic dispatch and private callbacks still need manual review.',

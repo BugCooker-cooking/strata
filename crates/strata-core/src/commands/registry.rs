@@ -48,6 +48,78 @@ fn build_catalog() -> Vec<CommandSpec> {
         }}
     }
     command!(
+        "view.guides.list",
+        ListGuides,
+        Query,
+        "读取参考线",
+        "List canvas guides",
+        "Read a bounded page of document reference lines. offset0..1024(default0), limit1..64(default32), total and next_offset support pagination. Each line has a stable id, name up to256 UTF8 bytes without controls, horizontal(y) or vertical(x) axis and finite absolute canvas position +/-1e12. Prefer ids; duplicate names are never guessed. Guide visibility/locking is editor presentation state, not privacy or source deletion. A document is required; no pixel/history/revision/selection effect. Not batchable. 中文：标尺参考线、读取参考线、水平线、垂直线、参考线坐标、分页。",
+        json!({"limit":32})
+    );
+    command!(
+        "view.guides.add",
+        AddGuide,
+        Mutate,
+        "新建参考线",
+        "Add canvas guide",
+        "Add one actual horizontal(y) or vertical(x) document guide, with name up to256 UTF8 bytes without control characters and finite position +/-1e12 in absolute canvas coordinates. At most1024 lines; server creates the stable id. Guides are nonexported references: crop/resize/rotate content leaves these canvas-axis coordinates fixed. They persist in manifest9 and undo/recovery; no source pixel, mask, ICC or layer edit. Locked guides reject. Creation intentionally adds a new line, including coincident lines; same call-id retry is idempotent. One history, not batchable. Native ruler placement and AI use the same command. 中文：新建参考线、水平参考线、垂直参考线、从标尺拖出参考线、画布绝对坐标；不烘入图片，可一次撤销。",
+        json!({"name":"Baseline","axis":"horizontal","position":6.5})
+    );
+    command!(
+        "view.guides.update",
+        UpdateGuide,
+        Mutate,
+        "修改参考线",
+        "Update canvas guide",
+        "Update an explicit guide's axis, position and/or name, preserving its stable id. Read view.guides.list first and prefer guide.id; ambiguous names return candidate ids. Same coordinate/name/axis returns changed=false without document history/revision/dirty/selection changes. Locked guides reject; other add limits and persistence semantics apply. One atomic edit, not batchable; native numeric and pointer edits use this command. 中文：修改参考线、移动参考线、参考线重命名、参考线方向；相同值无历史。",
+        json!({"guide":{"name":"Baseline"},"position":10.5})
+    );
+    command!(
+        "view.guides.delete",
+        TargetGuide,
+        Mutate,
+        "删除参考线",
+        "Delete canvas guide",
+        "Delete exactly one explicit document guide and return that removed line. Prefer its id from the paginated list; ambiguous names reject. Pixels and layers are unchanged, one undo restores the exact id/name/axis/position. Locked guides reject; not batchable. 中文：删除参考线、移除参考线；只移除指定参考线，可撤销。",
+        json!({"guide":{"name":"Baseline"}})
+    );
+    command!(
+        "view.guides.clear",
+        Empty,
+        Mutate,
+        "清除参考线",
+        "Clear canvas guides",
+        "Remove every reference line in the bound document; return removed count. Locked guides reject. Empty documents return changed=false without history/revision/dirty/selection changes. A real removal is one history and exact undo; source samples/layers stay intact. Not batchable. 中文：清除参考线、删除全部参考线；仅当前文档，一次撤销。",
+        json!({})
+    );
+    command!(
+        "view.presentation.get",
+        Empty,
+        Query,
+        "读取标尺与吸附设置",
+        "Inspect ruler and snap presentation",
+        "Read editor-local rulers_visible/guides_visible/guides_locked/snap_enabled/snap_tolerance/snap_artboard and version. snap_tolerance is native screen points0..64(default6); explicit layer.snap_position uses canvas units. Defaults show rulers/guides, unlock guides and disable automatic snapping. State is independent of document history/save/undo and can be read without a document. Native and AI share it. 中文：读取视图设置、标尺显示、参考线显示、锁定参考线、吸附设置、吸附阈值。",
+        json!({})
+    );
+    command!(
+        "view.presentation.set",
+        SetPresentation,
+        View,
+        "设置标尺与吸附",
+        "Set ruler and snap presentation",
+        "Set one or more editor-local presentation fields; expected_version optionally binds a preceding get. Equal values do not advance the version; real changes advance it once without document history/revision/dirty/current-layer changes. Guides themselves are document data edited through view.guides.*. Guide locks prohibit line edits but not snapping to those references. Automatic V-tool snapping uses the current zoom to convert native screen-point tolerance0..64 to canvas units; snap_artboard includes artboard edges. An old pointer draft cannot commit after presentation version changes. Viewing may change during AI control, while guide content edits still require normal document ownership. No document needed, not batchable. 中文：显示标尺、隐藏标尺、显示参考线、隐藏参考线、锁定参考线、开启吸附、关闭吸附、画板边缘吸附；只改变当前编辑器视图，不写历史。",
+        json!({"rulers_visible":true,"guides_visible":true,"snap_enabled":true,"snap_tolerance":6})
+    );
+    command!(
+        "layer.snap_position",
+        SnapPosition,
+        Mutate,
+        "吸附移动图层",
+        "Move layer with guide snapping",
+        "Move an explicit visible pixel/text/fill layer or visible group subtree to proposed integer x/y +/-1e12, then resolve nearest reference-line/artboard-edge alignment independently per axis. guides/artboard defaulttrue, anchors edges/center/edges_and_center(default), tolerance finite canvas pixels0..1e6(default6). Only visible subtree content contributes bounds; hidden descendants still move with the group without exposing their bounds. Include off-artboard source and alpha-zero hidden RGB; empty text caches use retained glyph ink. Adjustments alone have no content box. Sparse scans capped64M stored visits and64M measured child areas, pooled/cancellable text work. Ties prefer guide over artboard, lower reference coordinate, edge-before-center order and stable guide id. Proposals snap to the nearest integer layer position, rounding ties away from zero; returned anchor/residual explicitly report fractional guide mismatch rather than claiming subpixel movement. Preserve source codes/tile versions, layer kind/text source, linked masks, tree and ICC/depth. Reject target/subtree/ancestor position/all locks, without implicit rasterization. changed=false preserves history/revision/dirty/current-layer; otherwise one atomic history and undo. Native V-tool and numeric UI share the same resolver; immutable gesture bounds are trusted host context, never model parameters. Not batchable. 中文：移动吸附、参考线吸附、边缘对齐、中心对齐、画板边缘、吸附阈值；移动按整数像素，返回半像素残差，原码与蒙版保留。",
+        json!({"layer":{"name":"Background"},"x":3,"y":3,"tolerance":4,"artboard":false})
+    );
+    command!(
         "type.fonts",
         Empty,
         Query,
@@ -1185,6 +1257,15 @@ fn build_catalog() -> Vec<CommandSpec> {
     );
     for item in &mut list {
         item.returns = match item.id {
+            "view.guides.list" => schemars::schema_for!(GuidesResult),
+            "view.guides.add" | "view.guides.update" | "view.guides.delete" => {
+                schemars::schema_for!(GuideResult)
+            }
+            "view.guides.clear" => schemars::schema_for!(ClearGuidesResult),
+            "view.presentation.get" | "view.presentation.set" => {
+                schemars::schema_for!(crate::Presentation)
+            }
+            "layer.snap_position" => schemars::schema_for!(SnapPositionResult),
             "type.fonts" => schemars::schema_for!(FontsResult),
             "type.create" | "type.update" | "type.inspect" => schemars::schema_for!(TextResult),
             "image.auto" => schemars::schema_for!(AutoCorrectionResult),
@@ -1343,6 +1424,18 @@ fn build_catalog() -> Vec<CommandSpec> {
         if item.id == "type.fonts" {
             item.effects = vec!["font.catalog.read"];
             item.permissions = vec!["bound_editor"];
+        }
+        if item.id.starts_with("view.guides.") || item.id == "layer.snap_position" {
+            item.batchable = false;
+        }
+        if item.id.starts_with("view.presentation.") {
+            item.batchable = false;
+            item.permissions = vec!["bound_editor", "presentation_version"];
+            item.effects = if item.kind == CommandKind::Query {
+                vec!["view.presentation.read"]
+            } else {
+                vec!["view.presentation.write"]
+            };
         }
         if item.id == "type.create" {
             item.examples.push(json!({"name":"Paragraph","spec":{"text":"中文段落与Latin words\n保留文字源和换行","font":"cjk","font_size":18,"line_height":1.3,"tracking":0,"align":"right","layout":{"type":"paragraph","width":120,"height":80}},"color":[0.3,0.5,0.7,1],"x":1,"y":1}));

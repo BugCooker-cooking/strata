@@ -21,14 +21,14 @@ fn cancelled() -> StrataError {
 #[uniffi::export]
 impl StrataEngine {
     pub fn begin_crop(&self, document_id: String, revision: u64) -> Result<String, StrataError> {
-        self.begin_geometry(document_id, revision, "image.crop", None)
+        self.begin_geometry(document_id, revision, "image.crop", None, None)
     }
     pub fn begin_straighten(
         &self,
         document_id: String,
         revision: u64,
     ) -> Result<String, StrataError> {
-        self.begin_geometry(document_id, revision, "image.straighten", None)
+        self.begin_geometry(document_id, revision, "image.straighten", None, None)
     }
     pub fn begin_canvas_transform(
         &self,
@@ -44,6 +44,7 @@ impl StrataEngine {
             revision,
             "transform.apply",
             Some((layer, scope)),
+            None,
         )
     }
     /// Bounds scan runs on an immutable editor clone outside the renderer lock.
@@ -105,18 +106,30 @@ impl StrataEngine {
     }
 }
 impl StrataEngine {
+    pub(crate) fn native_guide_command(&self, token: &str) -> Result<&'static str, StrataError> {
+        self.geometry_session
+            .lock()
+            .map_err(render_error)?
+            .as_ref()
+            .filter(|c| {
+                c.token == token && matches!(c.command, "view.guides.add" | "view.guides.update")
+            })
+            .map(|c| c.command)
+            .ok_or_else(cancelled)
+    }
     pub(crate) fn cancel_native_geometry(&self) -> Result<(), StrataError> {
         if let Some(owned) = self.geometry_session.lock().map_err(render_error)?.take() {
             owned.cancel();
         }
         Ok(())
     }
-    fn begin_geometry(
+    pub(crate) fn begin_geometry(
         &self,
         document_id: String,
         revision: u64,
         command: &'static str,
         transform: Option<(strata_core::LayerRef, strata_core::commands::TransformScope)>,
+        guide: Option<(u64, Option<strata_core::GuideRef>)>,
     ) -> Result<String, StrataError> {
         let mut inner = self.lock()?;
         if inner.editor.revision() != revision
@@ -124,6 +137,12 @@ impl StrataEngine {
                 .editor
                 .document()
                 .is_none_or(|d| d.id().to_string() != document_id)
+        {
+            return Err(cancelled());
+        }
+        if guide
+            .as_ref()
+            .is_some_and(|(version, _)| *version != inner.editor.snapshot().presentation.version)
         {
             return Err(cancelled());
         }
@@ -144,6 +163,9 @@ impl StrataEngine {
                 let (layer, scope) = transform.expect("native transform target");
                 inner.editor.begin_canvas_transform(layer, scope)
             }
+            "view.guides.add" | "view.guides.update" => inner
+                .editor
+                .begin_guide(guide.expect("native guide ownership").1),
             _ => unreachable!(),
         }
         .map_err(command_error)?;
@@ -165,7 +187,7 @@ impl StrataEngine {
     }
     /// Cancellation acquires no editor/render lock. A late cancellation token
     /// cannot revoke another geometry draft or a newer AI request.
-    fn end_geometry(
+    pub(crate) fn end_geometry(
         &self,
         token: String,
         params_json: String,
@@ -199,6 +221,9 @@ impl StrataEngine {
                 "image.crop" => editor.prepare_crop(&interaction, params.clone()),
                 "image.straighten" => editor.prepare_straighten(&interaction, params.clone()),
                 "transform.apply" => editor.prepare_canvas_transform(&interaction, params.clone()),
+                "view.guides.add" | "view.guides.update" => {
+                    editor.prepare_guide(&interaction, params.clone())
+                }
                 _ => unreachable!(),
             }
             .map_err(command_error)?;

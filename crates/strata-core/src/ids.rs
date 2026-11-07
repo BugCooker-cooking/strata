@@ -40,3 +40,4 @@ macro_rules! id {
 id!(DocumentId);
 id!(LayerId);
 id!(StateId);
+id!(GuideId);

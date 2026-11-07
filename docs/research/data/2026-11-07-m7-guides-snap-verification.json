@@ -1,0 +1,242 @@
+{
+  "date_local": "2026-11-07",
+  "timezone": "Asia/Taipei",
+  "base_checkpoint": "39fa6c1",
+  "branch": "codex/v1-remaining",
+  "scope": "Persistent canvas-axis guides, versioned editor presentation and bounded integer layer edge/center snapping with shared native/AI commands and the existing single preview slot. Automated local increment checkpoint; physical/manual acceptance and full Photoshop closure remain open.",
+  "source_sha256": {
+    "apps/macos/Strata/App/AppDelegate.swift": "74ae03d9ad71f861a0691b0c77748a5235a0a833da2cba1398df17c48c6586a0",
+    "apps/macos/Strata/App/MainWindowController.swift": "b5e51d0d9feb0f0a54b3adc0fed352e5d979a093004b9d2d330d5272f21699d8",
+    "apps/macos/Strata/Canvas/CanvasGuideInput.swift": "37bca3bd6e5cae6215edbf21d8ce11876567992f135b86778367c614e364eb82",
+    "apps/macos/Strata/Canvas/CanvasSnapInput.swift": "3bace55a9f1f1ea922c9979f819c2258c2a23b74b98fa7c5265b5b99ca2346f7",
+    "apps/macos/Strata/Canvas/CanvasView.swift": "9071a273bcbbf7d7c9d8b7fc244dcc0ce54aa49951578d0e48aa5478eba753d2",
+    "apps/macos/Strata/Engine/EditorSnapshot.swift": "f639868467b5fec5dc98ea22f9f9ae986bac1fe05511f7d9dea77a074084379d",
+    "apps/macos/Strata/Workspace/CanvasChromeView.swift": "b43e6e917c485c58fd107b3b697c30f405a660d1ea43430587fd2e7290b92d3c",
+    "apps/macos/Strata/Workspace/GuideControls.swift": "19e7b92417725c4dead296f2a42f431c400be6551f0fe80aa353f2dc60d0f413",
+    "apps/macos/Strata/Workspace/WorkspaceModel.swift": "612d6f61627461d96a85d8f947addb91b1303453e0536459a747753a360fc0ca",
+    "apps/macos/Strata/Workspace/WorkspaceViews.swift": "b86fd3078d871393f97c5f2a142e20f47701e928ca534459c2f2da49aa5532bb",
+    "apps/macos/StrataTests/GuideInputTests.swift": "0b6f9e1f04279ea0df95a76173df328660842f49c28b2e0f0c1f9fd9dcf47edd",
+    "crates/strata-ai/src/catalog.rs": "64baf89c832c4f203fcc7701ecdfc79ca9b4f958a60db0ba0387e12367693238",
+    "crates/strata-ai/tests/replay.rs": "17d93c40df07b4bee00c352b32fa189d43135b7ae618da33512c0d60a7aa051e",
+    "crates/strata-core/src/commands/executor.rs": "67c3ca4a33638f2fab38013bba4945e5fd355a6b4a138edde32294659f15c5c7",
+    "crates/strata-core/src/commands/guides.rs": "b90e1b30bdfc0303f99dece40e2ff7f4b13439639ec38b89d87a1b3ea8bd8087",
+    "crates/strata-core/src/commands/mod.rs": "6958c63da87712dfc85c3e23c5b84fb6b0f262f3caeeeaa5bffdac2f44e14ca7",
+    "crates/strata-core/src/commands/registry.rs": "6a7edef9d984581651976e84f251fe95d9077d0d476a9b9d7deae1bbfd06bd2e",
+    "crates/strata-core/src/document.rs": "3cc6401f7fbfef46b2090489fd91005340b23bd336aeac377d329481715cae84",
+    "crates/strata-core/src/guides.rs": "1140f51ffb0e11565721d9aadc23a0b15ca49e4fe1131686f9e3720cb52cdcc9",
+    "crates/strata-core/src/ids.rs": "2c9f8a44e629c12ff30cb4548d647912d42cd3bacf85f19eb3d7d0eb05a77463",
+    "crates/strata-core/src/lib.rs": "69fddb6896691ef58238b88a584acdd90d206301d63b04e5cb7cd479e1496102",
+    "crates/strata-core/src/project.rs": "4aa475f32414f0a93bb688e44d9d863247355bf099f2821271fe1c102fc4d20f",
+    "crates/strata-core/tests/guides.rs": "0bebdc004f9b24dea0cf5c14c5e82c9e46f6409d4ab0432ec49117af07b5ef42",
+    "crates/strata-ffi/src/crop.rs": "26142d1af3a296282f1f9452f956726df21795d63c8bbd4630ca11a38368e25a",
+    "crates/strata-ffi/src/filter_preview.rs": "d77868474b772265299d991fa700d935b79390eea97e42c33ecbb70a3e19020d",
+    "crates/strata-ffi/src/guides.rs": "8d79cf5ea9373df331f47fd3d6f8cb1a7993eb5c64501c53d280a7b8e641239c",
+    "crates/strata-ffi/src/lib.rs": "b0332023676f1a34bb4fa9be2a64b713cca86931db929afddf6db5316402bce2",
+    "scripts/ai-entrypoints.py": "3b6496dcb3e6b44dd81e15de5bbe6a8101a6f1a5eff73e16a7dcd4fe0986d924",
+    "tools/strata-devtool/src/main.rs": "e04282e2d01f809df34b04e47d2e1bb372939abc0e89be1cf0bcab13ccf24859"
+  },
+  "log_sha256": {
+    "build/m7-guides-ai.log": "2d190049d9f770d8c1c5962cf012daccfc37d6510f564e3a4e9897db39af3ff9",
+    "build/m7-guides-clippy.log": "c38895b028d007246593bd53970ed3c3b0d7677c0b5bfbfe5d3925eb51089957",
+    "build/m7-guides-commands.log": "7d3b62455cd57390d61dbb1d9f15a87916bee2542252313ca899e319cf8b41b3",
+    "build/m7-guides-core-check.log": "168c022a7cbec4d175e4f9acf023442382bba8e4b80593ee99e2e4c22fc23f79",
+    "build/m7-guides-core-range.final.log": "d20d45136752e56cf396dc78f1695e0d9884df03a3a0815d5ac020e1032bfc0b",
+    "build/m7-guides-core-regression.log": "bb6b9cfdfe51f97c294dd23fae23a135b737fb3aa20f4838edf0c67967e1a78f",
+    "build/m7-guides-core.final.log": "99a8d1faf8729aea96129a511c50203c5e4fef39b34048b00c92bc8b7c2f5b6b",
+    "build/m7-guides-core.fixed.log": "f677d903ecd1c4daf89974fd90a28904967e659cce901f536a8161fca48914be",
+    "build/m7-guides-core.latest.log": "7f13a4e193caf276889e041bf986e4ffebeff8f8777d451f6bcb35b9430ce61d",
+    "build/m7-guides-core.log": "31824d9292f950f256e2966b5997c5ae2ec2a6c84483b2e7a69b80b6d14dc8ed",
+    "build/m7-guides-docs.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "build/m7-guides-engine-check.log": "f1fce1f2c46f9b1a5b9410228bac26179c155ed2c9dd76dfc885a47f02be30ca",
+    "build/m7-guides-ffi.log": "dccb3e9f867514a0f657bd8416d4e18c7f96e14dc4bc128b1dc68a5b929bbd73",
+    "build/m7-guides-ffi.owned-fixed.log": "382fe49c6784159881f3c372cae3c7496773a32690e9dbd82a0c7c9cc50c6b25",
+    "build/m7-guides-ffi.owned.log": "985d84851f5bb54faf2a093be8eb568e718b7f98de45917fd16f565577aef15a",
+    "build/m7-guides-final-ai-gate.log": "58775cd558643dbf55e44703bbdc00f7f6982cb47d878a0c39d4f6ad5cfe0375",
+    "build/m7-guides-lint.final.log": "fc0f65e99377666275bb7fbeecb710062487aeee48b4fa7cc8963fc5581229f7",
+    "build/m7-guides-metal.log": "be6bc0b59a734787825957b9134fe57a8f828ad9737c1168a25014bd0877f47b",
+    "build/m7-guides-native-build.fixed.log": "086b6efbdd560a06f1e1f396dee2475b5de1395d820a25b3fcc330f2fc60c065",
+    "build/m7-guides-native-build.log": "9f0ff6103a8ec1eba0a40fc0e4189831e5fbdd4355c759dc02cf95ddfca9e94a",
+    "build/m7-guides-native.log": "937d27fb5e67a6417dcb32affa6530298cf435f7e3d676ede30931f790579ccd",
+    "build/m7-guides-project.log": "6d62e7dcd2d4c32b45d13c243c21c9fd1bf12075a4a32d47c4d14c418297c518",
+    "build/m7-guides-release.log": "d5808c3b17137d2ac0ff0638443aa7f33c1dad2ef8b7131f08aa35119fe1fd73",
+    "build/m7-guides-swiftlint.current.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "build/m7-guides-swiftlint.final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "build/m7-guides-swiftlint.latest.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "build/m7-guides-swiftlint.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "build/m7-guides-swiftlint.postfocus.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "build/m7-guides-release.final.log": "e20a2dd954fb725b1b7ae4880e89dc09d0993750cd15469b2a7057a95551d739"
+  },
+  "checks": {
+    "core_full": {
+      "passed": 324,
+      "failed": 0,
+      "ignored": 0,
+      "log": "build/m7-guides-core-regression.log",
+      "note": "Complete core including12 guide checks and compile-fail doc. Before final source-range guard; no second full-suite claim."
+    },
+    "core_final_guide_subset": {
+      "passed": 13,
+      "failed": 0,
+      "ignored": 0,
+      "log": "build/m7-guides-core-range.final.log",
+      "note": "13 final guide/snap checks including added source +/-1e12 range rejection and expired request; source guard prevents catastrophic precision cancellation at extreme older layer offsets."
+    },
+    "ai": {
+      "passed": 45,
+      "failed": 0,
+      "ignored": 0,
+      "log": "build/m7-guides-ai.log",
+      "replays": 37,
+      "protocol": 7,
+      "prompt_mapping": 1,
+      "actual_calls": [
+        "guide add/list/update/delete/clear",
+        "presentation set",
+        "layer.snap_position",
+        "AI turn undo preserves view settings"
+      ],
+      "note": "No live model request. Later domain-summary wording only and final directory checks are separate."
+    },
+    "ffi_headless": {
+      "passed": 2,
+      "failed": 0,
+      "ignored": 0,
+      "log": "build/m7-guides-ffi.owned-fixed.log",
+      "checks": [
+        "original operation token/control epoch/version/document/cancel",
+        "normal state events and exact source undo",
+        "same single filter preview slot and settings change cancellation"
+      ]
+    },
+    "native_full": {
+      "total": 102,
+      "passed": 101,
+      "skipped": 1,
+      "failed": 0,
+      "log": "build/m7-guides-native.log",
+      "new_guide_coordinator_tests": 3,
+      "skip_reason": "Live service opt-in disabled; no network request",
+      "build_only_log": "build/m7-guides-native-build.fixed.log",
+      "jobs": 2,
+      "parallel_testing": false,
+      "note": "Final guide/position focus handoff and explanatory label were added after this suite; final Release compiles those small UI changes. No physical pointer/visible-window claim from XCTest."
+    },
+    "required_real_metal": {
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "log": "build/m7-guides-metal.log",
+      "required_gpu": true,
+      "skipped": 0,
+      "checks": [
+        "immutable original during preview",
+        "exact cancel restore",
+        "apply same shown candidate",
+        "independent CPU numerical display reference",
+        "guide add/undo leaves image scene identical",
+        "snap undo restores exact scene/archive"
+      ]
+    },
+    "lint": {
+      "passed": true,
+      "log": "build/m7-guides-lint.final.log",
+      "checks": [
+        "rustfmt",
+        "workspace all-target Clippy -D warnings",
+        "portability",
+        "Swift lint",
+        "generated coverage"
+      ],
+      "final_ui_lint": "build/m7-guides-swiftlint.postfocus.log"
+    },
+    "command_examples": {
+      "passed": true,
+      "commands": 136,
+      "examples": 200,
+      "log": "build/m7-guides-commands.log",
+      "all_actual_commands_linked": true
+    },
+    "release": {
+      "passed": true,
+      "architecture": "arm64",
+      "jobs": 2,
+      "swift_backend_threads": 1,
+      "log": "build/m7-guides-release.final.log",
+      "binary_sha256": "a712457b6114992fc95ed25ae7bab481d461a1f1247d1c4b007769a0624c4fa9",
+      "font_notices_and_sample_byte_equal": true,
+      "warnings": "Existing PointColorControls redundant nil-coalescing and no-AppIntents metadata notices only; no build errors.",
+      "first_build_log": "build/m7-guides-release.log"
+    },
+    "fixed_initial_issues": [
+      "Guide commit initially corrected only the history after clone while publishing old candidate.active; now publish corrected after and keep latest active selection in doc/history/undo.",
+      "Negative half-integer fixture expectation incorrectly rounded toward zero; corrected to documented away-from-zero integer result and signed residual.",
+      "Private guide helper initially placed inside UniFFI export impl; moved into private impl after unsupported borrowed-string export error.",
+      "New Swift weak capture and Optional-to-Any numeric Binding warnings fixed; static test build rerun successful.",
+      "Native namespace prefix view.guides. was initially misread as a callable literal by audit. Audit now records prefixes separately and still rejects unknown prefixes with no real registered implementation."
+    ],
+    "strict_final_gate_expected_exit_code": 1
+  },
+  "semantics": {
+    "guides": "Stable UUID/name/H/V axis/finite absolute canvas coordinate.1024 max, bounded list pages1..64. Duplicate names require id; edits/cancellation/resource/lock failures atomic. Same update and empty clear have no history. Lines are canvas references, remain fixed during image geometry and never export into pixels.",
+    "project": "Manifest9 only with nonempty guides. Empty data follows prior8/7/6 rules. Old projects default empty; old version cannot claim guides. Real file/recovery/undo preserve ids and fractional coordinates with exact JSON float parsing.",
+    "presentation": "Editor-local rulers/guides visibility, guide lock and snap enable/tolerance/artboard plus monotonic version. Same value does not advance version; never document history/revision/dirty/current-layer. Changes revoke older guide/snap ownership.",
+    "snapping": "Nearest independent X/Y reference to raw content edges/center; guide-before-artboard, lower coordinate, edge-before-center, stable-id tie ordering. Integer layer storage rounds half away from zero; exact returned anchor and signed residual document fractional mismatch. Preserve source/tile versions/masks/kind/IDs/tree/ICC/depth. Hidden children do not disclose bounds but move with subtree. Source origin/content bounds must be within +/-1e12;64M visits and measured child areas. Adjustments alone have no finite content box; blank ink rejects.",
+    "preview": "Original source extent measured once off editor/render lock and cached only in trusted request. Native V and numeric UI use layer.snap_position; shared bounded display preview does not write drag history. Metadata-only guide edits/undo never prepare image rendering. Presentation version, document/revision/active-layer/control epoch and per-operation cancellation protect late results.",
+    "pointer": "Ruler drags and V-tool existing-line drags stage only overlays. Original guide request/target/epoch lives in the same operation-bound native geometry slot as crop/transform, not model parameters. Release once through add/update; Escape/context/tool changes cancel. Guide/position apply returns focus to canvas for document undo.",
+    "numeric_text_preview_fix": "Previously transform preview initialization still required a pixel target. It now uses source-aware text transform target validation and pins active layer; the core suite checks real text candidate preparation and late-selection rejection."
+  },
+  "ai_audit": {
+    "registered_commands": 136,
+    "registered_examples": 200,
+    "inventory_rows": 265,
+    "mapped_features": 91,
+    "partial_entrypoints": [
+      "PS-01-894622b1ce",
+      "PS-04-cb66199f15",
+      "PS-04-853e6d30f3",
+      "PS-16-8de06204ac",
+      "PS-09-4f3d9835a7",
+      "PS-09-7cc6b0bb65",
+      "PS-09-7d349372b5",
+      "PS-03-5f9716e5d8",
+      "PS-03-ad24731ea8",
+      "PS-11-4490121dad",
+      "PS-11-a524877cb6",
+      "PS-14-de2fd3ca59"
+    ],
+    "unmapped_implemented_features": [],
+    "unknown_native_command_references": {},
+    "native_dispatch_prefixes": {
+      "view.guides.": [
+        "apps/macos/Strata/App/MainWindowController.swift:354"
+      ]
+    },
+    "untyped_command_returns": [],
+    "commands_without_feature_links": [],
+    "final_audit_complete": false
+  },
+  "manual": {
+    "status": "deferred_until_manual_Mac_unlock",
+    "gui_acceptance_done": false,
+    "native_coordinator_checks_are_not_physical_pointer_acceptance": true,
+    "post_native_tests_strata_and_xctest_instances": 0,
+    "no_extra_manual_window_launched_for_guides": true,
+    "preceding_text_test_window": "Mac locked, CUA requested manual unlock. Only the known clean self-launched Release was terminated by exact PID after no GUI edits, to free the single-instance slot. No other app touched. Text and guide manual acceptance remain pending.",
+    "fixture_sha256": "c1006da29913609963479b8641c0e6f6a43ff2c6d8b2f907c91a6daf1afaa2ea"
+  },
+  "cloud": {
+    "used": false,
+    "manual_dispatch_only_in_yaml": true,
+    "no_jobs_enabled_dispatched_rerun_or_awaited": true,
+    "live_disabled_state_recheck_required_before_push": true
+  },
+  "live_model_requests": 0,
+  "remaining": [
+    "Single-window physical/manual text geometry and guides/snap acceptance after Mac unlock",
+    "Sustained large-photo snap/frame latency and independent physical inputs",
+    "General generated/group/style geometry and continuous warped-pixel feedback",
+    "Remaining typography/fonts/professional features and full Photoshop AI audit",
+    "Current Linux/minimum macOS14/external hardware/live-model-quality/release gates"
+  ],
+  "delivery": "Existing private development branch/draftPR1 authorization only, no merge/release/visibility change. This record precedes the containing commit."
+}

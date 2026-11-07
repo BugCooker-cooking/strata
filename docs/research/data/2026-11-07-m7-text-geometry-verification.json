@@ -3,7 +3,7 @@
   "timezone": "Asia/Taipei",
   "base_checkpoint": "01272c1",
   "branch": "codex/v1-remaining",
-  "scope": "Retained whole-text projective geometry and ordered destructive crop; unstyled text image rotate/resize/straighten; transparent-black source bounds. This is an automated local checkpoint with native manual acceptance still pending Mac unlock, not complete Photoshop.",
+  "scope": "Retained whole-text projective geometry and ordered destructive crop; unstyled text image rotate/resize/straighten; transparent-black source bounds. This is an automated local checkpoint with native manual acceptance still deferred until Mac unlock, not complete Photoshop.",
   "source_sha256": {
     "Cargo.toml": "6106d3379063b942570a59fbcdbb292a801083f2a22eff3676e3cd84846505f0",
     "apps/macos/Strata/App/MainWindowController.swift": "460c022285d84ce3ce41a4dbf7908ca2cff94da622bbc3d86629516f4af75069",
@@ -204,15 +204,18 @@
     "final_audit_complete": false
   },
   "manual": {
-    "status": "awaiting_manual_mac_unlock",
+    "status": "deferred_until_manual_mac_unlock",
     "launch_attempted_once": true,
     "pre_launch_strata_and_xctest_instances": 0,
     "bundled_sample_and_original_notices_verified_equal": true,
     "intended_fixture_sha256": "c1006da29913609963479b8641c0e6f6a43ff2c6d8b2f907c91a6daf1afaa2ea",
     "native_ui_observed": false,
     "gui_edits_performed": false,
-    "tool_result": "Mac locked; automatic unlock paused due to physical input. User asked to unlock manually. Single launched instance retained for the pending acceptance; no extra instance opened.",
-    "final_fixture_restore_and_quit_verified": false
+    "tool_result": "Mac locked; automatic unlock paused because physical input was detected. Manual unlock requested. After waiting, only the known clean self-launched test process was closed to free the one-instance slot; no other app affected.",
+    "final_fixture_restore_and_quit_verified": false,
+    "owned_test_process_closed_without_gui_edits": true,
+    "post_exit_strata_and_xctest_instances": 0,
+    "method_of_close": "Exact self-launched Release executable PID, SIGTERM after unchanged fixture hash and no CUA edits; normal GUI quit was not observed."
   },
   "cloud": {
     "used": false,

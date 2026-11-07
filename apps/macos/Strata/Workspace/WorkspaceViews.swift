@@ -126,6 +126,7 @@ struct WorkspaceInspector: View {
                     case .transform: if let preview=model.tonalPreview{TransformPanel(model:model,preview:preview)}
                     case .color: if let panel=model.colorPanel{ColorPanelView(model:model,panel:panel)}
                     case .history: HistoryPanel(model: model)
+                    case .guides: GuidePanel(model:model)
                     }
                 }.frame(height: max(210, geometry.size.height * 0.47))
                 Divider()

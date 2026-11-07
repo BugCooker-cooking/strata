@@ -2,9 +2,9 @@
 
 当前开发期审计快照。完整编辑功能与最终 AI 审计仍未闭环；不得把注册数量当作全部功能覆盖。
 
-真实注册命令 128；参数示例 192；综合功能 265；已有映射 90。
+真实注册命令 136；参数示例 200；综合功能 265；已有映射 91。
 
-已实现但未映射 0；部分入口 11；原生未知命令引用 0；未类型化返回 0。
+已实现但未映射 0；部分入口 12；原生未知命令引用 0；未类型化返回 0。
 
 配置/密钥及基础设施的宿主管理理由单列；纯 UI 状态不能隐瞒为已具备独立 AI 设置命令。
 
@@ -175,7 +175,7 @@
 | PS-08-2b199ba19e | 历史记录画笔 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-08-20a38a31c0 | 混合器画笔 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-08-8917363943 | 历史记录艺术画笔 | 重新核对 | 待实现/待核对 | 保留最终入口与提示核对任务 |
-| PS-09-7cc6b0bb65 | 移动工具（含吸附） | 部分实现 | 部分入口 | `layer.select`、`layer.set_position` · 选择可见目标图层，使用稳定 ID。 · 已有整数位置与原生拖动、单次提交/取消及组联动；吸附仍未实现，因此综合移动工具条目保持部分实现。 |
+| PS-09-7cc6b0bb65 | 移动工具（含吸附） | 部分实现 | 部分入口 | `layer.select`、`layer.set_position`、`layer.snap_position`、`view.presentation.get`、`view.presentation.set` · 选择可见目标图层，使用稳定 ID。 · 已有整数位置与原生拖动、单次提交/取消及组联动；吸附仍未实现，因此综合移动工具条目保持部分实现。 Actual guide/artboard snapping and shared V-tool preview are implemented and under current local verification; do not mark complete before native acceptance. |
 | PS-09-4f3d9835a7 | 自由变换：缩放 / 旋转 / 斜切 / 扭曲 / 透视 / 翻转 | 部分实现 | 部分入口 | `layer.pixel_bounds`、`transform.apply` · 把整个像素图层围绕给定轴心旋转 15 度，保留画板外内容。 · 整层像素/链接蒙版及选区像素的真实提升/变换/合回已接入，软边按 source-over 余量保留，目标不被原选区重复裁切。画布八手柄/平移/旋转/斜切/扭曲/透视与按键草稿已实现，使用原始文档/版本/层/范围/控制权绑定的同一四角命令。核心、AI五种真实四角调用/精确确认/回合撤销、桥接、完整原生、整层/软选区与共享拉直强制Metal、arm64 Release、lint/参数例子及单窗口整层/选区应用撤销通过。恒等变换不制造历史。整文字层的保留源透视/旋转/缩放已接入，裁剪按原次序重建，正在补齐本机原生/AI证据。生成/组变换及连续画布像素反馈仍未实现，综合条目与最终AI审计保持部分覆盖。 |
 | PS-09-7d349372b5 | 裁剪工具（拉直、比例、是否删除裁剪像素） | 部分实现 | 部分入口 | `image.crop`、`image.straighten` · 用指定画布矩形和 4:3 比例裁剪画板，保留所有裁剪外像素与图层。 · Numeric rectangle/aspect, owned canvas drag/handles/move and preserve/delete share real crop commands. Numeric or two-point horizontal/vertical straightening composes rotation and a safe preserving crop in one history step. Canvas-dragged lines stage a guide, bind original document/revision/control/operation, and confirm through the same image.straighten command. Generated/adjustment/style/text arbitrary geometry remains open. Native pointer input uses an operation-bound owned draft; it does not introduce a separate editing implementation or change AI parameters. |
 | PS-09-64f3d2a3eb | 变形 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
@@ -239,7 +239,7 @@
 | PS-13-1b8faab964 | AI 蒙版（主体 / 天空 / 人物）🤖、AI 降噪 🤖、镜头模糊 🤖 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-14-cf2715aeb6 | 缩放 / 抓手 / 适合屏幕 / 100% | 已实现 | 已映射 | `view.pan`、`view.zoom`、`view.fit`、`view.actual_size` · 以实际像素 100% 显示当前画布，保持中心不变。 · 绝对 100% 与相对缩放分开；视图命令不改变文档或历史。 |
 | PS-14-c9a6761937 | 多文档标签页 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
-| PS-14-de2fd3ca59 | 标尺 / 参考线 / 对齐吸附 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
+| PS-14-de2fd3ca59 | 标尺 / 参考线 / 对齐吸附 | 部分实现 | 部分入口 | `view.guides.list`、`view.guides.add`、`view.guides.update`、`view.guides.delete`、`view.guides.clear`、`view.presentation.get`、`view.presentation.set`、`layer.snap_position` · 在画布X=120.5建立垂直参考线，保留稳定ID并允许撤销。 · Actual persistent guide CRUD/paginated list, versioned editor presentation, content-edge/center integer snapping and shared native pointer/preview wiring under local verification. Guide-only history never prepares source rendering. Canvas references remain fixed during image geometry. Source/permission/history/undo/persistence checks in progress; native single-window still pending Mac unlock; do not mark closed before evidence. |
 | PS-14-810f37be85 | 旋转视图 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-14-15d282cc9a | 智能参考线 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-14-3e68cd79ce | 网格 / 像素网格 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
@@ -278,7 +278,7 @@
 
 ## 仍需核对
 
-- 部分入口：PS-01-894622b1ce、PS-04-cb66199f15、PS-04-853e6d30f3、PS-16-8de06204ac、PS-09-4f3d9835a7、PS-09-7cc6b0bb65、PS-09-7d349372b5、PS-03-5f9716e5d8、PS-03-ad24731ea8、PS-11-4490121dad、PS-11-a524877cb6
+- 部分入口：PS-01-894622b1ce、PS-04-cb66199f15、PS-04-853e6d30f3、PS-16-8de06204ac、PS-09-4f3d9835a7、PS-09-7cc6b0bb65、PS-09-7d349372b5、PS-03-5f9716e5d8、PS-03-ad24731ea8、PS-11-4490121dad、PS-11-a524877cb6、PS-14-de2fd3ca59
 - 未类型化返回：无
 - 未关联功能条目的命令：
 - 动态拼接及纯宿主回调仍需人工逐项复核；已有提示映射不能代替最终模型端到端验收。

@@ -268,6 +268,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             let item = view.addItem(withTitle: title, action: action, keyEquivalent: key)
             item.target = controller
         }
+        view.addItem(.separator())
+        for(title,action,key)in[("标尺",#selector(MainWindowController.toggleRulers(_:)),"r"),("参考线",#selector(MainWindowController.toggleGuides(_:)),";"),("锁定参考线",#selector(MainWindowController.toggleGuideLock(_:)),""),("吸附",#selector(MainWindowController.toggleSnap(_:)),""),("参考线与吸附设置",#selector(MainWindowController.showGuides),"")]{let item=view.addItem(withTitle:title,action:action,keyEquivalent:key);item.target=controller}
         let viewItem = NSMenuItem(title: "视图", action: nil, keyEquivalent: ""); viewItem.submenu = view; bar.addItem(viewItem)
         let image=NSMenu(title:"图像")
         for(title,action)in[("自动色调",#selector(MainWindowController.autoTone)),("自动对比度",#selector(MainWindowController.autoContrast)),("自动颜色",#selector(MainWindowController.autoColor))]{let item=image.addItem(withTitle:title,action:action,keyEquivalent:"");item.target=controller}

@@ -15,6 +15,7 @@ mod ai;
 mod clipboard;
 mod crop;
 mod filter_preview;
+mod guides;
 mod local;
 mod subject;
 mod tonal_preview;
@@ -407,7 +408,10 @@ impl StrataEngine {
             self.deliver_events()?;
             return Ok(result.to_string());
         }
-        if command.starts_with("view.") {
+        if command.starts_with("view.")
+            && !command.starts_with("view.guides.")
+            && !command.starts_with("view.presentation.")
+        {
             let mut inner = match self.inner.try_lock() {
                 Ok(inner) => inner,
                 Err(std::sync::TryLockError::WouldBlock) => {
@@ -708,7 +712,10 @@ fn apply(
             generation: inner.open_generation,
         });
     }
-    if !command.starts_with("view.") {
+    if !command.starts_with("view.")
+        || command.starts_with("view.guides.")
+        || command == "view.presentation.set"
+    {
         inner.events.push_back(EngineEventDto::StateChanged {
             snapshot_json: json!(inner.editor.snapshot()).to_string(),
         });

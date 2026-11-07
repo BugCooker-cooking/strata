@@ -48,6 +48,7 @@ pub struct Frame {
 /// ```
 #[derive(Clone, Debug)]
 pub struct Document {
+    pub(crate) guides: Vec<crate::Guide>,
     pub(crate) selection: Option<TiledMask>,
     pub(crate) previous_selection: Option<TiledMask>,
     pub(crate) resolution_dpi: u32,
@@ -65,6 +66,9 @@ pub struct Document {
     pub(crate) profile_fallback: bool,
 }
 impl Document {
+    pub fn guides(&self) -> &[crate::Guide] {
+        &self.guides
+    }
     pub fn resolution_dpi(&self) -> u32 {
         self.resolution_dpi
     }
@@ -274,6 +278,16 @@ impl Document {
         }
     }
     pub(crate) fn validate(&self) -> Result<(), DocumentError> {
+        if self.guides.len() > crate::MAX_GUIDES {
+            return Err(DocumentError::ResourceLimit);
+        }
+        let mut guide_ids = std::collections::HashSet::new();
+        for guide in &self.guides {
+            guide.validate()?;
+            if !guide_ids.insert(guide.id) {
+                return Err(DocumentError::Invalid("duplicate guide id".into()));
+            }
+        }
         if self
             .layers
             .iter()
@@ -615,6 +629,7 @@ impl DocumentCandidate {
         );
         let active = Some(layer.id());
         let doc = Document {
+            guides: Vec::new(),
             selection: None,
             previous_selection: None,
             resolution_dpi: default_resolution_dpi(),

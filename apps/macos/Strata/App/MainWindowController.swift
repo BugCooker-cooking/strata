@@ -49,11 +49,13 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         workspace.cropInput=canvas.cropInput
         workspace.straightenInput=canvas.straightenInput
         workspace.transformInput=canvas.transformInput
+        workspace.guideInput=canvas.guideInput
+        workspace.snapInput=canvas.snapInput
         workspace.colorPanel=ColorPanelModel(engine:engine)
         let text=TextEditingModel(engine:engine);workspace.textEditing=text
         text.onRunning={[weak self]running in guard let self else{return};if running{self.window?.makeFirstResponder(self.canvas)};self.busy=running}
         text.onCommitted={[weak self]in self?.canvas.markDirty();self?.refresh()}
-        preview.onStarting = {[weak self]in self?.workspace.cropInput?.cancel();self?.workspace.straightenInput?.cancel();self?.workspace.transformInput?.cancel()}
+        preview.onStarting = {[weak self]in self?.workspace.cropInput?.cancel();self?.workspace.straightenInput?.cancel();self?.workspace.transformInput?.cancel();self?.workspace.guideInput?.cancel();self?.canvas.snapInput.cancel()}
         preview.onBusy = { [weak self] running in guard let self else { return }; self.canvas.isWorkBusy = self.busy || running }
         preview.onApplying = { [weak self] applying in self?.busy = applying }
         preview.onFrame = { [weak self] in guard let self else { return }; self.canvas.markDirty();self.refreshDisplayOutline(); if !self.busy { self.refresh() } }
@@ -158,7 +160,12 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         }
     }
     func validateMenuItem(_ item: NSMenuItem) -> Bool {
-        switch item.action {
+        if let action=item.action,[#selector(toggleRulers(_:)),#selector(toggleGuides(_:)),#selector(toggleGuideLock(_:)),#selector(toggleSnap(_:))].contains(action){
+            let value=state?.presentation ?? .defaults
+            item.state=(item.action == #selector(toggleRulers(_:)) ? value.rulersVisible:item.action == #selector(toggleGuides(_:)) ? value.guidesVisible:item.action == #selector(toggleGuideLock(_:)) ? value.guidesLocked:value.snapEnabled) ? .on:.off
+            return !busy
+        }
+        return switch item.action {
         case #selector(copyPixels(_:)):(window?.firstResponder as? NSTextView)?.isSelectable == true || (workspace.permissions.edits&&workspace.hasDocument)
         case #selector(cutPixels(_:)),#selector(pastePixels(_:)),#selector(clearPixels(_:)):textEditor != nil || (workspace.permissions.edits&&workspace.hasDocument)
         case #selector(copyMergedPixels(_:)),#selector(pasteInPlace(_:)):workspace.permissions.edits&&workspace.hasDocument
@@ -170,6 +177,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         case #selector(convertToSixteenBit): workspace.permissions.edits && workspace.hasDocument && state?.bitDepth != 16
         case #selector(autoTone),#selector(autoContrast),#selector(autoColor): workspace.permissions.edits && selected?.kind?.kind=="pixel" && selected?.visible == true && selected?.locks?.all != true && selected?.locks?.pixels != true
         case #selector(beginCanvasTransform): workspace.permissions.edits && selected?.canTransform(scope:"whole_layer")==true && selected?.visible == true
+        case #selector(showGuides): !busy
         case #selector(saveDocument), #selector(saveAs), #selector(exportDocument), #selector(placeImage), #selector(convertToSRGB), #selector(convertToP3),#selector(assignSRGB),#selector(assignP3): workspace.permissions.edits && workspace.hasDocument
         case #selector(openImage), #selector(newTab), #selector(openRecent(_:)): !busy
         default: true
@@ -232,7 +240,9 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         case .visibility(let id, let visible): perform("layer.set_visibility", ["layer": ["id": id], "visible": visible])
         case .opacity(let value): layerCommand("layer.set_opacity", ["opacity": value])
         case .blend(let value): layerCommand("layer.set_blend_mode", ["blend_mode": value])
-        case .position(let x, let y): layerCommand("layer.set_position", ["x": x, "y": y])
+        case .position(let x, let y):
+            if let presentation=state?.presentation,presentation.snapEnabled{layerCommand("layer.snap_position",["x":x,"y":y,"tolerance":min(1e6,presentation.snapTolerance*Double(window?.backingScaleFactor ?? 1)/Double(max(0.000001,engine.canvasZoom()))),"artboard":presentation.snapArtboard])}
+            else{layerCommand("layer.set_position",["x":x,"y":y])}
         case .tool(let tool):
             workspace.tonalPreview?.cancel();canvas.movesLayer=tool == .move;canvas.zoomTool=tool == .zoom;canvas.configureSelection(workspace);canvas.configureBrush(workspace);canvas.configurePaint(workspace);canvas.configureCrop(workspace);canvas.configureTransform(workspace);canvas.configureText(workspace)
             if tool == .freeTransform{workspace.inspector = .transform;if !canvas.transformInput.hasDraft && !canvas.transformInput.running{canvas.transformInput.start()}}
@@ -258,7 +268,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         switch event {
         case .documentOpened: canvas.markDirty()
         case .stateChanged(let json):
-            if let new=try? EditorSnapshot.decode(json),new.revision >= (state?.revision ?? 0),new.revision != state?.revision || (new.paintColors?.version ?? 0) >= (state?.paintColors?.version ?? 0){apply(new)}
+            if let new=try? EditorSnapshot.decode(json),new.revision >= (state?.revision ?? 0),new.revision != state?.revision || ((new.paintColors?.version ?? 0) >= (state?.paintColors?.version ?? 0) && (new.presentation?.version ?? 0) >= (state?.presentation?.version ?? 0)){apply(new)}
         }
     }
     func refresh() { do { apply(try EditorSnapshot.decode(engine.snapshotJson())) } catch { showError(error) } }
@@ -284,6 +294,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         canvas.configurePaint(workspace)
         canvas.configureCrop(workspace)
         canvas.configureTransform(workspace)
+        canvas.configureGuides(workspace)
         canvas.configureText(workspace)
         recovery?.observe(snapshot)
         if let path = engine.projectPath() { documentURL = URL(fileURLWithPath: path); fileName = documentURL!.lastPathComponent }
@@ -340,10 +351,13 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
     func perform(_ command: String, _ params: [String: Any], completion: (@MainActor @Sendable (Bool) -> Void)? = nil) {
         if ["paint.colors.get","paint.colors.set","paint.colors.set_components","paint.colors.swap","paint.colors.reset"].contains(command){queuePalette(command,params);return}
         guard !busy else { completion?(false); return }
+        if (command.hasPrefix("view.guides.") && command != "view.guides.list") || ["layer.snap_position","layer.set_position"].contains(command){window?.makeFirstResponder(canvas)}
         workspace.tonalPreview?.cancel()
         workspace.cropInput?.cancel()
         workspace.straightenInput?.cancel()
         workspace.transformInput?.cancel()
+        workspace.guideInput?.cancel()
+        canvas.snapInput.cancel()
         canvas.cancelBenchmarkForDocumentChange()
         do {
             let encoded = try commandJSON(params); busy = true; let engine = engine
@@ -403,6 +417,11 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
     @objc func convertToEightBit(){perform("image.convert_bit_depth",["bit_depth":8])}
     @objc func autoTone(){autoCorrect("tone")}
     @objc func beginCanvasTransform(){workspace.selectTool(.freeTransform)}
+    @objc func showGuides(){workspace.inspector = .guides}
+    @objc func toggleRulers(_ sender:Any?){perform("view.presentation.set",["rulers_visible":!(state?.presentation?.rulersVisible ?? true)])}
+    @objc func toggleGuides(_ sender:Any?){perform("view.presentation.set",["guides_visible":!(state?.presentation?.guidesVisible ?? true)])}
+    @objc func toggleGuideLock(_ sender:Any?){perform("view.presentation.set",["guides_locked":!(state?.presentation?.guidesLocked ?? false)])}
+    @objc func toggleSnap(_ sender:Any?){perform("view.presentation.set",["snap_enabled":!(state?.presentation?.snapEnabled ?? false)])}
     @objc func autoContrast(){autoCorrect("contrast")}
     @objc func autoColor(){autoCorrect("color")}
     private func autoCorrect(_ method:String){guard let layer=selected else{return};perform("image.auto",["layer":["id":layer.id],"settings":["method":method]])}

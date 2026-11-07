@@ -17,7 +17,7 @@ pub fn domain_summary(domain: &str) -> &str {
         "transform" => "Move, transform and crop / 变换",
         "filter" => "Image filters / 滤镜",
         "type" => "Editable typography / 文字",
-        "view" => "Canvas navigation / 视图",
+        "view" => "Canvas navigation, rulers, guides and snapping / 视图、标尺与参考线",
         "color" => "ICC and working color space / 色彩",
         _ => "Command category",
     }

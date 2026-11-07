@@ -1,10 +1,10 @@
 {
   "scope": "Development audit; not a claim that all Photoshop editing is implemented or AI-verified",
-  "registered_commands": 128,
-  "registered_examples": 192,
-  "catalog_sha256": "f6513048fd08b11df18dd6fa2ad6390c078735cfa4ceb28734dbf109a315e356",
+  "registered_commands": 136,
+  "registered_examples": 200,
+  "catalog_sha256": "036d89d405c93c37208d3a466ad007761ad22b4a6ec33118f64dede5692b00b2",
   "inventory_rows": 265,
-  "mapped_features": 90,
+  "mapped_features": 91,
   "unmapped_implemented_features": [],
   "partial_entrypoints": [
     "PS-01-894622b1ce",
@@ -17,7 +17,8 @@
     "PS-03-5f9716e5d8",
     "PS-03-ad24731ea8",
     "PS-11-4490121dad",
-    "PS-11-a524877cb6"
+    "PS-11-a524877cb6",
+    "PS-14-de2fd3ca59"
   ],
   "unfinished_features": [
     "PS-00-7d7224e709",
@@ -208,6 +209,11 @@
     "PS-19-ef0365d914"
   ],
   "unknown_native_command_references": {},
+  "native_dispatch_prefixes": {
+    "view.guides.": [
+      "apps/macos/Strata/App/MainWindowController.swift:354"
+    ]
+  },
   "untyped_command_returns": [],
   "commands_without_feature_links": [],
   "final_audit_complete": false,
@@ -3410,7 +3416,10 @@
         "coverage": "partial",
         "commands": [
           "layer.select",
-          "layer.set_position"
+          "layer.set_position",
+          "layer.snap_position",
+          "view.presentation.get",
+          "view.presentation.set"
         ],
         "prompts": [
           {
@@ -3422,9 +3431,14 @@
             "text": "把指定图层移动到画布坐标 X=-20、Y=30，保留画板外像素与链接蒙版。",
             "query": "移动图层",
             "command": "layer.set_position"
+          },
+          {
+            "text": "Move the visible group to integer coordinates then snap its content edges or center to the nearest guide; keep every child and linked mask.",
+            "query": "Move layer with guide snapping",
+            "command": "layer.snap_position"
           }
         ],
-        "note": "已有整数位置与原生拖动、单次提交/取消及组联动；吸附仍未实现，因此综合移动工具条目保持部分实现。"
+        "note": "已有整数位置与原生拖动、单次提交/取消及组联动；吸附仍未实现，因此综合移动工具条目保持部分实现。 Actual guide/artboard snapping and shared V-tool preview are implemented and under current local verification; do not mark complete before native acceptance."
       }
     },
     {
@@ -4407,8 +4421,68 @@
       "name": "标尺 / 参考线 / 对齐吸附",
       "priority": "P0",
       "source_line": 346,
-      "implementation": "待实现",
-      "entrypoint": null
+      "implementation": "部分实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "partial",
+        "commands": [
+          "view.guides.list",
+          "view.guides.add",
+          "view.guides.update",
+          "view.guides.delete",
+          "view.guides.clear",
+          "view.presentation.get",
+          "view.presentation.set",
+          "layer.snap_position"
+        ],
+        "prompts": [
+          {
+            "text": "在画布X=120.5建立垂直参考线，保留稳定ID并允许撤销。",
+            "query": "新建参考线",
+            "command": "view.guides.add"
+          },
+          {
+            "text": "分页读取当前文档的全部参考线，再按ID把指定参考线移动到新的绝对坐标。",
+            "query": "读取参考线",
+            "command": "view.guides.list"
+          },
+          {
+            "text": "Hide rulers and lock reference lines without changing image pixels or document history.",
+            "query": "ruler and snap presentation",
+            "command": "view.presentation.set"
+          },
+          {
+            "text": "开启吸附，以6个屏幕点为阈值，保留当前文档和历史。",
+            "query": "开启吸附",
+            "command": "view.presentation.set"
+          },
+          {
+            "text": "把当前图层的内容边缘吸附到最近参考线，返回整数位置与半像素残差。",
+            "query": "移动吸附",
+            "command": "layer.snap_position"
+          }
+        ],
+        "variants": [
+          {
+            "command": "view.guides.add",
+            "path": "axis",
+            "values": [
+              "horizontal",
+              "vertical"
+            ]
+          },
+          {
+            "command": "layer.snap_position",
+            "path": "anchors",
+            "values": [
+              "edges",
+              "center",
+              "edges_and_center"
+            ]
+          }
+        ],
+        "note": "Actual persistent guide CRUD/paginated list, versioned editor presentation, content-edge/center integer snapping and shared native pointer/preview wiring under local verification. Guide-only history never prepares source rendering. Canvas references remain fixed during image geometry. Source/permission/history/undo/persistence checks in progress; native single-window still pending Mac unlock; do not mark closed before evidence."
+      }
     },
     {
       "id": "PS-14-810f37be85",

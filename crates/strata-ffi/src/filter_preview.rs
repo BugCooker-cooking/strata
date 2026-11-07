@@ -106,12 +106,19 @@ impl StrataEngine {
             )
         };
         let scoped = crate::tonal_preview::issued_interaction(self, &interaction, sequence)?;
+        let scoped = if command == "layer.snap_position" {
+            editor
+                .measure_snap_preview(&scoped)
+                .map_err(command_error)?
+        } else {
+            scoped
+        };
         let candidate = editor
             .preview_filter(&scoped, &command, parameters.clone())
             .map_err(command_error)?;
         let mut inner = self.lock()?;
         if self.tonal_preview_sequence.load(Ordering::Acquire) != sequence
-            || !inner.editor.tonal_context_matches(&interaction)
+            || !inner.editor.filter_preview_context_matches(&scoped)
             || candidate.work_expired()
             || inner
                 .tonal_preview
@@ -144,11 +151,9 @@ impl StrataEngine {
             }
             renderer.commit_document(scene).map_err(render_error)?;
         }
-        inner
-            .tonal_preview
-            .as_mut()
-            .ok_or_else(cancelled)?
-            .candidate = Some(CachedFilter {
+        let preview = inner.tonal_preview.as_mut().ok_or_else(cancelled)?;
+        preview.interaction = scoped;
+        preview.candidate = Some(CachedFilter {
             prepared: candidate,
             parameters,
             sequence,
@@ -223,7 +228,10 @@ impl StrataEngine {
         let mut inner = self.lock()?;
         let mut preview = inner.tonal_preview.take().ok_or_else(cancelled)?;
         let result = (|| {
-            if preview.filter.is_none() || !inner.editor.tonal_context_matches(&preview.interaction)
+            if preview.filter.is_none()
+                || !inner
+                    .editor
+                    .filter_preview_context_matches(&preview.interaction)
             {
                 return Err(cancelled());
             }

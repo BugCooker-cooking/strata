@@ -11,6 +11,7 @@ mod executor;
 mod export;
 mod filters;
 mod generated;
+mod guides;
 mod heal;
 mod local;
 mod new;
@@ -56,6 +57,123 @@ macro_rules! params {
     };
 }
 params!(Empty {});
+params!(AddGuide {
+    #[schemars(length(max = 256))]
+    name: String,
+    axis: crate::GuideAxis,
+    #[schemars(range(min=-1000000000000.0,max=1000000000000.0))]
+    position: f64
+});
+params!(UpdateGuide {
+    guide: crate::GuideRef,
+    #[serde(default)]
+    axis: Option<crate::GuideAxis>,
+    #[serde(default)]
+    #[schemars(range(min=-1000000000000.0,max=1000000000000.0))]
+    position: Option<f64>,
+    #[serde(default)]
+    #[schemars(length(max=256))]
+    name: Option<String>
+});
+params!(TargetGuide {
+    guide: crate::GuideRef
+});
+fn guide_limit() -> usize {
+    32
+}
+params!(ListGuides {
+    #[serde(default)]
+    #[schemars(range(max = 1024))]
+    offset: usize,
+    #[serde(default = "guide_limit")]
+    #[schemars(range(min = 1, max = 64))]
+    limit: usize
+});
+params!(SetPresentation {
+    #[serde(default)] rulers_visible: Option<bool>,
+    #[serde(default)] guides_visible: Option<bool>,
+    #[serde(default)] guides_locked: Option<bool>,
+    #[serde(default)] snap_enabled: Option<bool>,
+    #[serde(default)]
+    #[schemars(range(min=0,max=64))]
+    snap_tolerance: Option<f64>,
+    #[serde(default)] snap_artboard: Option<bool>,
+    #[serde(default)] expected_version: Option<u64>
+});
+#[derive(Clone, Copy, Debug, Default, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum SnapAnchors {
+    Edges,
+    Center,
+    #[default]
+    EdgesAndCenter,
+}
+fn snap_tolerance() -> f64 {
+    6.
+}
+fn snap_target() -> bool {
+    true
+}
+params!(SnapPosition {
+    layer: LayerRef,
+    #[schemars(range(min=-1000000000000i64,max=1000000000000i64))]
+    x: i64,
+    #[schemars(range(min=-1000000000000i64,max=1000000000000i64))]
+    y: i64,
+    #[serde(default = "snap_tolerance")]
+    #[schemars(range(min = 0, max = 1000000))]
+    tolerance: f64,
+    #[serde(default = "snap_target")]
+    guides: bool,
+    #[serde(default = "snap_target")]
+    artboard: bool,
+    #[serde(default)]
+    anchors: SnapAnchors
+});
+#[derive(Serialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct GuidesResult {
+    pub guides: Vec<crate::Guide>,
+    pub total: usize,
+    pub next_offset: Option<usize>,
+}
+#[derive(Serialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct GuideResult {
+    pub guide: crate::Guide,
+    pub changed: bool,
+}
+#[derive(Serialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct ClearGuidesResult {
+    pub removed: usize,
+    pub changed: bool,
+}
+#[derive(Clone, Copy, Debug, Serialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum SnapTarget {
+    Guide,
+    ArtboardEdge,
+}
+#[derive(Clone, Debug, Serialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct SnapMatch {
+    pub target: SnapTarget,
+    pub guide_id: Option<crate::GuideId>,
+    pub coordinate: f64,
+    pub anchor: f64,
+    pub residual: f64,
+}
+#[derive(Serialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct SnapPositionResult {
+    pub layer_id: crate::LayerId,
+    pub x: i64,
+    pub y: i64,
+    pub snapped_x: Option<SnapMatch>,
+    pub snapped_y: Option<SnapMatch>,
+    pub changed: bool,
+}
 fn text_rgba_schema(_: &mut schemars::SchemaGenerator) -> schemars::Schema {
     schemars::json_schema!({"type":"array","minItems":4,"maxItems":4,"items":{"type":"number","minimum":0,"maximum":1}})
 }

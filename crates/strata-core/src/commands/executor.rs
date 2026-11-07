@@ -51,6 +51,8 @@ pub struct Request {
     cancellation: Arc<AtomicBool>,
     local_cancellation: Option<Arc<AtomicBool>>,
     paint_colors_version: u64,
+    presentation_version: u64,
+    snap_context: Option<super::guides::SnapContext>,
 }
 
 impl Request {
@@ -93,6 +95,7 @@ pub struct GeometryInteraction {
     epoch: u64,
     command: &'static str,
     transform_target: Option<(LayerId, TransformScope)>,
+    guide_target: Option<crate::GuideId>,
 }
 pub type CropInteraction = GeometryInteraction;
 pub type StraightenInteraction = GeometryInteraction;
@@ -113,6 +116,7 @@ pub struct TonalInteraction {
     request: Request,
     epoch: u64,
     layer: LayerId,
+    active: Option<LayerId>,
 }
 impl TonalInteraction {
     /// A preview calculation may be superseded without revoking its original
@@ -200,6 +204,8 @@ struct HistoryEntry {
 
 #[derive(Serialize, JsonSchema)]
 pub struct Snapshot {
+    pub presentation: crate::Presentation,
+    pub guides: Vec<crate::Guide>,
     pub paint_colors: super::PaintColors,
     pub selection: Option<strata_pixels::MaskLayout>,
     pub selection_extent: Option<strata_pixels::CoverageRect>,
@@ -225,6 +231,7 @@ pub struct Snapshot {
 }
 
 enum Action {
+    Presentation(crate::Presentation),
     PaintColors(super::PaintColors),
     Query,
     View,
@@ -242,6 +249,7 @@ enum Action {
 /// An opaque staged transaction. The host can prepare display resources before
 /// commit; no public method can mutate its candidate.
 pub struct PreparedCommand {
+    annotations_only: bool,
     read_resource: Option<String>,
     request: Request,
     command: String,
@@ -275,6 +283,7 @@ impl PreparedCommand {
                 | Action::History(_)
                 | Action::ClipboardEdit(_)
         ) && !self.replay
+            && !self.annotations_only
             && !self.command.starts_with("select.")
     }
     pub fn replaces_document(&self) -> bool {
@@ -295,6 +304,7 @@ struct Receipt {
 
 #[derive(Clone)]
 pub struct Editor {
+    presentation: crate::Presentation,
     paint_colors: super::PaintColors,
     pool: strata_pixels::memory::MemoryPool,
     pub(crate) document: Option<Document>,
@@ -325,6 +335,7 @@ impl Default for Editor {
 impl Editor {
     pub fn new() -> Self {
         Self {
+            presentation: Default::default(),
             paint_colors: Default::default(),
             pool: strata_pixels::memory::MemoryPool::global(),
             document: None,
@@ -407,6 +418,8 @@ impl Editor {
     }
     pub fn request(&self, source: Source) -> Request {
         Request {
+            presentation_version: self.presentation.version,
+            snap_context: None,
             paint_colors_version: self.paint_colors.version,
             call_id: Uuid::new_v4(),
             source,
@@ -469,6 +482,7 @@ impl Editor {
             epoch: self.epoch,
             command,
             transform_target: None,
+            guide_target: None,
         })
     }
     pub fn begin_canvas_transform(
@@ -487,6 +501,43 @@ impl Editor {
         }
         interaction.transform_target = Some((target, scope));
         Ok(interaction)
+    }
+    pub fn begin_guide(
+        &self,
+        guide: Option<crate::GuideRef>,
+    ) -> Result<GeometryInteraction, CommandError> {
+        let command = if guide.is_some() {
+            "view.guides.update"
+        } else {
+            "view.guides.add"
+        };
+        let mut interaction = self.begin_geometry(command)?;
+        if self.presentation.guides_locked {
+            return Err(CommandError::Invalid("guides are locked".into()));
+        }
+        if let Some(guide) = guide {
+            let doc = self.document().ok_or(CommandError::NoDocument)?;
+            interaction.guide_target = Some(doc.guides[super::guides::resolve(doc, &guide)?].id);
+        }
+        Ok(interaction)
+    }
+    pub fn prepare_guide(
+        &self,
+        interaction: &GeometryInteraction,
+        params: Value,
+    ) -> Result<PreparedCommand, CommandError> {
+        if interaction.command == "view.guides.update" {
+            let p: UpdateGuide = parse(params.clone())?;
+            let doc = self.document().ok_or(CommandError::NoDocument)?;
+            if Some(doc.guides[super::guides::resolve(doc, &p.guide)?].id)
+                != interaction.guide_target
+            {
+                return Err(CommandError::Stale);
+            }
+        } else if interaction.command != "view.guides.add" {
+            return Err(CommandError::Stale);
+        }
+        self.prepare_geometry(interaction, interaction.command, params)
     }
     pub fn canvas_transform_bounds(
         &self,
@@ -647,6 +698,7 @@ impl Editor {
             ));
         }
         Ok(TonalInteraction {
+            active: doc.active_layer(),
             request: self.request(Source::User),
             epoch: self.epoch,
             layer,
@@ -665,17 +717,25 @@ impl Editor {
                 | "filter.high_pass"
                 | "transform.apply"
                 | "image.auto"
+                | "layer.snap_position"
         ) {
             return Err(CommandError::Invalid(
                 "unsupported pixel filter preview".into(),
             ));
         }
         self.authorize(&Source::User, command, CommandKind::Mutate)?;
-        let (layer, _) = super::pixel_transform::target(
-            self.document().ok_or(CommandError::NoDocument)?,
-            &layer,
-        )?;
+        let doc = self.document().ok_or(CommandError::NoDocument)?;
+        let layer = if command == "transform.apply" {
+            super::transform::target(doc, &layer)?.0
+        } else if command == "layer.snap_position" {
+            let target = doc.resolve(&layer)?;
+            super::guides::check_snap_target(doc, target)?;
+            target
+        } else {
+            super::pixel_transform::target(doc, &layer)?.0
+        };
         Ok(TonalInteraction {
+            active: doc.active_layer(),
             request: self.request(Source::User),
             epoch: self.epoch,
             layer,
@@ -687,7 +747,9 @@ impl Editor {
         command: &str,
         mut params: Value,
     ) -> Result<PreparedCommand, CommandError> {
-        if !self.tonal_context_matches(interaction) {
+        if !self.tonal_context_matches(interaction)
+            || self.document().and_then(Document::active_layer) != interaction.active
+        {
             return Err(CommandError::Stale);
         }
         if !matches!(
@@ -698,6 +760,7 @@ impl Editor {
                 | "filter.high_pass"
                 | "transform.apply"
                 | "image.auto"
+                | "layer.snap_position"
         ) {
             return Err(CommandError::Invalid(
                 "unsupported pixel filter preview".into(),
@@ -713,7 +776,40 @@ impl Editor {
             ));
         }
         fields.insert("layer".into(), layer);
-        self.prepare(interaction.request.clone(), command, params)
+        let mut prepared = self.prepare(interaction.request.clone(), command, params)?;
+        prepared.required_active_layer = interaction.active;
+        Ok(prepared)
+    }
+    /// Trusted cached source extent, measured outside the editor/render lock.
+    pub fn measure_snap_preview(
+        &self,
+        interaction: &TonalInteraction,
+    ) -> Result<TonalInteraction, CommandError> {
+        self.check_request(&interaction.request)?;
+        if !self.tonal_context_matches(interaction)
+            || self.document().and_then(Document::active_layer) != interaction.active
+            || interaction.request.presentation_version != self.presentation.version
+        {
+            return Err(CommandError::Stale);
+        }
+        let mut measured = interaction.clone();
+        if measured.request.snap_context.is_none() {
+            measured.request.snap_context = Some(
+                super::guides::snap_context(
+                    self.document().ok_or(CommandError::NoDocument)?,
+                    interaction.layer,
+                    &|| interaction.request.expired(),
+                )?
+                .ok_or_else(|| CommandError::Invalid("no finite content to snap".into()))?,
+            );
+        }
+        Ok(measured)
+    }
+    pub fn filter_preview_context_matches(&self, interaction: &TonalInteraction) -> bool {
+        self.tonal_context_matches(interaction)
+            && self.document().and_then(Document::active_layer) == interaction.active
+            && (interaction.request.snap_context.is_none()
+                || interaction.request.presentation_version == self.presentation.version)
     }
     pub fn begin_paint(
         &self,
@@ -902,6 +998,12 @@ impl Editor {
     }
     pub fn snapshot(&self) -> Snapshot {
         Snapshot {
+            presentation: self.presentation.clone(),
+            guides: self
+                .document
+                .as_ref()
+                .map(|d| d.guides.clone())
+                .unwrap_or_default(),
             paint_colors: self.paint_colors.clone(),
             selection_extent: self
                 .document
@@ -1081,6 +1183,7 @@ impl Editor {
                 return Err(CommandError::CallConflict);
             }
             return Ok(PreparedCommand {
+                annotations_only: false,
                 read_resource: None,
                 request,
                 command: id.into(),
@@ -1096,6 +1199,13 @@ impl Editor {
         }
         self.authorize(&request.source, id, kind)?;
         self.check_request(&request)?;
+        if (id.starts_with("view.guides.")
+            || id.starts_with("view.presentation.")
+            || id == "layer.snap_position")
+            && request.presentation_version != self.presentation.version
+        {
+            return Err(CommandError::Stale);
+        }
         if id.starts_with("paint.colors.")
             && request.paint_colors_version != self.paint_colors.version
         {
@@ -1110,6 +1220,7 @@ impl Editor {
         };
         let mut selected = self.selected;
         let mut read_resource = None;
+        let mut annotations_only = false;
         let (action, result) = match kind {
             CommandKind::Query => {
                 if id == "edit.clipboard.write_status" {
@@ -1121,12 +1232,20 @@ impl Editor {
                 } else if id != "paint.sample_color"
                     && id != "layer.pixel_bounds"
                     && id != "type.inspect"
+                    && id != "view.guides.list"
                 {
                     let _: Empty = parse(params.clone())?;
                 }
                 (
                     Action::Query,
-                    if id == "type.fonts" {
+                    if id == "view.presentation.get" {
+                        json!(self.presentation)
+                    } else if id == "view.guides.list" {
+                        super::guides::list(
+                            self.document().ok_or(CommandError::NoDocument)?,
+                            params.clone(),
+                        )?
+                    } else if id == "type.fonts" {
                         super::typography::fonts()
                     } else if id == "type.inspect" {
                         let p: Target = parse(params.clone())?;
@@ -1240,6 +1359,33 @@ impl Editor {
                     (
                         Action::Edit,
                         json!({"selection":doc.selection().map(strata_pixels::TiledMask::layout),"diagnostics":result.diagnostics}),
+                    )
+                } else if id == "layer.snap_position" {
+                    let result = super::guides::snap(
+                        doc,
+                        params.clone(),
+                        request.snap_context.as_ref(),
+                        &|| request.expired(),
+                    )?;
+                    (
+                        if result["changed"] == false {
+                            Action::Query
+                        } else {
+                            Action::Edit
+                        },
+                        result,
+                    )
+                } else if let Some(result) =
+                    super::guides::mutate(doc, id, params.clone(), self.presentation.guides_locked)?
+                {
+                    annotations_only = true;
+                    (
+                        if result["changed"] == false {
+                            Action::Query
+                        } else {
+                            Action::Edit
+                        },
+                        result,
                     )
                 } else if let Some(result) =
                     super::typography::mutate(doc, id, params.clone(), &|| request.expired())?
@@ -1430,11 +1576,17 @@ impl Editor {
                 } else {
                     self.history[next - 1].after.clone()
                 });
+                annotations_only = self.history[next.min(self.cursor)..next.max(self.cursor)]
+                    .iter()
+                    .all(|e| e.info.command.starts_with("view.guides."));
                 selected = candidate.as_ref().and_then(Document::active_layer);
                 (Action::History(next), json!({"history_cursor":next}))
             }
             CommandKind::View => {
-                if id.starts_with("paint.colors.") {
+                if id == "view.presentation.set" {
+                    let value = super::guides::presentation(&self.presentation, params.clone())?;
+                    (Action::Presentation(value.clone()), json!(value))
+                } else if id.starts_with("paint.colors.") {
                     let mut colors = self.paint_colors.clone();
                     colors.version = colors.version.checked_add(1).ok_or_else(|| {
                         CommandError::Invalid("paint color version exhausted".into())
@@ -1548,6 +1700,7 @@ impl Editor {
             ),
         };
         Ok(PreparedCommand {
+            annotations_only,
             read_resource,
             request,
             command: id.into(),
@@ -1613,6 +1766,13 @@ impl Editor {
         {
             return Err(CommandError::Stale);
         }
+        if (prepared.command.starts_with("view.guides.")
+            || prepared.command.starts_with("view.presentation.")
+            || prepared.command == "layer.snap_position")
+            && prepared.request.presentation_version != self.presentation.version
+        {
+            return Err(CommandError::Stale);
+        }
         self.receipts.retain(|_, r| {
             r.issued.elapsed() <= Duration::from_secs(if r.view { 30 } else { 3600 })
         });
@@ -1643,7 +1803,14 @@ impl Editor {
         if let Some(resource) = &prepared.read_resource {
             self.resource(resource, &prepared.request, false)?;
         }
-        let keeps_layer_selection = matches!(prepared.action, Action::PaintColors(_))
+        let keeps_layer_selection = prepared.annotations_only
+            || matches!(
+                prepared.action,
+                Action::PaintColors(_) | Action::Presentation(_)
+            )
+            || prepared.command.starts_with("view.guides.")
+            || prepared.command == "view.presentation.get"
+            || prepared.command == "layer.snap_position"
             || (prepared.command == "filter.high_pass" && prepared.result["touched_tiles"] == 0)
             || matches!(
                 prepared.command.as_str(),
@@ -1659,8 +1826,12 @@ impl Editor {
                     | "image.auto"
                     | "transform.apply"
                     | "type.update"
+                    | "layer.snap_position"
             ) && prepared.result["changed"] == false);
         match prepared.action {
+            Action::Presentation(value) => {
+                self.presentation = value;
+            }
             Action::PaintColors(colors) => {
                 self.paint_colors = colors;
             }
@@ -1687,8 +1858,11 @@ impl Editor {
                 self.revision += 1;
             }
             Action::Edit | Action::Place(_) | Action::ClipboardEdit(_) => {
-                let after = prepared.candidate.clone().ok_or(CommandError::NoDocument)?;
+                let mut after = prepared.candidate.clone().ok_or(CommandError::NoDocument)?;
                 let before = self.document.clone().ok_or(CommandError::NoDocument)?;
+                if prepared.annotations_only || prepared.command == "layer.snap_position" {
+                    after.active = before.active;
+                }
                 let mut unique = HashSet::new();
                 let mut bytes = 0u64;
                 for d in self.history[..self.cursor]
@@ -1724,13 +1898,13 @@ impl Editor {
                         turn_id,
                     },
                     before,
-                    after,
+                    after: after.clone(),
                 });
                 if self.history.len() > 64 {
                     self.history.remove(0);
                 }
                 self.cursor = self.history.len();
-                self.document = prepared.candidate;
+                self.document = Some(after);
                 self.revision += 1;
                 if let Control::Paused { turn_id } = self.control {
                     let state = self.snapshot();
@@ -1756,7 +1930,13 @@ impl Editor {
                         self.control_events.remove(0);
                     }
                 }
-                self.document = prepared.candidate;
+                let mut candidate = prepared.candidate;
+                if prepared.annotations_only
+                    && let Some(doc) = candidate.as_mut()
+                {
+                    doc.active = self.document.as_ref().and_then(Document::active_layer)
+                }
+                self.document = candidate;
                 self.cursor = cursor;
                 self.revision += 1;
             }

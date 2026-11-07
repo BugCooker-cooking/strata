@@ -2917,3 +2917,139 @@ fn malformed_or_truncated_stream_stops_without_committing_partial_tools() {
     assert_eq!(host.snapshot().unwrap().control, Control::User);
     assert_eq!(host.snapshot().unwrap().layers.len(), 1);
 }
+
+#[test]
+fn guides_and_snap_are_discoverable_editable_and_turn_undo_keeps_editor_view_settings() {
+    let host = Host::new();
+    host.user(
+        "paint.fill",
+        json!({"layer":{"name":"Background"},"color":[0.2,0.4,0.8,1]}),
+    );
+    let before = host
+        .editor
+        .lock()
+        .unwrap()
+        .document()
+        .unwrap()
+        .to_archive()
+        .unwrap();
+    let initial = host.snapshot().unwrap();
+    let mut session = host.session_with_prompt(
+        ExecutionMode::Direct,
+        "添加垂直参考线到X=10.5，开启吸附，把当前图层左边缘移到参考线；再修改、删除线，撤销整轮。",
+    );
+    reply(
+        &mut session,
+        &host,
+        vec![
+            call("search", "search_catalog", json!({"query":"参考线"})),
+            call(
+                "describe",
+                "describe_commands",
+                json!({"ids":["view.guides.list","view.guides.add","view.guides.update","view.guides.delete","view.guides.clear","view.presentation.get","view.presentation.set","layer.snap_position"]}),
+            ),
+        ],
+    );
+    assert!(
+        result(session.poll(&host).unwrap())["matches"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|m| m["id"] == "layer.snap_position")
+    );
+    let described = result(session.poll(&host).unwrap());
+    assert_eq!(described["commands"].as_array().unwrap().len(), 8);
+    assert!(
+        described["commands"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|c| c["params"]["additionalProperties"] == false
+                && c["returns"]["additionalProperties"] == false)
+    );
+    reply(
+        &mut session,
+        &host,
+        vec![
+            invoke(
+                "view",
+                "view.presentation.set",
+                json!({"snap_enabled":true,"guides_visible":true}),
+            ),
+            invoke(
+                "add",
+                "view.guides.add",
+                json!({"name":"AI Reference","axis":"vertical","position":10.5}),
+            ),
+        ],
+    );
+    let view = result(session.poll(&host).unwrap())["result"].clone();
+    assert_eq!(view["snap_enabled"], true);
+    assert_eq!(host.snapshot().unwrap().revision, initial.revision);
+    let added = result(session.poll(&host).unwrap())["result"]["guide"].clone();
+    let id = added["id"].clone();
+    reply(
+        &mut session,
+        &host,
+        vec![
+            invoke("list", "view.guides.list", json!({"limit":1})),
+            invoke(
+                "snap",
+                "layer.snap_position",
+                json!({"layer":{"name":"Background"},"x":9,"y":0,"tolerance":2,"artboard":false,"anchors":"edges"}),
+            ),
+        ],
+    );
+    let listed = result(session.poll(&host).unwrap())["result"].clone();
+    assert_eq!(listed["guides"][0]["id"], id);
+    let snapped = result(session.poll(&host).unwrap())["result"].clone();
+    assert_eq!(snapped["x"], 11);
+    assert_eq!(snapped["snapped_x"]["residual"], -0.5);
+    assert_eq!(
+        host.snapshot().unwrap().history_cursor,
+        initial.history_cursor + 2
+    );
+    reply(
+        &mut session,
+        &host,
+        vec![
+            invoke(
+                "update",
+                "view.guides.update",
+                json!({"guide":{"id":id},"position":12.25}),
+            ),
+            invoke("delete", "view.guides.delete", json!({"guide":{"id":id}})),
+        ],
+    );
+    assert_eq!(
+        result(session.poll(&host).unwrap())["result"]["guide"]["position"],
+        12.25
+    );
+    assert_eq!(
+        result(session.poll(&host).unwrap())["result"]["guide"]["id"],
+        id
+    );
+    assert!(host.snapshot().unwrap().guides.is_empty());
+    reply(
+        &mut session,
+        &host,
+        vec![invoke("noopclear", "view.guides.clear", json!({}))],
+    );
+    assert_eq!(
+        result(session.poll(&host).unwrap())["result"]["changed"],
+        false
+    );
+    host.editor.lock().unwrap().stop_turn();
+    host.user("edit.undo_turn", json!({"turn_id":session.turn_id()}));
+    assert!(
+        host.editor
+            .lock()
+            .unwrap()
+            .document()
+            .unwrap()
+            .to_archive()
+            .unwrap()
+            == before
+    );
+    assert!(host.snapshot().unwrap().presentation.snap_enabled);
+}

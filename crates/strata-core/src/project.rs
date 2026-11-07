@@ -9,6 +9,8 @@ use strata_pixels::{MaskLayout, PixelBuffer, PixelFormat, TileCoord, TiledMask, 
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Manifest {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    guides: Vec<crate::Guide>,
     #[serde(default)]
     selection: Option<MaskLayout>,
     #[serde(default)]
@@ -33,11 +35,12 @@ impl Document {
     pub(crate) fn manifest(&self) -> Result<serde_json::Value, DocumentError> {
         self.validate()?;
         let metadata = serde_json::to_value(Manifest {
+            guides: self.guides.clone(),
             selection: self.selection.as_ref().map(TiledMask::layout),
             previous_selection: self.previous_selection.as_ref().map(TiledMask::layout),
             resolution_dpi: self.resolution_dpi,
             preset: self.preset.clone(),
-            version: if self.layers.iter().any(|l|matches!(&l.info.kind, crate::LayerKind::Text{text} if !text.operations.is_empty())) {
+            version: if !self.guides.is_empty() {9} else if self.layers.iter().any(|l|matches!(&l.info.kind, crate::LayerKind::Text{text} if !text.operations.is_empty())) {
                 8
             } else if self
                 .layers
@@ -99,8 +102,9 @@ impl Document {
     ) -> Result<Self, DocumentError> {
         let meta: Manifest =
             serde_json::from_value(metadata).map_err(|e| DocumentError::Invalid(e.to_string()))?;
-        if !matches!(meta.version, 0..=8)
+        if !matches!(meta.version, 0..=9)
             || meta.layers.len() > crate::MAX_LAYERS
+            || meta.guides.len() > crate::MAX_GUIDES
             || meta.working_icc.len() > 4 * 1024 * 1024
             || meta
                 .source_icc
@@ -110,6 +114,11 @@ impl Document {
         {
             return Err(DocumentError::Invalid(
                 "project version or metadata size".into(),
+            ));
+        }
+        if meta.version < 9 && !meta.guides.is_empty() {
+            return Err(DocumentError::Invalid(
+                "guides require manifest version9".into(),
             ));
         }
         if meta.version == 0
@@ -221,6 +230,7 @@ impl Document {
             })
             .collect::<Result<Vec<_>, DocumentError>>()?;
         let doc = Self {
+            guides: meta.guides,
             previous_selection: meta
                 .previous_selection
                 .map(|layout| TiledMask::new(layout, mask_tile_limit(), pool.clone()))
