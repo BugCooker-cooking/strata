@@ -15,6 +15,8 @@ mod ai;
 mod clipboard;
 mod crop;
 mod filter_preview;
+#[cfg(test)]
+mod group_transform_tests;
 mod guides;
 mod local;
 mod subject;

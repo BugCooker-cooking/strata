@@ -244,7 +244,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
             if let presentation=state?.presentation,presentation.snapEnabled{layerCommand("layer.snap_position",["x":x,"y":y,"tolerance":min(1e6,presentation.snapTolerance*Double(window?.backingScaleFactor ?? 1)/Double(max(0.000001,engine.canvasZoom()))),"artboard":presentation.snapArtboard])}
             else{layerCommand("layer.set_position",["x":x,"y":y])}
         case .tool(let tool):
-            workspace.tonalPreview?.cancel();canvas.movesLayer=tool == .move;canvas.zoomTool=tool == .zoom;canvas.configureSelection(workspace);canvas.configureBrush(workspace);canvas.configurePaint(workspace);canvas.configureCrop(workspace);canvas.configureTransform(workspace);canvas.configureText(workspace)
+            workspace.tonalPreview?.cancel();canvas.movesLayer=tool == .move;canvas.zoomTool=tool == .zoom;canvas.configureSelection(workspace);canvas.configureBrush(workspace);canvas.configurePaint(workspace);canvas.configureCrop(workspace);canvas.configureTransform(workspace);canvas.configureText(workspace);canvas.configureGuides(workspace)
             if tool == .freeTransform{workspace.inspector = .transform;if !canvas.transformInput.hasDraft && !canvas.transformInput.running{canvas.transformInput.start()}}
             if tool == .text{workspace.inspector = .properties;if workspace.textEditing?.creating==true{workspace.textEditing?.newText()}}
             window?.makeFirstResponder(canvas)
@@ -278,7 +278,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         if snapshot.documentId != state?.documentId
             || (snapshot.revision != state?.revision && ["transform.apply","image.orient","image.rotate","image.resize","image.straighten"].contains(snapshot.history.last?.command ?? "")) {workspace.cloneSource=nil}
         workspace.snapshot = snapshot; window?.isDocumentEdited = snapshot.dirty
-        if workspace.selected?.kind?.kind=="text"{workspace.canvasTransformScope="whole_layer"}
+        if ["text","group"].contains(workspace.selected?.kind?.kind ?? ""){workspace.canvasTransformScope="whole_layer"}
         workspace.tonalPreview?.bind(snapshot)
         workspace.cropInput?.bind(snapshot)
         workspace.straightenInput?.bind(snapshot)

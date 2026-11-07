@@ -363,8 +363,8 @@ final class CanvasView: NSView {
         let path=CGMutablePath();if presentation.guidesVisible{for g in guides{line(g.axis,g.position,path)}};guideLines.path=path
         let draft=CGMutablePath();if let g=guideInput.draft{line(g.axis,g.position,draft)};guideDraft.path=draft
     }
-    private func hitGuide(_ point:NSPoint)->EditorSnapshot.Guide?{
-        guard presentation.guidesVisible,!presentation.guidesLocked else{return nil}
+    func hitGuide(_ point:NSPoint)->EditorSnapshot.Guide?{
+        guard guideMoveTool,presentation.guidesVisible,!presentation.guidesLocked else{return nil}
         let tolerance=5/max(0.000001,Double(engine.canvasZoom())/Double(scale))
         return guides.filter{abs(($0.axis=="vertical" ? Double(point.x):Double(point.y))-$0.position)<=tolerance}.min{a,b in
             let da=abs((a.axis=="vertical" ? Double(point.x):Double(point.y))-a.position),db=abs((b.axis=="vertical" ? Double(point.x):Double(point.y))-b.position)

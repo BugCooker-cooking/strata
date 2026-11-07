@@ -1,0 +1,63 @@
+{
+  "date_local": "2026-11-07",
+  "branch": "codex/v1-remaining",
+  "base_binary_checkpoint": "339df5c",
+  "binary_sha256": "a712457b6114992fc95ed25ae7bab481d461a1f1247d1c4b007769a0624c4fa9",
+  "mode": "One Release window after user manually unlocked Mac; full Photoshop not closed.",
+  "manual_round_1": {
+    "source": "CUA AX states, pointer drags, keys and screenshots observed live; no persisted screenshot artifact asserted.",
+    "fixture": "docs/design/assets/sample-photo.jpg",
+    "fixture_sha256_before_after": "c1006da29913609963479b8641c0e6f6a43ff2c6d8b2f907c91a6daf1afaa2ea",
+    "frame": [
+      1024,
+      1536
+    ],
+    "bit_depth": 8,
+    "profile": "sRGB (assumed)",
+    "zoom_percent": 104,
+    "point_text": "Created64px Noto Sans black source 可编辑 Geometry at baseline x200,y220.",
+    "rotation": "Dragged rotation circle roughly90degrees, outline only until Apply; actual glyph raster then rotated with off-artboard ink retained.",
+    "reedit": "T panel retained full Unicode source. Replaced with 改字 Type, Noto Serif, workingRGB90/10/20%; actual red serif retained rotation and readback90.20/10.20/20% at8bit. One undo restored original source/font/black while keeping rotation; second undo restored original horizontal source placement.",
+    "unicode_input_method": "Native TextEditor paste; no physical Chinese IME composition claim.",
+    "guides": "Ruler drag from vertical ruler screenshot110,700 to1050,700 created X598.878. After route refresh, V drag1050,700 to1150,700 moved to695.409; one undo restored598.878. Numeric update to500.5 applied.",
+    "snap": "Enabled reference snapping, disabled artboard edges. Moved text pointer850,480 to900,480; content center aligned visually to X500.5 and stored layerX200->245. History showed exactly one layer.snap_position, one undo restored source placement. Exact signed residual asserted in core, not inferred from screenshot.",
+    "view": "Hiding rulers reclaimed layout space; re-enabling restored it. Toggling guide visibility changed only overlay. Default view settings restored at end.",
+    "bug_found": "Immediately switching T->V did not refresh guide routing; first guide-directed drag moved textX200->297. This was immediately undone. A document refresh restored guide hit routing and subsequent actual guide move worked. Missing configureGuides in controller .tool action identified, now fixed with direct controller/tool regression; fixed binary/physical retest still pending.",
+    "restoration": "Undo numeric guide update, guide creation and point text creation after prior edits/rotation/snap were undone. Final1pixel layer,0guides,disabled Undo and no unsaved modifications; default rulers/guides/snap/lock settings restored.",
+    "normal_gui_quit_observed": true,
+    "post_exit_strata_and_xctest_processes": 0,
+    "other_user_apps_preserved": true
+  },
+  "fixed_tool_switch_regression": {
+    "status": "full_native_and_corrected_release_physical_retest_passed",
+    "files": [
+      "apps/macos/Strata/App/MainWindowController.swift",
+      "apps/macos/Strata/Canvas/CanvasView.swift",
+      "apps/macos/StrataTests/GuideInputTests.swift"
+    ],
+    "requires": "Compile/test fixed controller routing, one corrected Release first-switch V drag with no intervening document event, restore fixture then quit.",
+    "full_native_cases": 104,
+    "passed": 103,
+    "skipped": 1,
+    "failed": 0,
+    "log": "build/m7-group-transform-native.log",
+    "log_sha256": "450827760f4b00097de91fa3530f39a9b311051cce5e6b1c5b462b2760edda4a"
+  },
+  "status": "local_native_text_rotation_reedit_guides_snap_and_first_switch_fix_passed; full_PS_remains_open",
+  "remaining": [
+    "Full Photoshop and final per-feature AI closure",
+    "Other typography/ruler units/smart guides/performance/platform/hardware/live-model quality gates remain separate"
+  ],
+  "no_live_model_or_cloud": true,
+  "manual_round_2": {
+    "binary_sha256": "be3910d3a8b52bc62f0c1bed63bf18ffebce93da9b6af34e8d8d3352af354a81",
+    "single_release_instance": true,
+    "first_switch": "While T selected, ruler drag created X598.878. Immediately clicked V and dragged same line1050,700->1150,700 without intervening document event; guide became695.409. Properties confirmed original photoX0/Y0. Two undo restored clean/zero guides.",
+    "group": "Grouped sample-photo, created64px source 组内 Type at baseline200,220 in the group. Group canvas handles read full frame; bottom-right1490,1867->1280,1550 staged outline only. Apply shrank actual picture and text together without flattening. T read original source/font64px; edited to 组变换后仍可编辑 and actual output kept same group scale. One undo restored original source at scaled scene, another restored full original picture/text geometry. Two more undo removed only acceptance text/group.",
+    "final_state": "One original pixel layer, zero guides, no unsaved modification, disabled Undo; normal Cmd-Q and quit observed.",
+    "post_exit_strata_and_xctest_instances": 0,
+    "sample_sha256_unchanged": "c1006da29913609963479b8641c0e6f6a43ff2c6d8b2f907c91a6daf1afaa2ea",
+    "other_apps_preserved": true,
+    "scope_limits": "No claim of manual perspective/mask/cancel/physical IME or every type geometry variant; numerical/core/native/AI/Metal checks cover their stated cases separately."
+  }
+}

@@ -30,7 +30,7 @@ struct EditorSnapshot: Decodable, Sendable {
         let passThrough:Bool?
         let styles:AIJSON?
         var exposure: Double? { kind?.kind == "exposure" ? kind?.stops : nil }
-        func canTransform(scope:String)->Bool{["whole_layer","selection"].contains(scope) && ["pixel","text"].contains(kind?.kind ?? "pixel") && (scope != "selection" || kind?.kind != "text") && locks?.all != true && locks?.pixels != true && locks?.position != true && locks?.transparency != true}
+        func canTransform(scope:String)->Bool{["whole_layer","selection"].contains(scope) && ["pixel","text","group"].contains(kind?.kind ?? "pixel") && (scope != "selection" || (kind?.kind ?? "pixel")=="pixel") && locks?.all != true && locks?.pixels != true && locks?.position != true && locks?.transparency != true}
         var isGroup:Bool{kind?.kind=="group"}
         var isAdjustment:Bool{["exposure","hue_saturation","adjustment"].contains(kind?.kind ?? "")}
         var title:String{

@@ -1264,12 +1264,13 @@ impl Editor {
                         let layer = doc.layers().iter().find(|l| l.id() == target).unwrap();
                         if !matches!(
                             layer.info().kind,
-                            crate::LayerKind::Pixel | crate::LayerKind::Text { .. }
+                            crate::LayerKind::Pixel
+                                | crate::LayerKind::Text { .. }
+                                | crate::LayerKind::Group
                         ) || !doc.effective_visibility(target)
                         {
                             return Err(CommandError::Invalid(
-                                "bounds query requires a visible pixel or editable text layer"
-                                    .into(),
+                                "bounds query requires a visible pixel/text layer or group".into(),
                             ));
                         }
                         let bounds = super::transform::bounds(doc, layer, &|| request.expired())?;
@@ -1804,6 +1805,7 @@ impl Editor {
             self.resource(resource, &prepared.request, false)?;
         }
         let keeps_layer_selection = prepared.annotations_only
+            || matches!(prepared.action, Action::Query)
             || matches!(
                 prepared.action,
                 Action::PaintColors(_) | Action::Presentation(_)

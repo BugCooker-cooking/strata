@@ -222,7 +222,9 @@
     "post_native_tests_strata_and_xctest_instances": 0,
     "no_extra_manual_window_launched_for_guides": true,
     "preceding_text_test_window": "Mac locked, CUA requested manual unlock. Only the known clean self-launched Release was terminated by exact PID after no GUI edits, to free the single-instance slot. No other app touched. Text and guide manual acceptance remain pending.",
-    "fixture_sha256": "c1006da29913609963479b8641c0e6f6a43ff2c6d8b2f907c91a6daf1afaa2ea"
+    "fixture_sha256": "c1006da29913609963479b8641c0e6f6a43ff2c6d8b2f907c91a6daf1afaa2ea",
+    "later_closure_record": "2026-11-07-m7-native-text-guides-closure.json",
+    "later_closure_status": "User unlocked; single-window text rotation/source re-edit and guides/snap checked. First-switch guide bug fixed with native and corrected Release recheck. All acceptance edits undone, normal GUI quit observed, process count0, sample unchanged. See later record for exact coverage."
   },
   "cloud": {
     "used": false,

@@ -45,7 +45,7 @@ struct TransformPanel:View{
             }else{
             Text("自由变换").fontWeight(.medium)
             Button("使用画布手柄（⌘T）"){model.canvasTransformScope=scope;model.canvasTransformInterpolation=interpolation;model.selectTool(.freeTransform)}.buttonStyle(WorkspaceButtonStyle()).disabled(!available)
-            Picker("变换范围",selection:$scope){Text("整个图层").tag("whole_layer");Text("选区内像素").tag("selection").disabled(model.selected?.kind?.kind=="text")}.disabled(preview.applying)
+            Picker("变换范围",selection:$scope){Text("整个图层").tag("whole_layer");Text("选区内像素").tag("selection").disabled(model.selected?.kind?.kind != "pixel")}.disabled(preview.applying)
             Text(scope == "selection" ? "提升选中像素后变换并合回；选区轮廓同步，图层位置与蒙版保留。" : "当前选区保持不变；图层内容与链接蒙版一起变换，文字保留原文。").font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))
             Group{
             Picker("变换方式",selection:$mode){Text("数值变换").tag("components");Text("四角透视").tag("corners")}.labelsHidden()
@@ -70,7 +70,7 @@ struct TransformPanel:View{
                 Button("应用变换"){commit()}.buttonStyle(WorkspaceButtonStyle(selected:true)).disabled(!available||parameters == nil||preview.applying)
                 Button("取消预览"){preview.cancel()}.buttonStyle(WorkspaceButtonStyle()).disabled(!preview.enabled && !preview.busy && !preview.applying)
             }
-            if !available{Text("请选择未锁定像素或文字层；选区模式仅支持像素层。生成图层和图层组仍待支持。").font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))}
+            if !available{Text("选择未锁定的像素、文字或无样式图层组；组内仅允许像素/文字/子组。选区范围仅限像素层。").font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))}
             }
             Divider()
             ImageSizePanel(model:model)
@@ -99,7 +99,7 @@ private struct CanvasTransformControls:View{
     var body:some View{
         VStack(alignment:.leading,spacing:8){
             Text("画布自由变换").fontWeight(.medium)
-            Picker("变换范围",selection:$model.canvasTransformScope){Text("整个图层").tag("whole_layer");Text("选区内像素").tag("selection").disabled(model.selected?.kind?.kind=="text")}.disabled(input.hasDraft||input.running)
+            Picker("变换范围",selection:$model.canvasTransformScope){Text("整个图层").tag("whole_layer");Text("选区内像素").tag("selection").disabled(model.selected?.kind?.kind != "pixel")}.disabled(input.hasDraft||input.running)
             Picker("手柄模式",selection:$model.canvasTransformMode){ForEach(CanvasTransformMode.allCases,id:\.self){Text($0.title).tag($0.rawValue)}}.disabled(input.running)
             Picker("重采样",selection:$model.canvasTransformInterpolation){Text("最近邻").tag("nearest");Text("双线性").tag("bilinear")}.disabled(input.running)
             Text("拖动角点或边缘手柄，框内拖动平移；上方圆点旋转。Shift 约束比例、方向或 15° 旋转，Option 围绕中心缩放。透视模式用角点控制对应边。").font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))
@@ -110,7 +110,7 @@ private struct CanvasTransformControls:View{
                 Button("取消"){input.cancel()}.buttonStyle(WorkspaceButtonStyle()).disabled(!input.hasDraft && !input.running)
             }
             if !input.error.isEmpty{Text(input.error).font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.danger))}
-            if !available && !input.running{Text("请选择未锁定的可见像素或文字层；选区范围仅支持像素层且需要非空选区。").font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))}
+            if !available && !input.running{Text("选择未锁定的可见像素、文字或支持的无样式图层组；选区范围仅限像素层。").font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))}
         }.onChange(of:model.canvasTransformMode){_,_ in model.send(.configureCanvasTransform)}
             .onChange(of:model.canvasTransformScope){_,_ in model.send(.configureCanvasTransform)}
             .onChange(of:model.canvasTransformInterpolation){_,_ in model.send(.configureCanvasTransform)}

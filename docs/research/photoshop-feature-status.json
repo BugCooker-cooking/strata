@@ -737,7 +737,7 @@
   },
   "PS-09-4f3d9835a7": {
     "implementation": "部分实现",
-    "acceptance": "Whole editable text now supports retained-source scale/rotate/skew/distort/perspective/flip through the same native/AI command. Ordered crop, transparent-black glyph bounds, exact re-edit/undo, numerical references, AI invocation, native tests and required Metal passed. Pixel/selection acceptance remains valid. Release/lint and192 parameter examples passed; current single-window text geometry acceptance awaits manual Mac unlock. Generated/group transforms and continuous warped-pixel feedback remain open.",
+    "acceptance": "Retained-source text and whole nested pixel/text/unstyled-group transforms passed local core332 plus final31 targeted, AI46, native104 (103passed/1live-network skip), required Metal1, Release/lint/201examples and one-window group scale/source re-edit/exact undo. Hidden children transform without exposing their extent. Generated/adjustment/active-style geometry and continuous warped-image feedback remain open.",
     "evidence": [
       {
         "label": "M7 整层变换/视图检查点",
@@ -754,6 +754,10 @@
       {
         "label": "Retained text geometry / ordered crop",
         "path": "../research/2026-11-m7-text-geometry-progress.md"
+      },
+      {
+        "label": "Editable nested group geometry",
+        "path": "../research/2026-11-m7-group-transform-progress.md"
       }
     ]
   },
@@ -797,7 +801,7 @@
   },
   "PS-09-7cc6b0bb65": {
     "implementation": "部分实现",
-    "acceptance": "Persistent guide CRUD/pagination, versioned ruler/guide/snap presentation and shared V-tool/numeric/AI integer edge-center snapping reached an automated local checkpoint. Full core324 then final13 guide checks, AI45, bridge2, native102 (101passed/1live-network opt-in skipped), required Metal1, lint and136commands/200examples passed; arm64 Release compiled. Single-window manual text/guide acceptance awaits Mac unlock; no test instance remains. Sustained performance and the full composite feature scope remain open.",
+    "acceptance": "Pixel rulers, persistent H/V reference CRUD/pagination, versioned display/lock/snap settings and shared V/numeric/AI guide-artboard edge/center snapping passed local automated gates and single-window checks. Manual first-switch T->V bug was fixed, full native104 and corrected Release direct-switch drag confirmed guide movement with photoX0/Y0. Ruler show/hide/layout, half-pixel line and text snapping/one undo passed. Custom ruler origins/physical units, layer-to-layer smart guides and sustained large-image feedback remain open; scope stays partial.",
     "evidence": [
       {
         "label": "M7 移动与几何边界",
@@ -806,6 +810,10 @@
       {
         "label": "Guides and snap local progress",
         "path": "../research/2026-11-m7-guides-snap-progress.md"
+      },
+      {
+        "label": "Corrected native text / guide closure",
+        "path": "../research/2026-11-m7-group-transform-progress.md"
       }
     ]
   },
@@ -955,7 +963,7 @@
   },
   "PS-11-4490121dad": {
     "implementation": "部分实现",
-    "acceptance": "Retained horizontal point/paragraph text passed the01272c1 local checkpoint. This increment adds ordered source geometry/crop, transparent glyph bounds and re-edit, with10 geometry checks and automated native/Metal/Release/lint/192 examples passed; single-window geometry acceptance awaits Mac unlock. Font imports, inline caret, rich spans and other typography remain open.",
+    "acceptance": "Retained horizontal point/paragraph source and uniform style passed base01272c1 local acceptance, then source-aware geometry/ordered crop and transparent ink bounds. User-unlocked single-window text rotation, serif/color/content re-edit, group scale/re-edit and step undo restored clean sample and quit. Automated numeric/persistence/AI/native/Metal/Release evidence is linked separately. System/imported fonts, inline caret/rich spans and advanced typography remain open.",
     "evidence": [
       {
         "label": "可编辑文字进展",
@@ -964,12 +972,16 @@
       {
         "label": "Retained text geometry / ordered crop",
         "path": "../research/2026-11-m7-text-geometry-progress.md"
+      },
+      {
+        "label": "Text / group native acceptance",
+        "path": "../research/2026-11-m7-group-transform-progress.md"
       }
     ]
   },
   "PS-11-a524877cb6": {
     "implementation": "部分实现",
-    "acceptance": "Bundled fixed fonts and uniform font/size/working color/leading/tracking/alignment retain source through geometry and cropping. Base text acceptance passed; current geometry automated gates passed and manual gate awaits Mac unlock. System/imported fonts, rich spans and advanced typography remain open.",
+    "acceptance": "Retained horizontal point/paragraph source and uniform style passed base01272c1 local acceptance, then source-aware geometry/ordered crop and transparent ink bounds. User-unlocked single-window text rotation, serif/color/content re-edit, group scale/re-edit and step undo restored clean sample and quit. Automated numeric/persistence/AI/native/Metal/Release evidence is linked separately. System/imported fonts, inline caret/rich spans and advanced typography remain open.",
     "evidence": [
       {
         "label": "可编辑文字进展",
@@ -978,6 +990,10 @@
       {
         "label": "Retained text geometry / ordered crop",
         "path": "../research/2026-11-m7-text-geometry-progress.md"
+      },
+      {
+        "label": "Text / group native acceptance",
+        "path": "../research/2026-11-m7-group-transform-progress.md"
       }
     ]
   },
@@ -993,11 +1009,15 @@
   },
   "PS-14-de2fd3ca59": {
     "implementation": "部分实现",
-    "acceptance": "Persistent guide CRUD/pagination, versioned ruler/guide/snap presentation and shared V-tool/numeric/AI integer edge-center snapping reached an automated local checkpoint. Full core324 then final13 guide checks, AI45, bridge2, native102 (101passed/1live-network opt-in skipped), required Metal1, lint and136commands/200examples passed; arm64 Release compiled. Single-window manual text/guide acceptance awaits Mac unlock; no test instance remains. Sustained performance and the full composite feature scope remain open.",
+    "acceptance": "Pixel rulers, persistent H/V reference CRUD/pagination, versioned display/lock/snap settings and shared V/numeric/AI guide-artboard edge/center snapping passed local automated gates and single-window checks. Manual first-switch T->V bug was fixed, full native104 and corrected Release direct-switch drag confirmed guide movement with photoX0/Y0. Ruler show/hide/layout, half-pixel line and text snapping/one undo passed. Custom ruler origins/physical units, layer-to-layer smart guides and sustained large-image feedback remain open; scope stays partial.",
     "evidence": [
       {
         "label": "Guides and snap local progress",
         "path": "../research/2026-11-m7-guides-snap-progress.md"
+      },
+      {
+        "label": "Corrected native text / guide closure",
+        "path": "../research/2026-11-m7-group-transform-progress.md"
       }
     ]
   }

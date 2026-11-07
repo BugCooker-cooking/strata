@@ -103,6 +103,23 @@ fn examples() -> Result<(), Box<dyn Error>> {
                         json!({"name":"Y","axis":"horizontal","position":5}),
                     )?;
                 }
+                "transform.apply" if args["layer"]["name"] == "GroupGeometry" => {
+                    run(
+                        &mut editor,
+                        "layer.create_group",
+                        json!({"name":"GroupGeometry"}),
+                    )?;
+                    run(
+                        &mut editor,
+                        "layer.create",
+                        json!({"name":"Pixels","fill":[10001,30003,50001,40001]}),
+                    )?;
+                    run(
+                        &mut editor,
+                        "type.create",
+                        json!({"name":"Group type","spec":{"text":"Group","font":"sans","font_size":12,"layout":{"type":"point"}},"color":[0.2,0.4,0.8,1],"x":1,"y":14}),
+                    )?;
+                }
                 "transform.apply" if args["layer"]["name"] == "TypeGeometry" => {
                     run(
                         &mut editor,

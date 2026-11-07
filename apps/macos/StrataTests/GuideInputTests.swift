@@ -3,6 +3,13 @@ import XCTest
 @testable import Strata
 
 final class GuideInputTests:XCTestCase{
+    @MainActor func testToolSwitchRefreshesGuideHitRoutingImmediatelyWithoutAnotherDocumentEvent()throws{
+        let(engine,_)=try configured();_ = try engine.dispatch(command:"view.guides.add",paramsJson:commandJSON(["name":"Line","axis":"vertical","position":10.5]));let controller=MainWindowController(engine:engine);controller.refresh()
+        controller.workspace.selectTool(.text);XCTAssertNil(controller.canvas.hitGuide(NSPoint(x:10.5,y:4)))
+        controller.workspace.selectTool(.move);XCTAssertEqual(controller.canvas.hitGuide(NSPoint(x:10.5,y:4))?.name,"Line")
+        controller.workspace.selectTool(.brush);XCTAssertNil(controller.canvas.hitGuide(NSPoint(x:10.5,y:4)))
+        controller.workspace.selectTool(.move);XCTAssertNotNil(controller.canvas.hitGuide(NSPoint(x:10.5,y:4)))
+    }
     @MainActor private func configured()throws->(StrataEngine,CanvasGuideInput){
         let engine=StrataEngine(listener:EngineEvents{_ in});_ = try engine.dispatch(command:"file.new",paramsJson:commandJSON(["width":32,"height":24,"bit_depth":16]));let input=CanvasGuideInput(engine:engine);input.bind(try EditorSnapshot.decode(engine.snapshotJson()));input.onCommitted={[weak input]in if let state=try? EditorSnapshot.decode(engine.snapshotJson()){input?.bind(state)}};return(engine,input)
     }

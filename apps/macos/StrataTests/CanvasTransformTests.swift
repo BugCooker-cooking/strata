@@ -3,6 +3,14 @@ import XCTest
 @testable import Strata
 
 final class CanvasTransformTests:XCTestCase{
+    @MainActor func testNestedGroupHandlesKeepEditableChildrenAndOneUndo()async throws{
+        let engine=StrataEngine(listener:EngineEvents{_ in});_ = try engine.dispatch(command:"file.new",paramsJson:commandJSON(["width":32,"height":24,"bit_depth":16]));let group=try AIJSON.decode(engine.dispatch(command:"layer.create_group",paramsJson:commandJSON(["name":"G"])))["layer_id"].string
+        _ = try engine.dispatch(command:"layer.create",paramsJson:commandJSON(["name":"Pixels","fill":[10001,30003,50001,40001]]));_ = try engine.dispatch(command:"type.create",paramsJson:commandJSON(["name":"Type","spec":["text":"Group","font":"sans","font_size":12,"layout":["type":"point"]],"color":[0.8,0.2,0.4,1],"x":2,"y":14]));_ = try engine.dispatch(command:"layer.select",paramsJson:commandJSON(["layer":["id":try XCTUnwrap(group)]]))
+        let before=try EditorSnapshot.decode(engine.snapshotJson());XCTAssertTrue(before.layers.first(where:{$0.id==group})?.canTransform(scope:"whole_layer")==true);XCTAssertFalse(before.layers.first(where:{$0.id==group})?.canTransform(scope:"selection")==true)
+        let input=CanvasTransformInput(engine:engine);input.bind(before);input.configure(enabled:true);input.start();try await idle(input);XCTAssertTrue(input.canConfirm,input.error);let quad=try XCTUnwrap(input.draft),corner=quad.points[2];input.down(corner,hitTolerance:0.1);input.up(NSPoint(x:corner.x+8,y:corner.y+6));XCTAssertTrue(input.confirm());try await idle(input);XCTAssertTrue(input.error.isEmpty,input.error)
+        let after=try EditorSnapshot.decode(engine.snapshotJson());XCTAssertEqual(after.historyCursor,before.historyCursor+1);XCTAssertEqual(after.layers.map(\.id),before.layers.map(\.id));XCTAssertEqual(after.layers.map(\.parent),before.layers.map(\.parent));XCTAssertEqual(after.layers.last?.kind?.kind,"text");XCTAssertFalse(after.layers.last?.kind?.text?["operations"].array.isEmpty ?? true)
+        _ = try engine.dispatch(command:"edit.undo",paramsJson:"{}");let restored=try EditorSnapshot.decode(engine.snapshotJson());XCTAssertEqual(restored.layers.last?.kind?.text,before.layers.last?.kind?.text);XCTAssertEqual(restored.historyCursor,before.historyCursor)
+    }
     private let base=TransformQuad(rect:CGRect(x:0,y:0,width:16,height:12))
     private func assertQuad(_ actual:TransformQuad,_ expected:[[Double]],accuracy:Double=1e-9,file:StaticString=#filePath,line:UInt=#line){
         XCTAssertEqual(actual.points.count,expected.count,file:file,line:line)

@@ -215,7 +215,9 @@
     "final_fixture_restore_and_quit_verified": false,
     "owned_test_process_closed_without_gui_edits": true,
     "post_exit_strata_and_xctest_instances": 0,
-    "method_of_close": "Exact self-launched Release executable PID, SIGTERM after unchanged fixture hash and no CUA edits; normal GUI quit was not observed."
+    "method_of_close": "Exact self-launched Release executable PID, SIGTERM after unchanged fixture hash and no CUA edits; normal GUI quit was not observed.",
+    "later_closure_record": "2026-11-07-m7-native-text-guides-closure.json",
+    "later_closure_status": "User unlocked; single-window text rotation/source re-edit and guides/snap checked. First-switch guide bug fixed with native and corrected Release recheck. All acceptance edits undone, normal GUI quit observed, process count0, sample unchanged. See later record for exact coverage."
   },
   "cloud": {
     "used": false,

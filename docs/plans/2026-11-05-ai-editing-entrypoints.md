@@ -24,10 +24,12 @@
 
 已有八个 meta-tools、动态 browse/search/describe/invoke 和统一注册表。基础滤镜新增三个实际入口，并增加对应中文操作关键词与参数示例；完整功能映射与最终全量审计仍待后续实施。
 
-当前已建立 [91 个已实现/部分实现条目的映射](../research/ai-editing-entrypoints.json) 和 [265 综合条目的审计表](ai-editing-entrypoint-coverage.md)，并接入本机命令检查。提示检索/说明及滤镜、配置指定、整层像素变换、画布大小的真实 AI invoke/整轮撤销已通过合同回归；变换覆盖逐次替换确认与先读边界。当前真实目录为 136 命令、200参数示例。最终全量编辑实现与严格审计仍未完成，当前 12 个部分入口和全部待实现项保持开放。原生前景/背景色状态缺口已通过统一 paint.colors.* 工具状态命令补齐，工作 RGB/版本/控制权/非文档历史语义均有合同和单窗口证据；见[调色板记录](../research/2026-11-m7-paint-colors-progress.md)。
+当前已建立 [91 个已实现/部分实现条目的映射](../research/ai-editing-entrypoints.json) 和 [265 综合条目的审计表](ai-editing-entrypoint-coverage.md)，并接入本机命令检查。提示检索/说明及滤镜、配置指定、整层像素变换、画布大小的真实 AI invoke/整轮撤销已通过合同回归；变换覆盖逐次替换确认与先读边界。当前真实目录为 136 命令、201参数示例。最终全量编辑实现与严格审计仍未完成，当前 12 个部分入口和全部待实现项保持开放。原生前景/背景色状态缺口已通过统一 paint.colors.* 工具状态命令补齐，工作 RGB/版本/控制权/非文档历史语义均有合同和单窗口证据；见[调色板记录](../research/2026-11-m7-paint-colors-progress.md)。
 
 高反差保留的中英文发现/说明、严格 schema、精确替换确认、实际改码和整轮撤销已通过本机回放；原生使用同一滤镜参数/单槽预览。审批恢复后原生、强制真实 Metal、Release 与单窗口增量验收也已补齐；已有映射不代表完整 PS 或最终 AI 审计完成，见[本轮进展](../research/2026-11-m7-high-pass-progress.md)。
 
 画布手柄产生的四角参数沿用真实 transform.apply，五种操作均有本机 AI 精确确认/实际改码/回合撤销。注册与提示现在明确轮廓草稿、Enter/Esc、恒等无历史及未支持类型；完整自由变换、连续像素反馈和最终逐功能审计继续保持开放，见[手柄进展](../research/2026-11-m7-transform-handles-progress.md)。
 
 可编辑文字同步新增四个真实 type.* 命令：固定字体发现、创建、完整属性重编辑与可见源读取；点/段落/字族/对齐变体、双语提示、实际创建重编辑和回合撤销已接入。文字与全功能的最终审计仍保留未覆盖范围，见[文字进展](../research/2026-11-m7-editable-text-progress.md)。
+
+Nested pixel/text/group transforms share the real transform.apply, native numeric/owned handles and AI. Components/projective discovery, exact replacement approval, retained source changes and turn undo passed; local full native/Metal/Release/examples and single-window group scale/re-edit are recorded in [group progress](../research/2026-11-m7-group-transform-progress.md). Generated/adjustment/style general geometry and complete Photoshop/AI closure remain open.

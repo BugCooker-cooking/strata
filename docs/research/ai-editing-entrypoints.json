@@ -1407,9 +1407,14 @@
           "text": "Transform editable text through canvas corners, retain source and re-edit it after perspective.",
           "query": "Editable text supports whole_layer",
           "command": "transform.apply"
+        },
+        {
+          "text": "将嵌套图层组整体旋转并做透视变换，保留像素、文字源、隐藏子层和链接蒙版。",
+          "query": "图层组变换",
+          "command": "transform.apply"
         }
       ],
-      "note": "整层像素/链接蒙版及选区像素的真实提升/变换/合回已接入，软边按 source-over 余量保留，目标不被原选区重复裁切。画布八手柄/平移/旋转/斜切/扭曲/透视与按键草稿已实现，使用原始文档/版本/层/范围/控制权绑定的同一四角命令。核心、AI五种真实四角调用/精确确认/回合撤销、桥接、完整原生、整层/软选区与共享拉直强制Metal、arm64 Release、lint/参数例子及单窗口整层/选区应用撤销通过。恒等变换不制造历史。整文字层的保留源透视/旋转/缩放已接入，裁剪按原次序重建，正在补齐本机原生/AI证据。生成/组变换及连续画布像素反馈仍未实现，综合条目与最终AI审计保持部分覆盖。",
+      "note": "Pixel/selected-pixel transforms and retained text plus whole nested pixel/text/unstyled-group transforms use the same real executor, native numeric/owned handles and AI. Source/locks/visible-only bounds, immutable sampling, local cancellation, exact confirmation and turn undo have core/AI/native/Metal/Release/examples and single-window evidence. Active-style/generated/adjustment general geometry and continuous warped-pixel feedback remain open; full composite scope stays partial.",
       "variants": [
         {
           "command": "transform.apply",
@@ -1573,7 +1578,7 @@
           "command": "layer.snap_position"
         }
       ],
-      "note": "已有整数位置与原生拖动、单次提交/取消及组联动；吸附仍未实现，因此综合移动工具条目保持部分实现。 Actual guide/artboard snapping and shared V-tool preview are implemented and under current local verification; do not mark complete before native acceptance."
+      "note": "Integer native layer/group moves plus guide/artboard edge/center snapping and shared previews passed automated gates and single-window acceptance, including corrected first-switch routing. Original codes, source text, linked masks and subtree persist; fractional residuals are returned explicitly. Layer-to-layer smart references, selected-pixel V-tool semantics and sustained interaction targets remain open; composite mapping stays partial."
     },
     "PS-09-7d349372b5": {
       "scope": "editing",
@@ -2121,7 +2126,7 @@
           ]
         }
       ],
-      "note": "Actual persistent guide CRUD/paginated list, versioned editor presentation, content-edge/center integer snapping and shared native pointer/preview wiring under local verification. Guide-only history never prepares source rendering. Canvas references remain fixed during image geometry. Source/permission/history/undo/persistence checks in progress; native single-window still pending Mac unlock; do not mark closed before evidence."
+      "note": "Actual persistent guide CRUD/pages, versioned view settings, pixel rulers and shared integer edge/center guide-artboard snapping passed local core/AI/native/Metal/Release/examples and single-window checks. The first-switch routing defect was caught manually, fixed and rechecked in full native and corrected Release. Ruler custom origin/physical units, smart layer-to-layer references and sustained large-image pointer feedback remain open; partial scope is explicit."
     }
   }
 }

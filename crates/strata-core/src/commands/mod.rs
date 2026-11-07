@@ -31,6 +31,7 @@ mod straighten;
 mod tonal;
 mod tonal_brush;
 mod transform;
+mod transform_group;
 mod transform_selection;
 mod tree;
 mod trim;

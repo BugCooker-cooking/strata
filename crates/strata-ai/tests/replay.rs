@@ -3053,3 +3053,129 @@ fn guides_and_snap_are_discoverable_editable_and_turn_undo_keeps_editor_view_set
     );
     assert!(host.snapshot().unwrap().presentation.snap_enabled);
 }
+
+#[test]
+fn editable_group_transform_discovery_exact_approval_real_children_and_turn_undo() {
+    for geometry in [
+        json!({"type":"components","scale":[1.2,0.8],"rotation_degrees":12,"pivot":[4,4]}),
+        json!({"type":"corners","source":[[0,0],[8,0],[8,8],[0,8]],"destination":[[1,0],[7,1],[8,8],[0,7]]}),
+    ] {
+        let host = Host::new();
+        let group = host.user("layer.create_group", json!({"name":"Group"}))["layer_id"].clone();
+        host.user(
+            "layer.create",
+            json!({"name":"Pixels","fill":[10001,30003,50001,40001]}),
+        );
+        host.user(
+            "layer.mask.add",
+            json!({"layer":{"name":"Pixels"},"source":"white"}),
+        );
+        host.user("type.create",json!({"name":"Type","spec":{"text":"AI","font":"sans","font_size":12,"layout":{"type":"point"}},"color":[0.8,0.2,0.4,1],"x":1,"y":14}));
+        host.user("layer.select", json!({"layer":{"id":group}}));
+        let before = host
+            .editor
+            .lock()
+            .unwrap()
+            .document()
+            .unwrap()
+            .to_archive()
+            .unwrap();
+        let initial = host.snapshot().unwrap();
+        let mut session = host.session_with_prompt(
+            ExecutionMode::Direct,
+            "对整个图层组做自由变换，保留可编辑文字、子层及蒙版，整轮可撤销。",
+        );
+        reply(
+            &mut session,
+            &host,
+            vec![
+                call("discover", "search_catalog", json!({"query":"图层组变换"})),
+                call(
+                    "describe",
+                    "describe_commands",
+                    json!({"ids":["transform.apply","layer.pixel_bounds"]}),
+                ),
+                invoke(
+                    "bounds",
+                    "layer.pixel_bounds",
+                    json!({"layer":{"id":group}}),
+                ),
+            ],
+        );
+        assert!(
+            result(session.poll(&host).unwrap())["matches"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|m| m["id"] == "transform.apply")
+        );
+        assert_eq!(
+            result(session.poll(&host).unwrap())["commands"][0]["params"]["additionalProperties"],
+            false
+        );
+        assert!(
+            result(session.poll(&host).unwrap())["result"]["bounds"]["width"]
+                .as_u64()
+                .unwrap()
+                >= 8
+        );
+        let params = json!({"layer":{"id":group},"scope":"whole_layer","geometry":geometry,"interpolation":"bilinear"});
+        reply(
+            &mut session,
+            &host,
+            vec![invoke("transform", "transform.apply", params.clone())],
+        );
+        let Step::Paused {
+            question_id,
+            operation,
+            ..
+        } = session.poll(&host).unwrap()
+        else {
+            panic!("group must require exact replacement approval")
+        };
+        assert_eq!(operation.unwrap()["params"], params);
+        assert_eq!(host.snapshot().unwrap().revision, initial.revision);
+        let output = result(
+            session
+                .respond(
+                    &host,
+                    HostAnswer {
+                        question_id,
+                        answer: String::new(),
+                        approved: true,
+                        resource: None,
+                    },
+                )
+                .unwrap(),
+        );
+        assert_eq!(output["result"]["changed"], true);
+        assert_eq!(
+            host.snapshot().unwrap().history_cursor,
+            initial.history_cursor + 1
+        );
+        reply(
+            &mut session,
+            &host,
+            vec![invoke(
+                "source",
+                "type.inspect",
+                json!({"layer":{"name":"Type"}}),
+            )],
+        );
+        let definition = result(session.poll(&host).unwrap())["result"]["definition"].clone();
+        assert_eq!(definition["spec"]["text"], "AI");
+        assert!(!definition["operations"].as_array().unwrap().is_empty());
+        host.editor.lock().unwrap().stop_turn();
+        host.user("edit.undo_turn", json!({"turn_id":session.turn_id()}));
+        assert!(
+            host.editor
+                .lock()
+                .unwrap()
+                .document()
+                .unwrap()
+                .to_archive()
+                .unwrap()
+                == before
+        );
+    }
+}

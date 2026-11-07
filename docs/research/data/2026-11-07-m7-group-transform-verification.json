@@ -1,0 +1,223 @@
+{
+  "date_local": "2026-11-07",
+  "timezone": "Asia/Taipei",
+  "base_checkpoint": "339df5c",
+  "branch": "codex/v1-remaining",
+  "scope": "Whole nested unstyled pixel/text/group source-aware transforms using the same native/AI command, plus immediate guide routing refresh on tool switches. Local increment checkpoint, not full Photoshop.",
+  "source_sha256": {
+    "apps/macos/Strata/App/MainWindowController.swift": "06b66face24a635d03ccd3b3426accc64081cac24ba32f27c5b0736ab7a8efa2",
+    "apps/macos/Strata/Canvas/CanvasView.swift": "441ef7ffe23d57ca38732290309e82c59bbb287e1b8a176c3afaafde37027d85",
+    "apps/macos/Strata/Engine/EditorSnapshot.swift": "deec9c86b2c2c14dbd0e159d7b22f2c331a299ad6af4dfb5b54b6bb1164b15bd",
+    "apps/macos/Strata/Workspace/TransformControls.swift": "ff9fb253c01d45ada7d1b3d13b616452d9624c7aebc54e8e3e9a3a8cf43ab77f",
+    "apps/macos/StrataTests/CanvasTransformTests.swift": "6e933edc960b16996a4caed5b4287a0c5ed70c510b683d9df5295a6b71a575f2",
+    "apps/macos/StrataTests/GuideInputTests.swift": "16d0073c448fbccf2f78bc2c075e97855d62620e6e7fcc2e30fba57894f22920",
+    "crates/strata-ai/tests/replay.rs": "f7c0710ef17ca06878b8bf26e5d79a2a19dc8399cc620c40562833f60acaff67",
+    "crates/strata-core/src/commands/executor.rs": "aa96e67b9adb6168260e23afcc1add646f886617b694fab995ca1715ec400d99",
+    "crates/strata-core/src/commands/mod.rs": "14c8952da6c4f80b0059b81e9764df0d07c48649cc59141adde796a24b6fcafa",
+    "crates/strata-core/src/commands/registry.rs": "7d5728b8a5277f0f2ef236b11559ed20ac67c90b4793f59df4fc096a8ea23c08",
+    "crates/strata-core/src/commands/transform.rs": "9c73f5affe6a7ca5c1e3c9069b85c7f8bbba4aa23ad417ecdf44440def1452d2",
+    "crates/strata-core/src/commands/transform_group.rs": "338818f9b2a72d0423896868472ee799d52dbf06a4ec7e9bd649ef5a274f7af2",
+    "crates/strata-core/tests/group_transform.rs": "48f119c51ed9320b99c126aaffecf5c7eb3549f93c1f9ed9aac9e5706d82b066",
+    "crates/strata-ffi/src/group_transform_tests.rs": "4f7353921852c4c7c5160f6ad4b75cd6e35d9ad1e03c65569a3149c88514d722",
+    "crates/strata-ffi/src/lib.rs": "3ee34abd3fdbfed06897ce5f4e7aa6c9c141b5a5094c5face77c128225029056",
+    "tools/strata-devtool/src/main.rs": "f254e81ac5851fe629e3c90c4ffbf7c1fa66c6e9dbb74b38ea8b9f3dee4b62a0"
+  },
+  "log_sha256": {
+    "build/m7-group-transform-ai.log": "c9e88f3c1f3086e9b2aa94aa8ee1796a8b7a5092774913371ed4838039687e6c",
+    "build/m7-group-transform-check.fixed.log": "e35e9fd95646de0a95b9f245d03db1b53db56a69a519f8d08043962ac93b8d40",
+    "build/m7-group-transform-check.log": "2d085086fc50a15bf1cef2febd6e4fbc5dd219aa16b5f9937f9101eac50ab10b",
+    "build/m7-group-transform-commands.log": "7d3b62455cd57390d61dbb1d9f15a87916bee2542252313ca899e319cf8b41b3",
+    "build/m7-group-transform-core-regression.log": "a6b1e3bdc4bc40d0036a2803d9e6b5299f426c4ab036739b6a83632d9aabe9a7",
+    "build/m7-group-transform-core.final.log": "90d51c9a4452da488cb283eb393e6a19110bd8747258d9e03dc5fdcbd92358a5",
+    "build/m7-group-transform-core.last.log": "67888cc4babf6c0e8f03346d2545aea6d18a23fa8fa0cb8e7c8b461052820f9b",
+    "build/m7-group-transform-core.log": "e3103dcab6696aa235fea016b9e27e53c4d2bd5c60e5a4d1247d6f9a9db83018",
+    "build/m7-group-transform-docs.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "build/m7-group-transform-final-ai-gate.log": "58775cd558643dbf55e44703bbdc00f7f6982cb47d878a0c39d4f6ad5cfe0375",
+    "build/m7-group-transform-lint.log": "af49f979e55ec4cd23eb2e88332690c64037aa2e9de1fc557f6ac589d75c61fd",
+    "build/m7-group-transform-metal.log": "a025743528675e2ad69d452ab3b3f8a281ab1d3503f66a13bfe612706111ed4d",
+    "build/m7-group-transform-native.log": "450827760f4b00097de91fa3530f39a9b311051cce5e6b1c5b462b2760edda4a",
+    "build/m7-group-transform-project.log": "3acbac3935bba7d7d7cf8ba146f97163ae9388cd66796ba50ebf4bea003212fb",
+    "build/m7-group-transform-release.log": "438fbf547fce7834ab1ee77ad2fdc57b8c001a90198a65415c4000d8132dd451",
+    "build/m7-group-transform-swiftlint.current.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "build/m7-group-transform-swiftlint.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "checks": {
+    "core-regression": {
+      "passed": 332,
+      "failed": 0,
+      "ignored": 0,
+      "log": "build/m7-group-transform-core-regression.log"
+    },
+    "core.last": {
+      "passed": 31,
+      "failed": 0,
+      "ignored": 0,
+      "log": "build/m7-group-transform-core.last.log"
+    },
+    "ai": {
+      "passed": 46,
+      "failed": 0,
+      "ignored": 0,
+      "log": "build/m7-group-transform-ai.log"
+    },
+    "metal": {
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "log": "build/m7-group-transform-metal.log"
+    }
+  },
+  "core_scope": {
+    "full_core_passed": 332,
+    "full_core_group_tests": 7,
+    "full_core_compile_fail_docs": 1,
+    "final_group_tests": 8,
+    "final_targeted_total": 31,
+    "final_subset_note": "After last integer-translation mask budget optimization and actual resampling cancellation addition; final source compiled/tested by31 selected checks. Not a second complete-core run."
+  },
+  "ai_scope": {
+    "protocol": 7,
+    "prompt_mapping": 1,
+    "replay": 38,
+    "actual_group_variants": [
+      "components scale/rotate",
+      "projective corners"
+    ],
+    "search_describe_strict_schema": true,
+    "exact_replacement_approval": true,
+    "real_editable_children_and_text_source": true,
+    "exact_turn_undo": true,
+    "live_model_requests": 0
+  },
+  "native": {
+    "total": 104,
+    "passed": 103,
+    "skipped": 1,
+    "failed": 0,
+    "jobs": 2,
+    "parallel_testing": false,
+    "log": "build/m7-group-transform-native.log",
+    "skip_reason": "Live model opt-in not enabled; no network request",
+    "new_cases": [
+      "nested group handles preserve editable children and one undo",
+      "immediate T/V/brush/V routing matches guide without intervening document event"
+    ]
+  },
+  "gpu": {
+    "required": true,
+    "skipped": 0,
+    "backend": "Actual local Metal offscreen",
+    "checks": [
+      "owned group bounds/query is readonly",
+      "one same transform.apply commit",
+      "pixel/text/group mask structure retained",
+      "CPU numerical RGB/alpha display reference",
+      "exact scene and original archive after undo"
+    ]
+  },
+  "lint": {
+    "passed": true,
+    "log": "build/m7-group-transform-lint.log",
+    "checks": [
+      "rustfmt",
+      "workspace all-target Clippy -D warnings",
+      "portability",
+      "Swift lint",
+      "generated feature coverage"
+    ]
+  },
+  "command_examples": {
+    "passed": true,
+    "commands": 136,
+    "parameter_examples": 201,
+    "log": "build/m7-group-transform-commands.log",
+    "new_group_example_executes_real_pixels_and_text": true
+  },
+  "release": {
+    "passed": true,
+    "log": "build/m7-group-transform-release.log",
+    "architecture": "arm64",
+    "jobs": 2,
+    "swift_backend_threads": 1,
+    "binary_sha256": "be3910d3a8b52bc62f0c1bed63bf18ffebce93da9b6af34e8d8d3352af354a81",
+    "warnings": "Only existing PointColorControls nonoptional nil-coalescing and no-AppIntents metadata notice; no build error."
+  },
+  "semantics": {
+    "support": "Whole group with nested pixel/text/group subtree, no active styles; same geometry applied to hidden descendants too. Preserve IDs/parents/clipping/blend/opacity/working ICC/8-16bit/text source and each linked/disabled layer/group mask. Generated fill/adjustment/active-style general geometry rejects atomically. Selection scope remains pixels only.",
+    "privacy": "Group query/handles/result envelope uses only effectively visible content. Hidden descendants transform but never enlarge returned boundary or mask flag. Generic readonly commits now preserve newer current-layer selection; tests include query prepared before selection change.",
+    "coordinates": "Immutable source bounds scanned/cached once. Each real editable leaf uses the existing same pixel sampler or source text geometry replay. Group position is the transformed visible-content logical origin; each group mask is transformed/reanchored, and children are not moved twice. Empty text retains geometry for later typing.",
+    "identity": "Exact identity has no history/revision/dirty/current-layer change. Integer translation only moves subtree origins and retains all source/mask tile versions; it does not charge work for mask resampling that does not occur.",
+    "limits": "Preflight all subtree types/styles/target-ancestor-subtree locks, source64M stored visits and aggregate64M resampled destination pixel/mask visits, finite geometry/horizons/shared pool. Bounded row/layer cancellation; actual sampler scratch observed before cancellation and original archive retained, all transient reservations released.",
+    "publication": "One prepared original-document revision and atomic history. Renderer publication failure, unsupported member, locked hidden child, invalid geometry, budget/cancel keep original. No new layer/project payload version needed; retained child text uses existing8/7/6 rules."
+  },
+  "manual": {
+    "single_release_instance_per_round": true,
+    "closure_record": "2026-11-07-m7-native-text-guides-closure.json",
+    "round1_text_rotation_reedit": true,
+    "round1_guide_bug_caught_and_undone": true,
+    "round2_fixed_T_to_V_first_drag": true,
+    "round2_photo_position_after_guide_drag": [
+      0,
+      0
+    ],
+    "round2_guide_coordinates": [
+      598.878,
+      695.409
+    ],
+    "round2_mixed_group": "sample-photo grouped with64px 组内 Type; quad bottom-right1490,1867->1280,1550 staged only, Apply actually scaled both. T source remained editable and changed to 组变换后仍可编辑 while retaining group scale. One undo reverted source, next reverted group geometry; two more removed acceptance text/group only.",
+    "final_original_pixel_layers": 1,
+    "final_guides": 0,
+    "final_dirty": false,
+    "undo_disabled": true,
+    "normal_gui_quit_observed": true,
+    "post_exit_strata_and_xctest_instances": 0,
+    "fixture_sha256_before_and_after": "c1006da29913609963479b8641c0e6f6a43ff2c6d8b2f907c91a6daf1afaa2ea",
+    "other_user_apps_preserved": true,
+    "limits": "Live AX/pointer/screenshots observed, no persisted screenshot artifact claim. Unicode pasted, no physical IME. Manual scale/text re-edit and first-switch guide check, not every projective/mask mode; independent numerical/native/AI/Metal gates have their own coverage."
+  },
+  "ai_audit": {
+    "registered_commands": 136,
+    "registered_examples": 201,
+    "inventory_rows": 265,
+    "mapped_features": 91,
+    "partial_entrypoints": [
+      "PS-01-894622b1ce",
+      "PS-04-cb66199f15",
+      "PS-04-853e6d30f3",
+      "PS-16-8de06204ac",
+      "PS-09-4f3d9835a7",
+      "PS-09-7cc6b0bb65",
+      "PS-09-7d349372b5",
+      "PS-03-5f9716e5d8",
+      "PS-03-ad24731ea8",
+      "PS-11-4490121dad",
+      "PS-11-a524877cb6",
+      "PS-14-de2fd3ca59"
+    ],
+    "unmapped_implemented_features": [],
+    "unknown_native_command_references": {},
+    "untyped_command_returns": [],
+    "commands_without_feature_links": [],
+    "final_audit_complete": false
+  },
+  "strict_final_gate_expected_exit_code": 1,
+  "cloud": {
+    "used": false,
+    "workflow_yaml_manual_dispatch_only": true,
+    "no_jobs_enabled_dispatched_rerun_or_awaited": true,
+    "recheck_disabled_state_before_push": true
+  },
+  "initial_resolved_items": [
+    "Leaf helper extraction initially left an Ok(Some(...)) in a Value return; compile check caught and fixed before tests.",
+    "Initial group tests had unused imports and a weak hidden-source fixture; imports removed, actual hidden offboard pixel source added, all final checks passed.",
+    "Manual acceptance caught missing configureGuides in native tool-switch route. Now refresh synchronously, with actual controller regression plus first-switch pointer recheck."
+  ],
+  "remaining": [
+    "Full Photoshop and final per-feature AI entrypoint closure",
+    "Generated/adjustment/active-style general geometry",
+    "Continuous warped-image canvas feedback and sustained large-image/pen/trackpad input targets",
+    "Ruler custom origins/physical units, smart references and remaining typography",
+    "Current Linux/macOS14/hardware/live-model-quality/packaging gates"
+  ],
+  "delivery": "Authorized private development branch and existing draftPR1 only. No merge, release or visibility change. This record precedes its containing commit."
+}
