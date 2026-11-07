@@ -79,6 +79,13 @@ fn examples() -> Result<(), Box<dyn Error>> {
             };
             let mut args = example.clone();
             match spec.id {
+                "type.update" | "type.inspect" => {
+                    run(
+                        &mut editor,
+                        "type.create",
+                        json!({"name":"Title","spec":{"text":"Original 中文","font":"sans","font_size":24,"layout":{"type":"point"}},"color":[0.2,0.4,0.8,1],"x":1,"y":26}),
+                    )?;
+                }
                 "image.auto" | "filter.high_pass" => {
                     run(
                         &mut editor,
@@ -328,6 +335,14 @@ fn examples() -> Result<(), Box<dyn Error>> {
             }
             if spec.id == "transform.apply" && result["changed"] != true {
                 return Err("transform example did not execute a real geometry change".into());
+            }
+            if matches!(spec.id, "type.create" | "type.update")
+                && (result["changed"] != true
+                    || result["metrics"]["glyph_count"].as_u64().unwrap_or(0) == 0)
+            {
+                return Err(
+                    "text example did not shape and execute a real editable text operation".into(),
+                );
             }
         }
     }

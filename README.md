@@ -10,9 +10,9 @@ Strata is an open-source, AI-operable image editor with a portable Rust core and
 
 目前在 [BugCooker-cooking/strata](https://github.com/BugCooker-cooking/strata) 私有开发；成品完成后再决定公开，不自动切换仓库可见性。
 
-当前已推进至 M5：可移植 AI 接口、原生模型设置/对话、u16 分块选区与蒙版、主体选择/局部曝光、27 种混合模式、穿透/隔离图层组、填充/样式/剪贴板，以及形状/套索/魔棒/图割选区和亮度、色阶、曲线、白平衡等调色调整层。原生应用与无界面工具使用同一命令执行器，保留 8/16 位源样本、工作 ICC、撤销与工程恢复。见 [M3](docs/research/2026-11-m3-layers-progress.md)、[M4](docs/research/2026-11-m4-selection-progress.md)、[M5](docs/research/2026-11-m5-adjustments-progress.md) 的实现与验收证据。
+当前已推进至 M7：在可移植AI、选区/蒙版/图层/调整基础上，已增加绘画与修复、基础滤镜及高反差保留、配置/位深与图像几何、原生裁剪/拉直/自由变换手柄、自动RGB校正，以及保留源定义的横排点/段落文字。原生应用和AI共用命令执行器，保留8/16位源样本、工作ICC、撤销和工程恢复。最近本机增量证据见[文字](docs/research/2026-11-m7-editable-text-progress.md)、[变换手柄](docs/research/2026-11-m7-transform-handles-progress.md)及[完整跟踪表](docs/plans/photoshop-feature-coverage.md)。
 
-完整范围继续覆盖 [PS 功能清单的 P0–P3](docs/plans/photoshop-feature-coverage.md)，尚未全部实现。空间阴影/高光、可取消画布预览、圆形画笔/橡皮擦/蒙版绘制、前景背景色、吸管/填充/油漆桶/五类像素渐变及仿制图章已有本机证据；实时笔迹/调色性能、修复/专业滤镜、文字/变换、PSD/RAW 等仍继续开发；真实模型新增任务、困难照片质量集和外部设备门槛独立追踪。上图是完整 v1 的界面设计稿，不是当前功能截图；当前仍为开发版本。
+完整范围继续覆盖PS功能清单P0–P3，尚未全部实现。一般可编辑类型的几何、连续变形像素反馈、富文本/字体、矢量路径/形状、智能对象、PSD/RAW及其余专业编辑仍继续开发；实时性能、困难照片质量、真实模型与外部设备门槛独立追踪。当前统一目录为128条真实命令及191个参数示例；最终[逐功能AI入口审计](docs/plans/ai-editing-entrypoint-coverage.md)仍未闭环，数量不代表完整覆盖。上图是v1界面设计稿，当前仍为开发版本。2026-11-05起仅本机验证，云端工作流保持禁用；下面早期CI链接只保留历史证据。
 
 2026-11-03 已落实原生工作区框架：文档标签、分组工具栏、属性/调整/历史、图层缩略图、可调侧栏、AI 未接入面板、标尺/缩放/导航与状态栏，支持深/浅主题。M1b 已推进独立文档标签、最近文件和可撤销的图片置入；M1b 的后续交付按分批验收记录推进。见 [工作区与 M1b 记录](docs/research/2026-11-workspace-progress.md)。
 

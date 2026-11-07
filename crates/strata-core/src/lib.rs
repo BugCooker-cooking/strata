@@ -14,6 +14,7 @@ mod project;
 mod recovery;
 pub mod styles;
 mod subject;
+pub mod typography;
 pub use adjustments::{GradientMapStop, LevelRange, TonalAdjustment};
 pub use commands::{ClipboardImage, Editor, Source};
 pub use document::{

@@ -37,7 +37,7 @@ struct ToolRail: View {
                         if index > 0 { Rectangle().fill(Color(nsColor: WorkspaceColors.border)).frame(height: 1).padding(.horizontal, 10) }
                         ForEach(group) { tool in
                             WorkspaceIconButton(title: "\(tool.title)\(tool.key.isEmpty ? "" : " (\(tool.key))")", symbol: tool.symbol,
-                                enabled: !model.busy && tool.available && (![EditorTool.move, .freeTransform, .subject, .crop].contains(tool) || model.permissions.edits) && (!tool.isPaint || model.permissions.edits) && (!tool.isSelection || model.permissions.selectionEdits), selected: model.tool == tool) { model.selectTool(tool) }
+                                enabled: !model.busy && tool.available && (![EditorTool.move, .freeTransform, .text, .subject, .crop].contains(tool) || model.permissions.edits) && (!tool.isPaint || model.permissions.edits) && (!tool.isSelection || model.permissions.selectionEdits), selected: model.tool == tool) { model.selectTool(tool) }
                         }
                     }
                 }.padding(.top, 8)
@@ -65,6 +65,8 @@ struct ToolOptionsBar: View {
                 if let input=model.cropInput{CropToolOptions(model:model,input:input)}
             case .freeTransform:
                 Text("拖动手柄调整轮廓 · 回车应用 · Esc 取消").foregroundStyle(Color(nsColor:WorkspaceColors.secondary))
+            case .text:
+                Text("单击放置基线；段落模式拖出文字框。编辑后应用，一次撤销。").foregroundStyle(Color(nsColor:WorkspaceColors.secondary))
             case .move:
                 Text("当前图层").foregroundStyle(Color(nsColor: WorkspaceColors.secondary))
                 Text(model.selected?.name ?? "未选择").lineLimit(1).frame(maxWidth: 180, alignment: .leading)
@@ -117,7 +119,8 @@ struct WorkspaceInspector: View {
                         }
                     }.padding(10).accessibilityLabel("检查器")
                     switch model.inspector {
-                    case .properties: LayerProperties(model: model)
+                    case .properties:
+                        if model.tool == .text,let text=model.textEditing{TextEditingPanel(model:model,text:text)}else{LayerProperties(model:model)}
                     case .adjustments: AdjustmentPanel(model: model)
                     case .filters: if let preview=model.tonalPreview{FilterPanel(model:model,preview:preview)}
                     case .transform: if let preview=model.tonalPreview{TransformPanel(model:model,preview:preview)}
@@ -158,6 +161,7 @@ private struct LayerProperties: View {
                         else {PointColorControls(model:model)}
                     }
                     if ["solid","gradient","hue_saturation"].contains(layer.kind?.kind ?? ""){GeneratedLayerControls(model:model)}
+                    if layer.kind?.kind=="text"{Button("编辑文字内容与排版"){model.selectTool(.text)}.buttonStyle(WorkspaceButtonStyle())}
                     if !layer.isAdjustment{LayerStyleControls(model:model)}
                     if let mask = layer.mask {
                         Divider(); caption("像素蒙版")

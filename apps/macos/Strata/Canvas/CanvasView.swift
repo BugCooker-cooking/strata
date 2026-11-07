@@ -40,6 +40,13 @@ final class CanvasView: NSView {
     private var transformTool=false
     private let transformBorder=CAShapeLayer()
     private let transformHandles=CAShapeLayer()
+    private var textTool=false
+    private var textStart:NSPoint?
+    private var textRectangle:CGRect?
+    private var textParagraph=false
+    private var textContext:(document:String?,revision:UInt64,layer:String?,control:String)?
+    private let textGuide=CAShapeLayer()
+    var onTextPlacement:((NSPoint,CGRect?)->Void)?
     var documentOrigin = NSPoint.zero
     private var selectionCommand: String?
     var isSelectionEnabled = true {
@@ -59,7 +66,7 @@ final class CanvasView: NSView {
     var zoomTool = false
     private var pointerTracking: NSTrackingArea?
     var movesLayer = false
-    var isEditingEnabled = true { didSet { if !isEditingEnabled { if !brushInput.running {brushInput.cancel()};if !paintInput.running {paintInput.cancel()};if !cropInput.running{cropInput.cancel()};if !straightenInput.running{straightenInput.cancel()};if !transformInput.running{transformInput.cancel()} } } }
+    var isEditingEnabled = true { didSet { if !isEditingEnabled { if !brushInput.running {brushInput.cancel()};if !paintInput.running {paintInput.cancel()};if !cropInput.running{cropInput.cancel()};if !straightenInput.running{straightenInput.cancel()};if !transformInput.running{transformInput.cancel()};textStart=nil;textRectangle=nil;drawTextGuide() } } }
     var reportNextRestoredFrame = false
     var activeLayer: EditorSnapshot.Layer?
     private var layerDrag: (point: NSPoint, x: Int64, y: Int64, zoom: CGFloat)?
@@ -112,6 +119,7 @@ final class CanvasView: NSView {
         transformInput.onRunning={[weak self]running in self?.onBrushRunning?(running)}
         transformInput.onCommitted={[weak self]in self?.markDirty();self?.onCommitted?()}
         transformInput.onError={[weak self]error in self?.onError?(error)}
+        textGuide.fillColor=nil;textGuide.strokeColor=NSColor.systemBlue.cgColor;textGuide.lineWidth=1;textGuide.lineDashPattern=[4,3];layer?.addSublayer(textGuide)
         selectionInput.onChanged = { [weak self] in self?.drawMarqueePreview() }
         selectionInput.onRunning = { [weak self] running in self?.onSelectionRunning?(running) }
         selectionInput.onCommitted = { [weak self] in self?.markDirty(); self?.onCommitted?() }
@@ -174,6 +182,7 @@ final class CanvasView: NSView {
         cropInput.cancel()
         straightenInput.cancel()
         transformInput.cancel()
+        textStart=nil;textRectangle=nil;textGuide.path=nil
         selectionAnts.removeAllAnimations()
         benchmark?.cancel(BenchmarkFailure("Canvas detached before benchmark completed"))
         frameLink?.invalidate()
@@ -296,6 +305,7 @@ final class CanvasView: NSView {
         drawCropPreview()
         drawStraightenGuide()
         drawTransformPreview()
+        drawTextGuide()
     }
     func setSelectionOutline(_ edges: [SelectionEdge]) {
         selectionEdges = edges
@@ -362,6 +372,31 @@ final class CanvasView: NSView {
         if enabled && !transformTool{cancelLayerDrag()}
         transformTool=enabled
         transformInput.configure(enabled:enabled,mode:model.canvasTransformMode,scope:model.canvasTransformScope,interpolation:model.canvasTransformInterpolation)
+    }
+    func configureText(_ model:WorkspaceModel){
+        if let state=model.snapshot{
+            let control=state.control?.kind ?? "user"
+            if textContext?.document != state.documentId || textContext?.revision != state.revision || textContext?.layer != state.activeLayer || textContext?.control != control{textStart=nil;textRectangle=nil;drawTextGuide()}
+            textContext=(state.documentId,state.revision,state.activeLayer,control)
+        }
+        let paragraph=model.textEditing?.layout=="paragraph"
+        if paragraph != textParagraph{textStart=nil;textRectangle=nil;drawTextGuide()}
+        textTool=model.tool == .text;textParagraph=paragraph
+        if !textTool{textStart=nil;textRectangle=nil;drawTextGuide()}
+    }
+    func beginTextPlacement(_ point:NSPoint){guard textTool,isEditingEnabled,[point.x,point.y].allSatisfy({$0.isFinite&&abs($0)<=1e12})else{return};textStart=point;textRectangle=nil}
+    func updateTextPlacement(_ end:NSPoint){guard textTool,isEditingEnabled,textParagraph,let start=textStart,[end.x,end.y].allSatisfy({$0.isFinite&&abs($0)<=1e12})else{return};textRectangle=CGRect(x:min(start.x,end.x),y:min(start.y,end.y),width:abs(end.x-start.x),height:abs(end.y-start.y));drawTextGuide()}
+    func endTextPlacement(_ end:NSPoint){
+        defer{textStart=nil;textRectangle=nil;drawTextGuide()}
+        guard textTool,isEditingEnabled,let start=textStart,[end.x,end.y].allSatisfy({$0.isFinite&&abs($0)<=1e12})else{return}
+        if textParagraph{let rect=CGRect(x:min(start.x,end.x),y:min(start.y,end.y),width:abs(end.x-start.x),height:abs(end.y-start.y));if rect.width>=1,rect.height>=1{onTextPlacement?(rect.origin,rect)}}else{onTextPlacement?(start,nil)}
+    }
+    private func drawTextGuide(){
+        CATransaction.begin();CATransaction.setDisableActions(true);defer{CATransaction.commit()}
+        guard let rect=textRectangle,let frame=engine.artboardOverlay()else{textGuide.path=nil;return}
+        let zoom=CGFloat(engine.canvasZoom())/scale
+        var transform=CGAffineTransform(a:zoom,b:0,c:0,d:zoom,tx:CGFloat(frame.x)/scale-documentOrigin.x*zoom,ty:CGFloat(frame.y)/scale-documentOrigin.y*zoom)
+        textGuide.path=CGPath(rect:rect,transform:nil).copy(using:&transform)
     }
     func configureCrop(_ model:WorkspaceModel){
         let enabled=model.tool == .crop
@@ -462,6 +497,7 @@ final class CanvasView: NSView {
         guard !isWorkBusy else { return }
         benchmark?.cancel(BenchmarkFailure("User input interrupted benchmark"))
         window?.makeFirstResponder(self)
+        if textTool{if let point=documentPoint(convert(event.locationInWindow,from:nil)){beginTextPlacement(point)};return}
         if transformTool{guard isEditingEnabled,let point=documentPoint(convert(event.locationInWindow,from:nil))else{return};let zoom=CGFloat(engine.canvasZoom())/scale;transformInput.down(point,hitTolerance:8/max(zoom,0.0001),modifiers:event.modifierFlags);return}
         if straightenTool{guard isEditingEnabled,let point=documentPoint(convert(event.locationInWindow,from:nil))else{return};straightenInput.down(point);return}
         if cropTool{guard isEditingEnabled,let point=documentPoint(convert(event.locationInWindow,from:nil))else{return};let zoom=CGFloat(engine.canvasZoom())/scale;cropInput.down(point,hitTolerance:8/max(zoom,0.0001));return}
@@ -489,6 +525,7 @@ final class CanvasView: NSView {
 
     override func mouseDragged(with event: NSEvent) {
         let point = convert(event.locationInWindow, from: nil)
+        if textTool{if let end=documentPoint(point){updateTextPlacement(end)};return}
         if transformTool{if let document=documentPoint(point){transformInput.drag(document,modifiers:event.modifierFlags)};return}
         if straightenTool{if let document=documentPoint(point){straightenInput.drag(document)};return}
         if cropTool{if let document=documentPoint(point){cropInput.drag(document)};return}
@@ -513,6 +550,7 @@ final class CanvasView: NSView {
     }
 
     override func mouseUp(with event: NSEvent) {
+        if textTool{if let end=documentPoint(convert(event.locationInWindow,from:nil)){endTextPlacement(end)}else{textStart=nil;textRectangle=nil;drawTextGuide()};return}
         if transformTool{if let point=documentPoint(convert(event.locationInWindow,from:nil)){transformInput.up(point,modifiers:event.modifierFlags)};return}
         if straightenTool{if let point=documentPoint(convert(event.locationInWindow,from:nil)){straightenInput.up(point)};return}
         if cropTool{if let point=documentPoint(convert(event.locationInWindow,from:nil)){cropInput.up(point)};return}
@@ -528,7 +566,7 @@ final class CanvasView: NSView {
         catch { onError?(error) }
     }
     override func keyDown(with event: NSEvent) {
-        if event.keyCode == 53 { cancelLayerDrag(); cancelMarquee(); brushInput.cancel();paintInput.cancel();cropInput.cancel();straightenInput.cancel();transformInput.cancel() }
+        if event.keyCode == 53 { cancelLayerDrag(); cancelMarquee(); brushInput.cancel();paintInput.cancel();cropInput.cancel();straightenInput.cancel();transformInput.cancel();textStart=nil;textRectangle=nil;drawTextGuide() }
         else if event.keyCode == 36,transformInput.confirm(){return}
         else if event.keyCode == 36,straightenInput.confirm(){return}
         else if event.keyCode == 36,cropInput.confirm(){return}

@@ -33,6 +33,15 @@ pub(super) fn mutate(
     }
     check(cancel)?;
     let p: OrientImage = parse(params)?;
+    if doc
+        .layers
+        .iter()
+        .any(|l| matches!(l.info().kind, LayerKind::Text { .. }))
+    {
+        return Err(invalid(
+            "editable text orientation is not yet supported; rasterize it explicitly before image orientation",
+        ));
+    }
     if doc.layers.iter().any(|l| {
         let lock = l.info().locks;
         lock.all || lock.pixels || lock.position || lock.transparency
@@ -100,6 +109,7 @@ pub(super) fn mutate(
         // Exhaustive on purpose: a new editable layer kind must explicitly
         // implement orientation instead of silently keeping its old payload.
         let has_pixels = match &info.kind {
+            LayerKind::Text { .. } => unreachable!("text rejected before orientation work"),
             LayerKind::Pixel => true,
             LayerKind::Group
             | LayerKind::Solid { .. }

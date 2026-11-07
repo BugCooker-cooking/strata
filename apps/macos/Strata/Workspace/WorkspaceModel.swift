@@ -38,7 +38,7 @@ enum EditorTool: String, CaseIterable, Identifiable {
     var title: String { Self.info[self]!.0 }
     var symbol: String { Self.info[self]!.1 }
     var key: String { Self.info[self]!.2 }
-    var available: Bool { [.move, .freeTransform, .marquee, .lasso, .selection, .subject, .crop, .brush, .eraser, .clone, .heal, .dodge, .bucket, .gradient, .eyedropper, .hand, .zoom].contains(self) }
+    var available: Bool { [.move, .freeTransform, .text, .marquee, .lasso, .selection, .subject, .crop, .brush, .eraser, .clone, .heal, .dodge, .bucket, .gradient, .eyedropper, .hand, .zoom].contains(self) }
     var isPaint: Bool { isBrush || [.bucket,.gradient].contains(self) }
     var isBrush: Bool { [.brush,.eraser,.clone,.heal,.dodge].contains(self) }
     var isSelection: Bool { [.marquee, .lasso, .selection].contains(self) }
@@ -85,6 +85,7 @@ final class WorkspaceModel: ObservableObject {
     @Published var cropInput:CanvasCropInput?
     @Published var straightenInput:CanvasStraightenInput?
     @Published var transformInput:CanvasTransformInput?
+    @Published var textEditing:TextEditingModel?
     @Published var canvasTransformMode="scale"
     @Published var canvasTransformScope="whole_layer"
     @Published var canvasTransformInterpolation="bilinear"
@@ -179,7 +180,7 @@ final class WorkspaceModel: ObservableObject {
     var canRedo: Bool { permissions.history && (snapshot?.historyCursor ?? 0) < (snapshot?.history.count ?? 0) }
     func send(_ action: WorkspaceAction) { self.action?(action) }
     func selectTool(_ tool: EditorTool) {
-        guard !busy, tool.available, ![EditorTool.move,.freeTransform,.crop].contains(tool) || permissions.edits, !tool.isPaint || permissions.edits, !tool.isSelection || permissions.selectionEdits else { return }
+        guard !busy, tool.available, ![EditorTool.move,.freeTransform,.crop,.text].contains(tool) || permissions.edits, !tool.isPaint || permissions.edits, !tool.isSelection || permissions.selectionEdits else { return }
         if tool == .subject { if permissions.edits { send(.selectSubject) }; return }
         self.tool = tool; send(.tool(tool))
     }
@@ -197,6 +198,7 @@ final class WorkspaceModel: ObservableObject {
 }
 
 enum WorkspaceAction {
+    case configureText
     case configureCanvasTransform
     case alignSelected(String),distributeSelected(String)
     case groupSelected
@@ -226,6 +228,7 @@ func commandTitle(_ command: String) -> String {
     commandTitles[command] ?? command
 }
 private let commandTitles: [String: String] = [
+     "type.create":"新建可编辑文字","type.update":"编辑文字",
      "filter.gaussian_blur":"高斯模糊", "filter.unsharp_mask":"USM 锐化", "filter.high_pass":"高反差保留", "filter.add_noise":"添加杂色", "image.auto":"自动色调 / 对比度 / 颜色", "transform.apply":"像素自由变换", "image.canvas_size":"画布大小", "image.crop":"矩形裁剪", "image.reveal_all":"显示全部可见图层内容", "image.orient":"图像旋转与翻转", "image.trim":"裁去透明边", "image.rotate":"整图任意角度旋转", "image.resize":"图像大小与重采样", "image.straighten":"拉直图像与自动裁剪", "image.convert_bit_depth":"转换文档位深",
      "layer.create": "新建图层", "layer.duplicate": "复制图层", "layer.delete": "删除图层", "layer.rename": "重命名图层",
      "layer.set_position": "移动图层", "layer.set_visibility": "图层显隐", "layer.set_opacity": "调整不透明度",

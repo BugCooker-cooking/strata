@@ -1117,12 +1117,23 @@ impl Editor {
                     if !self.clipboard_write_confirmed(&request, &p.resource)? {
                         return Err(CommandError::Permission);
                     }
-                } else if id != "paint.sample_color" && id != "layer.pixel_bounds" {
+                } else if id != "paint.sample_color"
+                    && id != "layer.pixel_bounds"
+                    && id != "type.inspect"
+                {
                     let _: Empty = parse(params.clone())?;
                 }
                 (
                     Action::Query,
-                    if id == "paint.colors.get" {
+                    if id == "type.fonts" {
+                        super::typography::fonts()
+                    } else if id == "type.inspect" {
+                        let p: Target = parse(params.clone())?;
+                        super::typography::inspect(
+                            self.document().ok_or(CommandError::NoDocument)?,
+                            &p.layer,
+                        )?
+                    } else if id == "paint.colors.get" {
                         json!(self.paint_colors)
                     } else if id == "paint.colors.describe" {
                         json!(super::color_components::describe(&self.paint_colors))
@@ -1229,6 +1240,17 @@ impl Editor {
                     (
                         Action::Edit,
                         json!({"selection":doc.selection().map(strata_pixels::TiledMask::layout),"diagnostics":result.diagnostics}),
+                    )
+                } else if let Some(result) =
+                    super::typography::mutate(doc, id, params.clone(), &|| request.expired())?
+                {
+                    (
+                        if result["changed"] == false {
+                            Action::Query
+                        } else {
+                            Action::Edit
+                        },
+                        result,
                     )
                 } else if let Some(result) =
                     super::selection::mutate_cancellable(doc, id, params.clone(), &|| {
@@ -1625,7 +1647,7 @@ impl Editor {
             || (prepared.command == "filter.high_pass" && prepared.result["touched_tiles"] == 0)
             || matches!(
                 prepared.command.as_str(),
-                "paint.colors.get" | "paint.colors.describe"
+                "paint.colors.get" | "paint.colors.describe" | "type.fonts" | "type.inspect"
             )
             || (matches!(
                 prepared.command.as_str(),
@@ -1636,6 +1658,7 @@ impl Editor {
                     | "image.convert_bit_depth"
                     | "image.auto"
                     | "transform.apply"
+                    | "type.update"
             ) && prepared.result["changed"] == false);
         match prepared.action {
             Action::PaintColors(colors) => {

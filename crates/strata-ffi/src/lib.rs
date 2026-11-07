@@ -18,6 +18,7 @@ mod filter_preview;
 mod local;
 mod subject;
 mod tonal_preview;
+mod typography;
 pub use clipboard::ClipboardTransfer;
 pub use local::SelectionEdge;
 mod thumbnails;

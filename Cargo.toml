@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/strata-core", "crates/strata-pixels", "crates/strata-color", "crates/strata-io", "crates/strata-platform", "crates/strata-render", "crates/strata-ffi", "crates/strata-ai", "crates/strata-ml", "tools/uniffi-bindgen", "tools/strata-devtool"]
+members = ["crates/strata-core", "crates/strata-pixels", "crates/strata-color", "crates/strata-io", "crates/strata-platform", "crates/strata-render", "crates/strata-ffi", "crates/strata-ai", "crates/strata-ml", "crates/strata-text", "tools/uniffi-bindgen", "tools/strata-devtool"]
 
 [workspace.package]
 version = "0.0.1"
@@ -24,6 +24,7 @@ strata-render = { path = "crates/strata-render" }
 strata-platform = { path = "crates/strata-platform" }
 strata-ai = { path = "crates/strata-ai" }
 strata-ml = { path = "crates/strata-ml" }
+strata-text = { path = "crates/strata-text" }
 uniffi = "0.32.2"
 wgpu = "30.0.1"
 lcms2 = { version = "6.2.0", features = ["static"] }
@@ -33,7 +34,7 @@ bytemuck = { version = "1", features = ["derive"] }
 half = { version = "2", features = ["bytemuck"] }
 thiserror = "2"
 tempfile = "3"
-serde = { version = "1.0.229", features = ["derive"] }
+serde = { version = "1.0.229", features = ["derive", "rc"] }
 serde_json = "1.0.154"
 schemars = { version = "1.2.3", features = ["uuid1"] }
 uuid = { version = "1.29.0", features = ["v4", "serde"] }

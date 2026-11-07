@@ -315,6 +315,130 @@ fn filter_prompts_discover_describe_invoke_real_edits_and_undo_the_ai_turn() {
 }
 
 #[test]
+fn editable_text_is_discovered_created_updated_and_turn_undone_without_font_paths() {
+    for layout in [
+        json!({"type":"point"}),
+        json!({"type":"paragraph","width":90,"height":60}),
+    ] {
+        let host = Host::new();
+        let before = host
+            .editor
+            .lock()
+            .unwrap()
+            .document()
+            .unwrap()
+            .to_archive()
+            .unwrap();
+        let initial = host.snapshot().unwrap();
+        let mut session = host.session_with_prompt(
+            ExecutionMode::Direct,
+            "使用内置字体创建中文文字层，再改为衬线字体和新内容，保留可编辑源且整轮可撤销。",
+        );
+        reply(
+            &mut session,
+            &host,
+            vec![
+                call("search", "search_catalog", json!({"query":"文字"})),
+                call(
+                    "describe",
+                    "describe_commands",
+                    json!({"ids":["type.fonts","type.create","type.inspect","type.update"]}),
+                ),
+                invoke("fonts", "type.fonts", json!({})),
+            ],
+        );
+        assert!(
+            result(session.poll(&host).unwrap())["matches"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|m| m["id"] == "type.create")
+        );
+        let description = result(session.poll(&host).unwrap());
+        assert!(
+            description["commands"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .all(|x| x["params"]["additionalProperties"] == false
+                    && x["returns"]["additionalProperties"] == false)
+        );
+        let fonts = result(session.poll(&host).unwrap())["result"].clone();
+        assert_eq!(fonts["system_fonts_exposed"], false);
+        assert_eq!(fonts["fonts"].as_array().unwrap().len(), 3);
+        let spec = json!({"text":"AI 中文","font":"sans","font_size":24,"layout":layout});
+        reply(
+            &mut session,
+            &host,
+            vec![invoke(
+                "newtype",
+                "type.create",
+                json!({"name":"AI Type","spec":spec,"color":[0.2,0.4,0.8,0.7],"x":1,"y":26}),
+            )],
+        );
+        let created = result(session.poll(&host).unwrap())["result"].clone();
+        assert_eq!(created["changed"], true);
+        assert_eq!(created["definition"]["spec"]["text"], "AI 中文");
+        let id = created["layer_id"].clone();
+        reply(
+            &mut session,
+            &host,
+            vec![invoke(
+                "readtype",
+                "type.inspect",
+                json!({"layer":{"id":id}}),
+            )],
+        );
+        let inspected = result(session.poll(&host).unwrap())["result"].clone();
+        assert_eq!(inspected["definition"], created["definition"]);
+        let mut changed = spec;
+        changed["text"] = json!("重新编辑");
+        changed["font"] = json!("serif");
+        changed["tracking"] = json!(1);
+        reply(
+            &mut session,
+            &host,
+            vec![invoke(
+                "edittype",
+                "type.update",
+                json!({"layer":{"id":id},"spec":changed,"color":[0.8,0.2,0.1,1]}),
+            )],
+        );
+        let edited = result(session.poll(&host).unwrap())["result"].clone();
+        assert_eq!(edited["changed"], true);
+        assert_eq!(edited["definition"]["spec"]["text"], "重新编辑");
+        assert_eq!(
+            host.snapshot().unwrap().history.len(),
+            initial.history.len() + 2
+        );
+        assert!(
+            host.editor
+                .lock()
+                .unwrap()
+                .document()
+                .unwrap()
+                .to_archive()
+                .unwrap()
+                .tiles
+                != before.tiles
+        );
+        host.editor.lock().unwrap().stop_turn();
+        host.user("edit.undo_turn", json!({"turn_id":session.turn_id()}));
+        assert!(
+            host.editor
+                .lock()
+                .unwrap()
+                .document()
+                .unwrap()
+                .to_archive()
+                .unwrap()
+                == before,
+            "AI type turn undo changed archive"
+        );
+    }
+}
+
+#[test]
 fn canvas_handle_corner_payloads_use_real_ai_transform_approval_and_undo() {
     for (name, destination) in [
         ("缩放", json!([[0, 0], [12, 0], [12, 4], [0, 4]])),

@@ -50,6 +50,9 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         workspace.straightenInput=canvas.straightenInput
         workspace.transformInput=canvas.transformInput
         workspace.colorPanel=ColorPanelModel(engine:engine)
+        let text=TextEditingModel(engine:engine);workspace.textEditing=text
+        text.onRunning={[weak self]running in guard let self else{return};if running{self.window?.makeFirstResponder(self.canvas)};self.busy=running}
+        text.onCommitted={[weak self]in self?.canvas.markDirty();self?.refresh()}
         preview.onStarting = {[weak self]in self?.workspace.cropInput?.cancel();self?.workspace.straightenInput?.cancel();self?.workspace.transformInput?.cancel()}
         preview.onBusy = { [weak self] running in guard let self else { return }; self.canvas.isWorkBusy = self.busy || running }
         preview.onApplying = { [weak self] applying in self?.busy = applying }
@@ -110,6 +113,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
             self.canvas.configurePaint(self.workspace)
         }
         canvas.onCloneSource = {[weak self] point in guard let self else{return};self.workspace.cloneSource=[Double(point.x),Double(point.y)];self.canvas.configureBrush(self.workspace)}
+        canvas.onTextPlacement={[weak self]point,rect in guard let self else{return};self.workspace.textEditing?.newText(at:point,rect:rect);self.workspace.inspector = .properties}
         canvas.onToolKey = { [weak self] key in
             if key == "X", let self { self.workspace.swapPaintColors(); return true }
             if key == "D", let self { if self.workspace.permissions.edits{self.workspace.send(.command("paint.colors.reset",[:]))}; return true }
@@ -230,10 +234,12 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         case .blend(let value): layerCommand("layer.set_blend_mode", ["blend_mode": value])
         case .position(let x, let y): layerCommand("layer.set_position", ["x": x, "y": y])
         case .tool(let tool):
-            workspace.tonalPreview?.cancel();canvas.movesLayer=tool == .move;canvas.zoomTool=tool == .zoom;canvas.configureSelection(workspace);canvas.configureBrush(workspace);canvas.configurePaint(workspace);canvas.configureCrop(workspace);canvas.configureTransform(workspace)
+            workspace.tonalPreview?.cancel();canvas.movesLayer=tool == .move;canvas.zoomTool=tool == .zoom;canvas.configureSelection(workspace);canvas.configureBrush(workspace);canvas.configurePaint(workspace);canvas.configureCrop(workspace);canvas.configureTransform(workspace);canvas.configureText(workspace)
             if tool == .freeTransform{workspace.inspector = .transform;if !canvas.transformInput.hasDraft && !canvas.transformInput.running{canvas.transformInput.start()}}
+            if tool == .text{workspace.inspector = .properties;if workspace.textEditing?.creating==true{workspace.textEditing?.newText()}}
             window?.makeFirstResponder(canvas)
         case .configureCanvasTransform:canvas.configureTransform(workspace)
+        case .configureText:canvas.configureText(workspace)
         case .assistant: toggleAssistant()
         case .panels: togglePanels()
         case .theme(let theme): onTheme?(theme)
@@ -266,6 +272,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         workspace.cropInput?.bind(snapshot)
         workspace.straightenInput?.bind(snapshot)
         workspace.transformInput?.bind(snapshot)
+        workspace.textEditing?.bind(snapshot)
         if let space=NSColorSpace(iccProfileData:Data(engine.workingProfileIcc())){workspace.workingColorSpace=space}
         if let colors=snapshot.paintColors{workspace.installPaintColors(colors)}
         workspace.colorPanel?.bind(snapshot)
@@ -276,6 +283,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         canvas.configurePaint(workspace)
         canvas.configureCrop(workspace)
         canvas.configureTransform(workspace)
+        canvas.configureText(workspace)
         recovery?.observe(snapshot)
         if let path = engine.projectPath() { documentURL = URL(fileURLWithPath: path); fileName = documentURL!.lastPathComponent }
         workspace.fileName = fileName; window?.title = "\(fileName) — Strata"

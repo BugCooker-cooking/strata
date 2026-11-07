@@ -48,6 +48,42 @@ fn build_catalog() -> Vec<CommandSpec> {
         }}
     }
     command!(
+        "type.fonts",
+        Empty,
+        Query,
+        "读取内置字体",
+        "List bundled fonts",
+        "List the three fixed, licensed bundled font families sans(Noto Sans), serif(Noto Serif) and cjk(Noto Sans CJK SC), their font hashes and typography version. No host system paths/fonts/credentials are exposed or scanned. Latin families use the same fixed CJK fallback; files/OS font import and additional scripts remain separate future work. Query does not change any document/tool/history/current-layer state and can run without a document. 中文：字体列表、内置字体、字族、Noto Sans、Noto Serif、中文字体、可用字体。",
+        json!({})
+    );
+    command!(
+        "type.create",
+        CreateText,
+        Mutate,
+        "新建可编辑文字",
+        "Create editable text",
+        "Create a real editable horizontal point/paragraph text layer, retaining Unicode source and complete uniform style. name and spec required; spec.text <=65536 UTF8 bytes/16384 characters, font=sans(default)/serif/cjk, font_size1..2048 canvas px(default32), line_height.5..10 em(default1.2), tracking -256..2048px(default0, also at least -font_size/2), align left/center/right/justified(defaultleft), layout.type=point or paragraph with integer width/height1..100000. Point x/y is the first-line baseline anchor (center/right alignment offsets each line from x); paragraph x/y is its top-left and ink clips to its width/height while full overflow source is retained. Fixed-version bundled OFL fonts, advanced portable Rust shaping/bidi/word-or-glyph CJK wrapping and grayscale glyph coverage; no system font lookup, no display screenshots. Missing glyphs reject rather than silently replacing with tofu; color emoji, vertical/path/rich-span type and arbitrary font import remain unsupported. color is normalized straight encoded document working RGBA0..1, quantized once to document8/16-bit codes; glyph alpha coverage is8-bit expanded to u16 with exact integer source-over for overlaps. Current selection does not cut text. Layer/group masks, blend/clipping/fill-opacity and editable styles use the same compositor as pixel layers. Font parse/shaping/glyph visits/ink bounds/tiles reserve shared memory,32M pixel/glyph visits, row/glyph cancellation; one atomic history and exact undo/project/recovery. x/y integer canvas positions within +/-1e12. Native text editing and AI share this implementation. 中文：文字、文字工具、点文字、段落文字、创建中文文字层、可编辑文本、字体字号、行距、字距、左中右对齐、中文换行；原文和样式保留，图层可单步撤销。",
+        json!({"name":"Title","spec":{"text":"Strata 中文","font":"sans","font_size":24,"layout":{"type":"point"}},"color":[0.2,0.4,0.8,1],"x":2,"y":30})
+    );
+    command!(
+        "type.update",
+        UpdateText,
+        Mutate,
+        "修改可编辑文字",
+        "Update editable text",
+        "Replace the complete text spec and normalized working RGBA color of an explicit editable text layer through the same portable shaper/raster/compositor as type.create. Use type.inspect first, preserve its original text/style fields you are not changing, and supply full spec; input never takes a system font path or image snapshot. Preserve layer ID/name/position/visibility/opacity/blend/clipping/parent/styles and u16 mask/selection. Destructive-crop local support remains permanent for later edits, preventing discarded text ink from regrowing; source text stays editable. Pixel/transparency/all or ancestor locks reject; position-only locks allow editing. Identical validated spec and final color codes return changed=false without history/revision/dirty/current-layer change; otherwise publish once with exact undo. Same text length/font/glyph/memory/cancellation limits as creation. Rendering cache is derived from retained source/style at document depth, not an editable screenshot. Native and AI use the same command. 中文：编辑文字、修改文本、替换文字内容、字体、字号、文字颜色、行距、字距、对齐、段落宽高、文字属性；参数完整替换，一次撤销。",
+        json!({"layer":{"name":"Title"},"spec":{"text":"Edited 中文","font":"serif","font_size":20,"line_height":1.4,"tracking":0.5,"align":"center","layout":{"type":"paragraph","width":140,"height":70}},"color":[0.8,0.2,0.1,0.7]})
+    );
+    command!(
+        "type.inspect",
+        Target,
+        Query,
+        "读取文字源和排版",
+        "Inspect editable text",
+        "Read source Unicode, full uniform type spec, pinned typography version and encoded8/16-bit working RGBA codes from an explicit visible editable text layer with visible ancestors; metrics is null on this lightweight query. Use the document bit depth to normalize definition.color codes before sending type.update (divide by255 or65535). It never shapes, rasterizes, grants font/file resources or changes selection/history/revision/current layer. Missing/nontext/hidden targets reject. 中文：读取文字、文字内容、文字排版、字体属性、可编辑文本源、段落参数。",
+        json!({"layer":{"name":"Title"}})
+    );
+    command!(
         "file.new",
         NewDocument,
         Lifecycle,
@@ -1149,6 +1185,8 @@ fn build_catalog() -> Vec<CommandSpec> {
     );
     for item in &mut list {
         item.returns = match item.id {
+            "type.fonts" => schemars::schema_for!(FontsResult),
+            "type.create" | "type.update" | "type.inspect" => schemars::schema_for!(TextResult),
             "image.auto" => schemars::schema_for!(AutoCorrectionResult),
             "image.rotate" => schemars::schema_for!(RotateImageResult),
             "image.resize" => schemars::schema_for!(ResizeImageResult),
@@ -1281,6 +1319,7 @@ fn build_catalog() -> Vec<CommandSpec> {
         if item.id == "document.batch"
             || item.id == "file.place"
             || item.id.starts_with("filter.")
+            || item.id.starts_with("type.")
             || matches!(
                 item.id,
                 "transform.apply"
@@ -1300,6 +1339,13 @@ fn build_catalog() -> Vec<CommandSpec> {
             } else {
                 vec!["tool.colors.write"]
             };
+        }
+        if item.id == "type.fonts" {
+            item.effects = vec!["font.catalog.read"];
+            item.permissions = vec!["bound_editor"];
+        }
+        if item.id == "type.create" {
+            item.examples.push(json!({"name":"Paragraph","spec":{"text":"中文段落与Latin words\n保留文字源和换行","font":"cjk","font_size":18,"line_height":1.3,"tracking":0,"align":"right","layout":{"type":"paragraph","width":120,"height":80}},"color":[0.3,0.5,0.7,1],"x":1,"y":1}));
         }
         if item.id == "paint.colors.set_components" {
             for color in [

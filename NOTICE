@@ -1,2 +1,10 @@
 Strata
 Copyright 2026 The Strata Authors
+
+Bundled fonts: Noto Sans, Noto Serif, and Noto Sans CJK SC.
+Copyright 2015-2021 Google LLC; © 2014-2021 Adobe; The Noto Project Authors.
+Original font copyright name records are retained in the binaries. Font binaries are distributed under the
+SIL Open Font License 1.1, separate from Strata's Apache-2.0 license.
+Original notices, license texts, pinned sources and SHA256 checksums are in
+crates/strata-text/assets/fonts/ and copied into the macOS application's
+Resources (LICENSE-Noto-Latin.txt, LICENSE-Noto-CJK.txt, SOURCES.md).

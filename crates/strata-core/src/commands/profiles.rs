@@ -69,6 +69,7 @@ pub(super) fn mutate(
                 })
             };
             match &mut layer.info.kind {
+                crate::LayerKind::Text { text } => text.color = convert_sample(text.color)?,
                 crate::LayerKind::Solid { color } => *color = convert_sample(*color)?,
                 crate::LayerKind::Gradient { start, end, .. } => {
                     *start = convert_sample(*start)?;

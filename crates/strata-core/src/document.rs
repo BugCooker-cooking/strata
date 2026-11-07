@@ -274,6 +274,18 @@ impl Document {
         }
     }
     pub(crate) fn validate(&self) -> Result<(), DocumentError> {
+        if self
+            .layers
+            .iter()
+            .map(|l| match &l.info.kind {
+                crate::LayerKind::Text { text } => text.spec.text.len(),
+                _ => 0,
+            })
+            .sum::<usize>()
+            > 262144
+        {
+            return Err(DocumentError::ResourceLimit);
+        }
         if !(1..=2400).contains(&self.resolution_dpi)
             || self.preset.as_ref().is_some_and(|p| p.len() > 64)
         {
@@ -331,7 +343,9 @@ impl Document {
                     ));
                 }
             }
-            if let Some(crop) = &info.generated_crop {
+            if let Some(crop) = &info.generated_crop
+                && !matches!(info.kind, crate::LayerKind::Text { .. })
+            {
                 if !matches!(
                     info.kind,
                     crate::LayerKind::Solid { .. } | crate::LayerKind::Gradient { .. }
@@ -354,6 +368,11 @@ impl Document {
                         ));
                     }
                 }
+            }
+            if matches!(info.kind, crate::LayerKind::Text { .. })
+                && let Some(bounds) = info.generated_crop.as_ref().and_then(|c| c.bounds)
+            {
+                bounds.validate()?;
             }
             if info.clipped {
                 let base = self
@@ -383,7 +402,11 @@ impl Document {
                     "groups cannot have pixel blocks".into(),
                 ));
             }
-            if !matches!(info.kind, crate::LayerKind::Pixel) && layer.pixels.tile_count() != 0 {
+            if !matches!(
+                info.kind,
+                crate::LayerKind::Pixel | crate::LayerKind::Text { .. }
+            ) && layer.pixels.tile_count() != 0
+            {
                 return Err(DocumentError::Invalid(
                     "generated or adjustment layer cannot own source pixels".into(),
                 ));
@@ -392,6 +415,7 @@ impl Document {
                 self.format != PixelFormat::Rgba8 || color.iter().all(|c| *c <= 255)
             };
             match &info.kind {
+                crate::LayerKind::Text { text } => text.validate(self.format)?,
                 crate::LayerKind::Adjustment { adjustment } => adjustment.validate()?,
                 crate::LayerKind::Solid { color } if !colors_valid(color) => {
                     return Err(DocumentError::Invalid(

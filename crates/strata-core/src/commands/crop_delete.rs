@@ -44,6 +44,7 @@ pub(super) fn apply(
         // New editable kinds must define their finite destructive-crop policy.
         match &info.kind {
             LayerKind::Pixel
+            | LayerKind::Text { .. }
             | LayerKind::Group
             | LayerKind::Solid { .. }
             | LayerKind::Gradient { .. }
@@ -141,6 +142,13 @@ pub(super) fn apply(
                     b
                 });
             doc.layers[index].info.generated_crop = Some(GeneratedCrop { bounds: crop });
+        }
+        if matches!(info.kind, LayerKind::Text { .. }) {
+            let bounds = match &info.generated_crop {
+                None => Some(local),
+                Some(c) => c.bounds.and_then(|b| intersection(b, local)),
+            };
+            doc.layers[index].info.generated_crop = Some(GeneratedCrop { bounds });
         }
     }
     check(cancel)

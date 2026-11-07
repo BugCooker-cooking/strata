@@ -1935,6 +1935,114 @@
           ]
         }
       ]
+    },
+    "PS-11-4490121dad": {
+      "scope": "editing",
+      "coverage": "partial",
+      "commands": [
+        "type.fonts",
+        "type.create",
+        "type.update",
+        "type.inspect"
+      ],
+      "prompts": [
+        {
+          "text": "在指定位置新建可编辑中文点文字，使用内置sans字体，保留原文和一次撤销。",
+          "query": "点文字",
+          "command": "type.create"
+        },
+        {
+          "text": "Create editable paragraph text with integer width120 height80, CJK wrapping, then inspect and update its Unicode source.",
+          "query": "Create editable text",
+          "command": "type.create"
+        },
+        {
+          "text": "先读取可见文字层的原文和全部排版，再修改内容，保留未改属性。",
+          "query": "读取文字",
+          "command": "type.inspect"
+        }
+      ],
+      "variants": [
+        {
+          "command": "type.create",
+          "path": "spec.layout.type",
+          "values": [
+            "point",
+            "paragraph"
+          ]
+        }
+      ],
+      "note": "Real retained-source point/paragraph layout and deterministic bundled CJK glyphs; shared native/AI core. Native T placement/edit panel is wired, acceptance still in progress. Canvas insertion cursor/rich spans and all font imports remain open; mapping is partial, not a placeholder endpoint."
+    },
+    "PS-11-a524877cb6": {
+      "scope": "editing",
+      "coverage": "partial",
+      "commands": [
+        "type.fonts",
+        "type.create",
+        "type.update",
+        "type.inspect"
+      ],
+      "prompts": [
+        {
+          "text": "列出内置字体及版本，不读取系统字体路径。",
+          "query": "字体列表",
+          "command": "type.fonts"
+        },
+        {
+          "text": "把当前可见文字层改为衬线字体、24像素字号、1.4em行距和1像素字距，使用指定工作RGB颜色并居中。",
+          "query": "修改文本",
+          "command": "type.update"
+        },
+        {
+          "text": "Inspect editable text and use the full source/style to change paragraph alignment and box size.",
+          "query": "Inspect editable text",
+          "command": "type.inspect"
+        }
+      ],
+      "variants": [
+        {
+          "command": "type.create",
+          "path": "spec.font",
+          "values": [
+            "sans",
+            "serif",
+            "cjk"
+          ]
+        },
+        {
+          "command": "type.create",
+          "path": "spec.align",
+          "values": [
+            "left",
+            "center",
+            "right",
+            "justified"
+          ]
+        }
+      ],
+      "note": "Three pinned licensed built-in fonts, uniform font/size/straight working RGBA/line-height/tracking/alignment/paragraph box. No host path exposed. System/arbitrary font importing, rich character-span styles and typography beyond this implementation remain open; acceptance currently in progress."
+    },
+    "PS-11-cf9b897491": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "layer.rasterize",
+        "type.inspect"
+      ],
+      "prompts": [
+        {
+          "text": "把当前可编辑文字层显式栅格化，保留显示样式，允许一次撤销恢复原文与排版。",
+          "query": "栅格化",
+          "command": "layer.rasterize"
+        },
+        {
+          "text": "Read the editable text source before explicit rasterization; undo restores editable type.",
+          "query": "Inspect editable text",
+          "command": "type.inspect"
+        }
+      ],
+      "note": "Existing real layer.rasterize handles the actual text glyph source through the same compositor/masks/styles; core save/recovery/rasterize/undo checks passed. Native/Metal/App Release/manual acceptance is still pending and not inferred from this mapping."
     }
   }
 }

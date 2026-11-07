@@ -33,6 +33,7 @@ mod transform;
 mod transform_selection;
 mod tree;
 mod trim;
+mod typography;
 pub use cancellation::WorkCancellation;
 pub use executor::{
     BrushInteraction, ClipboardImage, CommandError, Control, CropInteraction, Editor,
@@ -55,6 +56,52 @@ macro_rules! params {
     };
 }
 params!(Empty {});
+fn text_rgba_schema(_: &mut schemars::SchemaGenerator) -> schemars::Schema {
+    schemars::json_schema!({"type":"array","minItems":4,"maxItems":4,"items":{"type":"number","minimum":0,"maximum":1}})
+}
+params!(CreateText {
+    #[schemars(length(max = 1024))]
+    name: String,
+    spec: strata_text::TextSpec,
+    #[schemars(schema_with = "text_rgba_schema")]
+    color: [f64; 4],
+    #[serde(default)]
+    #[schemars(range(min=-1000000000000i64,max=1000000000000i64))]
+    x: i64,
+    #[serde(default)]
+    #[schemars(range(min=-1000000000000i64,max=1000000000000i64))]
+    y: i64
+});
+params!(UpdateText {
+    layer: LayerRef,
+    spec: strata_text::TextSpec,
+    #[schemars(schema_with = "text_rgba_schema")]
+    color: [f64; 4]
+});
+#[derive(Serialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct TextResult {
+    pub layer_id: crate::LayerId,
+    pub changed: bool,
+    pub definition: crate::typography::TextDefinition,
+    pub metrics: Option<strata_text::TextMetrics>,
+}
+#[derive(Serialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct FontDescriptor {
+    pub id: strata_text::FontFamily,
+    pub family: String,
+    pub bundled: bool,
+    pub license: String,
+    pub version: u32,
+    pub sha256: String,
+}
+#[derive(Serialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct FontsResult {
+    pub fonts: Vec<FontDescriptor>,
+    pub system_fonts_exposed: bool,
+}
 fn auto_clip_percent() -> f64 {
     0.5
 }

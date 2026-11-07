@@ -47,6 +47,7 @@ pub(super) fn mutate(
         match &info.kind {
             LayerKind::Pixel | LayerKind::Group => {}
             LayerKind::Solid { .. }
+            | LayerKind::Text { .. }
             | LayerKind::Gradient { .. }
             | LayerKind::Exposure { .. }
             | LayerKind::HueSaturation { .. }

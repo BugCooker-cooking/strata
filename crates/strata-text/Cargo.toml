@@ -1,0 +1,19 @@
+[package]
+name = "strata-text"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+cosmic-text = { version = "=0.19.0", default-features = false, features = ["std", "swash"] }
+unicode-script = "0.5"
+fontdb = { version = "0.23", default-features = false, features = ["std"] }
+strata-pixels.workspace = true
+serde.workspace = true
+schemars.workspace = true
+thiserror.workspace = true
+sha2.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true

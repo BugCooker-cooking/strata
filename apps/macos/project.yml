@@ -24,6 +24,12 @@ targets:
         excludes: ["*.h", "*.modulemap", "Info.plist"]
       - path: ../../docs/design/assets/sample-photo.jpg
         buildPhase: resources
+      - path: ../../crates/strata-text/assets/fonts/LICENSE-Noto-Latin.txt
+        buildPhase: resources
+      - path: ../../crates/strata-text/assets/fonts/LICENSE-Noto-CJK.txt
+        buildPhase: resources
+      - path: ../../crates/strata-text/assets/fonts/SOURCES.md
+        buildPhase: resources
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: dev.strata-editor.Strata

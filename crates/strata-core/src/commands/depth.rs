@@ -89,6 +89,7 @@ pub(super) fn mutate(
     for layer in &mut doc.layers {
         check(cancel)?;
         match &mut layer.info.kind {
+            LayerKind::Text { text } => convert_color(&mut text.color),
             LayerKind::Solid { color } => convert_color(color),
             LayerKind::Gradient { start, end, .. } => {
                 convert_color(start);

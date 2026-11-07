@@ -1,0 +1,206 @@
+{
+  "date_local": "2026-11-07",
+  "timezone": "Asia/Taipei",
+  "base_checkpoint": "bb07cc8",
+  "branch": "codex/v1-remaining",
+  "scope": "Editable horizontal point and paragraph text with bundled portable OFL glyph raster, retained source definition and native/AI shared executor. An increment checkpoint, not complete Photoshop or all typography.",
+  "source_sha256": {
+    "Cargo.lock": "ce8cdec4d58179b386a711e29340bc72ddef5a472e6844c3756a3a14d0461bdc",
+    "Cargo.toml": "117f8e80790cbe38e702a9bf119e0b801f03e64f88a379c41d30131c474040fc",
+    "NOTICE": "ce0ca0051aa7124146eac8c540825eea40a2222d32441da96786962aae571268",
+    "apps/macos/Strata/App/MainWindowController.swift": "942266132a7a30088d8dfa2f8679fb75714c8eb9e315d089c10b788906fef6ff",
+    "apps/macos/Strata/Canvas/CanvasView.swift": "9e56a2c08af84692211aac56b412da852b2b7bdf5ac1814479f2fa64b860fe8c",
+    "apps/macos/Strata/Engine/EditorSnapshot.swift": "ed9636e1f9d33676d57761e838fd0c1e9dcf57c36183b56251f2b249b2376e57",
+    "apps/macos/Strata/Workspace/TextEditingModel.swift": "0535c59ea079b442692d398d70b70e0c9230f8e4e1f23fc73997b690c0bea4b4",
+    "apps/macos/Strata/Workspace/WorkspaceModel.swift": "8d2d7bc5bef1eca5fc6889e2ba840073680fed7adba7945c12d0369186f90b25",
+    "apps/macos/Strata/Workspace/WorkspaceViews.swift": "7af95acd46a7a1ccfd9124032227ad2644bed1a87b0344b523b2873d7e8b6c7a",
+    "apps/macos/StrataTests/EditableTextTests.swift": "fc9d036fbf8d17ec5c9b5abcf50f0c41dd7cd062346e5f9f6dc4186078ab75f3",
+    "apps/macos/project.yml": "b7830e7164c3356fd12c7bc6663db58bbabe417bb0933e5464dc44876f6010e2",
+    "crates/strata-ai/tests/replay.rs": "2ea7169b38c9193424fde075aef09619460f61a72f306a9372d7364f6d45839f",
+    "crates/strata-core/Cargo.toml": "7ac924f3719afd22b442eb3019ea764d3c30226a574d184d779659f4678ae7fc",
+    "crates/strata-core/src/commands/crop_delete.rs": "02305b86387736b8d03f7c0da65127c7d798249b10d77a039aaaa0f7d916e2b4",
+    "crates/strata-core/src/commands/depth.rs": "e31be02e80a59c9b7862b2c163ae11aa5e5577afe15d55d54a8620821d7c4b59",
+    "crates/strata-core/src/commands/executor.rs": "af2543e6796e5010e6496811ffe5355b8c13f44574ee3ed398fba18fb69ef423",
+    "crates/strata-core/src/commands/mod.rs": "817acb3f4c1d77f83c4d825d93223f8f7435c564e47718cd8d740cb6102a9f32",
+    "crates/strata-core/src/commands/orthogonal.rs": "a4385dc8c6a634b9921e42395d8b314bc5be3e01e1f8e7545a9e41a59d3d1c23",
+    "crates/strata-core/src/commands/profiles.rs": "fa23c919d77119496f5e745cfb1f5b243e1e855af2631372d93bd086d20afca5",
+    "crates/strata-core/src/commands/registry.rs": "2a22e2b1828bed629aead529432f85b1a1bfccd038b6c8619f04fc342ce99bc5",
+    "crates/strata-core/src/commands/resize_image.rs": "41c12a2c98a2bed8855a30cd30e5c10a2a48294b615d500566317cb14b85a904",
+    "crates/strata-core/src/commands/rotate_image.rs": "1911e4467afa6c3b3f8f823bc8859cad911a37422087816ccebeb94c8f9edc22",
+    "crates/strata-core/src/commands/typography.rs": "63d64377a2ac6e6ec3cdd87f90b6840b4de8b9f6d3d17c520b07bac304f48e97",
+    "crates/strata-core/src/document.rs": "7a0db217645a6b3f8a1a3c28eb3108ea146a8fcb5a6f1e03ca5e6d360a22691c",
+    "crates/strata-core/src/layer.rs": "5c69efb83931c6fa6b952faaf6a3a1b53e79e0c010d03c570e1e9581fbb4d6a0",
+    "crates/strata-core/src/lib.rs": "9e0b6f3e61631899f732d20968af6e5dcca185251d1e682d96303d2f62ef0f71",
+    "crates/strata-core/src/project.rs": "3d1e40080a9b2eaea266028556c11221ba3dde27b16c1482bd062da08a091c3b",
+    "crates/strata-core/src/typography.rs": "d6b860eec4054081ef6d5a8e08ae84efc603f7f86eff584a3a4e62ce8b7169cf",
+    "crates/strata-core/tests/typography.rs": "ff2f3ba558b7083851e9e19cc8fbd6a49291e156f00d494fd2e8e0c04bac1ce2",
+    "crates/strata-ffi/src/lib.rs": "a961ebecea62a646d5c4a31ec4c4fd4c24e30659e4cb98f02d11f6286acecf66",
+    "crates/strata-ffi/src/typography.rs": "615bdfae4837266c9bc5188573797cb061fb915d4d994268fb0872a52df1c7ad",
+    "crates/strata-text/Cargo.toml": "e9aaf03ff511435da8dea5fb840096a865f0322e48ef3462873c3ef1acc0af50",
+    "crates/strata-text/assets/fonts/LICENSE-Noto-CJK.txt": "6a73f9541c2de74158c0e7cf6b0a58ef774f5a780bf191f2d7ec9cc53efe2bf2",
+    "crates/strata-text/assets/fonts/LICENSE-Noto-Latin.txt": "0dab92d0544f7b233403f14b84a663bdbfa746982eda629e7f4f9ffe1b036feb",
+    "crates/strata-text/assets/fonts/NotoSans-Regular.ttf": "b85c38ecea8a7cfb39c24e395a4007474fa5a4fc864f6ee33309eb4948d232d5",
+    "crates/strata-text/assets/fonts/NotoSansCJKsc-Regular.otf": "2c76254f6fc379fddfce0a7e84fb5385bb135d3e399294f6eeb6680d0365b74b",
+    "crates/strata-text/assets/fonts/NotoSerif-Regular.ttf": "c8f669ceb2c9c60ccf55198b305e08a997ffca79a38cc7eeb551e643cbe66505",
+    "crates/strata-text/assets/fonts/SOURCES.md": "bd60e017a63e9346c0af5857e3036123a797e71f90433261d67ee29342d70900",
+    "crates/strata-text/src/lib.rs": "ee6deaccf7a81a5ef0fba43a764ddb33bb5aa385fcc2a2c5cc7a9e31004d969e",
+    "crates/strata-text/tests/layout.rs": "2d9c570abb81b55aa5b527273dadd495be003248f17b5013135cb71e2e66f9de",
+    "scripts/check-portability.sh": "eb9c7514a2b26eaa4092eeda3309a89889c43371fb90573a3e47761791a33519",
+    "tools/strata-devtool/src/main.rs": "ddb6e8c3eeab20242f989883c1dd7fa3e57dad53f126c0049a42fe9c90b63985"
+  },
+  "log_sha256": {
+    "build/m7-text-layout.initial.log": "0c119f2526870643e9a649e18cf7d1d6d574a4d1c8ac2908c122d7866bb14ea4",
+    "build/m7-text-core.final.log": "f1288cc201daccdcea1baba22b54ae1a75f0966fa2dc2fc55eaf110df293ea2c",
+    "build/m7-text-core-regression.log": "44065b416476b6567a61faa3bfafeebe5e9dd18b721b27efde17f833dbb5fce6",
+    "build/m7-text-typography.final.log": "11fa28cff79420d88a546e4aa8c9f79dfdb0872c58ece562eafbd9c7975f7c18",
+    "build/m7-text-ai.initial.log": "a52caf714ffc32f3a7384a94fa1cfa5adf094ef03debfa01d75c4a6b5fe926d8",
+    "build/m7-text-ffi.log": "ab340683b810fa5c3c32c274ee2ca13c9fd6531e8fc813ff3463309bfda9f427",
+    "build/m7-text-native.log": "0c77abd0f13d29afc494cae412248b1a7ab871d9bc1ceb231cb3d725b8c25aeb",
+    "build/m7-text-native-pointer-final.log": "72d0c92d72f1dfbfcdd8ed1d1bb3df81d605f806e76dfa63c47f6a54b1b4f4f0",
+    "build/m7-text-native-pointer-fixed.log": "010700cdb2e27056deca4c87fb32fedd9449fe5149828c77dddf89410606a332",
+    "build/m7-text-native-focus-final.log": "3b31ea8fd7757ef59a17072de6cc778f7b4aae82eba4b38c047edd18efcc7ffa",
+    "build/m7-text-metal.log": "b805c10c26f52ed0177f47c5ccc6e4f7b2bd2fb90300452f7bbe1304b0ca6d76",
+    "build/m7-text-lint.final.log": "7b64192434fc86305958d50dcd298f20742a77f48502ff9eaee4d3a589b0eb7b",
+    "build/m7-text-swiftlint.final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "build/m7-text-commands.log": "f6a7b051289c5af635545e892c3e23765c0e269c2a7b9c4d35768d9db6fa85e4",
+    "build/m7-text-release.log": "adc6fdf786d847f31706a1251728c65ef16ea64167ecc585739ff57305929399",
+    "build/m7-text-final-ai-gate.log": "58775cd558643dbf55e44703bbdc00f7f6982cb47d878a0c39d4f6ad5cfe0375"
+  },
+  "checks": {
+    "core-regression": {
+      "passed": 301,
+      "failed": 0,
+      "ignored": 0
+    },
+    "typography.final": {
+      "passed": 8,
+      "failed": 0,
+      "ignored": 0
+    },
+    "layout.initial": {
+      "passed": 4,
+      "failed": 0,
+      "ignored": 0
+    },
+    "core.final": {
+      "passed": 28,
+      "failed": 0,
+      "ignored": 0
+    },
+    "ai.initial": {
+      "passed": 36,
+      "failed": 0,
+      "ignored": 0
+    },
+    "ffi": {
+      "passed": 2,
+      "failed": 0,
+      "ignored": 0
+    },
+    "metal": {
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0
+    }
+  },
+  "native": {
+    "full_suite_total": 97,
+    "full_suite_passed": 96,
+    "skipped": 1,
+    "skip_reason": "Live model opt-in not enabled; no request made.",
+    "later_added_pointer_context_case": true,
+    "final_text_subset_passed": 5,
+    "final_text_subset_log": "build/m7-text-native-focus-final.log",
+    "unique_final_coverage": 98,
+    "unique_final_passed": 97,
+    "parallel_testing": false,
+    "compilation_jobs": 2,
+    "resolved_fixture_failure": "Text pointer stale-document test initially omitted required discard_changes; protection correctly rejected fixture replacement. Fixture corrected and five cases rerun successfully.",
+    "scope_note": "Full suite ran before added case/focus handoff; final subset rerun is not a second full-suite claim."
+  },
+  "release": {
+    "passed": true,
+    "architecture": "arm64",
+    "binary_sha256": "a0324e10a1739013db4287a3dadacbe0249127c3baf8d923994624ca9551d7a4",
+    "font_licenses_and_sources_byte_equal_in_resources": true,
+    "warnings": "Existing PointColorControls nonoptional nil-coalescing warnings and no-AppIntents metadata notice; no build error."
+  },
+  "lint": {
+    "passed": true,
+    "checks": [
+      "rustfmt",
+      "workspace all-target Clippy -D warnings",
+      "portability",
+      "Swift lint",
+      "generated feature coverage"
+    ],
+    "resolved_initial_issue": "Collapsed nested paragraph validation if; no semantic change."
+  },
+  "command_examples": {
+    "passed": true,
+    "commands": 128,
+    "examples": 191,
+    "text_examples_require_changed_and_glyph_count": true
+  },
+  "ai_audit": {
+    "registered_commands": 128,
+    "registered_examples": 191,
+    "inventory_rows": 265,
+    "mapped_features": 90,
+    "partial_entrypoints": [
+      "PS-01-894622b1ce",
+      "PS-04-cb66199f15",
+      "PS-04-853e6d30f3",
+      "PS-16-8de06204ac",
+      "PS-09-4f3d9835a7",
+      "PS-09-7cc6b0bb65",
+      "PS-09-7d349372b5",
+      "PS-03-5f9716e5d8",
+      "PS-03-ad24731ea8",
+      "PS-11-4490121dad",
+      "PS-11-a524877cb6"
+    ],
+    "unmapped_implemented_features": [],
+    "unknown_native_command_references": {},
+    "final_audit_complete": false
+  },
+  "strict_final_gate_expected_exit_code": 1,
+  "semantics": {
+    "fonts": "Three pinned unmodified OFL font binaries; fixed fallback and no system-font scanning. Missing glyphs reject. Hashes and original licensing/provenance accompany source and app.",
+    "model": "Version1 TextDefinition with Arc Unicode source, complete homogeneous style, point baseline or paragraph box top-left. Manifest7 for text,6 otherwise; total source max256KiB, per layer64KiB/16384 characters.",
+    "precision": "Encoded working RGB at8/16bit; grayscale glyph coverage is8bit expanded to u16, overlap integer source-over. Cache tiles are derived; no platform screenshot used.",
+    "persistence": "Save/reopen/recovery/undo preserve definition, masks/styles/clipping and original-depth cache. Explicit rasterize with exact source restore on undo. ICC/depth convert definition and cache; crop deletion persists local support on future re-render.",
+    "ownership": "Native original document/revision/active layer checked before prepare and at commit; no-op replacement preserves history/revision/dirty/current layer. Apply returns focus to canvas.",
+    "resources": "Per operation96MiB+text shaping reservation, pooled tiles/transients,32M glyph/ink visits and bounded glyph/row cancellation. Heavy text work outside editor/render lock.",
+    "geometry": "General source-aware text geometry explicitly rejects until implemented; never changes cache while losing retained source."
+  },
+  "manual": {
+    "single_release_instance": true,
+    "fixture": "docs/design/assets/sample-photo.jpg",
+    "fixture_sha256_before_and_after": "c1006da29913609963479b8641c0e6f6a43ff2c6d8b2f907c91a6daf1afaa2ea",
+    "point": "Canvas baseline click,64px Strata 中文 created; identical reapply added no history. Serif/color/content changed, one toolbar undo restored original source/font/black.",
+    "paragraph": "Canvas drag405x223, mixed Chinese/Latin two paragraphs at36px actually wrap. Resize240x100 reflows/clips while full text remains in native editor; one undo restores box.",
+    "input": "Unicode pasted into native TextEditor. Physical Chinese IME composition not tested.",
+    "restoration": "Three document undo actions restore one original pixel layer, disabled undo and no-unsaved status.",
+    "manual_rasterize_tested": false,
+    "app_quit_observed": true,
+    "post_exit_strata_and_xctest_instances": 0,
+    "user_other_apps_preserved": true,
+    "evidence": "Live CUA AX states and screenshots; no persisted screenshot artifact is asserted."
+  },
+  "cloud": {
+    "used": false,
+    "automatic_triggers": false,
+    "manual_dispatch_only": true,
+    "no_jobs_enabled_dispatched_rerun_or_awaited": true
+  },
+  "live_model_requests": 0,
+  "remaining": [
+    "Full Photoshop and final per-feature AI entrypoint closure",
+    "System/imported fonts, rich spans and inline canvas caret",
+    "Vertical/path/warped text and advanced OpenType",
+    "General editable-type geometry and continuous warped-pixel feedback",
+    "Current Linux build, minimum macOS14, independent hardware/performance/quality gates"
+  ],
+  "delivery": "Authorized private origin/codex/v1-remaining, existing draftPR1 only; no merge, release, visibility change or CI execution."
+}

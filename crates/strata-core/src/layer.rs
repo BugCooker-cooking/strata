@@ -8,6 +8,9 @@ use strata_pixels::{MaskLayout, TiledMask, TiledPixels};
 pub enum LayerKind {
     #[default]
     Pixel,
+    Text {
+        text: crate::typography::TextDefinition,
+    },
     Exposure {
         stops: f64,
     },
