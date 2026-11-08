@@ -54,6 +54,7 @@ final class CanvasView: NSView {
     private var guideTool:EditorTool?
     private let guideLines=CAShapeLayer()
     private let guideDraft=CAShapeLayer()
+    private let snapLines=CAShapeLayer()
     var onTextPlacement:((NSPoint,CGRect?)->Void)?
     var documentOrigin = NSPoint.zero
     private var selectionCommand: String?
@@ -130,12 +131,14 @@ final class CanvasView: NSView {
         textGuide.fillColor=nil;textGuide.strokeColor=NSColor.systemBlue.cgColor;textGuide.lineWidth=1;textGuide.lineDashPattern=[4,3];layer?.addSublayer(textGuide)
         guideLines.fillColor=nil;guideLines.strokeColor=NSColor.cyan.withAlphaComponent(0.75).cgColor;guideLines.lineWidth=0.75;layer?.addSublayer(guideLines)
         guideDraft.fillColor=nil;guideDraft.strokeColor=NSColor.systemYellow.cgColor;guideDraft.lineWidth=1;guideDraft.lineDashPattern=[4,3];layer?.addSublayer(guideDraft)
+        snapLines.fillColor=nil;snapLines.strokeColor=NSColor.systemPink.cgColor;snapLines.lineWidth=1;snapLines.lineDashPattern=[5,3];layer?.addSublayer(snapLines)
         guideInput.onChanged={[weak self]in self?.drawGuides();self?.markDirty()}
         guideInput.onRunning={[weak self]running in self?.onBrushRunning?(running)}
         guideInput.onCommitted={[weak self]in self?.onCommitted?();self?.markDirty()}
         guideInput.onBegan={[weak self]in guard let self else{return};self.window?.makeFirstResponder(self);self.cancelLayerDrag();self.snapInput.cancel();self.cropInput.cancel();self.straightenInput.cancel();self.transformInput.cancel()}
         snapInput.onBegan={[weak self]in self?.guideInput.cancel();self?.cropInput.cancel();self?.straightenInput.cancel();self?.transformInput.cancel()}
-        snapInput.onFrame={[weak self]in self?.onCommitted?();self?.markDirty()}
+        snapInput.onFrame={[weak self]in self?.onCommitted?();self?.drawGuides();self?.markDirty()}
+        snapInput.onOverlayChanged={[weak self]in self?.drawGuides();self?.markDirty()}
         snapInput.onApplying={[weak self]running in self?.onBrushRunning?(running)}
         selectionInput.onChanged = { [weak self] in self?.drawMarqueePreview() }
         selectionInput.onRunning = { [weak self] running in self?.onSelectionRunning?(running) }
@@ -353,7 +356,7 @@ final class CanvasView: NSView {
         guideMoveTool=enabled;drawGuides()
     }
     private func drawGuides(){
-        guard let frame=engine.artboardOverlay()else{guideLines.path=nil;guideDraft.path=nil;return}
+        guard let frame=engine.artboardOverlay()else{guideLines.path=nil;guideDraft.path=nil;snapLines.path=nil;return}
         let zoom=CGFloat(engine.canvasZoom())/scale
         func line(_ axis:String,_ value:Double,_ path:CGMutablePath){
             if axis=="vertical"{let x=CGFloat(frame.x)/scale+(CGFloat(value)-documentOrigin.x)*zoom;guard x.isFinite else{return};path.move(to:NSPoint(x:x,y:0));path.addLine(to:NSPoint(x:x,y:bounds.height))}
@@ -362,6 +365,10 @@ final class CanvasView: NSView {
         CATransaction.begin();CATransaction.setDisableActions(true);defer{CATransaction.commit()}
         let path=CGMutablePath();if presentation.guidesVisible{for g in guides{line(g.axis,g.position,path)}};guideLines.path=path
         let draft=CGMutablePath();if let g=guideInput.draft{line(g.axis,g.position,draft)};guideDraft.path=draft
+        let matches=CGMutablePath();if snapInput.active,let value=snapInput.displayResult{
+            if let x=value["snapped_x"]["coordinate"].number{line("vertical",x,matches)}
+            if let y=value["snapped_y"]["coordinate"].number{line("horizontal",y,matches)}
+        };snapLines.path=matches
     }
     func hitGuide(_ point:NSPoint)->EditorSnapshot.Guide?{
         guard guideMoveTool,presentation.guidesVisible,!presentation.guidesLocked else{return nil}

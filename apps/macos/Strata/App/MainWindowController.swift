@@ -241,7 +241,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         case .opacity(let value): layerCommand("layer.set_opacity", ["opacity": value])
         case .blend(let value): layerCommand("layer.set_blend_mode", ["blend_mode": value])
         case .position(let x, let y):
-            if let presentation=state?.presentation,presentation.snapEnabled{layerCommand("layer.snap_position",["x":x,"y":y,"tolerance":min(1e6,presentation.snapTolerance*Double(window?.backingScaleFactor ?? 1)/Double(max(0.000001,engine.canvasZoom()))),"artboard":presentation.snapArtboard])}
+            if let presentation=state?.presentation,presentation.snapEnabled{layerCommand("layer.snap_position",["x":x,"y":y,"tolerance":min(1e6,presentation.snapTolerance*Double(window?.backingScaleFactor ?? 1)/Double(max(0.000001,engine.canvasZoom()))),"artboard":presentation.snapArtboard,"layers":presentation.snapLayers ?? false])}
             else{layerCommand("layer.set_position",["x":x,"y":y])}
         case .tool(let tool):
             workspace.tonalPreview?.cancel();canvas.movesLayer=tool == .move;canvas.zoomTool=tool == .zoom;canvas.configureSelection(workspace);canvas.configureBrush(workspace);canvas.configurePaint(workspace);canvas.configureCrop(workspace);canvas.configureTransform(workspace);canvas.configureText(workspace);canvas.configureGuides(workspace)

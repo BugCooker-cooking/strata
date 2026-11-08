@@ -107,6 +107,7 @@ params!(SetPresentation {
     #[schemars(range(min=0,max=64))]
     snap_tolerance: Option<f64>,
     #[serde(default)] snap_artboard: Option<bool>,
+    #[serde(default)] snap_layers: Option<bool>,
     #[serde(default)] expected_version: Option<u64>
 });
 #[derive(Clone, Copy, Debug, Default, Serialize, Deserialize, JsonSchema)]
@@ -156,6 +157,8 @@ params!(SnapPosition {
     #[serde(default = "snap_target")]
     artboard: bool,
     #[serde(default)]
+    layers: bool,
+    #[serde(default)]
     anchors: SnapAnchors
 });
 #[derive(Serialize, JsonSchema)]
@@ -182,12 +185,23 @@ pub struct ClearGuidesResult {
 pub enum SnapTarget {
     Guide,
     ArtboardEdge,
+    LayerAnchor,
+}
+#[derive(Clone, Copy, Debug, Serialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum SnapAnchor {
+    Minimum,
+    Maximum,
+    Center,
 }
 #[derive(Clone, Debug, Serialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct SnapMatch {
     pub target: SnapTarget,
     pub guide_id: Option<crate::GuideId>,
+    pub reference_layer: Option<crate::LayerId>,
+    pub reference_anchor: Option<SnapAnchor>,
+    pub source_anchor: SnapAnchor,
     pub coordinate: f64,
     pub anchor: f64,
     pub residual: f64,

@@ -80,6 +80,7 @@ pub struct Presentation {
     #[schemars(range(min = 0, max = 64))]
     pub snap_tolerance: f64,
     pub snap_artboard: bool,
+    pub snap_layers: bool,
     pub version: u64,
 }
 impl Default for Presentation {
@@ -93,6 +94,7 @@ impl Default for Presentation {
             snap_enabled: false,
             snap_tolerance: 6.,
             snap_artboard: true,
+            snap_layers: false,
             version: 0,
         }
     }

@@ -64,6 +64,99 @@ mod tests {
         (engine, listener)
     }
     #[test]
+    fn smart_overlay_returns_only_the_exact_displayed_candidate_and_clears_on_cancel_or_context_change()
+     {
+        let (engine, _) = setup();
+        let moving: Value = serde_json::from_str(
+            &engine
+                .dispatch(
+                    "layer.create".into(),
+                    json!({"name":"Moving","fill":[10001,30003,50001,40001]}).to_string(),
+                )
+                .unwrap(),
+        )
+        .unwrap();
+        let reference: Value = serde_json::from_str(
+            &engine
+                .dispatch(
+                    "layer.create".into(),
+                    json!({"name":"Reference","fill":[50001,20003,10005,65535]}).to_string(),
+                )
+                .unwrap(),
+        )
+        .unwrap();
+        engine
+            .dispatch(
+                "layer.set_position".into(),
+                json!({"layer":{"id":reference["layer_id"]},"x":50,"y":30}).to_string(),
+            )
+            .unwrap();
+        engine
+            .dispatch(
+                "layer.select".into(),
+                json!({"layer":{"id":moving["layer_id"]}}).to_string(),
+            )
+            .unwrap();
+        let state = engine.lock().unwrap().editor.snapshot();
+        let before = engine
+            .lock()
+            .unwrap()
+            .editor
+            .document()
+            .unwrap()
+            .to_archive()
+            .unwrap();
+        let params=json!({"x":19,"y":7,"guides":false,"artboard":false,"layers":true,"anchors":"edges","tolerance":2}).to_string();
+        for change in ["cancel", "settings", "visibility"] {
+            let seq = engine.issue_tonal_preview().unwrap();
+            engine
+                .begin_filter_preview(
+                    moving["layer_id"].as_str().unwrap().into(),
+                    "layer.snap_position".into(),
+                    state.revision,
+                    seq,
+                )
+                .unwrap();
+            engine.preview_filter(params.clone(), seq).unwrap();
+            let shown: Value =
+                serde_json::from_str(&engine.snap_preview_result().unwrap()).unwrap();
+            assert_eq!(shown["x"], 18);
+            assert_eq!(shown["y"], 6);
+            assert_eq!(shown["snapped_x"]["reference_layer"], reference["layer_id"]);
+            assert!(
+                engine
+                    .lock()
+                    .unwrap()
+                    .editor
+                    .document()
+                    .unwrap()
+                    .to_archive()
+                    .unwrap()
+                    == before
+            );
+            if change == "cancel" {
+                engine
+                    .end_filter_preview_checked(params.clone(), true, seq)
+                    .unwrap();
+            } else if change == "settings" {
+                engine
+                    .dispatch(
+                        "view.presentation.set".into(),
+                        json!({"snap_layers":true}).to_string(),
+                    )
+                    .unwrap();
+            } else {
+                engine
+                    .dispatch(
+                        "layer.set_visibility".into(),
+                        json!({"layer":{"id":reference["layer_id"]},"visible":false}).to_string(),
+                    )
+                    .unwrap();
+            }
+            assert_eq!(engine.snap_preview_result().unwrap(), "null");
+        }
+    }
+    #[test]
     fn owned_guide_uses_shared_commands_and_late_epoch_version_or_cancel_cannot_retarget() {
         let (engine, listener) = setup();
         let state = engine.lock().unwrap().editor.snapshot();

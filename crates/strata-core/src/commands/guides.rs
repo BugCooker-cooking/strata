@@ -128,6 +128,7 @@ pub(super) fn presentation(
         && p.snap_enabled.is_none()
         && p.snap_tolerance.is_none()
         && p.snap_artboard.is_none()
+        && p.snap_layers.is_none()
         && p.ruler_unit.is_none()
         && p.ruler_origin.is_none()
     {
@@ -160,6 +161,9 @@ pub(super) fn presentation(
     if let Some(v) = p.snap_artboard {
         value.snap_artboard = v
     };
+    if let Some(v) = p.snap_layers {
+        value.snap_layers = v;
+    }
     if let Some(v) = p.snap_tolerance {
         if !v.is_finite() || !(0.0..=64.).contains(&v) {
             return Err(invalid("screen-point snap tolerance must be finite0..64"));
@@ -222,12 +226,30 @@ pub(super) fn ruler_coordinates(
     })
     .unwrap())
 }
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub(super) struct SnapContext {
+    _allocation: std::sync::Arc<strata_pixels::memory::Reservation>,
     state: StateId,
     layer: LayerId,
     origin: [i64; 2],
     bounds: CoverageRect,
+    layer_snap: bool,
+    references: Vec<(LayerId, CoverageRect)>,
+}
+impl std::fmt::Debug for SnapContext {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("SnapContext")
+            .field("state", &self.state)
+            .field("layer", &self.layer)
+            .field("bounds", &self.bounds)
+            .field("references", &self.references.len())
+            .finish_non_exhaustive()
+    }
+}
+impl SnapContext {
+    pub(super) fn includes_layers(&self) -> bool {
+        self.layer_snap
+    }
 }
 fn union(a: CoverageRect, b: CoverageRect) -> Result<CoverageRect, DocumentError> {
     let x = a.x.min(b.x);
@@ -242,11 +264,35 @@ fn union(a: CoverageRect, b: CoverageRect) -> Result<CoverageRect, DocumentError
         height: u32::try_from(bottom - i128::from(y)).map_err(|_| DocumentError::ResourceLimit)?,
     })
 }
+fn checked_bounds(b: CoverageRect) -> Result<CoverageRect, CommandError> {
+    if [
+        i128::from(b.x),
+        i128::from(b.y),
+        i128::from(b.x) + i128::from(b.width),
+        i128::from(b.y) + i128::from(b.height),
+    ]
+    .iter()
+    .any(|v| v.abs() > 1_000_000_000_000)
+    {
+        return Err(invalid(
+            "snap source/reference bounds exceed canvas range +/-1e12",
+        ));
+    }
+    Ok(b)
+}
+/// Scan each visible primitive once, sharing one visit/extent budget with both
+/// moving content and reference candidates. Groups only union cached bounds.
 pub(super) fn snap_context(
     doc: &Document,
     target: LayerId,
+    layer_snap: bool,
     cancel: &dyn Fn() -> bool,
 ) -> Result<Option<SnapContext>, CommandError> {
+    let allocation = std::sync::Arc::new(
+        doc.memory_pool()
+            .reserve(strata_pixels::memory::MemoryKind::Transient, 64 * 1024)
+            .map_err(DocumentError::from)?,
+    );
     if !doc.effective_visibility(target) {
         return Err(invalid("snapping requires a visible target and ancestors"));
     }
@@ -261,14 +307,16 @@ pub(super) fn snap_context(
     {
         return Err(invalid("snap source origin exceeds canvas range +/-1e12"));
     }
-    let mut bounds = None;
+    let mut primitive = std::collections::HashMap::new();
     let mut visits = 0u64;
     let mut areas = 0u64;
-    for layer in doc.layers.iter().filter(|l| {
-        (l.id() == target || doc.is_descendant(l.id(), target)) && doc.effective_visibility(l.id())
-    }) {
+    for layer in &doc.layers {
         if cancel() {
             return Err(CommandError::Expired);
+        }
+        let moving = layer.id() == target || doc.is_descendant(layer.id(), target);
+        if !doc.effective_visibility(layer.id()) || (!moving && !layer_snap) {
+            continue;
         }
         visits += layer.pixels().tile_count() as u64 * 256 * 256;
         if visits > 64_000_000 {
@@ -281,38 +329,68 @@ pub(super) fn snap_context(
             LayerKind::Solid { .. } | LayerKind::Gradient { .. } => {
                 doc.generated_canvas_bounds(layer)?
             }
-            LayerKind::Group => None,
-            LayerKind::Exposure { .. }
-            | LayerKind::HueSaturation { .. }
-            | LayerKind::Adjustment { .. } => None,
+            _ => None,
         };
         if let Some(b) = content {
-            if [
-                i128::from(b.x),
-                i128::from(b.y),
-                i128::from(b.x) + i128::from(b.width),
-                i128::from(b.y) + i128::from(b.height),
-            ]
-            .iter()
-            .any(|v| v.abs() > 1_000_000_000_000)
-            {
-                return Err(invalid("snap source bounds exceed canvas range +/-1e12"));
-            }
+            let b = checked_bounds(b)?;
             areas += u64::from(b.width) * u64::from(b.height);
             if areas > 64_000_000 {
                 return Err(DocumentError::ResourceLimit.into());
-            };
-            bounds = Some(match bounds {
-                None => b,
-                Some(old) => union(old, b)?,
-            })
+            }
+            primitive.insert(layer.id(), b);
+        }
+    }
+    let cached_bounds = |id| -> Result<Option<CoverageRect>, CommandError> {
+        if let Some(b) = primitive.get(&id) {
+            return Ok(Some(*b));
+        }
+        let mut bounds = None;
+        for (child, b) in &primitive {
+            if doc.is_descendant(*child, id) {
+                bounds = Some(match bounds {
+                    None => *b,
+                    Some(old) => union(old, *b)?,
+                });
+            }
+        }
+        bounds.map(checked_bounds).transpose()
+    };
+    let bounds = cached_bounds(target)?;
+    let mut references = Vec::new();
+    if layer_snap {
+        for layer in &doc.layers {
+            if cancel() {
+                return Err(CommandError::Expired);
+            }
+            // An ancestor containing the target must not snap it against itself.
+            if layer.id() == target
+                || doc.is_descendant(layer.id(), target)
+                || doc.is_descendant(target, layer.id())
+                || !doc.effective_visibility(layer.id())
+            {
+                continue;
+            }
+            if matches!(
+                layer.info.kind,
+                LayerKind::Group
+                    | LayerKind::Pixel
+                    | LayerKind::Text { .. }
+                    | LayerKind::Solid { .. }
+                    | LayerKind::Gradient { .. }
+            ) && let Some(b) = cached_bounds(layer.id())?
+            {
+                references.push((layer.id(), b));
+            }
         }
     }
     Ok(bounds.map(|bounds| SnapContext {
+        _allocation: allocation,
         state: doc.state,
         layer: target,
         origin: [root.info.x, root.info.y],
         bounds,
+        layer_snap,
+        references,
     }))
 }
 #[derive(Clone)]
@@ -321,6 +399,8 @@ struct Candidate {
     anchor: f64,
     coordinate: f64,
     guide_id: Option<GuideId>,
+    reference_layer: Option<LayerId>,
+    reference_anchor: Option<SnapAnchor>,
     kind: SnapTarget,
     order: usize,
 }
@@ -344,7 +424,7 @@ fn best(
     if p.guides {
         for g in &doc.guides {
             if g.axis.component() == axis {
-                targets.push((g.position, Some(g.id), SnapTarget::Guide))
+                targets.push((g.position, Some(g.id), SnapTarget::Guide, None, None))
             }
         }
     }
@@ -352,12 +432,31 @@ fn best(
         let a = [doc.frame.x, doc.frame.y][axis] as f64;
         let length = f64::from([doc.frame.width, doc.frame.height][axis]);
         targets.extend([
-            (a, None, SnapTarget::ArtboardEdge),
-            (a + length, None, SnapTarget::ArtboardEdge),
+            (a, None, SnapTarget::ArtboardEdge, None, None),
+            (a + length, None, SnapTarget::ArtboardEdge, None, None),
         ])
     }
+    if p.layers {
+        for (id, b) in &context.references {
+            let start = [b.x, b.y][axis] as f64;
+            let size = f64::from([b.width, b.height][axis]);
+            for (coordinate, anchor) in [
+                (start, SnapAnchor::Minimum),
+                (start + size, SnapAnchor::Maximum),
+                (start + size / 2., SnapAnchor::Center),
+            ] {
+                targets.push((
+                    coordinate,
+                    None,
+                    SnapTarget::LayerAnchor,
+                    Some(*id),
+                    Some(anchor),
+                ))
+            }
+        }
+    }
     let mut candidates = Vec::new();
-    for (coordinate, guide_id, kind) in targets {
+    for (coordinate, guide_id, kind, reference_layer, reference_anchor) in targets {
         for (order, anchor) in anchors.iter().copied().enumerate() {
             let ideal = coordinate - anchor;
             let resolved = (proposed as f64 + ideal).round();
@@ -367,6 +466,8 @@ fn best(
                     anchor,
                     coordinate,
                     guide_id,
+                    reference_layer,
+                    reference_anchor,
                     kind,
                     order,
                 })
@@ -377,10 +478,11 @@ fn best(
         a.ideal
             .abs()
             .total_cmp(&b.ideal.abs())
-            .then_with(|| a.guide_id.is_none().cmp(&b.guide_id.is_none()))
+            .then_with(|| target_order(a.kind).cmp(&target_order(b.kind)))
             .then_with(|| a.coordinate.total_cmp(&b.coordinate))
             .then_with(|| a.order.cmp(&b.order))
             .then_with(|| a.guide_id.cmp(&b.guide_id))
+            .then_with(|| a.reference_layer.cmp(&b.reference_layer))
     })?;
     let resolved = (proposed as f64 + candidate.ideal).round();
     if !resolved.is_finite() || resolved.abs() > 1e12 {
@@ -393,11 +495,28 @@ fn best(
         SnapMatch {
             target: candidate.kind,
             guide_id: candidate.guide_id,
+            reference_layer: candidate.reference_layer,
+            reference_anchor: candidate.reference_anchor,
+            source_anchor: match p.anchors {
+                SnapAnchors::Center => SnapAnchor::Center,
+                _ => match candidate.order {
+                    0 => SnapAnchor::Minimum,
+                    1 => SnapAnchor::Maximum,
+                    _ => SnapAnchor::Center,
+                },
+            },
             coordinate: candidate.coordinate,
             anchor,
             residual: candidate.coordinate - anchor,
         },
     ))
+}
+fn target_order(target: SnapTarget) -> u8 {
+    match target {
+        SnapTarget::Guide => 0,
+        SnapTarget::ArtboardEdge => 1,
+        SnapTarget::LayerAnchor => 2,
+    }
 }
 pub(super) fn snap(
     doc: &mut Document,
@@ -405,6 +524,10 @@ pub(super) fn snap(
     cached: Option<&SnapContext>,
     cancel: &dyn Fn() -> bool,
 ) -> Result<Value, CommandError> {
+    let _scratch = doc
+        .memory_pool()
+        .reserve(strata_pixels::memory::MemoryKind::Transient, 1024 * 1024)
+        .map_err(DocumentError::from)?;
     let p: SnapPosition = parse(params)?;
     if !p.tolerance.is_finite()
         || !(0.0..=1e6).contains(&p.tolerance)
@@ -418,10 +541,12 @@ pub(super) fn snap(
     }
     let target = doc.resolve(&p.layer)?;
     check_snap_target(doc, target)?;
-    let context = if let Some(c) = cached.filter(|c| c.state == doc.state && c.layer == target) {
+    let context = if let Some(c) =
+        cached.filter(|c| c.state == doc.state && c.layer == target && c.layer_snap == p.layers)
+    {
         c.clone()
     } else {
-        snap_context(doc, target, cancel)?
+        snap_context(doc, target, p.layers, cancel)?
             .ok_or_else(|| invalid("no finite pixel/text/fill content to snap"))?
     };
     let x = best(doc, &p, &context, 0);

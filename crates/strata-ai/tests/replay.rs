@@ -3299,3 +3299,122 @@ fn ruler_unit_prompts_set_editor_state_and_convert_both_directions_without_docum
         );
     }
 }
+
+#[test]
+fn smart_layer_references_are_discoverable_return_visible_ids_and_undo_one_real_move() {
+    let host = Host::new();
+    let moving = host.user(
+        "layer.create",
+        json!({"name":"Moving","fill":[10001,30003,50001,40001]}),
+    )["layer_id"]
+        .clone();
+    let reference = host.user(
+        "layer.create",
+        json!({"name":"Reference","fill":[50001,20003,10005,65535]}),
+    )["layer_id"]
+        .clone();
+    host.user(
+        "layer.set_position",
+        json!({"layer":{"id":reference},"x":20,"y":20}),
+    );
+    let hidden = host.user(
+        "layer.create",
+        json!({"name":"Hidden","fill":[10001,30003,50001,65535]}),
+    )["layer_id"]
+        .clone();
+    host.user(
+        "layer.set_visibility",
+        json!({"layer":{"id":hidden},"visible":false}),
+    );
+    host.user("layer.select", json!({"layer":{"id":moving}}));
+    let before = host
+        .editor
+        .lock()
+        .unwrap()
+        .document()
+        .unwrap()
+        .to_archive()
+        .unwrap();
+    let state = host.snapshot().unwrap();
+    let mut session = host.session_with_prompt(
+        ExecutionMode::Direct,
+        "使用智能参考线将当前图层右边缘吸附到其他可见图层左边缘，保留原码与一次撤销。",
+    );
+    reply(
+        &mut session,
+        &host,
+        vec![
+            call("search", "search_catalog", json!({"query":"图层间吸附"})),
+            call(
+                "describe",
+                "describe_commands",
+                json!({"ids":["layer.snap_position","view.presentation.set"]}),
+            ),
+            invoke(
+                "settings",
+                "view.presentation.set",
+                json!({"snap_layers":true}),
+            ),
+        ],
+    );
+    assert!(
+        result(session.poll(&host).unwrap())["matches"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|m| m["id"] == "layer.snap_position")
+    );
+    let described = result(session.poll(&host).unwrap());
+    assert_eq!(
+        described["commands"][0]["params"]["additionalProperties"],
+        false
+    );
+    assert!(described["commands"][0]["params"]["properties"]["layers"].is_object());
+    assert_eq!(
+        result(session.poll(&host).unwrap())["result"]["snap_layers"],
+        true
+    );
+    reply(
+        &mut session,
+        &host,
+        vec![invoke(
+            "snap",
+            "layer.snap_position",
+            json!({"layer":{"id":moving},"x":13,"y":13,"guides":false,"artboard":false,"layers":true,"anchors":"edges","tolerance":2}),
+        )],
+    );
+    let result = result(session.poll(&host).unwrap())["result"].clone();
+    assert_eq!(result["x"], 12);
+    assert_eq!(result["y"], 12);
+    assert_eq!(result["snapped_x"]["reference_layer"], reference);
+    assert_ne!(result["snapped_x"]["reference_layer"], hidden);
+    assert_eq!(result["snapped_x"]["source_anchor"], "maximum");
+    assert_eq!(
+        host.snapshot().unwrap().history_cursor,
+        state.history_cursor + 1
+    );
+    assert_eq!(
+        host.editor
+            .lock()
+            .unwrap()
+            .document()
+            .unwrap()
+            .to_archive()
+            .unwrap()
+            .tiles,
+        before.tiles
+    );
+    host.editor.lock().unwrap().stop_turn();
+    host.user("edit.undo_turn", json!({"turn_id":session.turn_id()}));
+    assert!(
+        host.editor
+            .lock()
+            .unwrap()
+            .document()
+            .unwrap()
+            .to_archive()
+            .unwrap()
+            == before
+    );
+    assert!(host.snapshot().unwrap().presentation.snap_layers);
+}

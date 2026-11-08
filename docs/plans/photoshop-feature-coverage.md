@@ -235,9 +235,9 @@
 | PS-13-1b8faab964 | RAW 照片显影 | AI 蒙版（主体 / 天空 / 人物）🤖、AI 降噪 🤖、镜头模糊 🤖 | P3 | 待实现 | 待验收 |
 | PS-14-cf2715aeb6 | 视图与导航 | 缩放 / 抓手 / 适合屏幕 / 100% | P0 | 已实现 | 既有 M1 导航；绝对 100% 命令的 Retina 数值与单窗口实看通过，保持文档干净 · [M7 整层变换/视图检查点](../research/2026-11-m7-transform-progress.md) |
 | PS-14-c9a6761937 | 视图与导航 | 多文档标签页 | P0 | 待实现 | 待验收 |
-| PS-14-de2fd3ca59 | 视图与导航 | 标尺 / 参考线 / 对齐吸附 | P0 | 部分实现 | Six ruler units and custom canvas zero use core-authoritative conversion/metrics, with core18, AI47, native106 (105passed/1live-service opt-in skip), required Metal1, lint/137commands/204examples, Release and single-window mm/percent/origin/unchanged-pixel-guide/undo/quit passed. Existing guide/snap and first-switch routing evidence remains valid. Corner-origin pointer drag, layer smart references and sustained interaction scope remain open. · [Guides and snap local progress](../research/2026-11-m7-guides-snap-progress.md) · [Corrected native text / guide closure](../research/2026-11-m7-group-transform-progress.md) · [Ruler units and custom origin](../research/2026-11-m7-ruler-units-progress.md) |
+| PS-14-de2fd3ca59 | 视图与导航 | 标尺 / 参考线 / 对齐吸附 | P0 | 部分实现 | Six ruler units and custom canvas zero use core-authoritative conversion/metrics, with core18, AI47, native106 (105passed/1live-service opt-in skip), required Metal1, lint/137commands/204examples, Release and single-window mm/percent/origin/unchanged-pixel-guide/undo/quit passed. Existing guide/snap and first-switch routing evidence remains valid. Visible layer references now have the local automated checkpoint recorded separately; their manual check awaits Mac unlock. Corner-origin pointer drag and sustained interaction scope remain open. · [Guides and snap local progress](../research/2026-11-m7-guides-snap-progress.md) · [Corrected native text / guide closure](../research/2026-11-m7-group-transform-progress.md) · [Ruler units and custom origin](../research/2026-11-m7-ruler-units-progress.md) · [Visible layer reference increment](../research/2026-11-m7-smart-guides-progress.md) |
 | PS-14-810f37be85 | 视图与导航 | 旋转视图 | P1 | 待实现 | 待验收 |
-| PS-14-15d282cc9a | 视图与导航 | 智能参考线 | P1 | 待实现 | 待验收 |
+| PS-14-15d282cc9a | 视图与导航 | 智能参考线 | P1 | 部分实现 | Visible layer/group edge-center snapping and exact-candidate native overlays passed local core25, AI49, headless FFI1, required Metal1, full native108 (107passed/1live-service opt-in skip), lint,137commands/205isolated examples and arm64 Release. Initial native2 failures exposed the queued-busy race and are retained; corrected full suite passed. Manual drag/overlay appearance is pending Mac unlock; no active Strata instance. Equal spacing/angle/size suggestions and sustained large-photo feedback remain open. · [Smart layer references progress](../research/2026-11-m7-smart-guides-progress.md) |
 | PS-14-3e68cd79ce | 视图与导航 | 网格 / 像素网格 | P1 | 待实现 | 待验收 |
 | PS-14-8ae0da2a42 | 视图与导航 | 导航器 | P1 | 待实现 | 待验收 |
 | PS-14-09e4a9ec7d | 视图与导航 | 多窗口排列 / 屏幕模式 | P2 | 待实现 | 待验收 |
@@ -272,6 +272,6 @@
 | PS-19-d9de9483c3 | Adobe 的 AI 功能 | 移除干扰物（行人、电线）/ 反射去除 🤖 | P3 | 待实现 | 待验收 |
 | PS-19-ef0365d914 | Adobe 的 AI 功能 | Neural Filters：皮肤平滑、智能肖像、上色、超级缩放、JPEG 伪影去除、照片修复、风格转换、妆容迁移、景观混合器、深度模糊、色彩转移 🤖 | P3 | 待实现 | 待验收 |
 
-综合功能条目：265。实现状态：已实现 68；已实现（M3 集成中） 11；待实现 165；部分实现 12；重新核对 9。
+综合功能条目：265。实现状态：已实现 68；已实现（M3 集成中） 11；待实现 164；部分实现 13；重新核对 9。
 
 源清单行号可由 --json 查询。该数量是综合条目数，不能当作独立子功能总数或完成百分比。

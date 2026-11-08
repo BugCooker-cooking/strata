@@ -264,6 +264,10 @@ pub struct PreparedCommand {
     required_active_layer: Option<LayerId>,
 }
 impl PreparedCommand {
+    /// Display overlays read the exact validated command result.
+    pub fn result(&self) -> &Value {
+        &self.result
+    }
     pub fn work_expired(&self) -> bool {
         self.request.expired()
     }
@@ -786,6 +790,13 @@ impl Editor {
         &self,
         interaction: &TonalInteraction,
     ) -> Result<TonalInteraction, CommandError> {
+        self.measure_snap_preview_with_layers(interaction, false)
+    }
+    pub fn measure_snap_preview_with_layers(
+        &self,
+        interaction: &TonalInteraction,
+        layers: bool,
+    ) -> Result<TonalInteraction, CommandError> {
         self.check_request(&interaction.request)?;
         if !self.tonal_context_matches(interaction)
             || self.document().and_then(Document::active_layer) != interaction.active
@@ -794,17 +805,35 @@ impl Editor {
             return Err(CommandError::Stale);
         }
         let mut measured = interaction.clone();
-        if measured.request.snap_context.is_none() {
+        if measured
+            .request
+            .snap_context
+            .as_ref()
+            .is_none_or(|c| c.includes_layers() != layers)
+        {
             measured.request.snap_context = Some(
                 super::guides::snap_context(
                     self.document().ok_or(CommandError::NoDocument)?,
                     interaction.layer,
+                    layers,
                     &|| interaction.request.expired(),
                 )?
                 .ok_or_else(|| CommandError::Invalid("no finite content to snap".into()))?,
             );
         }
         Ok(measured)
+    }
+    pub fn snap_preview_measurement_ready(
+        &self,
+        interaction: &TonalInteraction,
+        layers: bool,
+    ) -> bool {
+        self.filter_preview_context_matches(interaction)
+            && interaction
+                .request
+                .snap_context
+                .as_ref()
+                .is_some_and(|c| c.includes_layers() == layers)
     }
     pub fn filter_preview_context_matches(&self, interaction: &TonalInteraction) -> bool {
         self.tonal_context_matches(interaction)

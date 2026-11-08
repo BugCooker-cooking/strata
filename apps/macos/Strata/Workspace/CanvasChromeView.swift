@@ -162,7 +162,8 @@ final class CanvasRuler: NSView {
                 path.line(to: vertical ? NSPoint(x: minor == 0 ? 10 : 14, y: p) : NSPoint(x: p, y: minor == 0 ? 10 : 14))
             }
             let digits=max(0,min(6,Int(-floor(log10(step)))))
-            let text = String(format: "%.*f",digits,abs(value)<step*1e-8 ? 0:value) as NSString
+            let display=abs(value)<step*1e-8 ? 0.0:Double(value)
+            let text = String(format: "%.\(digits)f",display) as NSString
             let attributes: [NSAttributedString.Key: Any] = [.font: NSFont.monospacedDigitSystemFont(ofSize: 8, weight: .regular), .foregroundColor: WorkspaceColors.muted]
             if vertical {
                 NSGraphicsContext.saveGraphicsState()

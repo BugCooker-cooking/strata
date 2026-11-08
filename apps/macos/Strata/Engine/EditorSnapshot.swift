@@ -4,8 +4,8 @@ struct EditorSnapshot: Decodable, Sendable {
     struct Guide:Decodable,Sendable,Equatable{let id:String;let name:String;let axis:String;let position:Double}
     struct Presentation:Decodable,Sendable,Equatable{
         let rulerUnit:String?;let rulerOrigin:[Double]?
-        let rulersVisible:Bool;let guidesVisible:Bool;let guidesLocked:Bool;let snapEnabled:Bool;let snapTolerance:Double;let snapArtboard:Bool;let version:UInt64
-        static let defaults=Presentation(rulerUnit:"pixels",rulerOrigin:[0,0],rulersVisible:true,guidesVisible:true,guidesLocked:false,snapEnabled:false,snapTolerance:6,snapArtboard:true,version:0)
+        let rulersVisible:Bool;let guidesVisible:Bool;let guidesLocked:Bool;let snapEnabled:Bool;let snapTolerance:Double;let snapArtboard:Bool;let snapLayers:Bool?;let version:UInt64
+        static let defaults=Presentation(rulerUnit:"pixels",rulerOrigin:[0,0],rulersVisible:true,guidesVisible:true,guidesLocked:false,snapEnabled:false,snapTolerance:6,snapArtboard:true,snapLayers:false,version:0)
     }
     struct RulerMetrics:Decodable,Sendable,Equatable{
         let unit:String;let origin:[Double];let pixelsPerUnit:[Double];let resolutionDpi:UInt32;let presentationVersion:UInt64

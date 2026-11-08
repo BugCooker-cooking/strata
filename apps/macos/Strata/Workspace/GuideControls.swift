@@ -25,6 +25,7 @@ struct GuidePanel:View{
             setting("锁定参考线",key:"guides_locked",value:presentation.guidesLocked)
             setting("移动吸附",key:"snap_enabled",value:presentation.snapEnabled)
             setting("吸附画板边缘",key:"snap_artboard",value:presentation.snapArtboard)
+            setting("智能参考线 · 图层边缘与中心",key:"snap_layers",value:presentation.snapLayers ?? false)
             HStack{Text("吸附距离");TextField("屏幕点",value:Binding<Double>(get:{presentation.snapTolerance},set:{set("snap_tolerance",$0)}),format:.number).textFieldStyle(.roundedBorder);Text("pt")}.disabled(model.busy)
             Divider()
             TextField("参考线名称",text:$name).textFieldStyle(.roundedBorder)

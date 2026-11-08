@@ -69,9 +69,9 @@ final class TonalPreviewModel: ObservableObject {
     private func drain() {
         guard worker == nil else { return }
         let engine = engine
+        busy = true; onBusy?(true)
         worker = Task { [weak self] in
             guard let self else { return }
-            self.busy = true; self.onBusy?(true)
             defer {
                 self.worker = nil; self.busy = false; self.onBusy?(false)
                 if self.applying { self.applying = false; self.onApplying?(false) }

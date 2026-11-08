@@ -98,6 +98,23 @@ fn examples() -> Result<(), Box<dyn Error>> {
                         json!({"name":"Baseline","axis":"horizontal","position":6.5}),
                     )?;
                 }
+                "layer.snap_position" if args["layer"]["name"] == "SmartMoving" => {
+                    run(
+                        &mut editor,
+                        "layer.create",
+                        json!({"name":"SmartMoving","fill":[10001,30003,50001,40001]}),
+                    )?;
+                    run(
+                        &mut editor,
+                        "layer.create",
+                        json!({"name":"SmartReference","fill":[50001,20003,10005,65535]}),
+                    )?;
+                    run(
+                        &mut editor,
+                        "layer.set_position",
+                        json!({"layer":{"name":"SmartReference"},"x":32,"y":0}),
+                    )?;
+                }
                 "layer.snap_position" => {
                     run(
                         &mut editor,
@@ -381,9 +398,20 @@ fn examples() -> Result<(), Box<dyn Error>> {
                 }
                 _ => {}
             }
+            let smart_example = spec.id == "layer.snap_position" && args["layers"] == true;
             let result = run(&mut editor, spec.id, args)?;
             if !result.is_object() {
                 return Err(format!("{} returned non-object", spec.id).into());
+            }
+            if smart_example
+                && (result["x"] != 16
+                    || result["snapped_x"]["coordinate"] != 32.
+                    || result["snapped_x"]["source_anchor"] != "maximum"
+                    || result["snapped_x"]["reference_anchor"] != "minimum")
+            {
+                return Err(
+                    "smart-guide example did not execute the independent16px edge alignment".into(),
+                );
             }
             if spec.id == "view.rulers.convert" {
                 let expected = [25.4, 50.8];

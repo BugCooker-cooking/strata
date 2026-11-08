@@ -2,9 +2,9 @@
 
 当前开发期审计快照。完整编辑功能与最终 AI 审计仍未闭环；不得把注册数量当作全部功能覆盖。
 
-真实注册命令 137；参数示例 204；综合功能 265；已有映射 91。
+真实注册命令 137；参数示例 205；综合功能 265；已有映射 92。
 
-已实现但未映射 0；部分入口 12；原生未知命令引用 0；未类型化返回 0。
+已实现但未映射 0；部分入口 13；原生未知命令引用 0；未类型化返回 0。
 
 配置/密钥及基础设施的宿主管理理由单列；纯 UI 状态不能隐瞒为已具备独立 AI 设置命令。
 
@@ -175,7 +175,7 @@
 | PS-08-2b199ba19e | 历史记录画笔 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-08-20a38a31c0 | 混合器画笔 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-08-8917363943 | 历史记录艺术画笔 | 重新核对 | 待实现/待核对 | 保留最终入口与提示核对任务 |
-| PS-09-7cc6b0bb65 | 移动工具（含吸附） | 部分实现 | 部分入口 | `layer.select`、`layer.set_position`、`layer.snap_position`、`view.presentation.get`、`view.presentation.set` · 选择可见目标图层，使用稳定 ID。 · Integer native layer/group moves plus guide/artboard edge/center snapping and shared previews passed automated gates and single-window acceptance, including corrected first-switch routing. Original codes, source text, linked masks and subtree persist; fractional residuals are returned explicitly. Layer-to-layer smart references, selected-pixel V-tool semantics and sustained interaction targets remain open; composite mapping stays partial. |
+| PS-09-7cc6b0bb65 | 移动工具（含吸附） | 部分实现 | 部分入口 | `layer.select`、`layer.set_position`、`layer.snap_position`、`view.presentation.get`、`view.presentation.set` · 选择可见目标图层，使用稳定 ID。 · Integer native layer/group moves plus guide/artboard edge/center snapping and shared previews passed automated gates and single-window acceptance, including corrected first-switch routing. Original codes, source text, linked masks and subtree persist; fractional residuals are returned explicitly. Layer-to-layer smart references, selected-pixel V-tool semantics and sustained interaction targets remain open; composite mapping stays partial. Visible layer-to-layer edge/center references and exact candidate smart overlay are now under current incremental local verification; complete scope remains partial. |
 | PS-09-4f3d9835a7 | 自由变换：缩放 / 旋转 / 斜切 / 扭曲 / 透视 / 翻转 | 部分实现 | 部分入口 | `layer.pixel_bounds`、`transform.apply` · 把整个像素图层围绕给定轴心旋转 15 度，保留画板外内容。 · Pixel/selected-pixel transforms and retained text plus whole nested pixel/text/unstyled-group transforms use the same real executor, native numeric/owned handles and AI. Source/locks/visible-only bounds, immutable sampling, local cancellation, exact confirmation and turn undo have core/AI/native/Metal/Release/examples and single-window evidence. Active-style/generated/adjustment general geometry and continuous warped-pixel feedback remain open; full composite scope stays partial. |
 | PS-09-7d349372b5 | 裁剪工具（拉直、比例、是否删除裁剪像素） | 部分实现 | 部分入口 | `image.crop`、`image.straighten` · 用指定画布矩形和 4:3 比例裁剪画板，保留所有裁剪外像素与图层。 · Numeric rectangle/aspect, owned canvas drag/handles/move and preserve/delete share real crop commands. Numeric or two-point horizontal/vertical straightening composes rotation and a safe preserving crop in one history step. Canvas-dragged lines stage a guide, bind original document/revision/control/operation, and confirm through the same image.straighten command. Generated/adjustment/style/text arbitrary geometry remains open. Native pointer input uses an operation-bound owned draft; it does not introduce a separate editing implementation or change AI parameters. |
 | PS-09-64f3d2a3eb | 变形 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
@@ -239,9 +239,9 @@
 | PS-13-1b8faab964 | AI 蒙版（主体 / 天空 / 人物）🤖、AI 降噪 🤖、镜头模糊 🤖 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-14-cf2715aeb6 | 缩放 / 抓手 / 适合屏幕 / 100% | 已实现 | 已映射 | `view.pan`、`view.zoom`、`view.fit`、`view.actual_size` · 以实际像素 100% 显示当前画布，保持中心不变。 · 绝对 100% 与相对缩放分开；视图命令不改变文档或历史。 |
 | PS-14-c9a6761937 | 多文档标签页 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
-| PS-14-de2fd3ca59 | 标尺 / 参考线 / 对齐吸附 | 部分实现 | 部分入口 | `view.guides.list`、`view.guides.add`、`view.guides.update`、`view.guides.delete`、`view.guides.clear`、`view.presentation.get`、`view.presentation.set`、`layer.snap_position`、`view.rulers.convert` · 在画布X=120.5建立垂直参考线，保留稳定ID并允许撤销。 · Actual persistent guide CRUD/pages, versioned view settings, pixel rulers and shared integer edge/center guide-artboard snapping passed local core/AI/native/Metal/Release/examples and single-window checks. The first-switch routing defect was caught manually, fixed and rechecked in full native and corrected Release. Ruler custom origin/physical units, smart layer-to-layer references and sustained large-image pointer feedback remain open; partial scope is explicit. Six ruler units/custom canvas zero and precise bidirectional conversion share core metrics with native ticks; local core18/AI47/native105pass1skip/Metal/Release/lint/204examples and mm/percent/origin/guide manual acceptance passed. Corner-origin dragging and smart layer references remain open. |
+| PS-14-de2fd3ca59 | 标尺 / 参考线 / 对齐吸附 | 部分实现 | 部分入口 | `view.guides.list`、`view.guides.add`、`view.guides.update`、`view.guides.delete`、`view.guides.clear`、`view.presentation.get`、`view.presentation.set`、`layer.snap_position`、`view.rulers.convert` · 在画布X=120.5建立垂直参考线，保留稳定ID并允许撤销。 · Persistent guides and six ruler units/custom origin use real shared commands, core metrics and validated one-history integer snapping. Ruler increment local/manual evidence is recorded separately. Visible layer reference/overlay increment passed local automated gates and still awaits physical manual acceptance. Corner-origin pointer dragging, sustained large-photo interaction and remaining view scope stay open. |
 | PS-14-810f37be85 | 旋转视图 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
-| PS-14-15d282cc9a | 智能参考线 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
+| PS-14-15d282cc9a | 智能参考线 | 部分实现 | 部分入口 | `layer.snap_position`、`view.presentation.get`、`view.presentation.set` · 使用智能参考线，将当前图层边缘或中心吸附到其他可见图层，并返回实际参考层ID和残差。 · Actual opt-in visible layer/group edge/center candidates use the shared strict layer.snap_position resolver and typed reference IDs/anchors/residuals. Local core25/AI49/FFI1/required Metal1/native107pass1skip/lint/205examples/Release passed. Native overlay reads the exact displayed candidate; manual drag/appearance awaits Mac unlock. Equal spacing, angle/size intelligence and sustained large-photo performance remain open. |
 | PS-14-3e68cd79ce | 网格 / 像素网格 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-14-8ae0da2a42 | 导航器 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-14-09e4a9ec7d | 多窗口排列 / 屏幕模式 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
@@ -278,7 +278,7 @@
 
 ## 仍需核对
 
-- 部分入口：PS-01-894622b1ce、PS-04-cb66199f15、PS-04-853e6d30f3、PS-16-8de06204ac、PS-09-4f3d9835a7、PS-09-7cc6b0bb65、PS-09-7d349372b5、PS-03-5f9716e5d8、PS-03-ad24731ea8、PS-11-4490121dad、PS-11-a524877cb6、PS-14-de2fd3ca59
+- 部分入口：PS-01-894622b1ce、PS-04-cb66199f15、PS-04-853e6d30f3、PS-16-8de06204ac、PS-09-4f3d9835a7、PS-09-7cc6b0bb65、PS-09-7d349372b5、PS-03-5f9716e5d8、PS-03-ad24731ea8、PS-11-4490121dad、PS-11-a524877cb6、PS-14-de2fd3ca59、PS-14-15d282cc9a
 - 未类型化返回：无
 - 未关联功能条目的命令：
 - 动态拼接及纯宿主回调仍需人工逐项复核；已有提示映射不能代替最终模型端到端验收。

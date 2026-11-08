@@ -605,7 +605,7 @@ Permissions: `bound_document`
 
 ## `view.presentation.get` — 读取标尺与吸附设置
 
-Read editor-local ruler_unit/ruler_origin, rulers_visible/guides_visible/guides_locked/snap_enabled/snap_tolerance/snap_artboard and version. Default ruler unit is pixels with absolute canvas zero[0,0]. Current-document conversion metrics are also in the core snapshot; use view.rulers.convert for a precise pair. snap_tolerance is native screen points0..64(default6); explicit layer.snap_position uses canvas units. Defaults show rulers/guides, unlock guides and disable automatic snapping. State is independent of document history/save/undo and can be read without a document. Native and AI share it. 中文：读取视图设置、标尺显示、参考线显示、锁定参考线、吸附设置、吸附阈值。
+Read editor-local ruler_unit/ruler_origin, rulers_visible/guides_visible/guides_locked/snap_enabled/snap_tolerance/snap_artboard/snap_layers and version. Default ruler unit is pixels with absolute canvas zero[0,0]. Current-document conversion metrics are also in the core snapshot; use view.rulers.convert for a precise pair. snap_tolerance is native screen points0..64(default6); explicit layer.snap_position uses canvas units. Defaults show rulers/guides, unlock guides and disable automatic snapping. State is independent of document history/save/undo and can be read without a document. Native and AI share it. 中文：读取视图设置、标尺显示、参考线显示、锁定参考线、吸附设置、吸附阈值。
 
 Kind: `Query` · Undoable: `false` · Batchable: `false`
 
@@ -661,6 +661,9 @@ Permissions: `bound_editor, presentation_version`
     "snap_enabled": {
       "type": "boolean"
     },
+    "snap_layers": {
+      "type": "boolean"
+    },
     "snap_tolerance": {
       "description": "Native pointer tolerance in screen points, converted to canvas by host.",
       "type": "number",
@@ -684,6 +687,7 @@ Permissions: `bound_editor, presentation_version`
     "snap_enabled",
     "snap_tolerance",
     "snap_artboard",
+    "snap_layers",
     "version"
   ],
   "$defs": {
@@ -710,7 +714,7 @@ Permissions: `bound_editor, presentation_version`
 
 ## `view.presentation.set` — 设置标尺与吸附
 
-Set one or more editor-local presentation fields; expected_version optionally binds a preceding get. ruler_unit=pixels(default)/inches/centimeters/millimeters/points/percent and ruler_origin[x,y] finite absolute canvas pixels within +/-1e12 define ruler zero and display scale. Physical units use the current document DPI; percentage axes use current artboard dimensions independently. Use view.rulers.convert for actual coordinate conversion; guide coordinates and image samples never change. Equal values do not advance the version; real changes advance it once without document history/revision/dirty/current-layer changes. Guides themselves are document data edited through view.guides.*. Guide locks prohibit line edits but not snapping to those references. Automatic V-tool snapping uses the current zoom to convert native screen-point tolerance0..64 to canvas units; snap_artboard includes artboard edges. An old pointer draft cannot commit after presentation version changes. Viewing may change during AI control, while guide content edits still require normal document ownership. No document needed, not batchable. 中文：显示标尺、隐藏标尺、显示参考线、隐藏参考线、锁定参考线、开启吸附、关闭吸附、画板边缘吸附；标尺单位、毫米标尺、百分比、自定义标尺原点；只改变当前编辑器视图，不写历史。
+Set one or more editor-local presentation fields; expected_version optionally binds a preceding get. ruler_unit=pixels(default)/inches/centimeters/millimeters/points/percent and ruler_origin[x,y] finite absolute canvas pixels within +/-1e12 define ruler zero and display scale. Physical units use the current document DPI; percentage axes use current artboard dimensions independently. Use view.rulers.convert for actual coordinate conversion; guide coordinates and image samples never change. Equal values do not advance the version; real changes advance it once without document history/revision/dirty/current-layer changes. Guides themselves are document data edited through view.guides.*. Guide locks prohibit line edits but not snapping to those references. Automatic V-tool snapping uses the current zoom to convert native screen-point tolerance0..64 to canvas units; snap_artboard includes artboard edges; snap_layers(defaultfalse) enables visible layer/group raw-content edge/center references and exact-candidate smart overlay lines. An old pointer draft cannot commit after presentation version changes. Viewing may change during AI control, while guide content edits still require normal document ownership. No document needed, not batchable. 中文：显示标尺、隐藏标尺、显示参考线、隐藏参考线、锁定参考线、开启吸附、关闭吸附、画板边缘吸附；标尺单位、毫米标尺、百分比、自定义标尺原点；只改变当前编辑器视图，不写历史。
 
 Kind: `View` · Undoable: `false` · Batchable: `false`
 
@@ -801,6 +805,13 @@ Permissions: `bound_editor, presentation_version`
       ],
       "default": null
     },
+    "snap_layers": {
+      "type": [
+        "boolean",
+        "null"
+      ],
+      "default": null
+    },
     "snap_tolerance": {
       "type": [
         "number",
@@ -864,6 +875,9 @@ Permissions: `bound_editor, presentation_version`
     "snap_enabled": {
       "type": "boolean"
     },
+    "snap_layers": {
+      "type": "boolean"
+    },
     "snap_tolerance": {
       "description": "Native pointer tolerance in screen points, converted to canvas by host.",
       "type": "number",
@@ -887,6 +901,7 @@ Permissions: `bound_editor, presentation_version`
     "snap_enabled",
     "snap_tolerance",
     "snap_artboard",
+    "snap_layers",
     "version"
   ],
   "$defs": {
@@ -1106,7 +1121,7 @@ Permissions: `bound_document, presentation_version`
 
 ## `layer.snap_position` — 吸附移动图层
 
-Move an explicit visible pixel/text/fill layer or visible group subtree to proposed integer x/y +/-1e12, then resolve nearest reference-line/artboard-edge alignment independently per axis. guides/artboard defaulttrue, anchors edges/center/edges_and_center(default), tolerance finite canvas pixels0..1e6(default6). Only visible subtree content contributes bounds; hidden descendants still move with the group without exposing their bounds. Include off-artboard source and alpha-zero hidden RGB; empty text caches use retained glyph ink. Adjustments alone have no content box. Sparse scans capped64M stored visits and64M measured child areas, pooled/cancellable text work. Ties prefer guide over artboard, lower reference coordinate, edge-before-center order and stable guide id. Proposals snap to the nearest integer layer position, rounding ties away from zero; returned anchor/residual explicitly report fractional guide mismatch rather than claiming subpixel movement. Preserve source codes/tile versions, layer kind/text source, linked masks, tree and ICC/depth. Reject target/subtree/ancestor position/all locks, without implicit rasterization. changed=false preserves history/revision/dirty/current-layer; otherwise one atomic history and undo. Native V-tool and numeric UI share the same resolver; immutable gesture bounds are trusted host context, never model parameters. Not batchable. 中文：移动吸附、参考线吸附、边缘对齐、中心对齐、画板边缘、吸附阈值；移动按整数像素，返回半像素残差，原码与蒙版保留。
+Move an explicit visible pixel/text/fill layer or visible group subtree to proposed integer x/y +/-1e12, then resolve nearest reference-line/artboard-edge/optional visible-layer alignment independently per axis. guides/artboard defaulttrue; layers=false(default) or true enables other visible pixel/text/fill/group content edges/centers. Exclude target subtree and every ancestor containing the target so moving content never snaps to itself. Reference groups union only visible descendants. Return each matched visible reference_layer id/reference_anchor and source_anchor; no hidden geometry or names leak. anchors edges/center/edges_and_center(default), tolerance finite canvas pixels0..1e6(default6). Only visible subtree content contributes bounds; hidden descendants still move with the group without exposing their bounds. Include off-artboard source and alpha-zero hidden RGB; empty text caches use retained glyph ink. Adjustments alone have no content box. Target and all reference primitives share one64M stored-visit and64M measured-area budget; each visible primitive is scanned once and groups union cached bounds. A trusted measured preview caches reference extents until doc/state/layer/presentation/epoch changes.64KiB pooled cached geometry reservation and1MiB pooled resolver scratch cover bounded lists; cancellation frees scratch. No per-pointer re-scan after measurement; no unbudgeted dense composite. Text work shares font/mask budgets. Ties prefer guide, then artboard edge, then layer anchor; lower reference coordinate, source edge-before-center order, stable guide/reference-layer id. Proposals snap to the nearest integer layer position, rounding ties away from zero; returned anchor/residual explicitly report fractional guide mismatch rather than claiming subpixel movement. Preserve source codes/tile versions, layer kind/text source, linked masks, tree and ICC/depth. Reject target/subtree/ancestor position/all locks, without implicit rasterization. changed=false preserves history/revision/dirty/current-layer; otherwise one atomic history and undo. Native V-tool and numeric UI share the same resolver; immutable gesture bounds are trusted host context, never model parameters. Not batchable. 中文：移动吸附、智能参考线、图层间吸附、其他图层边缘、参考线吸附、边缘对齐、中心对齐、画板边缘、吸附阈值；移动按整数像素，返回半像素残差，原码与蒙版保留。
 
 Kind: `Mutate` · Undoable: `true` · Batchable: `false`
 
@@ -1138,6 +1153,10 @@ Permissions: `bound_document`
     },
     "layer": {
       "$ref": "#/$defs/LayerRef"
+    },
+    "layers": {
+      "type": "boolean",
+      "default": false
     },
     "tolerance": {
       "type": "number",
@@ -1260,6 +1279,14 @@ Permissions: `bound_document`
     "changed"
   ],
   "$defs": {
+    "SnapAnchor": {
+      "type": "string",
+      "enum": [
+        "minimum",
+        "maximum",
+        "center"
+      ]
+    },
     "SnapMatch": {
       "type": "object",
       "properties": {
@@ -1278,9 +1305,29 @@ Permissions: `bound_document`
           ],
           "format": "uuid"
         },
+        "reference_anchor": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SnapAnchor"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reference_layer": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uuid"
+        },
         "residual": {
           "type": "number",
           "format": "double"
+        },
+        "source_anchor": {
+          "$ref": "#/$defs/SnapAnchor"
         },
         "target": {
           "$ref": "#/$defs/SnapTarget"
@@ -1289,6 +1336,7 @@ Permissions: `bound_document`
       "additionalProperties": false,
       "required": [
         "target",
+        "source_anchor",
         "coordinate",
         "anchor",
         "residual"
@@ -1298,7 +1346,8 @@ Permissions: `bound_document`
       "type": "string",
       "enum": [
         "guide",
-        "artboard_edge"
+        "artboard_edge",
+        "layer_anchor"
       ]
     }
   }
@@ -1316,6 +1365,21 @@ Permissions: `bound_document`
   "tolerance": 4,
   "x": 3,
   "y": 3
+}
+```
+
+```json
+{
+  "anchors": "edges",
+  "artboard": false,
+  "guides": false,
+  "layer": {
+    "name": "SmartMoving"
+  },
+  "layers": true,
+  "tolerance": 2,
+  "x": 17,
+  "y": 0
 }
 ```
 
@@ -4398,6 +4462,9 @@ Permissions: `bound_document`
         "snap_enabled": {
           "type": "boolean"
         },
+        "snap_layers": {
+          "type": "boolean"
+        },
         "snap_tolerance": {
           "description": "Native pointer tolerance in screen points, converted to canvas by host.",
           "type": "number",
@@ -4421,6 +4488,7 @@ Permissions: `bound_document`
         "snap_enabled",
         "snap_tolerance",
         "snap_artboard",
+        "snap_layers",
         "version"
       ]
     },

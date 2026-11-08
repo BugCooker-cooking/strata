@@ -1009,7 +1009,7 @@
   },
   "PS-14-de2fd3ca59": {
     "implementation": "部分实现",
-    "acceptance": "Six ruler units and custom canvas zero use core-authoritative conversion/metrics, with core18, AI47, native106 (105passed/1live-service opt-in skip), required Metal1, lint/137commands/204examples, Release and single-window mm/percent/origin/unchanged-pixel-guide/undo/quit passed. Existing guide/snap and first-switch routing evidence remains valid. Corner-origin pointer drag, layer smart references and sustained interaction scope remain open.",
+    "acceptance": "Six ruler units and custom canvas zero use core-authoritative conversion/metrics, with core18, AI47, native106 (105passed/1live-service opt-in skip), required Metal1, lint/137commands/204examples, Release and single-window mm/percent/origin/unchanged-pixel-guide/undo/quit passed. Existing guide/snap and first-switch routing evidence remains valid. Visible layer references now have the local automated checkpoint recorded separately; their manual check awaits Mac unlock. Corner-origin pointer drag and sustained interaction scope remain open.",
     "evidence": [
       {
         "label": "Guides and snap local progress",
@@ -1022,6 +1022,20 @@
       {
         "label": "Ruler units and custom origin",
         "path": "../research/2026-11-m7-ruler-units-progress.md"
+      },
+      {
+        "label": "Visible layer reference increment",
+        "path": "../research/2026-11-m7-smart-guides-progress.md"
+      }
+    ]
+  },
+  "PS-14-15d282cc9a": {
+    "implementation": "部分实现",
+    "acceptance": "Visible layer/group edge-center snapping and exact-candidate native overlays passed local core25, AI49, headless FFI1, required Metal1, full native108 (107passed/1live-service opt-in skip), lint,137commands/205isolated examples and arm64 Release. Initial native2 failures exposed the queued-busy race and are retained; corrected full suite passed. Manual drag/overlay appearance is pending Mac unlock; no active Strata instance. Equal spacing/angle/size suggestions and sustained large-photo feedback remain open.",
+    "evidence": [
+      {
+        "label": "Smart layer references progress",
+        "path": "../research/2026-11-m7-smart-guides-progress.md"
       }
     ]
   }

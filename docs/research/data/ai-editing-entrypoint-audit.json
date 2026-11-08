@@ -1,10 +1,10 @@
 {
   "scope": "Development audit; not a claim that all Photoshop editing is implemented or AI-verified",
   "registered_commands": 137,
-  "registered_examples": 204,
-  "catalog_sha256": "cd3f36d164d35f2a65cec8029f2273abae18e944b8e3ea350d5ce50b639ca002",
+  "registered_examples": 205,
+  "catalog_sha256": "162d66dfec0d29d5e91e1b68c79794513fef214ac855131b741f58dc2f997035",
   "inventory_rows": 265,
-  "mapped_features": 91,
+  "mapped_features": 92,
   "unmapped_implemented_features": [],
   "partial_entrypoints": [
     "PS-01-894622b1ce",
@@ -18,7 +18,8 @@
     "PS-03-ad24731ea8",
     "PS-11-4490121dad",
     "PS-11-a524877cb6",
-    "PS-14-de2fd3ca59"
+    "PS-14-de2fd3ca59",
+    "PS-14-15d282cc9a"
   ],
   "unfinished_features": [
     "PS-00-7d7224e709",
@@ -3438,7 +3439,7 @@
             "command": "layer.snap_position"
           }
         ],
-        "note": "Integer native layer/group moves plus guide/artboard edge/center snapping and shared previews passed automated gates and single-window acceptance, including corrected first-switch routing. Original codes, source text, linked masks and subtree persist; fractional residuals are returned explicitly. Layer-to-layer smart references, selected-pixel V-tool semantics and sustained interaction targets remain open; composite mapping stays partial."
+        "note": "Integer native layer/group moves plus guide/artboard edge/center snapping and shared previews passed automated gates and single-window acceptance, including corrected first-switch routing. Original codes, source text, linked masks and subtree persist; fractional residuals are returned explicitly. Layer-to-layer smart references, selected-pixel V-tool semantics and sustained interaction targets remain open; composite mapping stays partial. Visible layer-to-layer edge/center references and exact candidate smart overlay are now under current incremental local verification; complete scope remains partial."
       }
     },
     {
@@ -4522,7 +4523,7 @@
             ]
           }
         ],
-        "note": "Actual persistent guide CRUD/pages, versioned view settings, pixel rulers and shared integer edge/center guide-artboard snapping passed local core/AI/native/Metal/Release/examples and single-window checks. The first-switch routing defect was caught manually, fixed and rechecked in full native and corrected Release. Ruler custom origin/physical units, smart layer-to-layer references and sustained large-image pointer feedback remain open; partial scope is explicit. Six ruler units/custom canvas zero and precise bidirectional conversion share core metrics with native ticks; local core18/AI47/native105pass1skip/Metal/Release/lint/204examples and mm/percent/origin/guide manual acceptance passed. Corner-origin dragging and smart layer references remain open."
+        "note": "Persistent guides and six ruler units/custom origin use real shared commands, core metrics and validated one-history integer snapping. Ruler increment local/manual evidence is recorded separately. Visible layer reference/overlay increment passed local automated gates and still awaits physical manual acceptance. Corner-origin pointer dragging, sustained large-photo interaction and remaining view scope stay open."
       }
     },
     {
@@ -4542,8 +4543,34 @@
       "name": "智能参考线",
       "priority": "P1",
       "source_line": 348,
-      "implementation": "待实现",
-      "entrypoint": null
+      "implementation": "部分实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "partial",
+        "commands": [
+          "layer.snap_position",
+          "view.presentation.get",
+          "view.presentation.set"
+        ],
+        "prompts": [
+          {
+            "text": "使用智能参考线，将当前图层边缘或中心吸附到其他可见图层，并返回实际参考层ID和残差。",
+            "query": "图层间吸附",
+            "command": "layer.snap_position"
+          },
+          {
+            "text": "Enable visible layer edge and center smart references for native V-tool moves without changing document history.",
+            "query": "snap_layers",
+            "command": "view.presentation.set"
+          },
+          {
+            "text": "先读取智能参考线吸附开关，再把两个可见组的边缘对齐，保留隐藏子层和链接蒙版。",
+            "query": "智能参考线",
+            "command": "layer.snap_position"
+          }
+        ],
+        "note": "Actual opt-in visible layer/group edge/center candidates use the shared strict layer.snap_position resolver and typed reference IDs/anchors/residuals. Local core25/AI49/FFI1/required Metal1/native107pass1skip/lint/205examples/Release passed. Native overlay reads the exact displayed candidate; manual drag/appearance awaits Mac unlock. Equal spacing, angle/size intelligence and sustained large-photo performance remain open."
+      }
     },
     {
       "id": "PS-14-3e68cd79ce",

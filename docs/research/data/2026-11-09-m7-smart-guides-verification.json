@@ -1,0 +1,186 @@
+{
+  "date_local": "2026-11-09",
+  "timezone": "Asia/Taipei",
+  "base_checkpoint": "95a6452",
+  "branch": "codex/v1-remaining",
+  "scope": "Opt-in visible raw-content layer/group edge-center snapping with exact displayed-candidate overlays; not complete smart guides or Photoshop.",
+  "source_sha256": {
+    "apps/macos/Strata/App/MainWindowController.swift": "283aaf1a0b5afac0340044560c12226b672c072e0e86660a69beeedff662dda2",
+    "apps/macos/Strata/Canvas/CanvasSnapInput.swift": "ee14e4bef7974e121275563dabd1549817260a910c4e037819f2e320100f9bf7",
+    "apps/macos/Strata/Canvas/CanvasView.swift": "ecadc39455d0ce67b494389517ba0b15635b22c42227637d1764dea77466bcf0",
+    "apps/macos/Strata/Engine/EditorSnapshot.swift": "cf6ad21cc8de37ea4163489647ea5fa7ef2c0d3e3f237baaf8fe79a53faa3cca",
+    "apps/macos/Strata/Workspace/CanvasChromeView.swift": "70dc4f32cdccb505828f6caf65868b49b4e2951271c2de29a6435af8020c8709",
+    "apps/macos/Strata/Workspace/GuideControls.swift": "9662f7eee3b3caa57fb7ef7adc8d88551a900848404eb3d051b9378e5c64d734",
+    "apps/macos/Strata/Workspace/TonalPreviewModel.swift": "abc3071f757e9089a70a39f5a20ed037589464b7f50b28e00574713d352d9341",
+    "apps/macos/StrataTests/SmartGuideTests.swift": "c3ba0bbf728f295abf5b0ec3500ac5b38edb8e6d3a54e16c7acbd203e7aac226",
+    "crates/strata-ai/tests/replay.rs": "b97d8710f4207dab317c48cbb8b41fc2052a76f499fb3756800bdc7317c408f4",
+    "crates/strata-core/src/commands/executor.rs": "aa30b5cf5eee55407bcaf7120d0f29395b86ee6c2cea6aa1a48371532dd5c74b",
+    "crates/strata-core/src/commands/guides.rs": "f0a456a49f63a42c1dcf33b294408a21f7dd9c25f27b259f39c1d88fee38a07a",
+    "crates/strata-core/src/commands/mod.rs": "8c1bcd0a6a6c40533c903a316da2b8082995c23d8c2909b0a48c25a1de91cf00",
+    "crates/strata-core/src/commands/registry.rs": "3563e6038ad7e1a649022e37922a9d21a20b1164cc93bc2047454e112e6825ed",
+    "crates/strata-core/src/guides.rs": "9a244e5e43702728703587678b77a989385f9d1883ee1157dad5fbae9d94eaa9",
+    "crates/strata-core/tests/smart_guides.rs": "c5c7384145713bdd2bf6437e0bb58077be74844bdfa98812d00dcb1219e4db2b",
+    "crates/strata-ffi/src/filter_preview.rs": "127b005b8f6bc136c26d508933b58de2c690870375c9e51326d5aef015a78cad",
+    "crates/strata-ffi/src/guides.rs": "250497b1f398e66a8be48c098bb088381639c3d98ee4a8b972da87512b2dfa9f",
+    "crates/strata-ffi/src/lib.rs": "f0fc934ae387a1fd367166dc2ea33522ee1d7cdf17e951a2683cad7dd457dddf",
+    "crates/strata-ffi/src/smart_guides_tests.rs": "50d0cbc45208d6f77bb52d5523047fe2419ba0aa0570b0956c67cd49ac1f1add",
+    "tools/strata-devtool/src/main.rs": "3b5ee5eb3538045b2be7b5f553d1867974ca9e780e4cf5c668c2ac13284685ab"
+  },
+  "log_sha256": {
+    "build/m7-smart-guides-ai-audit.log": "f6a8d8bd6b2db857e6980f9a08ee787db3a71bb32a15beb952483dbbdfbe0f3e",
+    "build/m7-smart-guides-ai.final.log": "b7ca742709872e5b6f69c276109b9ae3f08af9cac9f6eb10314d1a06bfdf1d05",
+    "build/m7-smart-guides-ai.log": "099d8ea6b11112de7d2525b0ece74c0104f4cf540b1dcdbca0817437b1bb3734",
+    "build/m7-smart-guides-check.log": "c5a3e79d31c9facfad6a76ba5c0fab81648bf6bbc36b80ef635ed7244ca3458d",
+    "build/m7-smart-guides-commands.log": "5554e3799aa446b3a28ce5d7442a8c8388537f217d3662e240cbd3efd2a80cc3",
+    "build/m7-smart-guides-core.base.log": "a6488cdb3e354d47f53556f0c6de876223a12f22e1d51fdce41c3cccd6427e28",
+    "build/m7-smart-guides-core.fixed.log": "0395334a7d28da78d99f31b3f427642af9e8e78b08e73c3bdcb38dc6e6d02eec",
+    "build/m7-smart-guides-core.log": "3397e6c2d5430a250be63f1bbfc62f00ac522b3363bb124b7e559a2393c41088",
+    "build/m7-smart-guides-docs.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "build/m7-smart-guides-ffi.log": "a0208b77a326a766d8132fcd2df08b063c0f2c5b6b13080ca408997f21c2b3e0",
+    "build/m7-smart-guides-lint.log": "d550ecdfda1e4062f20fe9d6521d1f7f85d55e3b7597a769467bb52519ecec91",
+    "build/m7-smart-guides-metal.log": "4de1f82b5dc481c15049f9ef2e8355118f83f9e3f6cdcb50ed7e497210ed3ff2",
+    "build/m7-smart-guides-native.fixed.log": "0ee35546ca61b6e9731b107f123a0be8a7a5e2292b94426fafb07637dfb68b79",
+    "build/m7-smart-guides-native.log": "b023ad077146dad6b7d29afe6089dc2f24387c3f590c4de7cab4c0ef1b9e66aa",
+    "build/m7-smart-guides-project.log": "a93526adcaee3566c4324d7ca22bf515cd1761cba7fc62bec5187e2cf6a0200a",
+    "build/m7-smart-guides-release.log": "115aeb2f8e3e7f76e5135dc661ef241df20d6befa8aaaf22beb71f86722a1ec4",
+    "build/m7-smart-guides-swiftlint.final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "build/m7-smart-guides-swiftlint.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "checks": {
+    "core_targeted": {
+      "passed": 25,
+      "failed": 0,
+      "log": "build/m7-smart-guides-core.fixed.log",
+      "suites": {
+        "guides": 13,
+        "ruler_units": 5,
+        "smart_guides": 7
+      }
+    },
+    "ai": {
+      "passed": 49,
+      "failed": 0,
+      "log": "build/m7-smart-guides-ai.final.log",
+      "suites": {
+        "replay": 40,
+        "protocol": 7,
+        "recordings": 1,
+        "all_mapped_prompts": 1
+      },
+      "network_requests": 0
+    },
+    "headless_ffi": {
+      "passed": 1,
+      "failed": 0,
+      "log": "build/m7-smart-guides-ffi.log"
+    },
+    "required_metal": {
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "required_gpu": true,
+      "log": "build/m7-smart-guides-metal.log",
+      "reference": "Exact cancel/apply/undo scene and archive; CPU compositor comparison <=3/255 for RGB."
+    },
+    "native_initial": {
+      "total": 108,
+      "passed": 105,
+      "failed": 2,
+      "skipped": 1,
+      "log": "build/m7-smart-guides-native.log",
+      "finding": "Queued preview reported idle before its task first ran; new overlay tests exposed this. Repeated ruler dynamic precision format warnings were also found."
+    },
+    "native_corrected": {
+      "total": 108,
+      "passed": 107,
+      "failed": 0,
+      "skipped": 1,
+      "log": "build/m7-smart-guides-native.fixed.log",
+      "skip_reason": "Live model opt-in disabled; no network request.",
+      "fix": "busy set synchronously when work is queued; ruler labels use explicit Double/precision format.",
+      "jobs": 2,
+      "parallel_testing": false
+    },
+    "lint": {
+      "passed": true,
+      "log": "build/m7-smart-guides-lint.log",
+      "final_swift_log": "build/m7-smart-guides-swiftlint.final.log",
+      "checks": [
+        "rustfmt",
+        "workspace all-target Clippy -D warnings",
+        "portability",
+        "Swiftlint",
+        "generated feature coverage"
+      ]
+    },
+    "examples": {
+      "passed": true,
+      "commands": 137,
+      "parameter_examples": 205,
+      "log": "build/m7-smart-guides-commands.log",
+      "independent_reference": "16px Moving right edge aligns Reference minimum32px; proposal17 resolves16, actual source maximum/reference minimum verified."
+    },
+    "release": {
+      "passed": true,
+      "log": "build/m7-smart-guides-release.log",
+      "architecture": "arm64",
+      "jobs": 2,
+      "swift_backend_threads": 1,
+      "binary_sha256": "59aed359787b96f3abc3ed73f7fc2669ce7f56ee5b1504277f89f026183c3569",
+      "resource_fixture_byte_equal": true
+    },
+    "scope_note": "No full core-suite, large-photo sustained pointer benchmark or live model quality rerun claimed for this increment."
+  },
+  "semantics": {
+    "layers_default": false,
+    "view_setting": "snap_layers editor-local, versioned, no document history/dirty change",
+    "bounds": "Visible raw pixel/text/fill bounds; visible-only descendant union for groups. Styled/masked visible ink is not claimed.",
+    "exclusions": [
+      "target",
+      "moving subtree",
+      "ancestors containing target",
+      "hidden layers and hidden ancestors"
+    ],
+    "shared_limits": {
+      "stored_visits": 64000000,
+      "measured_primitive_area": 64000000,
+      "cached_reservation_bytes": 65536,
+      "resolver_reservation_bytes": 1048576
+    },
+    "cache": "Fix doc/state, target/original origin, revision, epoch, presentation version and reference-mode. Each primitive scanned once.",
+    "overlay": "Reads prepared command result from the actual displayed candidate; no independent Swift snap resolver.",
+    "history": "One real move/undo; same position no-op. Cancel/settings/context/invalid release clear candidates without history.",
+    "integer_residual": "Half ties away from zero, signed residual reports fractional mismatch."
+  },
+  "manual": {
+    "status": "pending_mac_unlock",
+    "attempt": "CUA getApp for this Release path reported Mac locked and automatic unlock paused; requested manual unlock.",
+    "strata_process_count_after_block": 0,
+    "passed": false,
+    "fixture_sha256": "c1006da29913609963479b8641c0e6f6a43ff2c6d8b2f907c91a6daf1afaa2ea",
+    "max_instances": 1
+  },
+  "ai_audit": {
+    "registered_commands": 137,
+    "registered_examples": 205,
+    "mapped_composite_rows": 92,
+    "inventory_rows": 265,
+    "partial_entries": 13,
+    "final_closure": false
+  },
+  "policy": {
+    "local_only": true,
+    "cloud_builds_triggered": 0,
+    "live_model_requests": 0,
+    "max_build_jobs": 2,
+    "draft_only": true,
+    "native_release_lint_serial": true,
+    "orchestration_note": "Command documentation/example preparation briefly overlapped the ending Metal test; later lint/native/Release gates ran sequentially. Future heavy verification remains serial per AGENTS.md."
+  },
+  "open": [
+    "Physical single-window drag/overlay appearance pending Mac unlock.",
+    "Equal spacing, angle and size smart suggestions.",
+    "Sustained large-photo interaction/performance and styled/masked visible-ink references.",
+    "Corner ruler-origin dragging and complete Photoshop/final AI audit."
+  ]
+}

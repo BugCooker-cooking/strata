@@ -31,6 +31,23 @@ fn parameters(json: &str) -> Result<Value, StrataError> {
 }
 #[uniffi::export]
 impl StrataEngine {
+    /// Exact candidate output; no separate approximate native snap resolver.
+    pub fn snap_preview_result(&self) -> Result<String, StrataError> {
+        let inner = match self.inner.try_lock() {
+            Ok(v) => v,
+            Err(std::sync::TryLockError::WouldBlock) => return Ok("null".into()),
+            Err(e) => return Err(render_error(e)),
+        };
+        let value = inner
+            .tonal_preview
+            .as_ref()
+            .filter(|p| {
+                p.filter.as_deref() == Some("layer.snap_position")
+                    && inner.editor.filter_preview_context_matches(&p.interaction)
+            })
+            .and_then(|p| p.candidate.as_ref());
+        Ok(value.map_or_else(|| "null".into(), |c| c.prepared.result().to_string()))
+    }
     pub fn begin_filter_preview(
         &self,
         layer_id: String,
@@ -108,7 +125,10 @@ impl StrataEngine {
         let scoped = crate::tonal_preview::issued_interaction(self, &interaction, sequence)?;
         let scoped = if command == "layer.snap_position" {
             editor
-                .measure_snap_preview(&scoped)
+                .measure_snap_preview_with_layers(
+                    &scoped,
+                    parameters["layers"].as_bool().unwrap_or(false),
+                )
                 .map_err(command_error)?
         } else {
             scoped

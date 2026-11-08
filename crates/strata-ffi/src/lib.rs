@@ -19,6 +19,8 @@ mod filter_preview;
 mod group_transform_tests;
 mod guides;
 mod local;
+#[cfg(test)]
+mod smart_guides_tests;
 mod subject;
 mod tonal_preview;
 mod typography;
