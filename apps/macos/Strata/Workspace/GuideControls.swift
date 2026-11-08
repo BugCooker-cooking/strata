@@ -20,6 +20,7 @@ struct GuidePanel:View{
             Text("标尺原点（画布 px）").font(.system(size:11))
             HStack{TextField("原点 X",value:$originX,format:.number).textFieldStyle(.roundedBorder).accessibilityLabel("标尺原点 X");TextField("原点 Y",value:$originY,format:.number).textFieldStyle(.roundedBorder).accessibilityLabel("标尺原点 Y")}
             HStack{Button("应用原点"){set("ruler_origin",[originX,originY])}.disabled(model.busy || !originValid);Button("重置原点"){set("ruler_origin",[0.0,0.0])}.disabled(model.busy)}.buttonStyle(WorkspaceButtonStyle())
+            Text("可从两条标尺交点拖入画布设置零点，双击交点重置；Esc或在画布外松手取消。").font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))
             Text("物理单位按文档 DPI 换算；百分比各轴对应画板宽高。参考线输入仍使用画布 px。").font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))
             setting("显示参考线",key:"guides_visible",value:presentation.guidesVisible)
             setting("锁定参考线",key:"guides_locked",value:presentation.guidesLocked)
@@ -45,6 +46,7 @@ struct GuidePanel:View{
             Text("参考线使用画布绝对坐标，图像旋转或缩放后仍留在原处，不导出到图片。可从标尺拖入；V工具拖动现有线，Esc取消。图层位置按整数像素吸附；小数参考线可能留有半像素差值。").font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))
             if let input=model.guideInput,!input.error.isEmpty{Text(input.error).foregroundStyle(Color(nsColor:WorkspaceColors.danger))}
             if let input=model.snapInput,!input.error.isEmpty{Text(input.error).foregroundStyle(Color(nsColor:WorkspaceColors.danger))}
+            if let input=model.rulerOriginInput,!input.error.isEmpty{Text(input.error).foregroundStyle(Color(nsColor:WorkspaceColors.danger))}
         }.padding(12)}.onChange(of:model.snapshot?.documentId){_,_ in selected=nil}
             .onAppear{syncOrigin()}.onChange(of:presentation){_,_ in syncOrigin()}
             .onChange(of:model.snapshot?.guides){_,guides in if let selected,let guide=guides?.first(where:{$0.id==selected}){name=guide.name;axis=guide.axis;position=guide.position}else if selected != nil{selected=nil}}

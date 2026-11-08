@@ -8,6 +8,7 @@ final class CanvasChromeView: NSView {
     let readout = CanvasReadout()
     private let horizontal = CanvasRuler(vertical: false)
     private let vertical = CanvasRuler(vertical: true)
+    private let rulerCorner=CanvasRulerCorner()
     private let map = CanvasNavigator()
     private var frameOverlay: ArtboardOverlay?
     private var controlSubscription: AnyCancellable?
@@ -24,7 +25,7 @@ final class CanvasChromeView: NSView {
         let empty = NSHostingView(rootView: CanvasEmptyState(model: model))
         let banner = NSHostingView(rootView: CanvasControlBanner(model: model)); banner.isHidden = true
         wantsLayer = true
-        for view in [canvas, horizontal, vertical, zoom, map, empty, banner] { addSubview(view); view.translatesAutoresizingMaskIntoConstraints = false }
+        for view in [canvas, horizontal, vertical, rulerCorner, zoom, map, empty, banner] { addSubview(view); view.translatesAutoresizingMaskIntoConstraints = false }
         canvasLeading=canvas.leadingAnchor.constraint(equalTo:leadingAnchor,constant:18)
         canvasTop=canvas.topAnchor.constraint(equalTo:topAnchor,constant:18)
         NSLayoutConstraint.activate([
@@ -33,6 +34,7 @@ final class CanvasChromeView: NSView {
             canvas.trailingAnchor.constraint(equalTo: trailingAnchor), canvas.bottomAnchor.constraint(equalTo: bottomAnchor),
             horizontal.leadingAnchor.constraint(equalTo: canvas.leadingAnchor), horizontal.trailingAnchor.constraint(equalTo: trailingAnchor), horizontal.topAnchor.constraint(equalTo: topAnchor), horizontal.heightAnchor.constraint(equalToConstant: 18),
             vertical.leadingAnchor.constraint(equalTo: leadingAnchor), vertical.topAnchor.constraint(equalTo: canvas.topAnchor), vertical.bottomAnchor.constraint(equalTo: bottomAnchor), vertical.widthAnchor.constraint(equalToConstant: 18),
+            rulerCorner.leadingAnchor.constraint(equalTo:leadingAnchor),rulerCorner.topAnchor.constraint(equalTo:topAnchor),rulerCorner.widthAnchor.constraint(equalToConstant:18),rulerCorner.heightAnchor.constraint(equalToConstant:18),
             zoom.leadingAnchor.constraint(equalTo: canvas.leadingAnchor, constant: 12), zoom.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -12),
             map.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -12), map.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -12), map.widthAnchor.constraint(equalToConstant: 132), map.heightAnchor.constraint(equalToConstant: 88)
             , banner.topAnchor.constraint(equalTo: canvas.topAnchor, constant: 5), banner.leadingAnchor.constraint(equalTo: canvas.leadingAnchor, constant: 5), banner.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -5), banner.heightAnchor.constraint(equalToConstant: 36)
@@ -46,12 +48,16 @@ final class CanvasChromeView: NSView {
             self.documentOrigin=NSPoint(x:Double(snapshot?.frame?.x ?? 0),y:Double(snapshot?.frame?.y ?? 0))
             self.rulerMetrics=snapshot?.rulerMetrics?.valid==true ? snapshot?.rulerMetrics:nil
             let shown=snapshot?.presentation?.rulersVisible ?? true
-            self.horizontal.isHidden = !shown;self.vertical.isHidden = !shown
+            self.horizontal.isHidden = !shown;self.vertical.isHidden = !shown;self.rulerCorner.isHidden = !shown
+            if let snapshot{self.canvas.rulerOriginInput.bind(snapshot)}else{self.canvas.rulerOriginInput.cancel()}
             let inset:CGFloat=shown ? 18:0
             if self.canvasLeading.constant != inset{self.canvasLeading.constant=inset;self.canvasTop.constant=inset;self.needsLayout=true}
             self.horizontal.onGuide = { [weak self,weak model]phase,event in self?.rulerGuide(phase,event:event,axis:"horizontal",model:model) }
             self.vertical.onGuide = { [weak self,weak model]phase,event in self?.rulerGuide(phase,event:event,axis:"vertical",model:model) }
         }
+        rulerCorner.onPointer={[weak self,weak model]phase,event in self?.dragOrigin(phase,event:event,model:model)}
+        rulerCorner.onReset={[weak canvas,weak model]in guard model?.busy==false else{return};canvas?.rulerOriginInput.reset();canvas?.window?.makeFirstResponder(canvas)}
+        rulerCorner.onCancel={[weak canvas]in canvas?.rulerOriginInput.cancel();canvas?.window?.makeFirstResponder(canvas)}
         canvas.onViewChanged = { [weak self] frame, zoom, scale in
             guard let self else { return }
             self.frameOverlay = frame
@@ -76,14 +82,44 @@ final class CanvasChromeView: NSView {
         map.onNavigate = { [weak canvas] dx, dy in canvas?.panByPoints(dx: dx, dy: dy) }
     }
     required init?(coder: NSCoder) { nil }
+    private func dragOrigin(_ phase:Int,event:NSEvent,model:WorkspaceModel?){
+        guard let model,!model.busy else{return}
+        let local=canvas.convert(event.locationInWindow,from:nil)
+        guard let point=canvas.documentPoint(local)else{canvas.rulerOriginInput.cancel();return}
+        if phase==0{canvas.rulerOriginInput.begin(at:point)}
+        else if phase==1{canvas.rulerOriginInput.move(to:point)}
+        else{canvas.window?.makeFirstResponder(canvas);_ = canvas.rulerOriginInput.finish(at:canvas.bounds.contains(local) ? point:nil)}
+    }
     private func rulerGuide(_ phase:Int,event:NSEvent,axis:String,model:WorkspaceModel?){
         guard let model,!model.busy,let point=canvas.documentPoint(canvas.convert(event.locationInWindow,from:nil))else{return}
         let value=Double(axis=="vertical" ? point.x:point.y)
-        if phase==0{canvas.guideInput.begin(axis:axis,position:value)}
+        if phase==0{canvas.rulerOriginInput.cancel();canvas.guideInput.begin(axis:axis,position:value)}
         else if phase==1{canvas.guideInput.move(position:value)}
         else{let local=canvas.convert(event.locationInWindow,from:nil);if canvas.bounds.contains(local){canvas.guideInput.move(position:value);_ = canvas.guideInput.finish()}else{canvas.guideInput.cancel()}}
     }
     override func draw(_ dirtyRect: NSRect) { WorkspaceColors.panel.setFill(); dirtyRect.fill() }
+}
+
+@MainActor
+final class CanvasRulerCorner:NSView{
+    var onPointer:((Int,NSEvent)->Void)?
+    var onReset:(()->Void)?
+    var onCancel:(()->Void)?
+    override var isFlipped:Bool{true}
+    override var acceptsFirstResponder:Bool{true}
+    override init(frame:NSRect){super.init(frame:frame);toolTip="拖动设置标尺零点；双击重置 / Drag ruler origin; double-click resets";setAccessibilityElement(true);setAccessibilityRole(.button);setAccessibilityLabel("标尺原点：拖动设置，双击重置")}
+    convenience init(){self.init(frame:.zero)}
+    required init?(coder:NSCoder){nil}
+    override func mouseDown(with event:NSEvent){window?.makeFirstResponder(self);if event.clickCount>=2{onCancel?();onReset?()}else{onPointer?(0,event)}}
+    override func mouseDragged(with event:NSEvent){onPointer?(1,event)}
+    override func mouseUp(with event:NSEvent){onPointer?(2,event)}
+    override func keyDown(with event:NSEvent){if event.keyCode==53{onCancel?()}else{super.keyDown(with:event)}}
+    override func accessibilityPerformPress()->Bool{onReset?();return true}
+    override func draw(_ dirtyRect:NSRect){
+        WorkspaceColors.panel.setFill();bounds.fill();WorkspaceColors.secondary.setStroke()
+        let p=NSBezierPath();p.lineWidth=1;p.move(to:NSPoint(x:4,y:9));p.line(to:NSPoint(x:14,y:9));p.move(to:NSPoint(x:9,y:4));p.line(to:NSPoint(x:9,y:14));p.stroke()
+        WorkspaceColors.border.setStroke();NSBezierPath(rect:bounds.insetBy(dx:0.5,dy:0.5)).stroke()
+    }
 }
 
 private struct CanvasControlBanner: View {

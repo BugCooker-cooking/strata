@@ -1,0 +1,189 @@
+{
+  "date_local": "2026-11-09",
+  "timezone": "Asia/Taipei",
+  "base_checkpoint": "26a4ac8",
+  "branch": "codex/v1-remaining",
+  "scope": "Owned native ruler-corner origin drag, double-click/accessibility reset, read-only draft/cancel; existing strict view.presentation.set used by UI and AI. Not full Photoshop or full view completion.",
+  "source_sha256": {
+    "apps/macos/Strata/App/MainWindowController.swift": "fd023b545b60a888d4d9e186b29ff52201c39639c2629bb78bc0d38118b141d2",
+    "apps/macos/Strata/Canvas/CanvasRulerOriginInput.swift": "b7d8c6ff796c4a22f7415e5f255ff0245f18979d4182b50b3ff1d8d637b6c717",
+    "apps/macos/Strata/Canvas/CanvasView.swift": "bc21970aa52477b17c7c7cec8062b10918a52ea467201ec96fc13011c229f4d8",
+    "apps/macos/Strata/Workspace/CanvasChromeView.swift": "54201f86666908d6cb531bb430b3ff4728e413ce9c77080c2ec4a2e116cd4636",
+    "apps/macos/Strata/Workspace/GuideControls.swift": "fe3e2622856670e2b99f8a1fc3ae08b345f38072224a87fa316cf1aa9262b768",
+    "apps/macos/Strata/Workspace/WorkspaceModel.swift": "7402cade476dbec30c1a16889d9fe2d75a2d8ec6d9c60a0517c391559c4ab322",
+    "apps/macos/StrataTests/RulerOriginDragTests.swift": "0c982f909eefa502009cdb4571e20466d1b9b2d7d0fc23d5af831c2aca4dfb35",
+    "crates/strata-core/src/commands/executor.rs": "f2c92873d7c5ee3caefd6355aab77f32d99e646be0c02118385fc9a112acaf23",
+    "crates/strata-core/src/commands/registry.rs": "68f1ea819eddc8e2a7a0d82af43d8a5d1180a0c39c2edc7050a3bc2ea2c57bbb",
+    "crates/strata-core/tests/ruler_origin_drafts.rs": "740c9fca0f99bff7d4c4ddfd7bf626717cb6d2d80580413a28e1bdf41a606395",
+    "crates/strata-ffi/src/crop.rs": "14c795754a246ee0c88f9d0805a876229e12d257a39897cb639ecc768e4ff446",
+    "crates/strata-ffi/src/guides.rs": "8fbb96b50c7213bd5378e015cf83811326073a9df72bd6bc23532930d97747e7",
+    "tools/strata-devtool/src/main.rs": "219133473bcd5848ef9edf24704801d443d9fcbdbb9f5ea9f48d1a8af5674738"
+  },
+  "log_sha256": {
+    "build/m7-origin-drag-ai.log": "383713fc5cc94d59f5e536a40fb3bdba049fdf4a7d35caeff0aa86ad0242a847",
+    "build/m7-origin-drag-audit.log": "f6a8d8bd6b2db857e6980f9a08ee787db3a71bb32a15beb952483dbbdfbe0f3e",
+    "build/m7-origin-drag-check.log": "0990d3e8ba47365d1b1a623566fc3a611d84da341e3523e689f4258c7a7c3b35",
+    "build/m7-origin-drag-commands.fixed.log": "6f1a9cb2b7ce0901840ef1394d3686318cef72ad067c81e83525befc4d7d4f38",
+    "build/m7-origin-drag-commands.log": "9db9dc6ccf5ab56703ae6838c7d17fe111f3c3b3f15b27c20c0edab6f69ea38f",
+    "build/m7-origin-drag-core.log": "0d919a5b3649d04548abede530a29faadde9e04160f9293339b13f83882c2b18",
+    "build/m7-origin-drag-docs.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "build/m7-origin-drag-ffi.log": "880b970dba373808820b6748090f8d2f99292af0253ce716e51a8b1dd2edbc98",
+    "build/m7-origin-drag-final-ai-gate.log": "58775cd558643dbf55e44703bbdc00f7f6982cb47d878a0c39d4f6ad5cfe0375",
+    "build/m7-origin-drag-lint.log": "f44119d74086eb5efccba1b4792e63dd676d15946f90c55241cb8749007d02e8",
+    "build/m7-origin-drag-metal.log": "b9a909ec8980779efaba9f616197db43910358913cfb167bbb1cf772644140c6",
+    "build/m7-origin-drag-native.log": "1625f4af12d894c103a922667379b8ff32586aec74a1cc5b256c34b736300445",
+    "build/m7-origin-drag-project.log": "a019a998daf77b8696c89e413e44141d1a4a11689ef89f813a2fe4698de5c667",
+    "build/m7-origin-drag-release.log": "9a5f663ea6408ef2f078e63604d9d2555250cc92622caabb97c9fb209c98e543",
+    "build/m7-origin-drag-swiftlint.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "checks": {
+    "core": {
+      "passed": 28,
+      "failed": 0,
+      "log": "build/m7-origin-drag-core.log",
+      "suites": {
+        "guides": 13,
+        "ruler_units": 5,
+        "smart_guides": 7,
+        "ruler_origin_drafts": 3
+      }
+    },
+    "headless_ffi": {
+      "passed": 1,
+      "failed": 0,
+      "log": "build/m7-origin-drag-ffi.log",
+      "cases": [
+        "apply",
+        "cancel",
+        "view changed",
+        "document replaced",
+        "NaN",
+        "superseded token"
+      ]
+    },
+    "ai": {
+      "passed": 49,
+      "failed": 0,
+      "log": "build/m7-origin-drag-ai.log",
+      "protocol": 7,
+      "replay": 40,
+      "recordings": 1,
+      "all_mapped_prompts": 1,
+      "network_requests": 0
+    },
+    "required_metal": {
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "required_gpu": true,
+      "log": "build/m7-origin-drag-metal.log",
+      "reference": "Origin draft begin/cancel/apply preserve exact scene/archive; original guide snapping preview apply/cancel/undo and CPU reference continue to pass."
+    },
+    "native": {
+      "total": 112,
+      "passed": 111,
+      "skipped": 1,
+      "failed": 0,
+      "new_origin_cases": 4,
+      "log": "build/m7-origin-drag-native.log",
+      "skip_reason": "Live model opt-in disabled; no model request.",
+      "jobs": 2,
+      "parallel_testing": false
+    },
+    "lint": {
+      "passed": true,
+      "log": "build/m7-origin-drag-lint.log",
+      "checks": [
+        "rustfmt",
+        "workspace all-target Clippy -D warnings",
+        "portability",
+        "Swiftlint",
+        "generated feature coverage"
+      ]
+    },
+    "examples": {
+      "passed": true,
+      "commands": 137,
+      "parameter_examples": 206,
+      "log": "build/m7-origin-drag-commands.fixed.log",
+      "initial_log": "build/m7-origin-drag-commands.log",
+      "initial_failure": "New assertion compared JSON integer/float representations directly. Numeric per-axis equality fixed the assertion; product origin values were not changed.",
+      "new_origin_example": [
+        20.5,
+        10.25
+      ]
+    },
+    "release": {
+      "passed": true,
+      "architecture": "arm64",
+      "jobs": 2,
+      "swift_backend_threads": 1,
+      "log": "build/m7-origin-drag-release.log",
+      "binary_sha256": "eb82933f040866f6d762fa1f2b71254453b215d4b3ed60ec71bde1701a9d5f07",
+      "resource_fixture_and_font_notices_byte_equal": true
+    },
+    "scope_note": "No full core suite, physical pointer, large-image performance or live-model quality run asserted."
+  },
+  "semantics": {
+    "coordinates": "Absolute canvas-pixel f64 pair, finite within +/-1e12; core schema/metrics still authoritative.",
+    "staging": "Two overlay lines only; core presentation unchanged until release; not baked into image/export.",
+    "command": "view.presentation.set",
+    "ownership": [
+      "original document",
+      "revision",
+      "presentation version",
+      "control epoch",
+      "local cancellation",
+      "30-second view request window"
+    ],
+    "history": "No document history/revision/dirty/source/guide change; equal origin is a view-version no-op. Document undo keeps current origin.",
+    "permission": "View permitted during AI ownership; ownership changes invalidate old drafts.",
+    "cancels": [
+      "Esc",
+      "outside canvas release",
+      "nonfinite release",
+      "hidden rulers",
+      "tool change",
+      "new document/revision/view",
+      "control epoch change",
+      "superseded token",
+      "canvas detach"
+    ],
+    "reset": "Double-click/accessibility press uses same action with[0,0]; ruler unit and absolute pixel guides retained."
+  },
+  "manual": {
+    "status": "pending_mac_unlock",
+    "passed": false,
+    "same_pending_request_as_smart_guides": true,
+    "no_second_instance_launched": true,
+    "post_automated_strata_and_xctest_instances": 0,
+    "fixture_sha256": "c1006da29913609963479b8641c0e6f6a43ff2c6d8b2f907c91a6daf1afaa2ea",
+    "notes": "CUA explicitly required manual unlock; user input not yet received. No physical corner/overlay check claimed."
+  },
+  "ai_audit": {
+    "registered_commands": 137,
+    "registered_examples": 206,
+    "mapped_features": 92,
+    "inventory_rows": 265,
+    "partial_entries": 13,
+    "final_closure": false,
+    "strict_gate_expected_exit_code": 1,
+    "strict_gate_log": "build/m7-origin-drag-final-ai-gate.log"
+  },
+  "documentation_correction": "Replaced obsolete text-geometry unlock notes using the existing2026-11-07 native closure. Manual text rotation/group scale is distinguished from untested whole-image variants.",
+  "policy": {
+    "local_only": true,
+    "cloud_jobs_triggered": 0,
+    "live_model_requests": 0,
+    "max_build_jobs": 2,
+    "heavy_checks_serial": true,
+    "max_manual_instances": 1,
+    "private_development_branch_only": true,
+    "keep_pr_draft": true
+  },
+  "remaining": [
+    "Physical smart-overlay and corner-origin acceptance pending Mac unlock.",
+    "Smart equal-spacing, angle/size hints and sustained large-photo interaction.",
+    "Other view/geometry/type professional scope, complete Photoshop inventory and final AI entrypoint closure."
+  ]
+}

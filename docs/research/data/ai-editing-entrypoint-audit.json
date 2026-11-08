@@ -1,8 +1,8 @@
 {
   "scope": "Development audit; not a claim that all Photoshop editing is implemented or AI-verified",
   "registered_commands": 137,
-  "registered_examples": 205,
-  "catalog_sha256": "162d66dfec0d29d5e91e1b68c79794513fef214ac855131b741f58dc2f997035",
+  "registered_examples": 206,
+  "catalog_sha256": "e983c1b9829c9689a850bdd7d020e55d3dee1bb3132f6cf080e5b4749d29c495",
   "inventory_rows": 265,
   "mapped_features": 92,
   "unmapped_implemented_features": [],
@@ -212,7 +212,7 @@
   "unknown_native_command_references": {},
   "native_dispatch_prefixes": {
     "view.guides.": [
-      "apps/macos/Strata/App/MainWindowController.swift:354"
+      "apps/macos/Strata/App/MainWindowController.swift:355"
     ]
   },
   "untyped_command_returns": [],
@@ -4482,6 +4482,11 @@
             "text": "换算当前画板X/Y百分比到画布像素，两个方向分别按宽和高计算。",
             "query": "标尺坐标换算",
             "command": "view.rulers.convert"
+          },
+          {
+            "text": "将标尺零点设为画布像素20.5、10.25，等同拖动标尺原点；保留参考线、图像和撤销历史。",
+            "query": "拖动标尺原点",
+            "command": "view.presentation.set"
           }
         ],
         "variants": [
@@ -4523,7 +4528,7 @@
             ]
           }
         ],
-        "note": "Persistent guides and six ruler units/custom origin use real shared commands, core metrics and validated one-history integer snapping. Ruler increment local/manual evidence is recorded separately. Visible layer reference/overlay increment passed local automated gates and still awaits physical manual acceptance. Corner-origin pointer dragging, sustained large-photo interaction and remaining view scope stay open."
+        "note": "Persistent guides, six ruler units/custom origin and shared layer snapping retain their recorded incremental evidence. Native origin-corner drag/reset now uses the same view.presentation.set strict schemas and source-bound request; local core28/AI49/FFI1/Metal1/native111pass1skip/lint/206examples passed. Release/manual status is in the origin progress record. Layer smart overlay and origin corner physical checks await Mac unlock. Sustained large-photo interaction and remaining view scope stay partial."
       }
     },
     {

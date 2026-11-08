@@ -2121,6 +2121,11 @@
           "text": "换算当前画板X/Y百分比到画布像素，两个方向分别按宽和高计算。",
           "query": "标尺坐标换算",
           "command": "view.rulers.convert"
+        },
+        {
+          "text": "将标尺零点设为画布像素20.5、10.25，等同拖动标尺原点；保留参考线、图像和撤销历史。",
+          "query": "拖动标尺原点",
+          "command": "view.presentation.set"
         }
       ],
       "variants": [
@@ -2162,7 +2167,7 @@
           ]
         }
       ],
-      "note": "Persistent guides and six ruler units/custom origin use real shared commands, core metrics and validated one-history integer snapping. Ruler increment local/manual evidence is recorded separately. Visible layer reference/overlay increment passed local automated gates and still awaits physical manual acceptance. Corner-origin pointer dragging, sustained large-photo interaction and remaining view scope stay open."
+      "note": "Persistent guides, six ruler units/custom origin and shared layer snapping retain their recorded incremental evidence. Native origin-corner drag/reset now uses the same view.presentation.set strict schemas and source-bound request; local core28/AI49/FFI1/Metal1/native111pass1skip/lint/206examples passed. Release/manual status is in the origin progress record. Layer smart overlay and origin corner physical checks await Mac unlock. Sustained large-photo interaction and remaining view scope stay partial."
     },
     "PS-14-15d282cc9a": {
       "scope": "editing",

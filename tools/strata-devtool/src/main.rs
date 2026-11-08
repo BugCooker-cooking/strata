@@ -399,9 +399,19 @@ fn examples() -> Result<(), Box<dyn Error>> {
                 _ => {}
             }
             let smart_example = spec.id == "layer.snap_position" && args["layers"] == true;
+            let origin_example = (spec.id == "view.presentation.set")
+                .then(|| args.get("ruler_origin").cloned())
+                .flatten();
             let result = run(&mut editor, spec.id, args)?;
             if !result.is_object() {
                 return Err(format!("{} returned non-object", spec.id).into());
+            }
+            if origin_example.is_some_and(|origin| {
+                (0..2).any(|i| result["ruler_origin"][i].as_f64() != origin[i].as_f64())
+            }) {
+                return Err(
+                    "ruler origin example did not retain exact fractional canvas pixels".into(),
+                );
             }
             if smart_example
                 && (result["x"] != 16

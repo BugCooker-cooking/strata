@@ -480,7 +480,7 @@ impl Editor {
         self.begin_geometry("image.straighten")
     }
     fn begin_geometry(&self, command: &'static str) -> Result<GeometryInteraction, CommandError> {
-        self.authorize(&Source::User, command, CommandKind::Mutate)?;
+        self.authorize(&Source::User, command, registry::kind(command)?)?;
         self.document.as_ref().ok_or(CommandError::NoDocument)?;
         Ok(GeometryInteraction {
             request: self.request(Source::User),
@@ -489,6 +489,22 @@ impl Editor {
             transform_target: None,
             guide_target: None,
         })
+    }
+    /// Native origin drafts own the same request/epoch as other geometry,
+    /// but commit only the existing editor-local view command.
+    pub fn begin_ruler_origin(&self) -> Result<GeometryInteraction, CommandError> {
+        self.begin_geometry("view.presentation.set")
+    }
+    pub fn prepare_ruler_origin(
+        &self,
+        interaction: &GeometryInteraction,
+        origin: [f64; 2],
+    ) -> Result<PreparedCommand, CommandError> {
+        self.prepare_geometry(
+            interaction,
+            "view.presentation.set",
+            json!({"ruler_origin":origin,"expected_version":interaction.request.presentation_version}),
+        )
     }
     pub fn begin_canvas_transform(
         &self,

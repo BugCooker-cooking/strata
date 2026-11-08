@@ -1,6 +1,39 @@
 use crate::*;
 #[uniffi::export]
 impl StrataEngine {
+    /// Shared owned draft; the sole committed action is view.presentation.set.
+    pub fn begin_ruler_origin(
+        &self,
+        document_id: String,
+        revision: u64,
+        presentation_version: u64,
+    ) -> Result<String, StrataError> {
+        self.begin_geometry(
+            document_id,
+            revision,
+            "view.presentation.set",
+            None,
+            Some((presentation_version, None)),
+        )
+    }
+    pub fn end_ruler_origin(
+        &self,
+        token: String,
+        x: f64,
+        y: f64,
+        cancel: bool,
+    ) -> Result<(), StrataError> {
+        if !cancel && (!x.is_finite() || !y.is_finite()) {
+            self.end_geometry(token, "{}".into(), true, "view.presentation.set")?;
+            return Err(render_error("ruler origin must be finite"));
+        }
+        self.end_geometry(
+            token,
+            json!({"ruler_origin":[x,y]}).to_string(),
+            cancel,
+            "view.presentation.set",
+        )
+    }
     /// Capture the original request/control epoch in the shared native slot.
     pub fn begin_guide(
         &self,
@@ -62,6 +95,113 @@ mod tests {
             )
             .unwrap();
         (engine, listener)
+    }
+    #[test]
+    fn ruler_origin_uses_owned_view_command_and_late_or_cancelled_tokens_preserve_new_truth() {
+        for change in [
+            "apply",
+            "cancel",
+            "view",
+            "document",
+            "invalid",
+            "superseded",
+        ] {
+            let (engine, _) = setup();
+            let state = engine.lock().unwrap().editor.snapshot();
+            let token = engine
+                .begin_ruler_origin(
+                    state.document_id.unwrap().to_string(),
+                    state.revision,
+                    state.presentation.version,
+                )
+                .unwrap();
+            let archive = engine
+                .lock()
+                .unwrap()
+                .editor
+                .document()
+                .unwrap()
+                .to_archive()
+                .unwrap();
+            match change {
+                "view" => {
+                    engine
+                        .dispatch(
+                            "view.presentation.set".into(),
+                            json!({"ruler_origin":[7,9]}).to_string(),
+                        )
+                        .unwrap();
+                }
+                "document" => {
+                    engine
+                        .dispatch(
+                            "file.new".into(),
+                            json!({"width":4,"height":4,"bit_depth":8,"discard_changes":true})
+                                .to_string(),
+                        )
+                        .unwrap();
+                }
+                "superseded" => {
+                    let newer = engine
+                        .begin_ruler_origin(
+                            state.document_id.unwrap().to_string(),
+                            state.revision,
+                            state.presentation.version,
+                        )
+                        .unwrap();
+                    assert!(engine.end_ruler_origin(token, 0., 0., true).is_err());
+                    engine.end_ruler_origin(newer, 4.25, 6.5, false).unwrap();
+                    assert_eq!(
+                        engine
+                            .lock()
+                            .unwrap()
+                            .editor
+                            .snapshot()
+                            .presentation
+                            .ruler_origin,
+                        [4.25, 6.5]
+                    );
+                    continue;
+                }
+                _ => {}
+            }
+            let before = engine.lock().unwrap().editor.snapshot();
+            let result = engine.end_ruler_origin(
+                token,
+                if change == "invalid" { f64::NAN } else { 20.5 },
+                10.25,
+                change == "cancel",
+            );
+            if matches!(change, "view" | "document" | "invalid") {
+                assert!(result.is_err());
+            } else {
+                result.unwrap();
+            }
+            let after = engine.lock().unwrap().editor.snapshot();
+            assert_eq!(after.revision, before.revision);
+            assert_eq!(after.history_cursor, before.history_cursor);
+            assert_eq!(after.dirty, before.dirty);
+            if change == "apply" {
+                assert_eq!(after.presentation.ruler_origin, [20.5, 10.25]);
+                assert_eq!(after.presentation.version, before.presentation.version + 1);
+            } else {
+                assert_eq!(after.presentation, before.presentation);
+            }
+            if change != "document" {
+                assert!(
+                    engine
+                        .lock()
+                        .unwrap()
+                        .editor
+                        .document()
+                        .unwrap()
+                        .to_archive()
+                        .unwrap()
+                        == archive
+                );
+            }
+            assert!(engine.geometry_session.lock().unwrap().is_none());
+        }
     }
     #[test]
     fn smart_overlay_returns_only_the_exact_displayed_candidate_and_clears_on_cancel_or_context_change()
@@ -454,6 +594,30 @@ mod metal_tests {
             )
             .unwrap();
             assert_eq!(converted["metrics"]["unit"], unit);
+            assert_eq!(frame(&engine), before);
+            assert!(
+                engine
+                    .lock()
+                    .unwrap()
+                    .editor
+                    .document()
+                    .unwrap()
+                    .to_archive()
+                    .unwrap()
+                    == archive
+            );
+        }
+        for cancel in [true, false] {
+            let state = engine.lock().unwrap().editor.snapshot();
+            let token = engine
+                .begin_ruler_origin(
+                    state.document_id.unwrap().to_string(),
+                    state.revision,
+                    state.presentation.version,
+                )
+                .unwrap();
+            assert_eq!(frame(&engine), before);
+            engine.end_ruler_origin(token, 20.5, 10.25, cancel).unwrap();
             assert_eq!(frame(&engine), before);
             assert!(
                 engine

@@ -88,6 +88,7 @@ final class WorkspaceModel: ObservableObject {
     @Published var textEditing:TextEditingModel?
     @Published var guideInput:CanvasGuideInput?
     @Published var snapInput:CanvasSnapInput?
+    @Published var rulerOriginInput:CanvasRulerOriginInput?
     @Published var canvasTransformMode="scale"
     @Published var canvasTransformScope="whole_layer"
     @Published var canvasTransformInterpolation="bilinear"

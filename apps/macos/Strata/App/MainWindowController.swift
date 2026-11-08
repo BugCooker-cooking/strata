@@ -51,11 +51,12 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         workspace.transformInput=canvas.transformInput
         workspace.guideInput=canvas.guideInput
         workspace.snapInput=canvas.snapInput
+        workspace.rulerOriginInput=canvas.rulerOriginInput
         workspace.colorPanel=ColorPanelModel(engine:engine)
         let text=TextEditingModel(engine:engine);workspace.textEditing=text
         text.onRunning={[weak self]running in guard let self else{return};if running{self.window?.makeFirstResponder(self.canvas)};self.busy=running}
         text.onCommitted={[weak self]in self?.canvas.markDirty();self?.refresh()}
-        preview.onStarting = {[weak self]in self?.workspace.cropInput?.cancel();self?.workspace.straightenInput?.cancel();self?.workspace.transformInput?.cancel();self?.workspace.guideInput?.cancel();self?.canvas.snapInput.cancel()}
+        preview.onStarting = {[weak self]in self?.workspace.cropInput?.cancel();self?.workspace.straightenInput?.cancel();self?.workspace.transformInput?.cancel();self?.workspace.guideInput?.cancel();self?.canvas.snapInput.cancel();self?.canvas.rulerOriginInput.cancel()}
         preview.onBusy = { [weak self] running in guard let self else { return }; self.canvas.isWorkBusy = self.busy || running }
         preview.onApplying = { [weak self] applying in self?.busy = applying }
         preview.onFrame = { [weak self] in guard let self else { return }; self.canvas.markDirty();self.refreshDisplayOutline(); if !self.busy { self.refresh() } }
@@ -358,6 +359,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         workspace.transformInput?.cancel()
         workspace.guideInput?.cancel()
         canvas.snapInput.cancel()
+        canvas.rulerOriginInput.cancel()
         canvas.cancelBenchmarkForDocumentChange()
         do {
             let encoded = try commandJSON(params); busy = true; let engine = engine

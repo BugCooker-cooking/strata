@@ -2,7 +2,7 @@
 
 当前开发期审计快照。完整编辑功能与最终 AI 审计仍未闭环；不得把注册数量当作全部功能覆盖。
 
-真实注册命令 137；参数示例 205；综合功能 265；已有映射 92。
+真实注册命令 137；参数示例 206；综合功能 265；已有映射 92。
 
 已实现但未映射 0；部分入口 13；原生未知命令引用 0；未类型化返回 0。
 
@@ -239,7 +239,7 @@
 | PS-13-1b8faab964 | AI 蒙版（主体 / 天空 / 人物）🤖、AI 降噪 🤖、镜头模糊 🤖 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-14-cf2715aeb6 | 缩放 / 抓手 / 适合屏幕 / 100% | 已实现 | 已映射 | `view.pan`、`view.zoom`、`view.fit`、`view.actual_size` · 以实际像素 100% 显示当前画布，保持中心不变。 · 绝对 100% 与相对缩放分开；视图命令不改变文档或历史。 |
 | PS-14-c9a6761937 | 多文档标签页 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
-| PS-14-de2fd3ca59 | 标尺 / 参考线 / 对齐吸附 | 部分实现 | 部分入口 | `view.guides.list`、`view.guides.add`、`view.guides.update`、`view.guides.delete`、`view.guides.clear`、`view.presentation.get`、`view.presentation.set`、`layer.snap_position`、`view.rulers.convert` · 在画布X=120.5建立垂直参考线，保留稳定ID并允许撤销。 · Persistent guides and six ruler units/custom origin use real shared commands, core metrics and validated one-history integer snapping. Ruler increment local/manual evidence is recorded separately. Visible layer reference/overlay increment passed local automated gates and still awaits physical manual acceptance. Corner-origin pointer dragging, sustained large-photo interaction and remaining view scope stay open. |
+| PS-14-de2fd3ca59 | 标尺 / 参考线 / 对齐吸附 | 部分实现 | 部分入口 | `view.guides.list`、`view.guides.add`、`view.guides.update`、`view.guides.delete`、`view.guides.clear`、`view.presentation.get`、`view.presentation.set`、`layer.snap_position`、`view.rulers.convert` · 在画布X=120.5建立垂直参考线，保留稳定ID并允许撤销。 · Persistent guides, six ruler units/custom origin and shared layer snapping retain their recorded incremental evidence. Native origin-corner drag/reset now uses the same view.presentation.set strict schemas and source-bound request; local core28/AI49/FFI1/Metal1/native111pass1skip/lint/206examples passed. Release/manual status is in the origin progress record. Layer smart overlay and origin corner physical checks await Mac unlock. Sustained large-photo interaction and remaining view scope stay partial. |
 | PS-14-810f37be85 | 旋转视图 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-14-15d282cc9a | 智能参考线 | 部分实现 | 部分入口 | `layer.snap_position`、`view.presentation.get`、`view.presentation.set` · 使用智能参考线，将当前图层边缘或中心吸附到其他可见图层，并返回实际参考层ID和残差。 · Actual opt-in visible layer/group edge/center candidates use the shared strict layer.snap_position resolver and typed reference IDs/anchors/residuals. Local core25/AI49/FFI1/required Metal1/native107pass1skip/lint/205examples/Release passed. Native overlay reads the exact displayed candidate; manual drag/appearance awaits Mac unlock. Equal spacing, angle/size intelligence and sustained large-photo performance remain open. |
 | PS-14-3e68cd79ce | 网格 / 像素网格 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |

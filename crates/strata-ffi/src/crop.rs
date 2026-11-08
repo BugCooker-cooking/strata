@@ -166,6 +166,7 @@ impl StrataEngine {
             "view.guides.add" | "view.guides.update" => inner
                 .editor
                 .begin_guide(guide.expect("native guide ownership").1),
+            "view.presentation.set" => inner.editor.begin_ruler_origin(),
             _ => unreachable!(),
         }
         .map_err(command_error)?;
@@ -224,6 +225,10 @@ impl StrataEngine {
                 "view.guides.add" | "view.guides.update" => {
                     editor.prepare_guide(&interaction, params.clone())
                 }
+                "view.presentation.set" => editor.prepare_ruler_origin(
+                    &interaction,
+                    serde_json::from_value(params["ruler_origin"].clone()).map_err(render_error)?,
+                ),
                 _ => unreachable!(),
             }
             .map_err(command_error)?;

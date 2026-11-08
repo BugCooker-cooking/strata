@@ -48,6 +48,7 @@ final class CanvasView: NSView {
     private let textGuide=CAShapeLayer()
     lazy var guideInput=CanvasGuideInput(engine:engine)
     lazy var snapInput=CanvasSnapInput(engine:engine)
+    lazy var rulerOriginInput=CanvasRulerOriginInput(engine:engine)
     private var guides:[EditorSnapshot.Guide]=[]
     private var presentation=EditorSnapshot.Presentation.defaults
     private var guideMoveTool=false
@@ -55,6 +56,7 @@ final class CanvasView: NSView {
     private let guideLines=CAShapeLayer()
     private let guideDraft=CAShapeLayer()
     private let snapLines=CAShapeLayer()
+    private let rulerOriginLines=CAShapeLayer()
     var onTextPlacement:((NSPoint,CGRect?)->Void)?
     var documentOrigin = NSPoint.zero
     private var selectionCommand: String?
@@ -132,6 +134,11 @@ final class CanvasView: NSView {
         guideLines.fillColor=nil;guideLines.strokeColor=NSColor.cyan.withAlphaComponent(0.75).cgColor;guideLines.lineWidth=0.75;layer?.addSublayer(guideLines)
         guideDraft.fillColor=nil;guideDraft.strokeColor=NSColor.systemYellow.cgColor;guideDraft.lineWidth=1;guideDraft.lineDashPattern=[4,3];layer?.addSublayer(guideDraft)
         snapLines.fillColor=nil;snapLines.strokeColor=NSColor.systemPink.cgColor;snapLines.lineWidth=1;snapLines.lineDashPattern=[5,3];layer?.addSublayer(snapLines)
+        rulerOriginLines.fillColor=nil;rulerOriginLines.strokeColor=NSColor.systemYellow.cgColor;rulerOriginLines.lineWidth=1;rulerOriginLines.lineDashPattern=[3,3];layer?.addSublayer(rulerOriginLines)
+        rulerOriginInput.onBegan={[weak self]in guard let self else{return};self.cancelLayerDrag();self.guideInput.cancel();self.snapInput.cancel();self.cropInput.cancel();self.straightenInput.cancel();self.transformInput.cancel()}
+        rulerOriginInput.onChanged={[weak self]in self?.drawGuides();self?.markDirty()}
+        rulerOriginInput.onRunning={[weak self]running in self?.onBrushRunning?(running)}
+        rulerOriginInput.onCommitted={[weak self]in self?.onCommitted?();self?.markDirty()}
         guideInput.onChanged={[weak self]in self?.drawGuides();self?.markDirty()}
         guideInput.onRunning={[weak self]running in self?.onBrushRunning?(running)}
         guideInput.onCommitted={[weak self]in self?.onCommitted?();self?.markDirty()}
@@ -202,7 +209,7 @@ final class CanvasView: NSView {
         cropInput.cancel()
         straightenInput.cancel()
         transformInput.cancel()
-        guideInput.cancel();snapInput.cancel()
+        guideInput.cancel();snapInput.cancel();rulerOriginInput.cancel()
         textStart=nil;textRectangle=nil;textGuide.path=nil
         selectionAnts.removeAllAnimations()
         benchmark?.cancel(BenchmarkFailure("Canvas detached before benchmark completed"))
@@ -348,15 +355,15 @@ final class CanvasView: NSView {
                        y: documentOrigin.y + (point.y * scale - CGFloat(frame.y)) / zoom)
     }
     func configureGuides(_ model:WorkspaceModel){
-        if guideTool != model.tool,!guideInput.running{guideInput.cancel()};guideTool=model.tool
-        if let state=model.snapshot{guideInput.bind(state);snapInput.bind(state);guides=state.guides ?? [];presentation=state.presentation ?? .defaults}
+        if guideTool != model.tool,!guideInput.running{guideInput.cancel();rulerOriginInput.cancel()};guideTool=model.tool
+        if let state=model.snapshot{guideInput.bind(state);snapInput.bind(state);rulerOriginInput.bind(state);guides=state.guides ?? [];presentation=state.presentation ?? .defaults}
         let enabled=model.tool == .move && model.permissions.edits
         if guideMoveTool && !enabled{snapInput.cancel()}
         if !model.permissions.edits{guideInput.cancel();snapInput.cancel()}
         guideMoveTool=enabled;drawGuides()
     }
     private func drawGuides(){
-        guard let frame=engine.artboardOverlay()else{guideLines.path=nil;guideDraft.path=nil;snapLines.path=nil;return}
+        guard let frame=engine.artboardOverlay()else{guideLines.path=nil;guideDraft.path=nil;snapLines.path=nil;rulerOriginLines.path=nil;return}
         let zoom=CGFloat(engine.canvasZoom())/scale
         func line(_ axis:String,_ value:Double,_ path:CGMutablePath){
             if axis=="vertical"{let x=CGFloat(frame.x)/scale+(CGFloat(value)-documentOrigin.x)*zoom;guard x.isFinite else{return};path.move(to:NSPoint(x:x,y:0));path.addLine(to:NSPoint(x:x,y:bounds.height))}
@@ -369,6 +376,7 @@ final class CanvasView: NSView {
             if let x=value["snapped_x"]["coordinate"].number{line("vertical",x,matches)}
             if let y=value["snapped_y"]["coordinate"].number{line("horizontal",y,matches)}
         };snapLines.path=matches
+        let origin=CGMutablePath();if let point=rulerOriginInput.draft{line("vertical",point.x,origin);line("horizontal",point.y,origin)};rulerOriginLines.path=origin
     }
     func hitGuide(_ point:NSPoint)->EditorSnapshot.Guide?{
         guard guideMoveTool,presentation.guidesVisible,!presentation.guidesLocked else{return nil}
@@ -547,6 +555,7 @@ final class CanvasView: NSView {
     }
 
     override func mouseDown(with event: NSEvent) {
+        rulerOriginInput.cancel()
         guard !isWorkBusy else { return }
         benchmark?.cancel(BenchmarkFailure("User input interrupted benchmark"))
         window?.makeFirstResponder(self)
@@ -626,7 +635,7 @@ final class CanvasView: NSView {
         catch { onError?(error) }
     }
     override func keyDown(with event: NSEvent) {
-        if event.keyCode == 53 { guideInput.cancel();snapInput.cancel();cancelLayerDrag(); cancelMarquee(); brushInput.cancel();paintInput.cancel();cropInput.cancel();straightenInput.cancel();transformInput.cancel();textStart=nil;textRectangle=nil;drawTextGuide() }
+        if event.keyCode == 53 { guideInput.cancel();snapInput.cancel();rulerOriginInput.cancel();cancelLayerDrag(); cancelMarquee(); brushInput.cancel();paintInput.cancel();cropInput.cancel();straightenInput.cancel();transformInput.cancel();textStart=nil;textRectangle=nil;drawTextGuide() }
         else if event.keyCode == 36,transformInput.confirm(){return}
         else if event.keyCode == 36,straightenInput.confirm(){return}
         else if event.keyCode == 36,cropInput.confirm(){return}

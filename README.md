@@ -12,9 +12,9 @@ Strata is an open-source, AI-operable image editor with a portable Rust core and
 
 当前已推进至 M7：在可移植AI、选区/蒙版/图层/调整基础上，已增加绘画与修复、基础滤镜及高反差保留、配置/位深与图像几何、原生裁剪/拉直/自由变换手柄、自动RGB校正，以及保留源定义的横排点/段落文字。原生应用和AI共用命令执行器，保留8/16位源样本、工作ICC、撤销和工程恢复。最近本机增量证据见[文字](docs/research/2026-11-m7-editable-text-progress.md)、[变换手柄](docs/research/2026-11-m7-transform-handles-progress.md)及[完整跟踪表](docs/plans/photoshop-feature-coverage.md)。
 
-完整范围继续覆盖PS功能清单P0–P3，尚未全部实现。一般可编辑类型的几何、连续变形像素反馈、富文本/字体、矢量路径/形状、智能对象、PSD/RAW及其余专业编辑仍继续开发；实时性能、困难照片质量、真实模型与外部设备门槛独立追踪。当前统一目录为137条真实命令及205个参数示例；最终[逐功能AI入口审计](docs/plans/ai-editing-entrypoint-coverage.md)仍未闭环，数量不代表完整覆盖。上图是v1界面设计稿，当前仍为开发版本。2026-11-05起仅本机验证，云端工作流保持禁用；下面早期CI链接只保留历史证据。
+完整范围继续覆盖PS功能清单P0–P3，尚未全部实现。一般可编辑类型的几何、连续变形像素反馈、富文本/字体、矢量路径/形状、智能对象、PSD/RAW及其余专业编辑仍继续开发；实时性能、困难照片质量、真实模型与外部设备门槛独立追踪。当前统一目录为137条真实命令及206个参数示例；最终[逐功能AI入口审计](docs/plans/ai-editing-entrypoint-coverage.md)仍未闭环，数量不代表完整覆盖。上图是v1界面设计稿，当前仍为开发版本。2026-11-05起仅本机验证，云端工作流保持禁用；下面早期CI链接只保留历史证据。
 
-最近新增了保留原文的文字几何、嵌套图层组变换，以及持久参考线、标尺开关和移动吸附；核心、AI调用、原生测试、真实Metal、Release及单窗口增量验收已通过，示例已恢复并关闭。见[文字几何](docs/research/2026-11-m7-text-geometry-progress.md)和[参考线/吸附](docs/research/2026-11-m7-guides-snap-progress.md)；当前没有遗留测试实例。新增[图层智能参考线](docs/research/2026-11-m7-smart-guides-progress.md)通过本机自动化与Release，单窗口手工拖动/外观验收等待Mac解锁。
+最近新增了保留原文的文字几何、嵌套图层组变换，以及持久参考线、标尺开关和移动吸附；核心、AI调用、原生测试、真实Metal、Release及单窗口增量验收已通过，示例已恢复并关闭。见[文字几何](docs/research/2026-11-m7-text-geometry-progress.md)和[参考线/吸附](docs/research/2026-11-m7-guides-snap-progress.md)；当前没有遗留测试实例。新增[图层智能参考线](docs/research/2026-11-m7-smart-guides-progress.md)通过本机自动化与Release，单窗口手工拖动/外观验收等待Mac解锁。[标尺角标原点拖动/重置](docs/research/2026-11-m7-ruler-origin-drag-progress.md)也已接通同一视图命令，原生112项中111通过/1联网测试按配置跳过；物理角标检查仍待解锁。
 
 2026-11-03 已落实原生工作区框架：文档标签、分组工具栏、属性/调整/历史、图层缩略图、可调侧栏、AI 未接入面板、标尺/缩放/导航与状态栏，支持深/浅主题。M1b 已推进独立文档标签、最近文件和可撤销的图片置入；M1b 的后续交付按分批验收记录推进。见 [工作区与 M1b 记录](docs/research/2026-11-workspace-progress.md)。
 
