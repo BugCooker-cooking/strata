@@ -1009,7 +1009,7 @@
   },
   "PS-14-de2fd3ca59": {
     "implementation": "部分实现",
-    "acceptance": "Pixel rulers, persistent H/V reference CRUD/pagination, versioned display/lock/snap settings and shared V/numeric/AI guide-artboard edge/center snapping passed local automated gates and single-window checks. Manual first-switch T->V bug was fixed, full native104 and corrected Release direct-switch drag confirmed guide movement with photoX0/Y0. Ruler show/hide/layout, half-pixel line and text snapping/one undo passed. Custom ruler origins/physical units, layer-to-layer smart guides and sustained large-image feedback remain open; scope stays partial.",
+    "acceptance": "Six ruler units and custom canvas zero use core-authoritative conversion/metrics, with core18, AI47, native106 (105passed/1live-service opt-in skip), required Metal1, lint/137commands/204examples, Release and single-window mm/percent/origin/unchanged-pixel-guide/undo/quit passed. Existing guide/snap and first-switch routing evidence remains valid. Corner-origin pointer drag, layer smart references and sustained interaction scope remain open.",
     "evidence": [
       {
         "label": "Guides and snap local progress",
@@ -1018,6 +1018,10 @@
       {
         "label": "Corrected native text / guide closure",
         "path": "../research/2026-11-m7-group-transform-progress.md"
+      },
+      {
+        "label": "Ruler units and custom origin",
+        "path": "../research/2026-11-m7-ruler-units-progress.md"
       }
     ]
   }

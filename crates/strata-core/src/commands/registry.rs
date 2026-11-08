@@ -98,7 +98,7 @@ fn build_catalog() -> Vec<CommandSpec> {
         Query,
         "读取标尺与吸附设置",
         "Inspect ruler and snap presentation",
-        "Read editor-local rulers_visible/guides_visible/guides_locked/snap_enabled/snap_tolerance/snap_artboard and version. snap_tolerance is native screen points0..64(default6); explicit layer.snap_position uses canvas units. Defaults show rulers/guides, unlock guides and disable automatic snapping. State is independent of document history/save/undo and can be read without a document. Native and AI share it. 中文：读取视图设置、标尺显示、参考线显示、锁定参考线、吸附设置、吸附阈值。",
+        "Read editor-local ruler_unit/ruler_origin, rulers_visible/guides_visible/guides_locked/snap_enabled/snap_tolerance/snap_artboard and version. Default ruler unit is pixels with absolute canvas zero[0,0]. Current-document conversion metrics are also in the core snapshot; use view.rulers.convert for a precise pair. snap_tolerance is native screen points0..64(default6); explicit layer.snap_position uses canvas units. Defaults show rulers/guides, unlock guides and disable automatic snapping. State is independent of document history/save/undo and can be read without a document. Native and AI share it. 中文：读取视图设置、标尺显示、参考线显示、锁定参考线、吸附设置、吸附阈值。",
         json!({})
     );
     command!(
@@ -107,8 +107,17 @@ fn build_catalog() -> Vec<CommandSpec> {
         View,
         "设置标尺与吸附",
         "Set ruler and snap presentation",
-        "Set one or more editor-local presentation fields; expected_version optionally binds a preceding get. Equal values do not advance the version; real changes advance it once without document history/revision/dirty/current-layer changes. Guides themselves are document data edited through view.guides.*. Guide locks prohibit line edits but not snapping to those references. Automatic V-tool snapping uses the current zoom to convert native screen-point tolerance0..64 to canvas units; snap_artboard includes artboard edges. An old pointer draft cannot commit after presentation version changes. Viewing may change during AI control, while guide content edits still require normal document ownership. No document needed, not batchable. 中文：显示标尺、隐藏标尺、显示参考线、隐藏参考线、锁定参考线、开启吸附、关闭吸附、画板边缘吸附；只改变当前编辑器视图，不写历史。",
+        "Set one or more editor-local presentation fields; expected_version optionally binds a preceding get. ruler_unit=pixels(default)/inches/centimeters/millimeters/points/percent and ruler_origin[x,y] finite absolute canvas pixels within +/-1e12 define ruler zero and display scale. Physical units use the current document DPI; percentage axes use current artboard dimensions independently. Use view.rulers.convert for actual coordinate conversion; guide coordinates and image samples never change. Equal values do not advance the version; real changes advance it once without document history/revision/dirty/current-layer changes. Guides themselves are document data edited through view.guides.*. Guide locks prohibit line edits but not snapping to those references. Automatic V-tool snapping uses the current zoom to convert native screen-point tolerance0..64 to canvas units; snap_artboard includes artboard edges. An old pointer draft cannot commit after presentation version changes. Viewing may change during AI control, while guide content edits still require normal document ownership. No document needed, not batchable. 中文：显示标尺、隐藏标尺、显示参考线、隐藏参考线、锁定参考线、开启吸附、关闭吸附、画板边缘吸附；标尺单位、毫米标尺、百分比、自定义标尺原点；只改变当前编辑器视图，不写历史。",
         json!({"rulers_visible":true,"guides_visible":true,"snap_enabled":true,"snap_tolerance":6})
+    );
+    command!(
+        "view.rulers.convert",
+        ConvertRuler,
+        Query,
+        "换算标尺坐标",
+        "Convert ruler coordinates",
+        "Convert one finite pair using this editor's authoritative ruler_unit/ruler_origin and current document DPI/artboard. direction canvas_to_ruler(default) or ruler_to_canvas; coordinates[x,y] finite inside +/-1e15, converted canvas must lie inside +/-1e12 pixels and ruler inside +/-1e15 units. pixels scale1; inches dpi; centimeters dpi/2.54; millimeters dpi/25.4; points dpi/72. percent uses width/100 and height/100 independently. Subtract absolute canvas-pixel origin before dividing by scale. Return both pairs plus core unit/origin/DPI/pixels_per_unit/presentation_version metrics; expected_version optionally rejects stale settings. Document required, no source/font/file resources, no document/view/history/dirty/current-layer change, not batchable. Native ruler ticks consume the same core snapshot metrics, not a separate units algorithm. Persistent guides stay absolute canvas pixels; no image resampling. 中文：标尺坐标换算、像素转毫米、英寸、厘米、点、百分比、自定义标尺原点；参考线仍为画布像素，设置标尺用view.presentation.set。",
+        json!({"direction":"canvas_to_ruler","coordinates":[400,800]})
     );
     command!(
         "layer.snap_position",
@@ -1265,6 +1274,7 @@ fn build_catalog() -> Vec<CommandSpec> {
             "view.presentation.get" | "view.presentation.set" => {
                 schemars::schema_for!(crate::Presentation)
             }
+            "view.rulers.convert" => schemars::schema_for!(RulerCoordinatesResult),
             "layer.snap_position" => schemars::schema_for!(SnapPositionResult),
             "type.fonts" => schemars::schema_for!(FontsResult),
             "type.create" | "type.update" | "type.inspect" => schemars::schema_for!(TextResult),
@@ -1437,8 +1447,21 @@ fn build_catalog() -> Vec<CommandSpec> {
                 vec!["view.presentation.write"]
             };
         }
+        if item.id == "view.rulers.convert" {
+            item.batchable = false;
+            item.permissions = vec!["bound_document", "presentation_version"];
+            item.effects = vec!["view.rulers.read"]
+        }
         if item.id == "type.create" {
             item.examples.push(json!({"name":"Paragraph","spec":{"text":"中文段落与Latin words\n保留文字源和换行","font":"cjk","font_size":18,"line_height":1.3,"tracking":0,"align":"right","layout":{"type":"paragraph","width":120,"height":80}},"color":[0.3,0.5,0.7,1],"x":1,"y":1}));
+        }
+        if item.id == "view.presentation.set" {
+            item.examples
+                .push(json!({"ruler_unit":"millimeters","ruler_origin":[-12.5,30]}));
+        }
+        if item.id == "view.rulers.convert" {
+            item.examples
+                .push(json!({"direction":"ruler_to_canvas","coordinates":[25.4,50.8]}));
         }
         if item.id == "paint.colors.set_components" {
             for color in [

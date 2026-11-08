@@ -22,7 +22,7 @@ pub use document::{
     Document, DocumentCandidate, DocumentError, Frame, MAX_DOCUMENT_BYTES, MAX_FLAT_IMAGE_BYTES,
     MAX_LAYERS,
 };
-pub use guides::{Guide, GuideAxis, GuideRef, MAX_GUIDES, Presentation};
+pub use guides::{Guide, GuideAxis, GuideRef, MAX_GUIDES, Presentation, RulerMetrics, RulerUnit};
 pub use ids::{DocumentId, GuideId, LayerId, StateId};
 pub use layer::{
     BlendMode, ColorLabel, GeneratedCrop, Layer, LayerInfo, LayerKind, LayerLocks, LayerMaskInfo,

@@ -2,7 +2,7 @@
 
 当前开发期审计快照。完整编辑功能与最终 AI 审计仍未闭环；不得把注册数量当作全部功能覆盖。
 
-真实注册命令 136；参数示例 201；综合功能 265；已有映射 91。
+真实注册命令 137；参数示例 204；综合功能 265；已有映射 91。
 
 已实现但未映射 0；部分入口 12；原生未知命令引用 0；未类型化返回 0。
 
@@ -239,7 +239,7 @@
 | PS-13-1b8faab964 | AI 蒙版（主体 / 天空 / 人物）🤖、AI 降噪 🤖、镜头模糊 🤖 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-14-cf2715aeb6 | 缩放 / 抓手 / 适合屏幕 / 100% | 已实现 | 已映射 | `view.pan`、`view.zoom`、`view.fit`、`view.actual_size` · 以实际像素 100% 显示当前画布，保持中心不变。 · 绝对 100% 与相对缩放分开；视图命令不改变文档或历史。 |
 | PS-14-c9a6761937 | 多文档标签页 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
-| PS-14-de2fd3ca59 | 标尺 / 参考线 / 对齐吸附 | 部分实现 | 部分入口 | `view.guides.list`、`view.guides.add`、`view.guides.update`、`view.guides.delete`、`view.guides.clear`、`view.presentation.get`、`view.presentation.set`、`layer.snap_position` · 在画布X=120.5建立垂直参考线，保留稳定ID并允许撤销。 · Actual persistent guide CRUD/pages, versioned view settings, pixel rulers and shared integer edge/center guide-artboard snapping passed local core/AI/native/Metal/Release/examples and single-window checks. The first-switch routing defect was caught manually, fixed and rechecked in full native and corrected Release. Ruler custom origin/physical units, smart layer-to-layer references and sustained large-image pointer feedback remain open; partial scope is explicit. |
+| PS-14-de2fd3ca59 | 标尺 / 参考线 / 对齐吸附 | 部分实现 | 部分入口 | `view.guides.list`、`view.guides.add`、`view.guides.update`、`view.guides.delete`、`view.guides.clear`、`view.presentation.get`、`view.presentation.set`、`layer.snap_position`、`view.rulers.convert` · 在画布X=120.5建立垂直参考线，保留稳定ID并允许撤销。 · Actual persistent guide CRUD/pages, versioned view settings, pixel rulers and shared integer edge/center guide-artboard snapping passed local core/AI/native/Metal/Release/examples and single-window checks. The first-switch routing defect was caught manually, fixed and rechecked in full native and corrected Release. Ruler custom origin/physical units, smart layer-to-layer references and sustained large-image pointer feedback remain open; partial scope is explicit. Six ruler units/custom canvas zero and precise bidirectional conversion share core metrics with native ticks; local core18/AI47/native105pass1skip/Metal/Release/lint/204examples and mm/percent/origin/guide manual acceptance passed. Corner-origin dragging and smart layer references remain open. |
 | PS-14-810f37be85 | 旋转视图 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-14-15d282cc9a | 智能参考线 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-14-3e68cd79ce | 网格 / 像素网格 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |

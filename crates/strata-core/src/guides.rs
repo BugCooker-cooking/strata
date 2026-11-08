@@ -47,9 +47,31 @@ pub enum GuideRef {
     Id(GuideId),
     Name(String),
 }
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum RulerUnit {
+    #[default]
+    Pixels,
+    Inches,
+    Centimeters,
+    Millimeters,
+    Points,
+    Percent,
+}
+#[derive(Clone, Debug, Serialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct RulerMetrics {
+    pub unit: RulerUnit,
+    pub origin: [f64; 2],
+    pub pixels_per_unit: [f64; 2],
+    pub resolution_dpi: u32,
+    pub presentation_version: u64,
+}
 #[derive(Clone, Debug, PartialEq, Serialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct Presentation {
+    pub ruler_unit: RulerUnit,
+    pub ruler_origin: [f64; 2],
     pub rulers_visible: bool,
     pub guides_visible: bool,
     pub guides_locked: bool,
@@ -63,6 +85,8 @@ pub struct Presentation {
 impl Default for Presentation {
     fn default() -> Self {
         Self {
+            ruler_unit: RulerUnit::Pixels,
+            ruler_origin: [0., 0.],
             rulers_visible: true,
             guides_visible: true,
             guides_locked: false,
@@ -70,6 +94,29 @@ impl Default for Presentation {
             snap_tolerance: 6.,
             snap_artboard: true,
             version: 0,
+        }
+    }
+}
+impl Presentation {
+    pub fn ruler_metrics(&self, document: &crate::Document) -> RulerMetrics {
+        let dpi = f64::from(document.resolution_dpi());
+        let pixels_per_unit = match self.ruler_unit {
+            RulerUnit::Pixels => [1.; 2],
+            RulerUnit::Inches => [dpi; 2],
+            RulerUnit::Centimeters => [dpi / 2.54; 2],
+            RulerUnit::Millimeters => [dpi / 25.4; 2],
+            RulerUnit::Points => [dpi / 72.; 2],
+            RulerUnit::Percent => [
+                f64::from(document.frame().width) / 100.,
+                f64::from(document.frame().height) / 100.,
+            ],
+        };
+        RulerMetrics {
+            unit: self.ruler_unit,
+            origin: self.ruler_origin,
+            pixels_per_unit,
+            resolution_dpi: document.resolution_dpi(),
+            presentation_version: self.version,
         }
     }
 }

@@ -204,6 +204,7 @@ struct HistoryEntry {
 
 #[derive(Serialize, JsonSchema)]
 pub struct Snapshot {
+    pub ruler_metrics: Option<crate::RulerMetrics>,
     pub presentation: crate::Presentation,
     pub guides: Vec<crate::Guide>,
     pub paint_colors: super::PaintColors,
@@ -998,6 +999,10 @@ impl Editor {
     }
     pub fn snapshot(&self) -> Snapshot {
         Snapshot {
+            ruler_metrics: self
+                .document
+                .as_ref()
+                .map(|doc| self.presentation.ruler_metrics(doc)),
             presentation: self.presentation.clone(),
             guides: self
                 .document
@@ -1201,7 +1206,8 @@ impl Editor {
         self.check_request(&request)?;
         if (id.starts_with("view.guides.")
             || id.starts_with("view.presentation.")
-            || id == "layer.snap_position")
+            || id == "layer.snap_position"
+            || id == "view.rulers.convert")
             && request.presentation_version != self.presentation.version
         {
             return Err(CommandError::Stale);
@@ -1233,12 +1239,19 @@ impl Editor {
                     && id != "layer.pixel_bounds"
                     && id != "type.inspect"
                     && id != "view.guides.list"
+                    && id != "view.rulers.convert"
                 {
                     let _: Empty = parse(params.clone())?;
                 }
                 (
                     Action::Query,
-                    if id == "view.presentation.get" {
+                    if id == "view.rulers.convert" {
+                        super::guides::ruler_coordinates(
+                            self.document().ok_or(CommandError::NoDocument)?,
+                            &self.presentation,
+                            params.clone(),
+                        )?
+                    } else if id == "view.presentation.get" {
                         json!(self.presentation)
                     } else if id == "view.guides.list" {
                         super::guides::list(
@@ -1769,7 +1782,8 @@ impl Editor {
         }
         if (prepared.command.starts_with("view.guides.")
             || prepared.command.starts_with("view.presentation.")
-            || prepared.command == "layer.snap_position")
+            || prepared.command == "layer.snap_position"
+            || prepared.command == "view.rulers.convert")
             && prepared.request.presentation_version != self.presentation.version
         {
             return Err(CommandError::Stale);

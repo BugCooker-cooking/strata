@@ -3179,3 +3179,123 @@ fn editable_group_transform_discovery_exact_approval_real_children_and_turn_undo
         );
     }
 }
+
+#[test]
+fn ruler_unit_prompts_set_editor_state_and_convert_both_directions_without_document_edits() {
+    for unit in [
+        "pixels",
+        "inches",
+        "centimeters",
+        "millimeters",
+        "points",
+        "percent",
+    ] {
+        let host = Host::new();
+        let before = host
+            .editor
+            .lock()
+            .unwrap()
+            .document()
+            .unwrap()
+            .to_archive()
+            .unwrap();
+        let state = host.snapshot().unwrap();
+        let mut session = host.session_with_prompt(
+            ExecutionMode::Direct,
+            "设置标尺单位和自定义零点，再换算正负坐标；保留原图、参考线和文档历史。",
+        );
+        reply(
+            &mut session,
+            &host,
+            vec![
+                call(
+                    "discover",
+                    "search_catalog",
+                    json!({"query":"标尺坐标换算"}),
+                ),
+                call(
+                    "description",
+                    "describe_commands",
+                    json!({"ids":["view.presentation.set","view.rulers.convert"]}),
+                ),
+                invoke(
+                    "set",
+                    "view.presentation.set",
+                    json!({"ruler_unit":unit,"ruler_origin":[-12.5,30]}),
+                ),
+            ],
+        );
+        assert!(
+            result(session.poll(&host).unwrap())["matches"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|m| m["id"] == "view.rulers.convert")
+        );
+        let described = result(session.poll(&host).unwrap());
+        assert!(
+            described["commands"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .all(|c| c["params"]["additionalProperties"] == false
+                    && c["returns"]["additionalProperties"] == false)
+        );
+        let view = result(session.poll(&host).unwrap())["result"].clone();
+        assert_eq!(view["ruler_unit"], unit);
+        reply(
+            &mut session,
+            &host,
+            vec![invoke(
+                "convert",
+                "view.rulers.convert",
+                json!({"coordinates":[59.5,-114],"expected_version":view["version"]}),
+            )],
+        );
+        let converted = result(session.poll(&host).unwrap())["result"].clone();
+        let expected = match unit {
+            "pixels" => [72., -144.],
+            "inches" => [1., -2.],
+            "centimeters" => [2.54, -5.08],
+            "millimeters" => [25.4, -50.8],
+            "points" => [72., -144.],
+            _ => [900., -1800.],
+        };
+        for i in 0..2 {
+            assert!((converted["ruler"][i].as_f64().unwrap() - expected[i]).abs() < 1e-10)
+        }
+        reply(
+            &mut session,
+            &host,
+            vec![invoke(
+                "reverse",
+                "view.rulers.convert",
+                json!({"direction":"ruler_to_canvas","coordinates":converted["ruler"],"expected_version":view["version"]}),
+            )],
+        );
+        let reverse = result(session.poll(&host).unwrap())["result"].clone();
+        for i in 0..2 {
+            assert!((reverse["canvas"][i].as_f64().unwrap() - [59.5, -114.][i]).abs() < 1e-10)
+        }
+        assert_eq!(host.snapshot().unwrap().revision, state.revision);
+        assert_eq!(
+            host.snapshot().unwrap().history_cursor,
+            state.history_cursor
+        );
+        assert!(
+            host.editor
+                .lock()
+                .unwrap()
+                .document()
+                .unwrap()
+                .to_archive()
+                .unwrap()
+                == before
+        );
+        host.editor.lock().unwrap().stop_turn();
+        assert_eq!(
+            host.snapshot().unwrap().presentation.ruler_unit,
+            serde_json::from_value(json!(unit)).unwrap()
+        );
+    }
+}

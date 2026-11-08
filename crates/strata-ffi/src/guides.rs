@@ -344,6 +344,36 @@ mod metal_tests {
             .unwrap()
             .to_archive()
             .unwrap();
+        for unit in ["inches", "millimeters", "percent"] {
+            engine
+                .dispatch(
+                    "view.presentation.set".into(),
+                    json!({"ruler_unit":unit,"ruler_origin":[-12.5,30]}).to_string(),
+                )
+                .unwrap();
+            let converted: Value = serde_json::from_str(
+                &engine
+                    .dispatch(
+                        "view.rulers.convert".into(),
+                        json!({"coordinates":[59.5,102]}).to_string(),
+                    )
+                    .unwrap(),
+            )
+            .unwrap();
+            assert_eq!(converted["metrics"]["unit"], unit);
+            assert_eq!(frame(&engine), before);
+            assert!(
+                engine
+                    .lock()
+                    .unwrap()
+                    .editor
+                    .document()
+                    .unwrap()
+                    .to_archive()
+                    .unwrap()
+                    == archive
+            );
+        }
         let state = engine.lock().unwrap().editor.snapshot();
         let params =
             json!({"x":9,"y":0,"tolerance":2,"artboard":false,"anchors":"edges"}).to_string();

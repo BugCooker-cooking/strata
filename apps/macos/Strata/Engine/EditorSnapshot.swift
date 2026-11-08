@@ -3,9 +3,17 @@ import Foundation
 struct EditorSnapshot: Decodable, Sendable {
     struct Guide:Decodable,Sendable,Equatable{let id:String;let name:String;let axis:String;let position:Double}
     struct Presentation:Decodable,Sendable,Equatable{
+        let rulerUnit:String?;let rulerOrigin:[Double]?
         let rulersVisible:Bool;let guidesVisible:Bool;let guidesLocked:Bool;let snapEnabled:Bool;let snapTolerance:Double;let snapArtboard:Bool;let version:UInt64
-        static let defaults=Presentation(rulersVisible:true,guidesVisible:true,guidesLocked:false,snapEnabled:false,snapTolerance:6,snapArtboard:true,version:0)
+        static let defaults=Presentation(rulerUnit:"pixels",rulerOrigin:[0,0],rulersVisible:true,guidesVisible:true,guidesLocked:false,snapEnabled:false,snapTolerance:6,snapArtboard:true,version:0)
     }
+    struct RulerMetrics:Decodable,Sendable,Equatable{
+        let unit:String;let origin:[Double];let pixelsPerUnit:[Double];let resolutionDpi:UInt32;let presentationVersion:UInt64
+        var valid:Bool{origin.count==2 && pixelsPerUnit.count==2 && origin.allSatisfy{$0.isFinite&&abs($0)<=1e12} && pixelsPerUnit.allSatisfy{$0.isFinite&&$0>0}}
+        var symbol:String{switch unit{case "inches":"in";case "centimeters":"cm";case "millimeters":"mm";case "points":"pt";case "percent":"%";default:"px"}}
+        func rulerPoint(_ canvas:NSPoint)->NSPoint?{guard valid else{return nil};return NSPoint(x:(Double(canvas.x)-origin[0])/pixelsPerUnit[0],y:(Double(canvas.y)-origin[1])/pixelsPerUnit[1])}
+    }
+    let rulerMetrics:RulerMetrics?
     let guides:[Guide]?
     let presentation:Presentation?
     struct PaintColors:Decodable,Sendable{let foreground:[Double];let background:[Double];let version:UInt64}

@@ -2078,7 +2078,8 @@
         "view.guides.clear",
         "view.presentation.get",
         "view.presentation.set",
-        "layer.snap_position"
+        "layer.snap_position",
+        "view.rulers.convert"
       ],
       "prompts": [
         {
@@ -2105,6 +2106,21 @@
           "text": "把当前图层的内容边缘吸附到最近参考线，返回整数位置与半像素残差。",
           "query": "移动吸附",
           "command": "layer.snap_position"
+        },
+        {
+          "text": "把标尺改成毫米、零点设为画布[100,200]，按文档DPI换算坐标但不改变图像或参考线。",
+          "query": "自定义标尺原点",
+          "command": "view.presentation.set"
+        },
+        {
+          "text": "Convert canvas pixels to ruler inches or millimeters using the current document DPI and custom zero.",
+          "query": "Convert ruler coordinates",
+          "command": "view.rulers.convert"
+        },
+        {
+          "text": "换算当前画板X/Y百分比到画布像素，两个方向分别按宽和高计算。",
+          "query": "标尺坐标换算",
+          "command": "view.rulers.convert"
         }
       ],
       "variants": [
@@ -2124,9 +2140,29 @@
             "center",
             "edges_and_center"
           ]
+        },
+        {
+          "command": "view.presentation.set",
+          "path": "ruler_unit",
+          "values": [
+            "pixels",
+            "inches",
+            "centimeters",
+            "millimeters",
+            "points",
+            "percent"
+          ]
+        },
+        {
+          "command": "view.rulers.convert",
+          "path": "direction",
+          "values": [
+            "canvas_to_ruler",
+            "ruler_to_canvas"
+          ]
         }
       ],
-      "note": "Actual persistent guide CRUD/pages, versioned view settings, pixel rulers and shared integer edge/center guide-artboard snapping passed local core/AI/native/Metal/Release/examples and single-window checks. The first-switch routing defect was caught manually, fixed and rechecked in full native and corrected Release. Ruler custom origin/physical units, smart layer-to-layer references and sustained large-image pointer feedback remain open; partial scope is explicit."
+      "note": "Actual persistent guide CRUD/pages, versioned view settings, pixel rulers and shared integer edge/center guide-artboard snapping passed local core/AI/native/Metal/Release/examples and single-window checks. The first-switch routing defect was caught manually, fixed and rechecked in full native and corrected Release. Ruler custom origin/physical units, smart layer-to-layer references and sustained large-image pointer feedback remain open; partial scope is explicit. Six ruler units/custom canvas zero and precise bidirectional conversion share core metrics with native ticks; local core18/AI47/native105pass1skip/Metal/Release/lint/204examples and mm/percent/origin/guide manual acceptance passed. Corner-origin dragging and smart layer references remain open."
     }
   }
 }

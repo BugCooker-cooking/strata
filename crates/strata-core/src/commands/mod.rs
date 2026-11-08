@@ -90,7 +90,15 @@ params!(ListGuides {
     #[schemars(range(min = 1, max = 64))]
     limit: usize
 });
+fn ruler_origin_schema(_: &mut schemars::SchemaGenerator) -> schemars::Schema {
+    schemars::json_schema!({"anyOf":[{"type":"null"},{"type":"array","minItems":2,"maxItems":2,"items":{"type":"number","minimum":-1000000000000.0,"maximum":1000000000000.0}}]})
+}
+fn ruler_pair_schema(_: &mut schemars::SchemaGenerator) -> schemars::Schema {
+    schemars::json_schema!({"type":"array","minItems":2,"maxItems":2,"items":{"type":"number","minimum":-1000000000000000.0,"maximum":1000000000000000.0}})
+}
 params!(SetPresentation {
+    #[serde(default)] ruler_unit:Option<crate::RulerUnit>,
+    #[serde(default)] #[schemars(schema_with="ruler_origin_schema")] ruler_origin:Option<[f64;2]>,
     #[serde(default)] rulers_visible: Option<bool>,
     #[serde(default)] guides_visible: Option<bool>,
     #[serde(default)] guides_locked: Option<bool>,
@@ -101,6 +109,25 @@ params!(SetPresentation {
     #[serde(default)] snap_artboard: Option<bool>,
     #[serde(default)] expected_version: Option<u64>
 });
+#[derive(Clone, Copy, Debug, Default, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum RulerDirection {
+    #[default]
+    CanvasToRuler,
+    RulerToCanvas,
+}
+params!(ConvertRuler {
+    #[serde(default)] direction:RulerDirection,
+    #[schemars(schema_with="ruler_pair_schema")] coordinates:[f64;2],
+    #[serde(default)] expected_version:Option<u64>
+});
+#[derive(Serialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct RulerCoordinatesResult {
+    pub canvas: [f64; 2],
+    pub ruler: [f64; 2],
+    pub metrics: crate::RulerMetrics,
+}
 #[derive(Clone, Copy, Debug, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum SnapAnchors {

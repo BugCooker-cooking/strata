@@ -14,6 +14,7 @@ final class CanvasChromeView: NSView {
     private var canvasLeading:NSLayoutConstraint!
     private var canvasTop:NSLayoutConstraint!
     private var documentOrigin=NSPoint.zero
+    private var rulerMetrics:EditorSnapshot.RulerMetrics?
     override var isFlipped: Bool { true }
 
     init(canvas: CanvasView, model: WorkspaceModel) {
@@ -43,6 +44,7 @@ final class CanvasChromeView: NSView {
             self?.layer?.borderColor = (control == "paused" ? WorkspaceColors.warning : WorkspaceColors.ai).cgColor
             guard let self else{return}
             self.documentOrigin=NSPoint(x:Double(snapshot?.frame?.x ?? 0),y:Double(snapshot?.frame?.y ?? 0))
+            self.rulerMetrics=snapshot?.rulerMetrics?.valid==true ? snapshot?.rulerMetrics:nil
             let shown=snapshot?.presentation?.rulersVisible ?? true
             self.horizontal.isHidden = !shown;self.vertical.isHidden = !shown
             let inset:CGFloat=shown ? 18:0
@@ -54,9 +56,11 @@ final class CanvasChromeView: NSView {
             guard let self else { return }
             self.frameOverlay = frame
             if abs(self.readout.zoom - zoom) > 0.0005 { self.readout.zoom = zoom }
-            self.horizontal.origin = CGFloat(frame?.x ?? 0) / scale-self.documentOrigin.x*zoom/scale
-            self.vertical.origin = CGFloat(frame?.y ?? 0) / scale-self.documentOrigin.y*zoom/scale
-            self.horizontal.unitScale = zoom / scale; self.vertical.unitScale = zoom / scale
+            let origin=self.rulerMetrics?.origin ?? [0,0],units=self.rulerMetrics?.pixelsPerUnit ?? [1,1]
+            self.horizontal.origin = CGFloat(frame?.x ?? 0) / scale+(origin[0]-self.documentOrigin.x)*zoom/scale
+            self.vertical.origin = CGFloat(frame?.y ?? 0) / scale+(origin[1]-self.documentOrigin.y)*zoom/scale
+            self.horizontal.unitScale = zoom / scale*units[0]; self.vertical.unitScale = zoom / scale*units[1]
+            self.horizontal.unitSymbol=self.rulerMetrics?.symbol ?? "px";self.vertical.unitSymbol=self.horizontal.unitSymbol
             self.horizontal.needsDisplay = true; self.vertical.needsDisplay = true
             self.map.artboard = frame.map { CGRect(x: CGFloat($0.x) / scale, y: CGFloat($0.y) / scale, width: CGFloat($0.width) / scale, height: CGFloat($0.height) / scale) }
             self.map.viewport = self.canvas.bounds; self.map.needsDisplay = true
@@ -66,7 +70,8 @@ final class CanvasChromeView: NSView {
             let scale = self.window?.backingScaleFactor ?? 1
             let x = self.documentOrigin.x+(point.x * scale - CGFloat(frame.x)) / self.readout.zoom
             let y = self.documentOrigin.y+(point.y * scale - CGFloat(frame.y)) / self.readout.zoom
-            self.readout.coordinates = String(format: "X %.0f  Y %.0f", x, y)
+            if let metrics=self.rulerMetrics,let value=metrics.rulerPoint(NSPoint(x:x,y:y)){self.readout.coordinates=String(format:"X %.3f  Y %.3f %@",value.x,value.y,metrics.symbol)}
+            else{self.readout.coordinates=String(format:"X %.0f  Y %.0f px",x,y)}
         }
         map.onNavigate = { [weak canvas] dx, dy in canvas?.panByPoints(dx: dx, dy: dy) }
     }
@@ -127,9 +132,10 @@ private struct CanvasZoomBar: View {
 }
 
 @MainActor
-private final class CanvasRuler: NSView {
+final class CanvasRuler: NSView {
     var origin: CGFloat = 0
     var unitScale: CGFloat = 1
+    var unitSymbol="px"
     let vertical: Bool
     var onGuide:((Int,NSEvent)->Void)?
     override var isFlipped: Bool { true }
@@ -155,7 +161,8 @@ private final class CanvasRuler: NSView {
                 path.move(to: vertical ? NSPoint(x: 18, y: p) : NSPoint(x: p, y: 18))
                 path.line(to: vertical ? NSPoint(x: minor == 0 ? 10 : 14, y: p) : NSPoint(x: p, y: minor == 0 ? 10 : 14))
             }
-            let text = String(format: "%.0f", value) as NSString
+            let digits=max(0,min(6,Int(-floor(log10(step)))))
+            let text = String(format: "%.*f",digits,abs(value)<step*1e-8 ? 0:value) as NSString
             let attributes: [NSAttributedString.Key: Any] = [.font: NSFont.monospacedDigitSystemFont(ofSize: 8, weight: .regular), .foregroundColor: WorkspaceColors.muted]
             if vertical {
                 NSGraphicsContext.saveGraphicsState()
@@ -164,6 +171,9 @@ private final class CanvasRuler: NSView {
             } else { text.draw(at: NSPoint(x: position + 3, y: 1), withAttributes: attributes) }
         }
         WorkspaceColors.border.setStroke(); path.stroke()
+        let badge=NSRect(x:vertical ? 0:max(0,bounds.width-26),y:0,width:vertical ? 18:26,height:14)
+        WorkspaceColors.panel.setFill();badge.fill()
+        (unitSymbol as NSString).draw(at:NSPoint(x:badge.minX+2,y:1),withAttributes:[.font:NSFont.systemFont(ofSize:8),.foregroundColor:WorkspaceColors.secondary])
     }
 }
 

@@ -605,7 +605,7 @@ Permissions: `bound_document`
 
 ## `view.presentation.get` — 读取标尺与吸附设置
 
-Read editor-local rulers_visible/guides_visible/guides_locked/snap_enabled/snap_tolerance/snap_artboard and version. snap_tolerance is native screen points0..64(default6); explicit layer.snap_position uses canvas units. Defaults show rulers/guides, unlock guides and disable automatic snapping. State is independent of document history/save/undo and can be read without a document. Native and AI share it. 中文：读取视图设置、标尺显示、参考线显示、锁定参考线、吸附设置、吸附阈值。
+Read editor-local ruler_unit/ruler_origin, rulers_visible/guides_visible/guides_locked/snap_enabled/snap_tolerance/snap_artboard and version. Default ruler unit is pixels with absolute canvas zero[0,0]. Current-document conversion metrics are also in the core snapshot; use view.rulers.convert for a precise pair. snap_tolerance is native screen points0..64(default6); explicit layer.snap_position uses canvas units. Defaults show rulers/guides, unlock guides and disable automatic snapping. State is independent of document history/save/undo and can be read without a document. Native and AI share it. 中文：读取视图设置、标尺显示、参考线显示、锁定参考线、吸附设置、吸附阈值。
 
 Kind: `Query` · Undoable: `false` · Batchable: `false`
 
@@ -640,6 +640,18 @@ Permissions: `bound_editor, presentation_version`
     "guides_visible": {
       "type": "boolean"
     },
+    "ruler_origin": {
+      "type": "array",
+      "items": {
+        "type": "number",
+        "format": "double"
+      },
+      "maxItems": 2,
+      "minItems": 2
+    },
+    "ruler_unit": {
+      "$ref": "#/$defs/RulerUnit"
+    },
     "rulers_visible": {
       "type": "boolean"
     },
@@ -664,6 +676,8 @@ Permissions: `bound_editor, presentation_version`
   },
   "additionalProperties": false,
   "required": [
+    "ruler_unit",
+    "ruler_origin",
     "rulers_visible",
     "guides_visible",
     "guides_locked",
@@ -671,7 +685,20 @@ Permissions: `bound_editor, presentation_version`
     "snap_tolerance",
     "snap_artboard",
     "version"
-  ]
+  ],
+  "$defs": {
+    "RulerUnit": {
+      "type": "string",
+      "enum": [
+        "pixels",
+        "inches",
+        "centimeters",
+        "millimeters",
+        "points",
+        "percent"
+      ]
+    }
+  }
 }
 ```
 
@@ -683,7 +710,7 @@ Permissions: `bound_editor, presentation_version`
 
 ## `view.presentation.set` — 设置标尺与吸附
 
-Set one or more editor-local presentation fields; expected_version optionally binds a preceding get. Equal values do not advance the version; real changes advance it once without document history/revision/dirty/current-layer changes. Guides themselves are document data edited through view.guides.*. Guide locks prohibit line edits but not snapping to those references. Automatic V-tool snapping uses the current zoom to convert native screen-point tolerance0..64 to canvas units; snap_artboard includes artboard edges. An old pointer draft cannot commit after presentation version changes. Viewing may change during AI control, while guide content edits still require normal document ownership. No document needed, not batchable. 中文：显示标尺、隐藏标尺、显示参考线、隐藏参考线、锁定参考线、开启吸附、关闭吸附、画板边缘吸附；只改变当前编辑器视图，不写历史。
+Set one or more editor-local presentation fields; expected_version optionally binds a preceding get. ruler_unit=pixels(default)/inches/centimeters/millimeters/points/percent and ruler_origin[x,y] finite absolute canvas pixels within +/-1e12 define ruler zero and display scale. Physical units use the current document DPI; percentage axes use current artboard dimensions independently. Use view.rulers.convert for actual coordinate conversion; guide coordinates and image samples never change. Equal values do not advance the version; real changes advance it once without document history/revision/dirty/current-layer changes. Guides themselves are document data edited through view.guides.*. Guide locks prohibit line edits but not snapping to those references. Automatic V-tool snapping uses the current zoom to convert native screen-point tolerance0..64 to canvas units; snap_artboard includes artboard edges. An old pointer draft cannot commit after presentation version changes. Viewing may change during AI control, while guide content edits still require normal document ownership. No document needed, not batchable. 中文：显示标尺、隐藏标尺、显示参考线、隐藏参考线、锁定参考线、开启吸附、关闭吸附、画板边缘吸附；标尺单位、毫米标尺、百分比、自定义标尺原点；只改变当前编辑器视图，不写历史。
 
 Kind: `View` · Undoable: `false` · Batchable: `false`
 
@@ -724,6 +751,35 @@ Permissions: `bound_editor, presentation_version`
       ],
       "default": null
     },
+    "ruler_origin": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "maximum": 1000000000000.0,
+            "minimum": -1000000000000.0
+          },
+          "maxItems": 2,
+          "minItems": 2
+        }
+      ],
+      "default": null
+    },
+    "ruler_unit": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/RulerUnit"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
     "rulers_visible": {
       "type": [
         "boolean",
@@ -756,7 +812,20 @@ Permissions: `bound_editor, presentation_version`
       "minimum": 0
     }
   },
-  "additionalProperties": false
+  "additionalProperties": false,
+  "$defs": {
+    "RulerUnit": {
+      "type": "string",
+      "enum": [
+        "pixels",
+        "inches",
+        "centimeters",
+        "millimeters",
+        "points",
+        "percent"
+      ]
+    }
+  }
 }
 ```
 
@@ -773,6 +842,18 @@ Permissions: `bound_editor, presentation_version`
     },
     "guides_visible": {
       "type": "boolean"
+    },
+    "ruler_origin": {
+      "type": "array",
+      "items": {
+        "type": "number",
+        "format": "double"
+      },
+      "maxItems": 2,
+      "minItems": 2
+    },
+    "ruler_unit": {
+      "$ref": "#/$defs/RulerUnit"
     },
     "rulers_visible": {
       "type": "boolean"
@@ -798,6 +879,8 @@ Permissions: `bound_editor, presentation_version`
   },
   "additionalProperties": false,
   "required": [
+    "ruler_unit",
+    "ruler_origin",
     "rulers_visible",
     "guides_visible",
     "guides_locked",
@@ -805,7 +888,20 @@ Permissions: `bound_editor, presentation_version`
     "snap_tolerance",
     "snap_artboard",
     "version"
-  ]
+  ],
+  "$defs": {
+    "RulerUnit": {
+      "type": "string",
+      "enum": [
+        "pixels",
+        "inches",
+        "centimeters",
+        "millimeters",
+        "points",
+        "percent"
+      ]
+    }
+  }
 }
 ```
 
@@ -817,6 +913,194 @@ Permissions: `bound_editor, presentation_version`
   "rulers_visible": true,
   "snap_enabled": true,
   "snap_tolerance": 6
+}
+```
+
+```json
+{
+  "ruler_origin": [
+    -12.5,
+    30
+  ],
+  "ruler_unit": "millimeters"
+}
+```
+
+## `view.rulers.convert` — 换算标尺坐标
+
+Convert one finite pair using this editor's authoritative ruler_unit/ruler_origin and current document DPI/artboard. direction canvas_to_ruler(default) or ruler_to_canvas; coordinates[x,y] finite inside +/-1e15, converted canvas must lie inside +/-1e12 pixels and ruler inside +/-1e15 units. pixels scale1; inches dpi; centimeters dpi/2.54; millimeters dpi/25.4; points dpi/72. percent uses width/100 and height/100 independently. Subtract absolute canvas-pixel origin before dividing by scale. Return both pairs plus core unit/origin/DPI/pixels_per_unit/presentation_version metrics; expected_version optionally rejects stale settings. Document required, no source/font/file resources, no document/view/history/dirty/current-layer change, not batchable. Native ruler ticks consume the same core snapshot metrics, not a separate units algorithm. Persistent guides stay absolute canvas pixels; no image resampling. 中文：标尺坐标换算、像素转毫米、英寸、厘米、点、百分比、自定义标尺原点；参考线仍为画布像素，设置标尺用view.presentation.set。
+
+Kind: `Query` · Undoable: `false` · Batchable: `false`
+
+Effects: `view.rulers.read`
+
+Permissions: `bound_document, presentation_version`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ConvertRuler",
+  "type": "object",
+  "properties": {
+    "coordinates": {
+      "type": "array",
+      "items": {
+        "type": "number",
+        "maximum": 1000000000000000.0,
+        "minimum": -1000000000000000.0
+      },
+      "maxItems": 2,
+      "minItems": 2
+    },
+    "direction": {
+      "$ref": "#/$defs/RulerDirection",
+      "default": "canvas_to_ruler"
+    },
+    "expected_version": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "uint64",
+      "default": null,
+      "minimum": 0
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "coordinates"
+  ],
+  "$defs": {
+    "RulerDirection": {
+      "type": "string",
+      "enum": [
+        "canvas_to_ruler",
+        "ruler_to_canvas"
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RulerCoordinatesResult",
+  "type": "object",
+  "properties": {
+    "canvas": {
+      "type": "array",
+      "items": {
+        "type": "number",
+        "format": "double"
+      },
+      "maxItems": 2,
+      "minItems": 2
+    },
+    "metrics": {
+      "$ref": "#/$defs/RulerMetrics"
+    },
+    "ruler": {
+      "type": "array",
+      "items": {
+        "type": "number",
+        "format": "double"
+      },
+      "maxItems": 2,
+      "minItems": 2
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "canvas",
+    "ruler",
+    "metrics"
+  ],
+  "$defs": {
+    "RulerMetrics": {
+      "type": "object",
+      "properties": {
+        "origin": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 2,
+          "minItems": 2
+        },
+        "pixels_per_unit": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 2,
+          "minItems": 2
+        },
+        "presentation_version": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "resolution_dpi": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "unit": {
+          "$ref": "#/$defs/RulerUnit"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "unit",
+        "origin",
+        "pixels_per_unit",
+        "resolution_dpi",
+        "presentation_version"
+      ]
+    },
+    "RulerUnit": {
+      "type": "string",
+      "enum": [
+        "pixels",
+        "inches",
+        "centimeters",
+        "millimeters",
+        "points",
+        "percent"
+      ]
+    }
+  }
+}
+```
+
+### Examples
+
+```json
+{
+  "coordinates": [
+    400,
+    800
+  ],
+  "direction": "canvas_to_ruler"
+}
+```
+
+```json
+{
+  "coordinates": [
+    25.4,
+    50.8
+  ],
+  "direction": "ruler_to_canvas"
 }
 ```
 
@@ -3123,6 +3407,16 @@ Permissions: `bound_document`
       "format": "uint64",
       "minimum": 0
     },
+    "ruler_metrics": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/RulerMetrics"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
     "selection": {
       "anyOf": [
         {
@@ -4083,6 +4377,18 @@ Permissions: `bound_document`
         "guides_visible": {
           "type": "boolean"
         },
+        "ruler_origin": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 2,
+          "minItems": 2
+        },
+        "ruler_unit": {
+          "$ref": "#/$defs/RulerUnit"
+        },
         "rulers_visible": {
           "type": "boolean"
         },
@@ -4107,6 +4413,8 @@ Permissions: `bound_document`
       },
       "additionalProperties": false,
       "required": [
+        "ruler_unit",
+        "ruler_origin",
         "rulers_visible",
         "guides_visible",
         "guides_locked",
@@ -4122,6 +4430,61 @@ Permissions: `bound_document`
         "nearest",
         "bilinear",
         "area"
+      ]
+    },
+    "RulerMetrics": {
+      "type": "object",
+      "properties": {
+        "origin": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 2,
+          "minItems": 2
+        },
+        "pixels_per_unit": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 2,
+          "minItems": 2
+        },
+        "presentation_version": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "resolution_dpi": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "unit": {
+          "$ref": "#/$defs/RulerUnit"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "unit",
+        "origin",
+        "pixels_per_unit",
+        "resolution_dpi",
+        "presentation_version"
+      ]
+    },
+    "RulerUnit": {
+      "type": "string",
+      "enum": [
+        "pixels",
+        "inches",
+        "centimeters",
+        "millimeters",
+        "points",
+        "percent"
       ]
     },
     "Shadow": {

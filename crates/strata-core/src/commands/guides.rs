@@ -128,10 +128,23 @@ pub(super) fn presentation(
         && p.snap_enabled.is_none()
         && p.snap_tolerance.is_none()
         && p.snap_artboard.is_none()
+        && p.ruler_unit.is_none()
+        && p.ruler_origin.is_none()
     {
         return Err(invalid("provide at least one presentation setting"));
     }
     let mut value = old.clone();
+    if let Some(unit) = p.ruler_unit {
+        value.ruler_unit = unit
+    }
+    if let Some(origin) = p.ruler_origin {
+        if origin.iter().any(|v| !v.is_finite() || v.abs() > 1e12) {
+            return Err(invalid(
+                "ruler origin requires finite canvas pixels inside +/-1e12",
+            ));
+        }
+        value.ruler_origin = origin;
+    }
     if let Some(v) = p.rulers_visible {
         value.rulers_visible = v
     };
@@ -160,6 +173,54 @@ pub(super) fn presentation(
             .ok_or_else(|| invalid("presentation version exhausted"))?
     };
     Ok(value)
+}
+pub(super) fn ruler_coordinates(
+    doc: &Document,
+    presentation: &Presentation,
+    params: Value,
+) -> Result<Value, CommandError> {
+    let p: ConvertRuler = parse(params)?;
+    if p.expected_version
+        .is_some_and(|v| v != presentation.version)
+    {
+        return Err(CommandError::Stale);
+    }
+    if p.coordinates
+        .iter()
+        .any(|v| !v.is_finite() || v.abs() > 1e15)
+    {
+        return Err(invalid(
+            "ruler coordinates require finite values inside +/-1e15",
+        ));
+    }
+    let metrics = presentation.ruler_metrics(doc);
+    let (canvas, ruler) = match p.direction {
+        RulerDirection::CanvasToRuler => (
+            p.coordinates,
+            std::array::from_fn(|i| {
+                (p.coordinates[i] - metrics.origin[i]) / metrics.pixels_per_unit[i]
+            }),
+        ),
+        RulerDirection::RulerToCanvas => (
+            std::array::from_fn(|i| {
+                metrics.origin[i] + p.coordinates[i] * metrics.pixels_per_unit[i]
+            }),
+            p.coordinates,
+        ),
+    };
+    if canvas.iter().any(|v| !v.is_finite() || v.abs() > 1e12)
+        || ruler.iter().any(|v| !v.is_finite() || v.abs() > 1e15)
+    {
+        return Err(invalid(
+            "converted canvas must lie inside +/-1e12 pixels and ruler inside +/-1e15 units",
+        ));
+    }
+    Ok(serde_json::to_value(RulerCoordinatesResult {
+        canvas,
+        ruler,
+        metrics,
+    })
+    .unwrap())
 }
 #[derive(Clone, Debug)]
 pub(super) struct SnapContext {

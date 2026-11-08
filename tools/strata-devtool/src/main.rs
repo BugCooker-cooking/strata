@@ -79,6 +79,18 @@ fn examples() -> Result<(), Box<dyn Error>> {
             };
             let mut args = example.clone();
             match spec.id {
+                "view.rulers.convert" => {
+                    run(
+                        &mut editor,
+                        "file.new",
+                        json!({"width":3000,"height":1500,"bit_depth":16,"resolution_dpi":300,"discard_changes":true}),
+                    )?;
+                    run(
+                        &mut editor,
+                        "view.presentation.set",
+                        json!({"ruler_unit":"millimeters","ruler_origin":[100,200]}),
+                    )?;
+                }
                 "view.guides.update" | "view.guides.delete" | "view.guides.clear" => {
                     run(
                         &mut editor,
@@ -372,6 +384,23 @@ fn examples() -> Result<(), Box<dyn Error>> {
             let result = run(&mut editor, spec.id, args)?;
             if !result.is_object() {
                 return Err(format!("{} returned non-object", spec.id).into());
+            }
+            if spec.id == "view.rulers.convert" {
+                let expected = [25.4, 50.8];
+                let canvas = [400., 800.];
+                if (0..2).any(|i| {
+                    result["ruler"][i]
+                        .as_f64()
+                        .is_none_or(|v| (v - expected[i]).abs() > 1e-10)
+                        || result["canvas"][i]
+                            .as_f64()
+                            .is_none_or(|v| (v - canvas[i]).abs() > 1e-10)
+                }) {
+                    return Err(
+                        "ruler example did not execute the independent300dpi millimeter reference"
+                            .into(),
+                    );
+                }
             }
             if spec.id == "filter.high_pass" && result["touched_tiles"].as_u64().unwrap_or(0) == 0 {
                 return Err("high-pass example did not change any source tile".into());
