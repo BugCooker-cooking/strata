@@ -192,7 +192,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         } catch { next.showError(error) }
     }
 
-    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        // Real sheet fixtures must not terminate the XCTest host between cases.
+        NSClassFromString("XCTestCase") == nil
+    }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         let pending = controllers.filter { !$0.canTerminateNow }
@@ -242,6 +245,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             ("新建标签页…", #selector(MainWindowController.newTab), "n"),
             ("保存", #selector(MainWindowController.saveDocument), "s"),
             ("另存为…", #selector(MainWindowController.saveAs), "S"),
+            ("恢复到上次保存…",#selector(MainWindowController.revertDocument),""),
             ("导出…", #selector(MainWindowController.exportDocument), "e"),
             ("快速导出…", #selector(MainWindowController.quickExportDocument), "E"),
             ("快速导出预设…", #selector(MainWindowController.configureQuickExport), "")

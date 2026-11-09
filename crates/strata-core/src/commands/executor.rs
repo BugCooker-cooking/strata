@@ -241,7 +241,7 @@ enum Action {
     Edit,
     Place(String),
     History(usize),
-    Open(Option<std::path::PathBuf>),
+    Open(Option<std::path::PathBuf>, std::path::PathBuf),
     Recover,
     External(Box<WriteCandidate>),
     ClipboardCopy(Box<ClipCandidate>),
@@ -264,6 +264,7 @@ pub struct PreparedCommand {
     replay: bool,
     required_active_layer: Option<LayerId>,
     required_export_preset: Option<u64>,
+    required_revert_source: Option<std::path::PathBuf>,
 }
 impl PreparedCommand {
     /// Display overlays read the exact validated command result.
@@ -283,7 +284,7 @@ impl PreparedCommand {
         matches!(
             self.action,
             Action::New
-                | Action::Open(_)
+                | Action::Open(..)
                 | Action::Recover
                 | Action::Edit
                 | Action::Place(_)
@@ -294,7 +295,10 @@ impl PreparedCommand {
             && !self.command.starts_with("select.")
     }
     pub fn replaces_document(&self) -> bool {
-        matches!(self.action, Action::New | Action::Open(_) | Action::Recover)
+        matches!(
+            self.action,
+            Action::New | Action::Open(..) | Action::Recover
+        )
     }
 }
 
@@ -326,6 +330,7 @@ pub struct Editor {
     epoch: u64,
     receipts: HashMap<Uuid, Receipt>,
     pub(crate) project_path: Option<std::path::PathBuf>,
+    opened_path: Option<std::path::PathBuf>,
     resources: HashMap<String, Resource>,
     clipboards: HashMap<String, ClipResource>,
     recent: Vec<RecentFile>,
@@ -358,6 +363,7 @@ impl Editor {
             epoch: 0,
             receipts: HashMap::new(),
             project_path: None,
+            opened_path: None,
             resources: HashMap::new(),
             clipboards: HashMap::new(),
             recent: Vec::new(),
@@ -421,6 +427,10 @@ impl Editor {
     }
     pub fn project_path(&self) -> Option<&std::path::Path> {
         self.project_path.as_deref()
+    }
+    /// Trusted host metadata; this is not a model file-access capability.
+    pub fn revert_source(&self) -> Option<&std::path::Path> {
+        self.project_path.as_deref().or(self.opened_path.as_deref())
     }
     pub fn control(&self) -> &Control {
         &self.control
@@ -1255,6 +1265,7 @@ impl Editor {
                 replay: true,
                 required_active_layer: None,
                 required_export_preset: None,
+                required_revert_source: None,
             });
         }
         self.authorize(&request.source, id, kind)?;
@@ -1283,6 +1294,7 @@ impl Editor {
         let mut read_resource = None;
         let mut annotations_only = false;
         let mut required_export_preset = None;
+        let mut required_revert_source = None;
         let (action, result) = match kind {
             CommandKind::Query => {
                 if id == "edit.clipboard.write_status" {
@@ -1301,7 +1313,9 @@ impl Editor {
                 }
                 (
                     Action::Query,
-                    if id == "file.export_preset.get" {
+                    if id == "file.revert_status" {
+                        self.revert_status()
+                    } else if id == "file.export_preset.get" {
                         json!(self.export_presets.get()?)
                     } else if id == "view.rulers.convert" {
                         super::guides::ruler_coordinates(
@@ -1369,10 +1383,32 @@ impl Editor {
                     },
                 )
             }
-            CommandKind::Lifecycle if id == "file.open" || id == "file.recover" => {
-                let (doc, path) =
-                    self.prepare_open(&request, params.clone(), id == "file.recover")?;
-                read_resource = Some(parse::<OpenFile>(params.clone())?.resource);
+            CommandKind::Lifecycle
+                if matches!(id, "file.open" | "file.recover" | "file.revert") =>
+            {
+                let p: OpenFile = if id == "file.revert" {
+                    let r: RevertFile = parse(params.clone())?;
+                    if r.expected_revision.is_some_and(|v| v != self.revision) {
+                        return Err(CommandError::Stale);
+                    }
+                    OpenFile {
+                        resource: r.resource,
+                        discard_changes: r.discard_changes,
+                    }
+                } else {
+                    parse(params.clone())?
+                };
+                let source = self.read_resource_path(&request, &p.resource)?;
+                if id == "file.revert" {
+                    self.validate_revert(&request, &p)?;
+                    required_revert_source = Some(source.clone());
+                }
+                let (doc, path) = self.prepare_open(
+                    &request,
+                    serde_json::to_value(&p).unwrap(),
+                    id == "file.recover",
+                )?;
+                read_resource = Some(p.resource);
                 selected = doc.active_layer();
                 let result = json!({"document_id":doc.id(),"layer_id":selected});
                 candidate = Some(doc);
@@ -1380,7 +1416,7 @@ impl Editor {
                     if id == "file.recover" {
                         Action::Recover
                     } else {
-                        Action::Open(path)
+                        Action::Open(path, source)
                     },
                     result,
                 )
@@ -1816,6 +1852,7 @@ impl Editor {
             replay: false,
             required_active_layer: None,
             required_export_preset,
+            required_revert_source,
         })
     }
     pub fn commit(&mut self, prepared: PreparedCommand) -> Result<Value, CommandError> {
@@ -1852,6 +1889,13 @@ impl Editor {
             self.check_request(&prepared.request)?;
         }
         if prepared.epoch != self.epoch {
+            return Err(CommandError::Stale);
+        }
+        if prepared
+            .required_revert_source
+            .as_deref()
+            .is_some_and(|p| Some(p) != self.revert_source())
+        {
             return Err(CommandError::Stale);
         }
         if prepared
@@ -1897,7 +1941,7 @@ impl Editor {
         if matches!(
             prepared.action,
             Action::New
-                | Action::Open(_)
+                | Action::Open(..)
                 | Action::Recover
                 | Action::Edit
                 | Action::Place(_)
@@ -1956,12 +2000,13 @@ impl Editor {
             Action::ClipboardCopy(copy) => {
                 self.commit_copy(*copy, &prepared.command)?;
             }
-            Action::Open(path) => {
+            Action::Open(path, source) => {
                 self.saved = prepared.candidate.as_ref().map(Document::state_id);
                 self.document = prepared.candidate;
                 self.history.clear();
                 self.cursor = 0;
                 self.project_path = path;
+                self.opened_path = Some(source);
                 self.revision += 1;
             }
             Action::Recover => {
@@ -1970,6 +2015,7 @@ impl Editor {
                 self.history.clear();
                 self.cursor = 0;
                 self.project_path = None;
+                self.opened_path = None;
                 self.revision += 1;
             }
             Action::Edit | Action::Place(_) | Action::ClipboardEdit(_) => {
@@ -2036,6 +2082,7 @@ impl Editor {
                 self.history.clear();
                 self.cursor = 0;
                 self.project_path = None;
+                self.opened_path = None;
                 self.revision += 1;
             }
             Action::History(cursor) => {

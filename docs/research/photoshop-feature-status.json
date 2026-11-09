@@ -1062,5 +1062,15 @@
         "path": "../research/data/2026-11-09-m7-smart-origin-native-closure.json"
       }
     ]
+  },
+  "PS-01-265b9a61ab": {
+    "implementation": "已实现",
+    "acceptance": "Source-bound file.revert/status implemented using real image/project reload, fresh matching read capability, explicit discard/history reset and optional confirmation expected_revision. Related22core,52AI,required Metal1,142commands/211examples, lint, final native15 and arm64 Release passed. Initial native failures were a canonical-path assertion and sheet-fixture-triggered XCTest host exit; identity assertion and XCTest-only termination guard fixed, same15 reran passed. One Release window manually verified cancel keeps2layers/dirty/Undo, apply restores original1layer/0,0/clean/Undo+Redo disabled; closing last window exited normally. SourceSHA and quick-preset absence unchanged, process0. No manual every-format/16-bit/corruption or sustained performance claim.",
+    "evidence": [
+      {
+        "label": "Bound-source revert implementation and local progress",
+        "path": "../research/2026-11-m8-revert-progress.md"
+      }
+    ]
   }
 }

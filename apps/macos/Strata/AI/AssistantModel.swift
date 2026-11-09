@@ -282,9 +282,9 @@ final class AssistantModel: ObservableObject {
     private func pickResource(_ pending: AIJSON, turn: String) async throws -> String? {
         guard let window = window?() else { return nil }
         let operation = pending["operation"]; let command = operation["command"].string ?? ""
-        if ["file.place", "file.open", "file.recover"].contains(command) {
+        if ["file.place", "file.open", "file.recover","file.revert"].contains(command) {
             let picker = NSOpenPanel(); picker.allowedContentTypes = [.png, .jpeg, .tiff, .webP, .heic, .gif, .bmp, UTType(filenameExtension: "strata") ?? .data]; picker.allowsMultipleSelection = false
-            picker.message = "授权本轮 AI 读取并置入所选图片"; panel = picker
+            picker.message = command=="file.revert" ? "请选择当前文档的原文件或上次保存的工程；恢复会放弃当前修改与历史。":"授权本轮 AI 读取并置入所选图片";picker.allowsOtherFileTypes=true; panel = picker
             let choice = await withCheckedContinuation { continuation in picker.beginSheetModal(for: window) { continuation.resume(returning: $0) } }
             panel = nil; guard choice == .OK, let url = picker.url, self.turn == turn else { return nil }
             selectedResourceURL = url

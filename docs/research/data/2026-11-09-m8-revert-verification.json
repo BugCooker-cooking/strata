@@ -1,0 +1,245 @@
+{
+  "date_local": "2026-11-09",
+  "timezone": "Asia/Taipei",
+  "base_checkpoint": "f0fdd43",
+  "branch": "codex/v1-remaining",
+  "scope": "Current original-image/last-saved-project source-bound revert with explicit discard/history reset, confirmation expected_revision and read capability; real native/AI execution through existing decode/project/render pipeline. Closes the revert inventory row, not complete Photoshop or final AI audit.",
+  "source_sha256": {
+    "apps/macos/Strata/AI/AssistantModel.swift": "1ce62d2ed9ad6a5caf1f5ec9d7217980f114ec263b00a6e32309e41117c1fbf4",
+    "apps/macos/Strata/App/AppDelegate.swift": "f3a4f89af044d67e878f96421c095280d77f964d1ebaeef61f255c547d5a6b89",
+    "apps/macos/Strata/App/MainWindowController.swift": "cb08338aab517e648749b36b27c7abb7e885e960b39d116cc2c9dc05344999a1",
+    "apps/macos/Strata/App/WorkspaceFileActions.swift": "a3c1cca84129f5ef6b726cfeb4adf8d152cdeb3a3f43f8e3a1304ad579c1b6bd",
+    "apps/macos/Strata/Workspace/WorkspaceModel.swift": "f321f98cde0ddf8c69becd0733e3aa8f9abf490b77208851ad825ab1dcc95097",
+    "apps/macos/StrataTests/RevertTests.swift": "5ba1b21c193a8da61963018c9898f1bf431f366ae1d938bb0bd969d6df181b5b",
+    "crates/strata-ai/src/catalog.rs": "9dc62a77ac7ca3ab0c9fad0700618b5380ff8611bcea07aa748b177e82610a88",
+    "crates/strata-ai/src/session.rs": "82a44a15db7cb1bddd7132dc5c631f3bf970f8b475196ac381678267d613314b",
+    "crates/strata-ai/tests/replay.rs": "9fab353481af4d03eb7429f80795f9607bffb090f1fa01a8fd56ad644c8779b1",
+    "crates/strata-core/src/commands/executor.rs": "8fd616b6c47b177a0a564ccdc16fc5f62ea312db121001672fc146ed83213a85",
+    "crates/strata-core/src/commands/files.rs": "7e1fa676a0862450a5eef3ab7fc4dc1dcb2b940f16af758241ead471146c4498",
+    "crates/strata-core/src/commands/mod.rs": "bc3a0cd57c77fefa68dc0dbf3e63a5d2abdda416546d0e597b267c913a93be5d",
+    "crates/strata-core/src/commands/registry.rs": "48b40eb6e5c9c5c0d75a67928eced1d6fb9721714e4890bd4e2f1c8c21f6fbc6",
+    "crates/strata-core/tests/recovery.rs": "62633ae6e43f790b03e3b63feba483ea1085eacb5e8a40e27cffdf0a2269bbef",
+    "crates/strata-core/tests/revert.rs": "7af64c6fe044ff973c19ceccd51b4f9071f4d12737aa7b8e42ece22b04ad5a08",
+    "crates/strata-ffi/src/ai.rs": "e5caa4fcffe8e798814033f627d31cd1314f27a2ea7bc059a713815322a29fbb",
+    "crates/strata-ffi/src/lib.rs": "09145a98a42a037091acb1024b2748745cfbb904d5ca6fcd4a9ee1d844bef881",
+    "crates/strata-ffi/src/revert_tests.rs": "aab5b9a72c7309e9d8bfb069642a0420c50d3308c2866ee62660c38a3f512e16",
+    "tools/strata-devtool/src/main.rs": "c558d0487f1b72e1f1843cd12b02cbb68bb163e432d0bbc5450625685e014a51"
+  },
+  "log_sha256": {
+    "build/m8-revert-ai.final.log": "847f9379e3efc5cec5e3412443198016e202398d7eaadb3bdb771029c4174404",
+    "build/m8-revert-ai.log": "a89980047ba57a9ca092cb6dacb95d8c958b107fccc8b027d294b2fea45686d6",
+    "build/m8-revert-audit.final.log": "de642e6dd59ee916b07b07fd4944cc79aad8a682d1791e093daf13148e068e0b",
+    "build/m8-revert-audit.log": "de642e6dd59ee916b07b07fd4944cc79aad8a682d1791e093daf13148e068e0b",
+    "build/m8-revert-check.fixed.log": "984fb30f1a4c2837226df447a239b9e3e79af2c6390eeb4773fbd4b3d35bb61c",
+    "build/m8-revert-check.log": "c6be4cab770b58efe7298abd4d2a8952bebc5a09408c19937efbc54b191c0ee6",
+    "build/m8-revert-commands.final.log": "286499e81329f300da7fe82691a16582bda6116e4331290a8c5174f511eceec1",
+    "build/m8-revert-commands.log": "31ac41055a5232dbb5900e8a0ed06dd94f8b548024d100ea655b9654bb1c8a8b",
+    "build/m8-revert-core.final.log": "8fe378dbb89ebe5a3cce2a91e4b1506f76422c4b982f0306d2022c05ac9e2ea8",
+    "build/m8-revert-core.fixed.log": "7ff6364199985f006b134b273f6649c181784d203b45adbfc91d97aa7109e798",
+    "build/m8-revert-core.log": "cd9ff565d89da39438cf26b0208f69a03b6410e0738a7f4a27552bb0447ef919",
+    "build/m8-revert-core.mask-fixed.log": "360131859e85f0c7436e7b0190d7f4c2f6bc36d86282d296c7a1221b075ea275",
+    "build/m8-revert-core.versioned.log": "348f6bad46376ad30dbcbbd6501bfd294426bc41a91ab474f88f9caedc0223c1",
+    "build/m8-revert-docs.final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "build/m8-revert-docs.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "build/m8-revert-lint.final.log": "6fb2ad1a1e2c6c231c0f20977ac7a4ee60f4e6b91cf6290d277c5c538c15e5a6",
+    "build/m8-revert-lint.log": "d16bc9fb6edcceefb2da32c0dd4a6815d08278567a10fed536f6c491fc1a4386",
+    "build/m8-revert-metal.final.log": "f328621be54b2a14e0afcd21e6a1a3f8b0c759fd846b53f6e185686baa0058bf",
+    "build/m8-revert-metal.log": "061c82e093b36e420c13b8201654b30a91771932748e4df1150945b6001b18dd",
+    "build/m8-revert-native.fixed.log": "a41f7560e994db6d07882aaaf1c4ced843ce2b112531349222a3ca9e78fa0a89",
+    "build/m8-revert-native.log": "0b709f9eaa75c2dca78137ba0b41c190ad61e2a7f64dc72b9a7629d9e4a0b809",
+    "build/m8-revert-project.log": "e58cce6200caa96ab00cf30940611e25c1cb7b476f788a27ba909bd37510eca0",
+    "build/m8-revert-release.log": "6dfa085b45d4b1a87e1c505aff2bcc9eec1ddd4d42f27a65332ac999b1af0c87",
+    "build/m8-revert-swiftlint.final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "build/m8-revert-swiftlint.host-fixed.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "build/m8-revert-swiftlint.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "build/m8-revert-final-ai-gate.log": "58775cd558643dbf55e44703bbdc00f7f6982cb47d878a0c39d4f6ad5cfe0375"
+  },
+  "checks": {
+    "core_targeted": {
+      "passed": 22,
+      "failed": 0,
+      "ignored": 0,
+      "log": "build/m8-revert-core.versioned.log",
+      "suites": {
+        "file_revert": 4,
+        "files": 6,
+        "recovery": 4,
+        "recent": 2,
+        "quick_export": 6
+      },
+      "scope": "Final revert fixture includes actual u16 selection-derived mask, retained text/guides, both8/16-bit PNG imports, archive equality, no-source/discard/capability/path/stale/cancel/display-failure cases. Earlier full core354+doc1 belongs to f0fdd43; not rerun or reattributed here."
+    },
+    "ai": {
+      "passed": 52,
+      "failed": 0,
+      "ignored": 0,
+      "log": "build/m8-revert-ai.final.log",
+      "suites": {
+        "replay": 43,
+        "protocol": 7,
+        "recordings": 1,
+        "all_mapped_prompts": 1
+      },
+      "new_revert_case": "Query/search/strict describe; export does not change revert target; decline preserves current archive; fresh turn resource + explicit discard + expected_revision reloads actual project, clears history and rebinds context; subsequent inspect works.",
+      "network_requests": 0
+    },
+    "required_metal": {
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "required_gpu": true,
+      "log": "build/m8-revert-metal.final.log",
+      "scope": "Saved scene -> real layer move changes pixels -> actual revert restores byte-exact64x48 scene/archive, source file bytes unchanged. Own checkpoint removed, independent other-document checkpoint remains. Includes confirmation expected_revision."
+    },
+    "native_initial": {
+      "total": 15,
+      "passed": 13,
+      "failed": 2,
+      "skipped": 0,
+      "log": "build/m8-revert-native.log",
+      "summary": "build/m8-revert-native-summary.json",
+      "failures": [
+        "Revert source assertion compared Foundation/realpath aliases /var and /private/var.",
+        "After a real sheet fixture ended, last-window termination exited the XCTest host with code0 before the idle-recovery test completed. Xcode restarted it; this was not a revert decoder crash."
+      ]
+    },
+    "native_final": {
+      "total": 15,
+      "passed": 15,
+      "failed": 0,
+      "skipped": 0,
+      "log": "build/m8-revert-native.fixed.log",
+      "suites": {
+        "bridge": 6,
+        "quick_export": 5,
+        "recovery": 2,
+        "revert": 2
+      },
+      "jobs": 2,
+      "parallel_testing": false,
+      "fixes": [
+        "Source assertion verifies nonnil device+inode file identity instead of path spelling.",
+        "XCTest host stays alive on last-window close, matching existing XCTest launch guard; production still exits on its last window."
+      ],
+      "scope": "Relevant native suites only; not a new complete native-suite count. Real idle checkpoint wait ran ~30seconds."
+    },
+    "lint": {
+      "passed": true,
+      "log": "build/m8-revert-lint.final.log",
+      "final_swift_log": "build/m8-revert-swiftlint.host-fixed.log",
+      "checks": [
+        "rustfmt",
+        "workspace all-target Clippy -D warnings",
+        "portability",
+        "Swiftlint",
+        "generated feature coverage"
+      ],
+      "scope": "Last post-lint changes are the native test-host termination guard and test file-identity assertion; final Swiftlint/native/Release cover them. Rust code unchanged after final core/AI/lint/Metal."
+    },
+    "examples": {
+      "passed": true,
+      "commands": 142,
+      "parameter_examples": 211,
+      "log": "build/m8-revert-commands.final.log",
+      "actual_revert_example": "Save actual fixture project, create unsaved extra layer, revert from same saved file, require one restored layer and empty history."
+    },
+    "release": {
+      "passed": true,
+      "architecture": "arm64",
+      "jobs": 2,
+      "swift_backend_threads": 1,
+      "log": "build/m8-revert-release.log",
+      "binary_sha256": "6c6a688e1aa4ecaa163f61ff949e0820bce1a55e2800c5a110c84966f32ff6ea",
+      "sample_and_font_notices_byte_equal": true
+    }
+  },
+  "semantics": {
+    "commands": [
+      "file.revert_status",
+      "file.revert"
+    ],
+    "source": "Private editor binding prefers current last-saved project, else originally opened image. New/recovered-unsaved documents have no source. Save As changes the target without requiring revision change; export does not. Paths/capabilities are never returned by the registered status query.",
+    "authorization": "Fresh source-bound read resource; only exactly the current canonical source accepted. Explicit discard_changes=true always required because history is replaced. AI separately chooses/grants source and consents to rebind current document context; metadata query grants no file access.",
+    "confirmation": "Optional expected_revision rejects changes between inspection/dialog and request preparation; native confirmation always supplies its original revision and checks document/source. Prepared request/epoch/source and resource stamp rechecked at commit, including Save As without revision change.",
+    "success": "Re-read current disk contents through existing decoder/project loader, commit prepared display atomically, clear undo/redo and set loaded state clean. Original source file is never written. Ruler/palette/export settings remain editor state; native canvas fits reloaded frame.",
+    "failure": "Missing/corrupt/wrong-source/foreign-resource/extra-parameter/declined-discard, canceled/stale request, changed target/document/file stamp or display preparation failure preserve current truth/history.",
+    "recovery": "Only the current editor checkpoint is removed on successful native or AI revert. Recovery metadata itself does not grant re-open authority; other editor checkpoints remain."
+  },
+  "manual": {
+    "passed": true,
+    "method": "Live CUA AX states and buttons on one final Release instance; no persisted screenshot artifact asserted.",
+    "initial": {
+      "fixture": "docs/design/assets/sample-photo.jpg",
+      "frame": [
+        1024,
+        1536
+      ],
+      "bit_depth": 8,
+      "profile": "sRGB (assumed)",
+      "tool": "Hand",
+      "layers": 1,
+      "dirty": false,
+      "undo_disabled": true,
+      "redo_disabled": true
+    },
+    "change": "Duplicated source layer once, yielding sample-photo copy and original. No external save/write.",
+    "cancel": "Native File -> Revert confirmation explicitly named sample-photo.jpg and history discard. Cancel retained2layers/dirty/Undo enabled.",
+    "apply": "Reopened same confirmation and applied; actual original1layer sample-photo at0/0 restored,1024x1536/8bit/sRGB(assumed), clean, Undo+Redo disabled.",
+    "last_window_close": "Clicked final window close button; CUA reported procNotFound and terminal verified no Strata/XCTest process. This physically checks production last-window exit after XCTest-only guard change.",
+    "max_simultaneous_strata_instances": 1,
+    "normal_last_window_exit_observed": true,
+    "post_exit_strata_and_xctest_processes": 0,
+    "source_sha256_before_after": "c1006da29913609963479b8641c0e6f6a43ff2c6d8b2f907c91a6daf1afaa2ea",
+    "bundled_source_sha256": "c1006da29913609963479b8641c0e6f6a43ff2c6d8b2f907c91a6daf1afaa2ea",
+    "quick_export_preference_absence_preserved": true,
+    "other_user_apps_preserved": true,
+    "limits": [
+      "Only original8-bit JPEG sample menu/cancel/apply/exit manually observed.",
+      "Saved project/text/mask/guide/16-bit/bad-file/changed-source/display-failure/AI and checkpoint claims are automated evidence.",
+      "No sustained large-photo throughput, live-model quality, platform/device or release-signing acceptance asserted."
+    ]
+  },
+  "resolved_findings": [
+    {
+      "log": "build/m8-revert-check.log",
+      "reason": "Updated Open action tuple required one old pattern to use all fields; compiler caught it before tests."
+    },
+    {
+      "log": "build/m8-revert-core.log",
+      "reason": "Canonical /private/var versus tempdir /var path spelling in new test. Product canonical capability validation unchanged."
+    },
+    {
+      "log": "build/m8-revert-core.final.log",
+      "reason": "New actual mask fixture used invalid source=selection; corrected to the existing strict schema from_selection."
+    },
+    {
+      "log": "build/m8-revert-native.log",
+      "reason": "Native path-alias assertion and last-window XCTest host termination resolved; same15 suites rerun passed."
+    }
+  ],
+  "ai_audit": {
+    "registered_commands": 142,
+    "registered_examples": 211,
+    "mapped_features": 93,
+    "inventory_rows": 265,
+    "partial_entries": 12,
+    "unfinished_features": 184,
+    "final_closure": false,
+    "strict_gate_expected_exit_code": 1,
+    "strict_gate_log": "build/m8-revert-final-ai-gate.log"
+  },
+  "policy": {
+    "local_only": true,
+    "cloud_jobs_triggered": 0,
+    "live_model_requests": 0,
+    "max_build_jobs": 2,
+    "heavy_checks_serial": true,
+    "manual_instances_one_at_a_time": true,
+    "private_development_branch_only": true,
+    "keep_pr_draft": true
+  },
+  "remaining": [
+    "Other Photoshop P0/P1/P2/P3 capabilities and final AI per-feature execution audit.",
+    "Large-photo sustained performance, real-model quality, external devices/platforms and release/signing gates."
+  ]
+}

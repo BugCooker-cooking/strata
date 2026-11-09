@@ -2225,6 +2225,27 @@
         }
       ],
       "note": "Actual opt-in visible layer/group edges/centers use the shared strict layer.snap_position resolver and typed reference IDs/anchors/residuals. Automated exact-candidate/cache/cancel/scene gates retain their records. One current Release manually confirmed V move atX512/Y0, numeric509->512, one-step Undo and clean fixture/default restoration with artboard snap off/zero guides. No held-pointer appearance or large-photo performance claim; equal spacing and angle/size intelligence remain open."
+    },
+    "PS-01-265b9a61ab": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "file.revert_status",
+        "file.revert"
+      ],
+      "prompts": [
+        {
+          "text": "读取当前文档是否能恢复到上次保存，以及来源文件名；不要读取文件或泄露完整路径。",
+          "query": "恢复原文件状态",
+          "command": "file.revert_status"
+        },
+        {
+          "text": "恢复到上次保存，明确放弃当前修改和撤销历史；由我选择授权当前原文件，不要写磁盘原件。",
+          "query": "恢复到上次保存",
+          "command": "file.revert"
+        }
+      ],
+      "note": "Actual current-source lifecycle reload through file.open decoder/project/render preparation. Strict schemas, bilingual search/describe, discard_changes=true, optional expected_revision, fresh matching host-selected read resource and a source pin at commit. Metadata exposes only the current source basename/kind/dirty. Core/archive/decode/path/cancel/stale/display-failure, AI decline/fresh grant/real reload/context rebind and actual native/Metal/Release gates passed. One-window menu cancel/apply and last-window exit preserved source/default settings. Revert clears undo/redo; it is not an undoable edit or a source-file write. This closes the revert row, not remaining Photoshop/file capabilities."
     }
   }
 }

@@ -319,6 +319,11 @@ impl ToolHost for StrataEngine {
         };
         self.deliver_events()
             .map_err(|e| AiError::Host(e.to_string()))?;
+        if id == "file.revert"
+            && let Err(error) = self.discard_recovery(None)
+        {
+            eprintln!("recovery cleanup after revert failed: {error}");
+        }
         Ok(result)
     }
     fn pause(&self, turn: Uuid) -> Result<(), AiError> {

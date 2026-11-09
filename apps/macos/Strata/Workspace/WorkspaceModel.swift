@@ -236,7 +236,7 @@ private let commandTitles: [String: String] = [
      "layer.create": "新建图层", "layer.duplicate": "复制图层", "layer.delete": "删除图层", "layer.rename": "重命名图层",
      "layer.set_position": "移动图层", "layer.snap_position":"吸附移动图层", "view.guides.add":"新建参考线", "view.guides.update":"修改参考线", "view.guides.delete":"删除参考线", "view.guides.clear":"清除参考线", "layer.set_visibility": "图层显隐", "layer.set_opacity": "调整不透明度",
      "layer.set_blend_mode": "混合模式", "layer.move_order": "调整顺序", "color.convert": "转换色彩空间", "color.assign":"指定色彩配置",
-     "batch": "批量编辑", "document.batch": "批量编辑", "file.save": "保存工程", "file.save_as": "另存工程", "file.export": "导出图片", "file.quick_export":"快速导出", "file.export_preset.get":"读取快速导出预设", "file.export_preset.set":"设置快速导出预设",
+     "batch": "批量编辑", "document.batch": "批量编辑", "file.save": "保存工程", "file.save_as": "另存工程", "file.revert":"恢复到上次保存", "file.revert_status":"读取恢复原文件状态", "file.export": "导出图片", "file.quick_export":"快速导出", "file.export_preset.get":"读取快速导出预设", "file.export_preset.set":"设置快速导出预设",
      "file.place": "置入图片", "select.subject": "选择主体", "select.marquee": "矩形选区",
      "select.all": "全选", "select.none": "取消选择", "select.inverse": "反选",
      "select.ellipse": "椭圆选区", "select.polygon": "多边形套索", "select.lasso": "自由套索",

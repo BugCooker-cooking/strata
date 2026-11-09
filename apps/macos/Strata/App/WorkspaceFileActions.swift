@@ -62,6 +62,16 @@ extension MainWindowController {
     }
     @objc func saveDocument() { save(asNew: false) { _ in } }
     @objc func saveAs() { save(asNew: true) { _ in } }
+    @objc func revertDocument(){
+        guard workspace.permissions.edits,let window,let target=engine.revertSourcePath(),let initial=state else{return}
+        let alert=NSAlert();alert.messageText="恢复到上次保存？";alert.informativeText="将重新读取\(URL(fileURLWithPath:target).lastPathComponent)，放弃当前修改并清除文档撤销/重做历史。磁盘原文件不变。";alert.addButton(withTitle:"恢复原文件");alert.addButton(withTitle:"取消")
+        alert.beginSheetModal(for:window){[weak self]response in
+            guard let self,response == .alertFirstButtonReturn else{return}
+            guard self.state?.documentId==initial.documentId,self.state?.revision==initial.revision,self.engine.revertSourcePath()==target else{self.showError(QuickExportError("当前文档已改变，请重新发起恢复。"));return}
+            do{let resource=try self.engine.grantRead(path:target);self.perform("file.revert",["resource":resource,"discard_changes":true,"expected_revision":initial.revision])}
+            catch{self.showError(error)}
+        }
+    }
     private func save(asNew: Bool, completion: @escaping @MainActor @Sendable (Bool) -> Void) {
         guard state?.frame != nil, !busy, let window else { completion(false); return }
         let write: (URL, Bool) -> Void = { [weak self] url, overwrite in guard let self else { return }

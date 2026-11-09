@@ -2,7 +2,7 @@
 
 当前开发期审计快照。完整编辑功能与最终 AI 审计仍未闭环；不得把注册数量当作全部功能覆盖。
 
-真实注册命令 140；参数示例 209；综合功能 265；已有映射 92。
+真实注册命令 142；参数示例 211；综合功能 265；已有映射 93。
 
 已实现但未映射 0；部分入口 12；原生未知命令引用 0；未类型化返回 0。
 
@@ -29,7 +29,7 @@
 | PS-01-8f62b2552b | 保存 / 另存为（Strata 格式） | 已实现 | 已映射 | `file.save`、`file.save_as` · 将当前工程另存为新文件。 |
 | PS-01-894622b1ce | 快速导出 / 导出为（格式、尺寸、质量） | 已实现 | 已映射 | `file.export`、`file.export_preset.get`、`file.export_preset.set`、`file.quick_export` · 导出宽度 2048 像素的 PNG。 · Existing file.export plus real file.export_preset.get/set and file.quick_export cover this row. App settings have strict schemas, validated persistence, shared versions, no file capabilities and no document undo; AI separately approves settings and each file resource, including Direct mode. Full local core/AI and actual file-decode/permission/concurrency tests, native persistence, Metal/Release/lint/209examples passed. Corrected one-window JPEG83/sRGB/white256×384 and original-sizePNG write/readback, clean-source/default restoration/normal quit/process0 passed. This completes the stated quick/explicit export row, not other file/PSD/RAW/batch or complete Photoshop scope. |
 | PS-01-e7337088bf | 置入图片为图层 | 已实现 | 已映射 | `file.place` · 把我选择的图片置入为新图层。 |
-| PS-01-265b9a61ab | 恢复到上次保存 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
+| PS-01-265b9a61ab | 恢复到上次保存 | 已实现 | 已映射 | `file.revert_status`、`file.revert` · 读取当前文档是否能恢复到上次保存，以及来源文件名；不要读取文件或泄露完整路径。 · Actual current-source lifecycle reload through file.open decoder/project/render preparation. Strict schemas, bilingual search/describe, discard_changes=true, optional expected_revision, fresh matching host-selected read resource and a source pin at commit. Metadata exposes only the current source basename/kind/dirty. Core/archive/decode/path/cancel/stale/display-failure, AI decline/fresh grant/real reload/context rebind and actual native/Metal/Release gates passed. One-window menu cancel/apply and last-window exit preserved source/default settings. Revert clears undo/redo; it is not an undoable edit or a source-file write. This closes the revert row, not remaining Photoshop/file capabilities. |
 | PS-01-40267007aa | PSD 导入 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-01-261e177d1e | PSD 导出 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-01-ab934d783e | 打开 RAW | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |

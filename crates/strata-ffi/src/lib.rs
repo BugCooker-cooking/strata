@@ -22,6 +22,8 @@ mod local;
 #[cfg(test)]
 mod quick_export_tests;
 #[cfg(test)]
+mod revert_tests;
+#[cfg(test)]
 mod smart_guides_tests;
 mod subject;
 mod tonal_preview;
@@ -367,6 +369,14 @@ impl StrataEngine {
             .set_recent_files(paths.into_iter().map(std::path::PathBuf::from).collect())
             .map_err(command_error)
     }
+    /// Trusted host metadata only; models need a fresh read capability.
+    pub fn revert_source_path(&self) -> Option<String> {
+        self.inner.lock().ok().and_then(|i| {
+            i.editor
+                .revert_source()
+                .map(|p| p.to_string_lossy().into_owned())
+        })
+    }
     pub fn grant_read(&self, path: String) -> Result<String, StrataError> {
         self.lock()?
             .editor
@@ -456,7 +466,7 @@ impl StrataEngine {
         }
         let (snapshot, request, generation) = {
             let mut inner = self.lock()?;
-            if command == "file.open" {
+            if matches!(command.as_str(), "file.open" | "file.revert") {
                 inner.open_generation += 1;
             }
             (
@@ -471,7 +481,9 @@ impl StrataEngine {
             .map_err(command_error)?;
         let result = {
             let mut inner = self.lock()?;
-            if command == "file.open" && generation != inner.open_generation {
+            if matches!(command.as_str(), "file.open" | "file.revert")
+                && generation != inner.open_generation
+            {
                 return Err(StrataError::Cancelled {
                     message: "newer open superseded request".into(),
                 });
@@ -479,8 +491,10 @@ impl StrataEngine {
             apply(&mut inner, prepared, &command, &params)?
         };
         self.deliver_events()?;
-        if matches!(command.as_str(), "file.new" | "file.open" | "file.recover")
-            && let Err(error) = self.discard_recovery(None)
+        if matches!(
+            command.as_str(),
+            "file.new" | "file.open" | "file.recover" | "file.revert"
+        ) && let Err(error) = self.discard_recovery(None)
         {
             eprintln!("recovery cleanup after document replacement failed: {error}");
         }

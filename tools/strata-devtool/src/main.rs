@@ -369,12 +369,19 @@ fn examples() -> Result<(), Box<dyn Error>> {
                     )?;
                     args["resource"] = json!(editor.grant_read(&path, Source::Test)?);
                 }
-                "file.open" => {
+                "file.open" | "file.revert" => {
                     let path = dir.path().join("input.strata");
                     let grant = editor.grant_write(&path, false, Source::Test)?;
                     run(&mut editor, "file.save_as", json!({"resource":grant}))?;
                     let grant = editor.grant_read(&path, Source::Test)?;
                     args["resource"] = json!(grant);
+                    if spec.id == "file.revert" {
+                        run(
+                            &mut editor,
+                            "layer.create",
+                            json!({"name":"Discard revert fixture"}),
+                        )?;
+                    }
                 }
                 "file.recover" => {
                     let store = strata_io::recovery::RecoveryStore::new(dir.path())?;
@@ -407,6 +414,12 @@ fn examples() -> Result<(), Box<dyn Error>> {
             let result = run(&mut editor, spec.id, args)?;
             if !result.is_object() {
                 return Err(format!("{} returned non-object", spec.id).into());
+            }
+            if spec.id == "file.revert"
+                && (!editor.snapshot().history.is_empty()
+                    || editor.document().is_none_or(|d| d.layers().len() != 1))
+            {
+                return Err("revert example did not reload the actual saved project and clear the unsaved layer/history".into());
             }
             if spec.id == "file.quick_export"
                 && (result["format"] != "png" || result["width"] != 16 || result["height"] != 16)

@@ -1,10 +1,10 @@
 {
   "scope": "Development audit; not a claim that all Photoshop editing is implemented or AI-verified",
-  "registered_commands": 140,
-  "registered_examples": 209,
-  "catalog_sha256": "fefede1d303a3d93871e75c7cd63d7cca8edabde07bb4a01d768c3a163507ff9",
+  "registered_commands": 142,
+  "registered_examples": 211,
+  "catalog_sha256": "877ed16aa03057f0b73de3017845745b46e6e93c0b7204d60adbdac1ef2d2d35",
   "inventory_rows": 265,
-  "mapped_features": 92,
+  "mapped_features": 93,
   "unmapped_implemented_features": [],
   "partial_entrypoints": [
     "PS-04-cb66199f15",
@@ -24,7 +24,6 @@
     "PS-00-7d7224e709",
     "PS-00-960e444e99",
     "PS-00-4aa7af5b95",
-    "PS-01-265b9a61ab",
     "PS-01-40267007aa",
     "PS-01-261e177d1e",
     "PS-01-ab934d783e",
@@ -210,7 +209,7 @@
   "unknown_native_command_references": {},
   "native_dispatch_prefixes": {
     "view.guides.": [
-      "apps/macos/Strata/App/MainWindowController.swift:369"
+      "apps/macos/Strata/App/MainWindowController.swift:370"
     ]
   },
   "untyped_command_returns": [],
@@ -685,8 +684,28 @@
       "name": "恢复到上次保存",
       "priority": "P1",
       "source_line": 67,
-      "implementation": "待实现",
-      "entrypoint": null
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "file.revert_status",
+          "file.revert"
+        ],
+        "prompts": [
+          {
+            "text": "读取当前文档是否能恢复到上次保存，以及来源文件名；不要读取文件或泄露完整路径。",
+            "query": "恢复原文件状态",
+            "command": "file.revert_status"
+          },
+          {
+            "text": "恢复到上次保存，明确放弃当前修改和撤销历史；由我选择授权当前原文件，不要写磁盘原件。",
+            "query": "恢复到上次保存",
+            "command": "file.revert"
+          }
+        ],
+        "note": "Actual current-source lifecycle reload through file.open decoder/project/render preparation. Strict schemas, bilingual search/describe, discard_changes=true, optional expected_revision, fresh matching host-selected read resource and a source pin at commit. Metadata exposes only the current source basename/kind/dirty. Core/archive/decode/path/cancel/stale/display-failure, AI decline/fresh grant/real reload/context rebind and actual native/Metal/Release gates passed. One-window menu cancel/apply and last-window exit preserved source/default settings. Revert clears undo/redo; it is not an undoable edit or a source-file write. This closes the revert row, not remaining Photoshop/file capabilities."
+      }
     },
     {
       "id": "PS-01-40267007aa",

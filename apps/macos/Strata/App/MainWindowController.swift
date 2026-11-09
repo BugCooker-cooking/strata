@@ -96,7 +96,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         assistant.onStateChanged = { [weak self] in self?.refresh() }
         assistant.onDocumentFile = { [weak self] url, command in
             guard let self else { return }
-            self.documentURL = ["file.open", "file.save", "file.save_as"].contains(command) ? url : nil
+            self.documentURL = ["file.open", "file.revert", "file.save", "file.save_as"].contains(command) ? url : nil
             self.fileName = self.documentURL?.lastPathComponent ?? "未命名"
             if let url, ["file.open", "file.save", "file.save_as"].contains(command) { RecentFileStore().record(url); self.syncRecentFiles() }
             self.refresh(); self.canvas.fit()
@@ -192,6 +192,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         case #selector(showGuides): !busy
         case #selector(saveDocument), #selector(saveAs), #selector(exportDocument),#selector(quickExportDocument), #selector(placeImage), #selector(convertToSRGB), #selector(convertToP3),#selector(assignSRGB),#selector(assignP3): workspace.permissions.edits && workspace.hasDocument
         case #selector(configureQuickExport): !busy && (state?.control?.kind ?? "user")=="user"
+        case #selector(revertDocument):workspace.permissions.edits && workspace.hasDocument && engine.revertSourcePath() != nil
         case #selector(openImage), #selector(newTab), #selector(openRecent(_:)): !busy
         default: true
         }
@@ -382,7 +383,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
                 DispatchQueue.main.async {
                     guard let self else { return }; self.busy = false; self.refresh()
                     switch result {
-                    case .success: if ["file.new", "file.open", "file.recover"].contains(command) { self.canvas.fit() }; completion?(true)
+                    case .success: if ["file.new", "file.open", "file.recover","file.revert"].contains(command) { self.canvas.fit() }; completion?(true)
                     case .failure(let error): self.showError(error); completion?(false)
                     }
                 }

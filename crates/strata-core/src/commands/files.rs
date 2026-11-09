@@ -72,6 +72,48 @@ enum WriteData {
 }
 
 impl Editor {
+    pub(super) fn revert_status(&self) -> Value {
+        let path = self.revert_source();
+        json!(RevertStatus {
+            available: path.is_some(),
+            name: path
+                .and_then(Path::file_name)
+                .map(|v| v.to_string_lossy().into_owned()),
+            source_kind: path.map(|_| if self.project_path.is_some() {
+                "saved_project"
+            } else {
+                "opened_image"
+            }
+            .into()),
+            dirty: self.dirty()
+        })
+    }
+    pub(super) fn read_resource_path(
+        &self,
+        request: &Request,
+        id: &str,
+    ) -> Result<PathBuf, CommandError> {
+        Ok(self.resource(id, request, false)?.path.clone())
+    }
+    pub(super) fn validate_revert(
+        &self,
+        request: &Request,
+        p: &OpenFile,
+    ) -> Result<(), CommandError> {
+        self.document.as_ref().ok_or(CommandError::NoDocument)?;
+        if !p.discard_changes {
+            return Err(CommandError::UnsavedChanges);
+        }
+        let target = self.revert_source().ok_or_else(|| {
+            CommandError::Invalid(
+                "document has no original or saved file to revert; save it first".into(),
+            )
+        })?;
+        if self.resource(&p.resource, request, false)?.path != target {
+            return Err(CommandError::Permission);
+        }
+        Ok(())
+    }
     /// Trusted host metadata only; adding history never grants a read resource.
     pub fn set_recent_files(&mut self, paths: Vec<PathBuf>) -> Result<(), CommandError> {
         if paths.len() > 128

@@ -55,6 +55,10 @@ fn checkpoints_restore_exact_samples_and_remain_dirty_without_original_write_aut
     run(&mut restored, "file.recover", json!({"resource":read}));
     assert!(restored.dirty());
     assert!(restored.project_path().is_none());
+    assert!(
+        restored.revert_source().is_none(),
+        "recovery metadata never grants authority to reopen an original path"
+    );
     assert_eq!(
         restored.document().unwrap().export_pixels().unwrap(),
         pixels

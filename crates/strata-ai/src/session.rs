@@ -519,7 +519,8 @@ impl Session {
                 .expect("object")
                 .remove("resource");
             self.wait(host, call.clone(), WaitReason::File { id: id.into(), params: safe_params.clone() },
-                if spec.kind == CommandKind::Lifecycle { format!("选择并授权要打开/恢复的文件，同时替换当前文档。请先保存需要保留的修改。所选文档的元数据及已选画布范围将供同一服务使用：{}。", self.config.request_url()?) }
+                if id=="file.revert"{format!("选择并授权当前文档的原文件或最后保存工程。恢复将放弃当前修改并清空撤销/重做，不能通过Undo恢复；不会写原文件。重新载入的文档范围继续供同一服务使用：{}。",self.config.request_url()?)}
+                else if spec.kind == CommandKind::Lifecycle { format!("选择并授权要打开/恢复的文件，同时替换当前文档。请先保存需要保留的修改。所选文档的元数据及已选画布范围将供同一服务使用：{}。", self.config.request_url()?) }
                 else if id == "file.place" { "请选择本轮允许 AI 置入的图片。".into() } else { "请选择本次保存或导出的目标；已有文件需要单独确认覆盖。文档撤销不会恢复磁盘文件。".into() },
                 vec!["选择文件".into(),"取消此操作".into()], Some(json!({"command":id,"params":safe_params})))?;
             return Ok(None);
@@ -811,7 +812,12 @@ impl Session {
                             self.rebind_context(host)?;
                         }
                     }
-                    data.map(|data| (json!({"result":data,"undo_boundary":"External file writes are not reversed by document undo."}), None))
+                    let boundary = if spec(&id)?.kind == CommandKind::Lifecycle {
+                        "Document replacement clears undo/redo history and cannot be reversed by document undo."
+                    } else {
+                        "External file writes are not reversed by document undo."
+                    };
+                    data.map(|data| (json!({"result":data,"undo_boundary":boundary}), None))
                 } else {
                     Ok((
                         json!({"status":"denied","message":"No file resource was authorized."}),

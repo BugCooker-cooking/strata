@@ -517,6 +517,24 @@ fn build_catalog() -> Vec<CommandSpec> {
         json!({"resource":"fixture-read","discard_changes":true})
     );
     command!(
+        "file.revert_status",
+        Empty,
+        Query,
+        "读取恢复原文件状态",
+        "Inspect revert source",
+        "Read whether the current document has a saved project or originally opened image as its revert source; returns basename/source_kind and dirty only, never a path or file grant. available means a bound source exists, not that the disk file is still present or unchanged; no file read/refresh occurs. Unsaved new/recovered documents need a save first. 中文：恢复到上次保存、恢复原文件状态、原始图片、保存的工程。",
+        json!({})
+    );
+    command!(
+        "file.revert",
+        RevertFile,
+        Lifecycle,
+        "恢复到上次保存",
+        "Revert to saved file",
+        "Reload exactly the current last-saved project or originally opened image through the real file.open decoder/project/render preparation. Requires discard_changes=true explicitly even when clean because successful revert clears all document undo/redo history; lifecycle replacement cannot be undone. Optional expected_revision binds an earlier inspection/confirmation before the current request is prepared; native confirmation always supplies it. A fresh read resource must resolve to this current source, never another file; host picker/confirmation required for AI. No saved/original source on new or recovered-unsaved documents: save first. Save As changes the revert source; image export does not. Reopen current disk contents including external updates; never write that source. Corrupt/missing/unauthorized/different files, cancellation, changed document/revision/control/source or display preparation failure leave current truth and history intact. Final result uses the same new document/layer ids as open. Native and AI share this command. Editor-local ruler/palette/export preferences survive; the native canvas fits the reloaded frame. 中文：恢复到上次保存、重新载入原图、放弃当前修改、重新读取工程；清除文档撤销历史，不修改磁盘文件。",
+        json!({"resource":"fixture-read","discard_changes":true})
+    );
+    command!(
         "file.place",
         PlaceFile,
         Mutate,
@@ -1358,7 +1376,10 @@ fn build_catalog() -> Vec<CommandSpec> {
                 schemars::schema_for!(SelectionResult)
             }
             "file.recent.list" => schemars::schema_for!(RecentListResult),
-            "file.new" | "file.open" | "file.recover" => schemars::schema_for!(NewResult),
+            "file.revert_status" => schemars::schema_for!(RevertStatus),
+            "file.new" | "file.open" | "file.recover" | "file.revert" => {
+                schemars::schema_for!(NewResult)
+            }
             "file.save" | "file.save_as" | "file.export" => schemars::schema_for!(ExternalResult),
             "edit.undo" | "edit.redo" | "edit.undo_turn" => schemars::schema_for!(HistoryResult),
             "view.pan" | "view.zoom" | "view.fit" | "view.actual_size" | "layer.select" => {
@@ -1367,7 +1388,10 @@ fn build_catalog() -> Vec<CommandSpec> {
             "document.batch" => schemars::schema_for!(BatchResult),
             _ => schemars::schema_for!(LayerResult),
         };
-        if matches!(item.id, "file.open" | "file.place" | "file.recover") {
+        if matches!(
+            item.id,
+            "file.open" | "file.place" | "file.recover" | "file.revert"
+        ) {
             item.effects.push("file.read");
             item.permissions.push("read_resource");
         }
@@ -1391,6 +1415,10 @@ fn build_catalog() -> Vec<CommandSpec> {
             item.preconditions = vec![
                 "App-wide versioned settings; no document or file capability required. Writes require control ownership and separate AI settings approval.",
             ];
+        }
+        if item.id == "file.revert_status" {
+            item.batchable = false;
+            item.effects = vec!["document.read", "file.metadata.read"];
         }
         if matches!(item.id, "edit.copy" | "edit.copy_merged") {
             item.effects = vec!["document.read", "clipboard.write"];

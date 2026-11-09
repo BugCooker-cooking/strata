@@ -813,6 +813,14 @@ pub struct ExternalResult {
     pub command: String,
 }
 #[derive(Serialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct RevertStatus {
+    pub available: bool,
+    pub name: Option<String>,
+    pub source_kind: Option<String>,
+    pub dirty: bool,
+}
+#[derive(Serialize, JsonSchema)]
 pub struct NewResult {
     pub document_id: crate::DocumentId,
     pub layer_id: Option<crate::LayerId>,
@@ -843,6 +851,11 @@ params!(OpenFile {
     resource: String,
     #[serde(default)]
     discard_changes: bool
+});
+params!(RevertFile {
+    resource:String,
+    #[serde(default)] discard_changes:bool,
+    #[serde(default)] expected_revision:Option<u64>
 });
 params!(SaveFile { resource: String });
 params!(PlaceFile {

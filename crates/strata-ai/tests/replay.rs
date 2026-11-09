@@ -17,6 +17,203 @@ struct Host {
 }
 
 #[test]
+fn revert_prompt_reads_bound_source_requires_fresh_file_approval_and_clears_history_after_real_reload()
+ {
+    let host = Host::new();
+    host.user(
+        "layer.create",
+        json!({"name":"Saved content","fill":[10001,30003,50001,32769]}),
+    );
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("saved.strata");
+    let write = host
+        .editor
+        .lock()
+        .unwrap()
+        .grant_write(&path, false, Source::User)
+        .unwrap();
+    host.user("file.save_as", json!({"resource":write}));
+    let exported = dir.path().join("copy.png");
+    let export_grant = host
+        .editor
+        .lock()
+        .unwrap()
+        .grant_write(&exported, false, Source::User)
+        .unwrap();
+    host.user(
+        "file.export",
+        json!({"resource":export_grant,"format":"png"}),
+    );
+    assert_eq!(
+        host.user("file.revert_status", json!({}))["name"],
+        "saved.strata"
+    );
+    let saved = host
+        .editor
+        .lock()
+        .unwrap()
+        .document()
+        .unwrap()
+        .to_archive()
+        .unwrap();
+    host.user(
+        "layer.rename",
+        json!({"layer":{"name":"Saved content"},"name":"Unsaved changes"}),
+    );
+    let original = host
+        .editor
+        .lock()
+        .unwrap()
+        .document()
+        .unwrap()
+        .to_archive()
+        .unwrap();
+    let revision = host.snapshot().unwrap().revision;
+    let mut session = host.session_with_prompt(
+        ExecutionMode::Direct,
+        "恢复到上次保存，确认丢弃当前修改和撤销历史；不要写原工程。",
+    );
+    reply(
+        &mut session,
+        &host,
+        vec![
+            call(
+                "search-revert",
+                "search_catalog",
+                json!({"query":"恢复到上次保存"}),
+            ),
+            call(
+                "describe-revert",
+                "describe_commands",
+                json!({"ids":["file.revert_status","file.revert"]}),
+            ),
+            invoke("status-revert", "file.revert_status", json!({})),
+        ],
+    );
+    assert!(
+        result(session.poll(&host).unwrap())["matches"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|c| c["id"] == "file.revert")
+    );
+    let description = result(session.poll(&host).unwrap());
+    assert_eq!(
+        description["commands"][1]["params"]["additionalProperties"],
+        false
+    );
+    assert!(description["commands"][1]["host_resource_workflow"].is_string());
+    let info = result(session.poll(&host).unwrap())["result"].clone();
+    assert_eq!(info["name"], "saved.strata");
+    assert!(info["path"].is_null());
+    assert_eq!(info["dirty"], true);
+    for approved in [false, true] {
+        reply(
+            &mut session,
+            &host,
+            vec![invoke(
+                if approved {
+                    "apply-revert"
+                } else {
+                    "decline-revert"
+                },
+                "file.revert",
+                json!({"discard_changes":true,"expected_revision":revision,"resource":"guessed"}),
+            )],
+        );
+        let Step::Paused {
+            question_id,
+            reason,
+            question,
+            operation,
+            ..
+        } = session.poll(&host).unwrap()
+        else {
+            panic!("revert must pause for source selection")
+        };
+        assert_eq!(reason, "file_resource");
+        assert!(question.contains("清空撤销"));
+        assert!(operation.unwrap()["params"]["resource"].is_null());
+        assert!(
+            host.editor
+                .lock()
+                .unwrap()
+                .document()
+                .unwrap()
+                .to_archive()
+                .unwrap()
+                == original
+        );
+        let resource = if approved {
+            Some(
+                host.editor
+                    .lock()
+                    .unwrap()
+                    .grant_read(
+                        &path,
+                        Source::Ai {
+                            turn_id: session.turn_id(),
+                        },
+                    )
+                    .unwrap(),
+            )
+        } else {
+            None
+        };
+        let response = result(
+            session
+                .respond(
+                    &host,
+                    HostAnswer {
+                        question_id,
+                        answer: String::new(),
+                        approved,
+                        resource,
+                    },
+                )
+                .unwrap(),
+        );
+        if !approved {
+            assert_eq!(response["status"], "denied");
+            assert_eq!(host.snapshot().unwrap().revision, revision);
+        } else {
+            assert_eq!(
+                response["result"]["document_id"],
+                json!(host.snapshot().unwrap().document_id)
+            );
+            assert!(
+                response["undo_boundary"]
+                    .as_str()
+                    .unwrap()
+                    .contains("clears undo")
+            );
+        }
+    }
+    assert!(
+        host.editor
+            .lock()
+            .unwrap()
+            .document()
+            .unwrap()
+            .to_archive()
+            .unwrap()
+            == saved
+    );
+    assert!(host.snapshot().unwrap().history.is_empty());
+    assert!(!host.snapshot().unwrap().dirty);
+    reply(
+        &mut session,
+        &host,
+        vec![invoke("after-revert", "document.inspect", json!({}))],
+    );
+    assert_eq!(
+        result(session.poll(&host).unwrap())["result"]["document_id"],
+        json!(host.snapshot().unwrap().document_id)
+    );
+    host.editor.lock().unwrap().stop_turn();
+}
+
+#[test]
 fn quick_export_preset_needs_separate_settings_and_file_approvals_and_writes_real_png() {
     let host = Host::new();
     host.user(
