@@ -1017,7 +1017,7 @@
   },
   "PS-14-de2fd3ca59": {
     "implementation": "部分实现",
-    "acceptance": "Six ruler units and custom canvas zero use core-authoritative conversion/metrics, with core18, AI47, native106 (105passed/1live-service opt-in skip), required Metal1, lint/137commands/204examples, Release and single-window mm/percent/origin/unchanged-pixel-guide/undo/quit passed. Existing guide/snap and first-switch routing evidence remains valid. Visible layer references now have the local automated checkpoint recorded separately; their manual check awaits Mac unlock. Owned ruler-corner drag/reset now passed local core28/AI49/FFI1/required Metal1/native112(111passed/1live-service opt-in skip)/lint/206examples. Release and physical manual acceptance are recorded in the origin increment. Sustained interaction and other view scope remain open.",
+    "acceptance": "Six ruler units/custom origin and owned corner drag/reset share core view metrics and commands. Latest local core28/AI49/FFI1/required Metal1/native112(111passed/1live-service opt-in skip)/lint/137commands/206examples/arm64 Release passed. One current Release manually verified fractional origin203.101034/302.720963, outside release keeps value, double-click reset0/0; photo/history unchanged. The same window verified visible-layer V/numeric snapping and restored clean/default state before normal quit, process0/sourceSHA unchanged. Held-pointer overlay appearance/latency, sustained large-photo interaction and other view scope remain open.",
     "evidence": [
       {
         "label": "Guides and snap local progress",
@@ -1038,16 +1038,24 @@
       {
         "label": "Owned ruler-corner origin drag",
         "path": "../research/2026-11-m7-ruler-origin-drag-progress.md"
+      },
+      {
+        "label": "Single-window smart snap and origin acceptance",
+        "path": "../research/data/2026-11-09-m7-smart-origin-native-closure.json"
       }
     ]
   },
   "PS-14-15d282cc9a": {
     "implementation": "部分实现",
-    "acceptance": "Visible layer/group edge-center snapping and exact-candidate native overlays passed local core25, AI49, headless FFI1, required Metal1, full native108 (107passed/1live-service opt-in skip), lint,137commands/205isolated examples and arm64 Release. Initial native2 failures exposed the queued-busy race and are retained; corrected full suite passed. Manual drag/overlay appearance is pending Mac unlock; no active Strata instance. Equal spacing/angle/size suggestions and sustained large-photo feedback remain open.",
+    "acceptance": "Visible raw-content layer/group edge-center snapping and exact-candidate overlays retain local core/AI/FFI/Metal/native/lint/examples/Release evidence. Current27e0c8c single-window manual V drag aligned duplicate left edge to visible original center atX512/Y0 with artboard snap off and zero guides; one Undo restored0/0. Numeric proposalX509 also resolved512. Undo duplicate/default restoration/clean document/normal quit/process0/sourceSHA passed. CUA observes after mouse release, so held smart-line appearance/latency is not claimed. Equal spacing, angle/size suggestions and sustained large-photo feedback remain open.",
     "evidence": [
       {
         "label": "Smart layer references progress",
         "path": "../research/2026-11-m7-smart-guides-progress.md"
+      },
+      {
+        "label": "Single-window smart snap and origin acceptance",
+        "path": "../research/data/2026-11-09-m7-smart-origin-native-closure.json"
       }
     ]
   }

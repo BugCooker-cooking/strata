@@ -153,12 +153,20 @@
     "integer_residual": "Half ties away from zero, signed residual reports fractional mismatch."
   },
   "manual": {
-    "status": "pending_mac_unlock",
+    "status": "passed_scoped_single_window",
     "attempt": "CUA getApp for this Release path reported Mac locked and automatic unlock paused; requested manual unlock.",
     "strata_process_count_after_block": 0,
-    "passed": false,
+    "passed": true,
     "fixture_sha256": "c1006da29913609963479b8641c0e6f6a43ff2c6d8b2f907c91a6daf1afaa2ea",
-    "max_instances": 1
+    "max_instances": 1,
+    "closure_record": "2026-11-09-m7-smart-origin-native-closure.json",
+    "accepted_binary_checkpoint": "27e0c8c",
+    "accepted_binary_sha256": "eb82933f040866f6d762fa1f2b71254453b215d4b3ed60ec71bde1701a9d5f07",
+    "post_exit_strata_and_xctest_processes": 0,
+    "normal_gui_quit_observed": true,
+    "fixture_sha256_before_after": "c1006da29913609963479b8641c0e6f6a43ff2c6d8b2f907c91a6daf1afaa2ea",
+    "scope_limits": "The documented native CUA API completes drag before observation, so no held-pointer smart-line appearance or latency snapshot is claimed. Core/native exact candidate/result tests and real Metal scene checks are recorded separately. This was not a manual hidden-layer/group/text/spacing/angle/size test.",
+    "notes": "User unlocked; one current Release completed actual pointer/numeric snapping, owned origin drag/outside cancel/reset, default restoration and normal quit. Exact cases and unobserved held-pointer scope are explicit in closure record."
   },
   "ai_audit": {
     "registered_commands": 137,
@@ -178,9 +186,9 @@
     "orchestration_note": "Command documentation/example preparation briefly overlapped the ending Metal test; later lint/native/Release gates ran sequentially. Future heavy verification remains serial per AGENTS.md."
   },
   "open": [
-    "Physical single-window drag/overlay appearance pending Mac unlock.",
+    "Held-pointer overlay appearance/latency was not captured by the CUA API; automated exact-candidate tests retain their stated scope.",
     "Equal spacing, angle and size smart suggestions.",
     "Sustained large-photo interaction/performance and styled/masked visible-ink references.",
-    "Corner ruler-origin dragging and complete Photoshop/final AI audit."
+    "Other view capabilities, complete Photoshop and final AI entrypoint audit."
   ]
 }

@@ -2167,7 +2167,7 @@
           ]
         }
       ],
-      "note": "Persistent guides, six ruler units/custom origin and shared layer snapping retain their recorded incremental evidence. Native origin-corner drag/reset now uses the same view.presentation.set strict schemas and source-bound request; local core28/AI49/FFI1/Metal1/native111pass1skip/lint/206examples passed. Release/manual status is in the origin progress record. Layer smart overlay and origin corner physical checks await Mac unlock. Sustained large-photo interaction and remaining view scope stay partial."
+      "note": "Persistent guides, six ruler units/custom origin, owned corner origin drag/reset and shared integer layer snapping use real shared commands. Local core28/AI49/FFI1/Metal1/native111pass1skip/lint/206examples/Release passed; one27e0c8c Release manually checked fractional origin/outside cancel/reset, V/numeric alignment and source/history/default restoration before normal quit/process0. Held-pointer overlay appearance/latency and sustained large-photo/remaining view scope stay partial."
     },
     "PS-14-15d282cc9a": {
       "scope": "editing",
@@ -2194,7 +2194,7 @@
           "command": "layer.snap_position"
         }
       ],
-      "note": "Actual opt-in visible layer/group edge/center candidates use the shared strict layer.snap_position resolver and typed reference IDs/anchors/residuals. Local core25/AI49/FFI1/required Metal1/native107pass1skip/lint/205examples/Release passed. Native overlay reads the exact displayed candidate; manual drag/appearance awaits Mac unlock. Equal spacing, angle/size intelligence and sustained large-photo performance remain open."
+      "note": "Actual opt-in visible layer/group edges/centers use the shared strict layer.snap_position resolver and typed reference IDs/anchors/residuals. Automated exact-candidate/cache/cancel/scene gates retain their records. One current Release manually confirmed V move atX512/Y0, numeric509->512, one-step Undo and clean fixture/default restoration with artboard snap off/zero guides. No held-pointer appearance or large-photo performance claim; equal spacing and angle/size intelligence remain open."
     }
   }
 }

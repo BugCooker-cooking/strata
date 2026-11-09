@@ -1,0 +1,127 @@
+{
+  "date_local": "2026-11-09",
+  "timezone": "Asia/Taipei",
+  "branch": "codex/v1-remaining",
+  "binary_checkpoint": "27e0c8c",
+  "binary_sha256": "eb82933f040866f6d762fa1f2b71254453b215d4b3ed60ec71bde1701a9d5f07",
+  "mode": "Live native CUA AX states, pointer drags and screenshots; one Release instance, no model/cloud calls. No persisted screenshot artifact asserted.",
+  "previous_block": "Initial CUA start was blocked by Mac lock; user explicitly replied now unlock and continue acceptance.",
+  "initial_state": {
+    "document": "sample-photo.jpg",
+    "frame": [
+      1024,
+      1536
+    ],
+    "bit_depth": 8,
+    "profile": "sRGB (assumed)",
+    "layers": 1,
+    "guides": 0,
+    "dirty": false,
+    "undo_disabled": true,
+    "zoom_percent": 104,
+    "origin": [
+      0,
+      0
+    ],
+    "snap_enabled": false,
+    "snap_artboard": true,
+    "snap_layers": false
+  },
+  "origin": {
+    "drag_screenshot_coordinates": {
+      "from": [
+        110,
+        170
+      ],
+      "to": [
+        640,
+        590
+      ]
+    },
+    "readback_absolute_canvas_pixels": [
+      203.101034,
+      302.720963
+    ],
+    "observed": "Both rulers shifted zero while the image stayed in the same screen location. Origin fields showed fractional absolute pixels; Undo stayed disabled and document clean.",
+    "outside_release": {
+      "from": [
+        110,
+        170
+      ],
+      "to": [
+        70,
+        220
+      ],
+      "readback_unchanged": true
+    },
+    "double_click_reset": {
+      "at": [
+        110,
+        170
+      ],
+      "readback": [
+        0,
+        0
+      ]
+    },
+    "limits": "Esc, hidden-ruler/tool/stale-context cancellation and exact binary numerical values remain automated evidence; no claim of a held origin-draft screenshot."
+  },
+  "smart_layer_snap": {
+    "fixture": "Duplicate original photo as sample-photo copy; retain original visible; no document guides.",
+    "settings": {
+      "snap_enabled": true,
+      "snap_artboard": false,
+      "snap_layers": true,
+      "tolerance_screen_points": 6
+    },
+    "pointer_drag": {
+      "from": [
+        700,
+        600
+      ],
+      "to": [
+        1227,
+        600
+      ],
+      "after_position": [
+        512,
+        0
+      ],
+      "observed": "Visible duplicate actually shifted so its left edge aligns with the original layer center; properties confirmed X512/Y0."
+    },
+    "history": "Only duplicate-layer and one layer.snap_position appeared; one Undo returned duplicate to0/0.",
+    "numeric": {
+      "proposed_x": 509,
+      "actual_x": 512,
+      "actual_y": 0,
+      "observed": "Properties Enter used the same layer references while artboard snap was off and guides empty."
+    },
+    "after_release": "Post-release screenshots showed the moved image without stale pink smart lines.",
+    "limits": "The documented native CUA API completes drag before observation, so no held-pointer smart-line appearance or latency snapshot is claimed. Core/native exact candidate/result tests and real Metal scene checks are recorded separately. This was not a manual hidden-layer/group/text/spacing/angle/size test."
+  },
+  "restoration": {
+    "steps": [
+      "Undo numeric snap to0/0",
+      "Undo duplicate layer; confirm original photo only",
+      "Restore snap_enabled=false, snap_artboard=true, snap_layers=false",
+      "Keep ruler unit pixels, origin0/0, visible unlocked guides, tolerance6",
+      "Restore Hand tool",
+      "Normal Cmd-Q"
+    ],
+    "layers": 1,
+    "guides": 0,
+    "dirty": false,
+    "undo_disabled": true,
+    "origin": [
+      0,
+      0
+    ],
+    "normal_gui_quit_observed": true,
+    "post_exit_strata_and_xctest_processes": 0,
+    "fixture_sha256_before_after": "c1006da29913609963479b8641c0e6f6a43ff2c6d8b2f907c91a6daf1afaa2ea",
+    "other_apps_preserved": true,
+    "maximum_strata_instances": 1
+  },
+  "status": "Scoped native increment acceptance passed. Complete smart guides, views, Photoshop and final AI audit remain partial/open.",
+  "no_live_model_or_cloud": true
+}
