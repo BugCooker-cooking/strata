@@ -28,13 +28,13 @@ enum NativeClipboard {
     }
 }
 extension MainWindowController {
-    @objc func copyPixels(_ sender:Any?){if let text=window?.firstResponder as? NSTextView,text.isSelectable{text.copy(sender)}else{copyOrCut(merged:false,cut:false)}}
-    @objc func copyMergedPixels(_ sender:Any?){copyOrCut(merged:true,cut:false)}
-    @objc func cutPixels(_ sender:Any?){if let textEditor{textEditor.cut(sender)}else{copyOrCut(merged:false,cut:true)}}
-    @objc func pastePixels(_ sender:Any?){if let textEditor{textEditor.paste(sender)}else{pasteClipboard(inPlace:false)}}
-    @objc func pasteInPlace(_ sender:Any?){pasteClipboard(inPlace:true)}
-    @objc func selectAllPixels(_ sender:Any?){if let text=window?.firstResponder as? NSTextView,text.isSelectable{text.selectAll(sender)}else if workspace.permissions.selectionEdits{perform("select.all",[:])}}
-    @objc func clearPixels(_ sender:Any?){if let textEditor{textEditor.delete(sender)}else if workspace.permissions.edits{perform("edit.clear",[:])}}
+    @objc func copyPixels(_ sender:Any?){if let text=selectableText,text.isSelectable{text.copy(sender)}else if window?.attachedSheet == nil{copyOrCut(merged:false,cut:false)}}
+    @objc func copyMergedPixels(_ sender:Any?){guard window?.attachedSheet == nil else{return};copyOrCut(merged:true,cut:false)}
+    @objc func cutPixels(_ sender:Any?){if let textEditor{textEditor.cut(sender)}else if window?.attachedSheet == nil{copyOrCut(merged:false,cut:true)}}
+    @objc func pastePixels(_ sender:Any?){if let textEditor{textEditor.paste(sender)}else if window?.attachedSheet == nil{pasteClipboard(inPlace:false)}}
+    @objc func pasteInPlace(_ sender:Any?){guard window?.attachedSheet == nil else{return};pasteClipboard(inPlace:true)}
+    @objc func selectAllPixels(_ sender:Any?){if let text=selectableText,text.isSelectable{text.selectAll(sender)}else if window?.attachedSheet == nil,workspace.permissions.selectionEdits{perform("select.all",[:])}}
+    @objc func clearPixels(_ sender:Any?){if let textEditor{textEditor.delete(sender)}else if window?.attachedSheet == nil,workspace.permissions.edits{perform("edit.clear",[:])}}
     private func copyOrCut(merged:Bool,cut:Bool){
         guard !busy,workspace.permissions.edits,workspace.hasDocument else{return}
         busy=true;let engine=engine

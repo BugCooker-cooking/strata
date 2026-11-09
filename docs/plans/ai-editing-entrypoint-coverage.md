@@ -2,9 +2,9 @@
 
 当前开发期审计快照。完整编辑功能与最终 AI 审计仍未闭环；不得把注册数量当作全部功能覆盖。
 
-真实注册命令 137；参数示例 206；综合功能 265；已有映射 92。
+真实注册命令 140；参数示例 209；综合功能 265；已有映射 92。
 
-已实现但未映射 0；部分入口 13；原生未知命令引用 0；未类型化返回 0。
+已实现但未映射 0；部分入口 12；原生未知命令引用 0；未类型化返回 0。
 
 配置/密钥及基础设施的宿主管理理由单列；纯 UI 状态不能隐瞒为已具备独立 AI 设置命令。
 
@@ -27,7 +27,7 @@
 | PS-01-9b14920078 | 打开 PNG / JPEG / WebP / TIFF / HEIC / GIF / BMP | 已实现 | 已映射 | `file.open` · 打开我选择的照片。 |
 | PS-01-b6d7cbc94d | 最近打开 | 已实现 | 已映射 | `file.recent.list` · 查看本轮允许访问的最近文件。 |
 | PS-01-8f62b2552b | 保存 / 另存为（Strata 格式） | 已实现 | 已映射 | `file.save`、`file.save_as` · 将当前工程另存为新文件。 |
-| PS-01-894622b1ce | 快速导出 / 导出为（格式、尺寸、质量） | 部分实现 | 部分入口 | `file.export` · 导出宽度 2048 像素的 PNG。 · 导出参数入口完整；快速导出预设本身尚未完成。 |
+| PS-01-894622b1ce | 快速导出 / 导出为（格式、尺寸、质量） | 已实现 | 已映射 | `file.export`、`file.export_preset.get`、`file.export_preset.set`、`file.quick_export` · 导出宽度 2048 像素的 PNG。 · Existing file.export plus real file.export_preset.get/set and file.quick_export cover this row. App settings have strict schemas, validated persistence, shared versions, no file capabilities and no document undo; AI separately approves settings and each file resource, including Direct mode. Full local core/AI and actual file-decode/permission/concurrency tests, native persistence, Metal/Release/lint/209examples passed. Corrected one-window JPEG83/sRGB/white256×384 and original-sizePNG write/readback, clean-source/default restoration/normal quit/process0 passed. This completes the stated quick/explicit export row, not other file/PSD/RAW/batch or complete Photoshop scope. |
 | PS-01-e7337088bf | 置入图片为图层 | 已实现 | 已映射 | `file.place` · 把我选择的图片置入为新图层。 |
 | PS-01-265b9a61ab | 恢复到上次保存 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-01-40267007aa | PSD 导入 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
@@ -278,7 +278,7 @@
 
 ## 仍需核对
 
-- 部分入口：PS-01-894622b1ce、PS-04-cb66199f15、PS-04-853e6d30f3、PS-16-8de06204ac、PS-09-4f3d9835a7、PS-09-7cc6b0bb65、PS-09-7d349372b5、PS-03-5f9716e5d8、PS-03-ad24731ea8、PS-11-4490121dad、PS-11-a524877cb6、PS-14-de2fd3ca59、PS-14-15d282cc9a
+- 部分入口：PS-04-cb66199f15、PS-04-853e6d30f3、PS-16-8de06204ac、PS-09-4f3d9835a7、PS-09-7cc6b0bb65、PS-09-7d349372b5、PS-03-5f9716e5d8、PS-03-ad24731ea8、PS-11-4490121dad、PS-11-a524877cb6、PS-14-de2fd3ca59、PS-14-15d282cc9a
 - 未类型化返回：无
 - 未关联功能条目的命令：
 - 动态拼接及纯宿主回调仍需人工逐项复核；已有提示映射不能代替最终模型端到端验收。

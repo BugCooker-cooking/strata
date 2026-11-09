@@ -1,0 +1,277 @@
+{
+  "date_local": "2026-11-09",
+  "timezone": "Asia/Taipei",
+  "base_checkpoint": "008d64b",
+  "branch": "codex/v1-remaining",
+  "scope": "Actual app-wide quick-export presets and strict file.quick_export reuse existing image export; closes the current quick/explicit export composite row. Includes native sheet dimension layout and text shortcut routing fixes found manually. Not full Photoshop or final AI closure.",
+  "source_sha256": {
+    "apps/macos/Strata/AI/AssistantModel.swift": "101fdf5f530a83d307e0aedbcfe38fd7b2faf4d7891fb9c3cfd9740e22e58bd8",
+    "apps/macos/Strata/App/AppDelegate.swift": "b64a4600b9f73fd6d1f153dc86c78ed7a56e621c036e6f8b01d150c6cda6c3f4",
+    "apps/macos/Strata/App/ClipboardActions.swift": "a8f14353aec882bb24f5c9a7d3f1b89944f8f0b6071037e71f80bad9cc9ba818",
+    "apps/macos/Strata/App/ExportOptionsController.swift": "007378e5e0a4c29146f3ab8d45b3faf1d7daf89361f57aa1b6ef3a0e6d0218fa",
+    "apps/macos/Strata/App/MainWindowController.swift": "8df6f67d6bf056c1c8bf18d478f3a8902eba4ff32bb5ec778a254f072deb2d87",
+    "apps/macos/Strata/App/WorkspaceFileActions.swift": "d58c110fe0bd28fed2941c15a88a7a34cd73d844fb1bf5e54559fe036e3f8a28",
+    "apps/macos/Strata/Workspace/QuickExportPreferences.swift": "d49905fd87420371b577d247afddef5d2e4ba32955ff422e2a66d06626815080",
+    "apps/macos/Strata/Workspace/WorkspaceModel.swift": "41c8474ee9222992ed3bb2b6c287b4a959bebb0643ebeea493c9e6689609ad4b",
+    "apps/macos/StrataTests/QuickExportTests.swift": "ae254c49fe39924bb942d9e3af9af439d1153eabb48f4d269c2d0ce61eb4248f",
+    "crates/strata-ai/src/catalog.rs": "682cdc9be55bdfe156ee15fe0594b077c0f1c426215417f2974b2eb300853f04",
+    "crates/strata-ai/src/session.rs": "8f0bf85082756f1d42337f56ac2d7fc1edf8a360e5a888e4b3a422e824f69de6",
+    "crates/strata-ai/tests/replay.rs": "82507417ddfec9b1f08e1f2ecf1c71122246f564fba84b2647d229a7c6f93cd5",
+    "crates/strata-core/src/commands/executor.rs": "5ceacbfde0d77f1dca7012f59f0197b8ce706432016cec96b24564c4d78c1327",
+    "crates/strata-core/src/commands/export.rs": "f3cdd89d2c8d0cd890a6fd1557c3c99f4a6b40dbc8b2a4e1f839a3b777c3582e",
+    "crates/strata-core/src/commands/export_preset.rs": "c49e4222409870561708662bc5d218873044ca4a7cb47861fb8e10a5dac3647c",
+    "crates/strata-core/src/commands/mod.rs": "1abf0a4a2a842efef9f634ed1f454e4344baf46c9514a9ad1c376d9d9cfae9f3",
+    "crates/strata-core/src/commands/registry.rs": "aeea07255b9405c00313e005794767a70a07974ea3a88f369254bcd754553096",
+    "crates/strata-core/tests/quick_export.rs": "b1d3c63850310bb1b1b9185c6875490017f80eac03ca3090e5af39ceb0436c7e",
+    "crates/strata-ffi/src/lib.rs": "8b5633ab8db29b93e38340197f6a87523f37948b6cb9282368ffee2dd2cec429",
+    "crates/strata-ffi/src/quick_export_tests.rs": "0daccba4d1d091cae6fecb82bcb48d91cc359fa61361d37131bda60302d3079f",
+    "tools/strata-devtool/src/main.rs": "2a11691a3ab037dc10577bcab4107a3b2fe7cd0e28f1cccd2666bdd2f282b530"
+  },
+  "log_sha256": {
+    "build/m8-quick-export-ai.log": "b37e24477fb9a9f599cdd56a57f23e719b414722cf25b77f9982dd923e6e19b7",
+    "build/m8-quick-export-audit.log": "1ea04be6eb8d98d64673e393418582ee9d8c9bcd622abec3e83d0460e30ea99f",
+    "build/m8-quick-export-check.final.log": "450eb23fbfe8f681cca90089dc12343080b946d5132f5a7073b1b2355447576f",
+    "build/m8-quick-export-check.final2.log": "43b9798240499c18dec1477521e16d04c75af5f0391ac98ba1791e6dfa698a09",
+    "build/m8-quick-export-check.log": "7318400b04ce2f4b35278faf332fa9d86dc69a96da89b9e4af467d0a0de82d83",
+    "build/m8-quick-export-commands.log": "19386fd0eeff83149bc8307ad709f588e3f474aaf8ad3195930723d152a30fd4",
+    "build/m8-quick-export-core-ai.final.log": "bb1037d47514f5f206be456ba92747cc0a86fbc4a9bbd24a364cfd50d6628bc2",
+    "build/m8-quick-export-core.final.log": "2184b9bfd879c13fbfe24772c8deb40a0b737a33a9a5e94a5716acd944921e4a",
+    "build/m8-quick-export-core.fixed.log": "60e4d55e6cf979dfccddbad064cbc79d1837ea7f00599308ceef14d5996d1644",
+    "build/m8-quick-export-core.log": "64f1084637a612089c31298ccd8c2780413335cc7b45c5e8dc8eef25217a42b9",
+    "build/m8-quick-export-docs.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "build/m8-quick-export-lint.final.log": "fd7e7e3c007ef60faf3e483b2eaefa42fbb1945b09a47a1a6d4ab331f5aefd80",
+    "build/m8-quick-export-lint.log": "b7aa3552fe370f598ecb669cf2b8d72f9ef3db4ea27e2296d0a94c2e87787eb9",
+    "build/m8-quick-export-metal.final.log": "e3553383876a07476bbf6c9c369ae90f269ec1f220d65aa9c870c44d28a5ebc7",
+    "build/m8-quick-export-metal.log": "d2a1a57fb4b847bcc4ea1bd3c0d9de227925ca1b488d6455b5124932d7ff3267",
+    "build/m8-quick-export-native-output-metadata.log": "e0a713b172a7385dad33b34ea4b3bd797dfd35f2f807ac3bec0870b1c41ef62e",
+    "build/m8-quick-export-native.layout.fixed.log": "257361ec4efa79428ed7fc1f9a4dd8d1fd327568642aa4e0a53ff69e3b734989",
+    "build/m8-quick-export-native.layout.log": "81353b8aed9e750ed4131b4cf96e92d207b08e16c680c869e58c15b217b5d6a8",
+    "build/m8-quick-export-native.log": "28374d4e1c63907739246cf062e9669bc2b42914b4051e024a48917350f84aef",
+    "build/m8-quick-export-project.log": "cdc8b2e728dbef8c55230f1b664d2c4de5d3a49ac7c97eb05a0d49c9226deb0a",
+    "build/m8-quick-export-release.layout.log": "e8ea9e2a8555432cac64b672cb46fe7cad104844e5180c44ce9cdf4f7b08f8ad",
+    "build/m8-quick-export-release.log": "d5ff0b3c3d30047d60eb4b146c20f0276fcaa8fa3485983c38645d5260a3fddb",
+    "build/m8-quick-export-swiftlint.layout.final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "build/m8-quick-export-swiftlint.layout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "build/m8-quick-export-swiftlint.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "build/m8-quick-export-final-ai-gate.log": "58775cd558643dbf55e44703bbdc00f7f6982cb47d878a0c39d4f6ad5cfe0375"
+  },
+  "checks": {
+    "core_ai_full": {
+      "core": {
+        "passed": 354,
+        "failed": 0,
+        "ignored": 0
+      },
+      "core_doc": {
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0
+      },
+      "ai": {
+        "passed": 51,
+        "failed": 0,
+        "ignored": 0
+      },
+      "log": "build/m8-quick-export-core-ai.final.log",
+      "ai_cases": {
+        "replay": 42,
+        "protocol": 7,
+        "recordings": 1,
+        "all_mapped_prompts": 1
+      },
+      "new_core_unit_publication_pin": 1,
+      "new_quick_export_integration": 6,
+      "network_requests": 0
+    },
+    "core_targeted": {
+      "passed": 12,
+      "failed": 0,
+      "log": "build/m8-quick-export-core.final.log",
+      "note": "Six new preset/export and six previous export option cases. Later full core covers the same final Rust production path and publication metadata counter."
+    },
+    "native_full_before_manual_layout_fix": {
+      "total": 116,
+      "passed": 115,
+      "skipped": 1,
+      "failed": 0,
+      "log": "build/m8-quick-export-native.log",
+      "skip_reason": "Live model opt-in disabled.",
+      "jobs": 2,
+      "parallel_testing": false
+    },
+    "native_after_layout_and_sheet_routing_fix": {
+      "total": 11,
+      "passed": 11,
+      "skipped": 0,
+      "failed": 0,
+      "log": "build/m8-quick-export-native.layout.fixed.log",
+      "cases": {
+        "quick_export": 5,
+        "existing_export": 4,
+        "clipboard": 2
+      },
+      "jobs": 2,
+      "parallel_testing": false,
+      "note": "Final native-only fixes retested relevant suites; not another complete native-suite run."
+    },
+    "required_metal": {
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "required_gpu": true,
+      "log": "build/m8-quick-export-metal.final.log",
+      "reference": "Preset changes and actual8x6 16-bit PNG export keep the current frame byte-exact and document archive/revision unchanged."
+    },
+    "lint": {
+      "passed": true,
+      "log": "build/m8-quick-export-lint.final.log",
+      "final_swift_log": "build/m8-quick-export-swiftlint.layout.final.log",
+      "checks": [
+        "rustfmt",
+        "workspace all-target Clippy -D warnings",
+        "portability",
+        "Swiftlint",
+        "generated feature coverage"
+      ],
+      "note": "Final native-only fixes recompiled by related XCTest/Release and checked by final Swiftlint; no Rust code changed after full Rust/lint/Metal."
+    },
+    "commands": {
+      "passed": true,
+      "registered_commands": 140,
+      "parameter_examples": 209,
+      "log": "build/m8-quick-export-commands.log",
+      "note": "New quick default example actually writes16x16PNG. Registered params/examples remained the same through final publication pin; pin behavior is covered by subsequent full core/native/Metal."
+    },
+    "release": {
+      "passed": true,
+      "architecture": "arm64",
+      "jobs": 2,
+      "swift_backend_threads": 1,
+      "initial_log": "build/m8-quick-export-release.log",
+      "corrected_log": "build/m8-quick-export-release.layout.log",
+      "initial_binary_sha256": "1865f464368459f10aef14166365cfeb6bc51ef036458625d3be33c2c607856e",
+      "corrected_binary_sha256": "14efe83b3ad8f4dfac7b0121be6026544b8ef9090c062f00dde3111840754786",
+      "resources_fixture_and_font_notices_byte_equal": true
+    }
+  },
+  "semantics": {
+    "commands": [
+      "file.export_preset.get",
+      "file.export_preset.set",
+      "file.quick_export"
+    ],
+    "settings": "Strict typed options; app-wide shared store across independent engines; native persists validated options only. Whole options replacement; omitted values reset defaults. Canonical equality is a version no-op. No document/history/dirty/project-path changes.",
+    "capabilities": "Settings carry no path/folder/file token/overwrite grant. Each export uses a fresh source-bound one-use write resource, destination stamp and overwrite permission.",
+    "ai": "Settings approval always separate in Direct and AskFirst; declining preserves defaults and approving does not grant ordinary edit approval. File picker authorization remains independent.",
+    "publication": "Request-bound document/revision and captured preset version checked before publication. A short metadata publication marker prevents changing presets during disk encoding without blocking other engines queries on disk I/O; concurrent settings writes reject with retry message. Guard drops on success/failure.",
+    "encoding": "Existing export path; original8/16-bit PNG/TIFF, explicit16->8 JPEG/WebP consent, WebP lossless/lossy rules, JPEG output-space matte, ICC/DPI and premultiplied linear area/bilinear resize. Sources untouched.",
+    "native": "Original dimensions vs fixed size are explicit; UInt64 preset version; custom RGB matte retained; malformed persisted settings blocked globally; attached-sheet text commands do not fall through to canvas. Stop remains available."
+  },
+  "manual": {
+    "passed": true,
+    "method": "Live native CUA AX states, keyboard and screenshots; no persisted screenshot artifact claim.",
+    "sequential_rounds": 3,
+    "max_simultaneous_strata_instances": 1,
+    "round1_finding": "Initial width field compressed. Cmd+A in sheet routed to main canvas and created two select-all histories. Cancelled unsaved preset, undid both fixture selections, verified clean/Undo disabled and normal quit. No image file written in that round.",
+    "round2_corrected": "Both92pt fields visible. Cmd+A width256 correctly stayed in field and aspect auto-produced384. Saved JPEG83/white/sRGB/allow_quantization; reopened preset values match. Shortcut quick export wrote JPEG256x384. Changed PNG/original size then wrote1024x1536PNG. Document stayed clean, one original pixel layer, no selection, Undo disabled; normal quit.",
+    "round3_restoration": "CLI post-exit verification found previous popup restoration had retained explicitsrgb. Reopened only one instance, actual persisted PNG/original-size/sRGB readback confirmed; selected preserve working ICC and saved, read validated target_space=null; clean document then normal quit.",
+    "outputs": {
+      "build/quick-export-native-20261109/preset-256.jpg": {
+        "sha256": "bbe45b928e3c6e5723718157eba92c5907a47c8e02767523bb36abf239637610",
+        "bytes": 28080,
+        "format": "jpeg",
+        "width": 256,
+        "height": 384,
+        "bit_depth": 8,
+        "resolution_dpi": 72,
+        "embedded_profile": "sRGB built-in"
+      },
+      "build/quick-export-native-20261109/restored-original.png": {
+        "sha256": "40c48f62b0b412e9f125d7acc2932bf45f3d33e3e95690532644e0a24effa36e",
+        "bytes": 1986216,
+        "format": "png",
+        "width": 1024,
+        "height": 1536,
+        "bit_depth": 8,
+        "resolution_dpi": 72,
+        "embedded_profile": "sRGB built-in"
+      }
+    },
+    "output_metadata_log": "build/m8-quick-export-native-output-metadata.log",
+    "output_limits": "Both manually exported files used explicit sRGB; final preserve-ICC default restored afterward. All formats and16-bit/alpha/ICC numerical/persistence/concurrency claims use automated tests, not this single8-bit sample.",
+    "preferences_restoration": {
+      "validated_default_options": {
+        "background": null,
+        "format": "png",
+        "quality": null,
+        "webp_lossless": null,
+        "allow_quantization": false,
+        "target_space": null,
+        "width": null,
+        "height": null
+      },
+      "before_key_present": false,
+      "after_key_present": false,
+      "removed_only_test_created_key": true
+    },
+    "normal_gui_quit_observed": true,
+    "post_exit_strata_and_xctest_processes": 0,
+    "fixture_sha256_before_after": "c1006da29913609963479b8641c0e6f6a43ff2c6d8b2f907c91a6daf1afaa2ea",
+    "other_user_apps_preserved": true,
+    "limits": [
+      "No manual overwrite race,16-bit quantization or every encoder mode claim.",
+      "No sustained large-photo throughput/continuous UI latency benchmark or live model quality run."
+    ]
+  },
+  "resolved_failures": [
+    {
+      "log": "build/m8-quick-export-check.log",
+      "reason": "Initial implementation put local params macro in a child module outside its scope; replaced with explicit strict derives."
+    },
+    {
+      "log": "build/m8-quick-export-core.log",
+      "reason": "New test compared u32 DPI against Option; corrected test type."
+    },
+    {
+      "log": "build/m8-quick-export-core.fixed.log",
+      "reason": "Test caught original external-write snapshot semantics allowing revision changes. New quick-export-specific revision check preserves original ordinary export contract."
+    },
+    {
+      "log": "build/m8-quick-export-native.layout.log",
+      "reason": "New test selected async beginSheet overload without await; explicit completionHandler overload fixed fixture compile."
+    },
+    {
+      "manual": "round1",
+      "reason": "Size field compression and sheet keyboard routing fixed and physically rechecked."
+    },
+    {
+      "manual": "round3",
+      "reason": "Automation popup selection restoration verified from actual persisted options and corrected; not claimed as first-pass success."
+    }
+  ],
+  "ai_audit": {
+    "registered_commands": 140,
+    "registered_examples": 209,
+    "mapped_composite_rows": 92,
+    "inventory_rows": 265,
+    "partial_entrypoints": 12,
+    "unfinished_features": 185,
+    "final_closure": false,
+    "strict_final_gate_exit_code": 1,
+    "strict_final_gate_log": "build/m8-quick-export-final-ai-gate.log"
+  },
+  "policy": {
+    "local_only": true,
+    "cloud_jobs_triggered": 0,
+    "live_model_requests": 0,
+    "max_build_jobs": 2,
+    "heavy_checks_serial": true,
+    "manual_instances_one_at_a_time": true,
+    "private_development_branch_only": true,
+    "keep_pr_draft": true
+  },
+  "remaining": [
+    "Remaining P0/P1/P2/P3 Photoshop capabilities and final per-feature AI execution audit.",
+    "Sustained large-photo performance, live-model quality, external devices/platforms and release/signing gates remain separate."
+  ]
+}

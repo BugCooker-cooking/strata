@@ -147,6 +147,7 @@ enum WaitReason {
     ClipboardWrite { resource: String, cut: bool },
     Question,
     Edit { destructive: bool },
+    Settings { id: String, params: Value },
     File { id: String, params: Value },
     Lifecycle { id: String, params: Value },
 }
@@ -523,6 +524,11 @@ impl Session {
                 vec!["选择文件".into(),"取消此操作".into()], Some(json!({"command":id,"params":safe_params})))?;
             return Ok(None);
         }
+        if spec.kind == CommandKind::Settings {
+            self.wait(host,call.clone(),WaitReason::Settings{id:id.into(),params:params.clone()},
+                "允许按本次参数修改应用的快速导出预设？此设置跨文档保存，不属于文档撤销，也不授权写入任何图片文件。".into(),vec!["保存此预设".into(),"取消".into()],Some(json!({"command":id,"params":params})))?;
+            return Ok(None);
+        }
         let destructive = destructive(id, &params);
         if spec.kind == CommandKind::Mutate
             && ((self.options.mode == ExecutionMode::AskFirst && !self.approved_ordinary)
@@ -564,6 +570,7 @@ impl Session {
             WaitReason::ClipboardWrite { .. } => "clipboard_write",
             WaitReason::Question => "question",
             WaitReason::Edit { .. } => "edit_approval",
+            WaitReason::Settings { .. } => "settings_approval",
             WaitReason::File { .. } => "file_resource",
             WaitReason::Lifecycle { .. } => "lifecycle_approval",
         };
@@ -764,6 +771,26 @@ impl Session {
                         )),
                         Err(error) => Err(error),
                     }
+                }
+            }
+            WaitReason::Settings { id, params } => {
+                if !answer.approved {
+                    Ok((
+                        json!({"status":"denied","message":"Settings change declined; no document or file write was authorized."}),
+                        None,
+                    ))
+                } else {
+                    let data = host.execute(
+                        self.turn,
+                        Uuid::new_v4(),
+                        &id,
+                        params,
+                        self.command_timeout(),
+                    )?;
+                    Ok((
+                        json!({"result":data,"undo_boundary":"App settings are not reverted by document undo."}),
+                        None,
+                    ))
                 }
             }
             WaitReason::File { id, mut params } => {

@@ -140,12 +140,16 @@
     ]
   },
   "PS-01-894622b1ce": {
-    "implementation": "部分实现",
-    "acceptance": "导出面板/参数已有证据；快速导出配置仍待补齐",
+    "implementation": "已实现",
+    "acceptance": "Explicit export and real shared/versioned quick presets use the same PNG/TIFF/JPEG/WebP encoder with dimensions, ICC/DPI, precision/alpha and source protection. Full local core354+doc1/AI51, native116(115passed/1live-service opt-in skip), required Metal1, lint and140commands/209examples passed. Manual found size-field compression and sheet Cmd+A routing; both fixed, related11native tests and corrected arm64 Release passed. Sequential one-window manual saved/read JPEG83/sRGB/white256×384, wrote actualJPEG and original-sizePNG, verified metadata, defaults and clean source/history. Final process0/sourceSHA unchanged; only the test-created preference key removed to restore its original absence. Large-photo continuous performance/live-model quality and broader Photoshop remain separate.",
     "evidence": [
       {
         "label": "当前实现与验证",
         "path": "2026-11-03-m1-closure.md"
+      },
+      {
+        "label": "Quick export preset implementation and local gates",
+        "path": "../research/2026-11-m8-quick-export-progress.md"
       }
     ]
   },

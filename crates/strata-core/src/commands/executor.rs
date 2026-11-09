@@ -232,6 +232,7 @@ pub struct Snapshot {
 }
 
 enum Action {
+    ExportPreset(u64, super::ExportPreset),
     Presentation(crate::Presentation),
     PaintColors(super::PaintColors),
     Query,
@@ -262,6 +263,7 @@ pub struct PreparedCommand {
     selected: Option<LayerId>,
     replay: bool,
     required_active_layer: Option<LayerId>,
+    required_export_preset: Option<u64>,
 }
 impl PreparedCommand {
     /// Display overlays read the exact validated command result.
@@ -309,6 +311,7 @@ struct Receipt {
 
 #[derive(Clone)]
 pub struct Editor {
+    export_presets: super::ExportPresetStore,
     presentation: crate::Presentation,
     paint_colors: super::PaintColors,
     pool: strata_pixels::memory::MemoryPool,
@@ -340,6 +343,7 @@ impl Default for Editor {
 impl Editor {
     pub fn new() -> Self {
         Self {
+            export_presets: Default::default(),
             presentation: Default::default(),
             paint_colors: Default::default(),
             pool: strata_pixels::memory::MemoryPool::global(),
@@ -369,6 +373,11 @@ impl Editor {
             decoder: Some(decoder),
             ..Self::new()
         }
+    }
+    /// Trusted app bootstrap shares one preset across independent document engines.
+    pub fn with_export_presets(mut self, store: super::ExportPresetStore) -> Self {
+        self.export_presets = store;
+        self
     }
     pub fn set_subject_selector(&mut self, selector: Arc<dyn crate::SubjectSelector>) {
         self.selector = Some(selector);
@@ -1245,6 +1254,7 @@ impl Editor {
                 selected: self.selected,
                 replay: true,
                 required_active_layer: None,
+                required_export_preset: None,
             });
         }
         self.authorize(&request.source, id, kind)?;
@@ -1272,6 +1282,7 @@ impl Editor {
         let mut selected = self.selected;
         let mut read_resource = None;
         let mut annotations_only = false;
+        let mut required_export_preset = None;
         let (action, result) = match kind {
             CommandKind::Query => {
                 if id == "edit.clipboard.write_status" {
@@ -1290,7 +1301,9 @@ impl Editor {
                 }
                 (
                     Action::Query,
-                    if id == "view.rulers.convert" {
+                    if id == "file.export_preset.get" {
+                        json!(self.export_presets.get()?)
+                    } else if id == "view.rulers.convert" {
                         super::guides::ruler_coordinates(
                             self.document().ok_or(CommandError::NoDocument)?,
                             &self.presentation,
@@ -1743,6 +1756,37 @@ impl Editor {
                     (Action::View, json!({"view":id,"params":params}))
                 }
             }
+            CommandKind::Settings => {
+                let p: super::SetExportPreset = parse(params.clone())?;
+                let (expected, value) = self.export_presets.prepare(p)?;
+                (Action::ExportPreset(expected, value.clone()), json!(value))
+            }
+            CommandKind::External if id == "file.quick_export" => {
+                let p: super::QuickExport = parse(params.clone())?;
+                let preset = self.export_presets.get()?;
+                if p.preset_version != preset.version {
+                    return Err(CommandError::Stale);
+                }
+                let options = preset.options.export(p.resource);
+                let write = self.prepare_write(
+                    &request,
+                    "file.export",
+                    serde_json::to_value(&options).unwrap(),
+                )?;
+                let doc = self.document().ok_or(CommandError::NoDocument)?;
+                required_export_preset = Some(preset.version);
+                (
+                    Action::External(Box::new(write)),
+                    json!(super::QuickExportResult {
+                        status: "completed".into(),
+                        command: id.into(),
+                        preset_version: preset.version,
+                        format: preset.options.format,
+                        width: options.width.unwrap_or(doc.frame().width),
+                        height: options.height.unwrap_or(doc.frame().height)
+                    }),
+                )
+            }
             CommandKind::External if matches!(id, "edit.copy" | "edit.copy_merged") => {
                 let copy = self.prepare_copy(&request, id, params.clone())?;
                 let result =
@@ -1771,6 +1815,7 @@ impl Editor {
             selected,
             replay: false,
             required_active_layer: None,
+            required_export_preset,
         })
     }
     pub fn commit(&mut self, prepared: PreparedCommand) -> Result<Value, CommandError> {
@@ -1820,6 +1865,14 @@ impl Editor {
             &prepared.command,
             registry::kind(&prepared.command)?,
         )?;
+        if prepared.required_export_preset.is_some() && prepared.request.revision != self.revision {
+            return Err(CommandError::Stale);
+        }
+        let export_presets = self.export_presets.clone();
+        let _preset_guard = prepared
+            .required_export_preset
+            .map(|v| export_presets.guard(v))
+            .transpose()?;
         if prepared.command.starts_with("paint.colors.")
             && prepared.request.paint_colors_version != self.paint_colors.version
         {
@@ -1867,7 +1920,7 @@ impl Editor {
             || matches!(prepared.action, Action::Query)
             || matches!(
                 prepared.action,
-                Action::PaintColors(_) | Action::Presentation(_)
+                Action::PaintColors(_) | Action::Presentation(_) | Action::ExportPreset(_, _)
             )
             || prepared.command.starts_with("view.guides.")
             || prepared.command == "view.presentation.get"
@@ -1890,6 +1943,7 @@ impl Editor {
                     | "layer.snap_position"
             ) && prepared.result["changed"] == false);
         match prepared.action {
+            Action::ExportPreset(expected, value) => self.export_presets.commit(expected, value)?,
             Action::Presentation(value) => {
                 self.presentation = value;
             }

@@ -9,6 +9,7 @@ mod crop_delete;
 mod depth;
 mod executor;
 mod export;
+mod export_preset;
 mod filters;
 mod generated;
 mod guides;
@@ -43,6 +44,10 @@ pub use executor::{
     PaintInteraction, PreparedCommand, Request, Snapshot, Source, StraightenInteraction,
     TonalInteraction,
 };
+pub use export_preset::{
+    ExportPreset, ExportPresetOptions, ExportPresetStore, QuickExportFormat, QuickExportSpace,
+};
+use export_preset::{QuickExport, QuickExportResult, SetExportPreset};
 pub use registry::{CommandKind, CommandSpec, catalog};
 
 use crate::{BlendMode, LayerRef};

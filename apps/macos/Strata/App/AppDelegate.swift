@@ -18,6 +18,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var controllers: [MainWindowController] = []
     private var recoveryDirectory: URL?
     private var memoryPressure: DispatchSourceMemoryPressure?
+    private var exportPresetRestored=false
 
     // DispatchSource invokes this on its utility queue. Creating the callback
     // outside MainActor prevents Swift 6 from asserting main-queue isolation.
@@ -31,6 +32,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let events = EngineEvents { event in reference.controller?.handle(event) }
         let new = MainWindowController(engine: StrataEngine(listener: events))
         reference.controller = new; controllers.append(new)
+        if !exportPresetRestored{exportPresetRestored=true;do{try QuickExportPreferences().restore(on:new.engine)}catch{new.quickExportError="无法读取快速导出预设，请重新设置。\(error.localizedDescription)"}}
         new.syncRecentFiles()
         if let recoveryDirectory { new.startRecovery(directory: recoveryDirectory) }
         new.onNewTab = { [weak self, weak new] in
@@ -240,7 +242,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             ("新建标签页…", #selector(MainWindowController.newTab), "n"),
             ("保存", #selector(MainWindowController.saveDocument), "s"),
             ("另存为…", #selector(MainWindowController.saveAs), "S"),
-            ("导出…", #selector(MainWindowController.exportDocument), "e")
+            ("导出…", #selector(MainWindowController.exportDocument), "e"),
+            ("快速导出…", #selector(MainWindowController.quickExportDocument), "E"),
+            ("快速导出预设…", #selector(MainWindowController.configureQuickExport), "")
         ] { let item = file.addItem(withTitle: title, action: action, keyEquivalent: key); item.target = controller }
         file.addItem(withTitle: "关闭标签页", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
         let fileItem = NSMenuItem(title: "文件", action: nil, keyEquivalent: ""); fileItem.submenu = file; bar.addItem(fileItem)

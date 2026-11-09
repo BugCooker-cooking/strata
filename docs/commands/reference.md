@@ -10984,6 +10984,525 @@ Permissions: `bound_document, write_resource`
 }
 ```
 
+## `file.export_preset.get` — 读取快速导出预设
+
+Read shared app export options and monotonically versioned state: format, optional fixed width/height, target_space, quality/matte/WebP mode and explicit quantization choice. DefaultPNG, source dimensions/depth/ICC. No document or resource required; grants no file access. Native app persists validated options across restart; portable hosts own persistence. Does not change document/history/dirty state. 中文：快速导出设置、读取导出预设、默认导出格式、导出质量。
+
+Kind: `Query` · Undoable: `false` · Batchable: `false`
+
+Effects: `preferences.read`
+
+Permissions: ``
+
+- App-wide versioned settings; no document or file capability required. Writes require control ownership and separate AI settings approval.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Empty",
+  "type": "object",
+  "additionalProperties": false
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ExportPreset",
+  "type": "object",
+  "properties": {
+    "options": {
+      "$ref": "#/$defs/ExportPresetOptions"
+    },
+    "version": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "options"
+  ],
+  "$defs": {
+    "ExportPresetOptions": {
+      "type": "object",
+      "properties": {
+        "allow_quantization": {
+          "type": "boolean",
+          "default": false
+        },
+        "background": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "default": null,
+          "items": {
+            "type": "integer",
+            "format": "uint8",
+            "maximum": 255,
+            "minimum": 0
+          },
+          "maxItems": 3,
+          "minItems": 3
+        },
+        "format": {
+          "$ref": "#/$defs/QuickExportFormat",
+          "default": "png"
+        },
+        "height": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "default": null,
+          "minimum": 1
+        },
+        "quality": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint8",
+          "default": null,
+          "maximum": 100,
+          "minimum": 1
+        },
+        "target_space": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/QuickExportSpace"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "webp_lossless": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": null
+        },
+        "width": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "default": null,
+          "minimum": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "QuickExportFormat": {
+      "type": "string",
+      "enum": [
+        "png",
+        "tiff",
+        "jpeg",
+        "webp"
+      ]
+    },
+    "QuickExportSpace": {
+      "type": "string",
+      "enum": [
+        "srgb",
+        "display_p3"
+      ]
+    }
+  }
+}
+```
+
+### Examples
+
+```json
+{}
+```
+
+## `file.export_preset.set` — 设置快速导出预设
+
+Replace shared app options with a strict options object; omitted fields reset to defaults. format=png(default)/tiff/jpeg/webp; optional width and height both positive with at most512MiB of8-bit samples; actual document-depth/memory limits apply at export. Omit both for each current document's original size. target_space=srgb/display_p3 or null keeps ICC. JPEG requires background RGB in output space and quality1..100(default90); WebP defaults lossless, webp_lossless=false with quality1..100(default80). Inapplicable format options reject. allow_quantization explicitly allows16->8 exported copies, never source changes. expected_version optionally guards get; equal canonical options are a no-op. App-global settings, outside document history/save/undo. No path/folder/write permission/automatic overwrite saved. AI requires separate settings approval even in Direct mode; does not grant ordinary edit approval. Native and AI share implementation. 中文：快速导出预设、默认PNG导出、JPEG白色背景、WebP无损、有损质量、导出固定尺寸、允许量化；修改应用设置，不写文档撤销。
+
+Kind: `Settings` · Undoable: `false` · Batchable: `false`
+
+Effects: `preferences.write`
+
+Permissions: `app_settings_approval`
+
+- App-wide versioned settings; no document or file capability required. Writes require control ownership and separate AI settings approval.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SetExportPreset",
+  "type": "object",
+  "properties": {
+    "expected_version": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "uint64",
+      "default": null,
+      "minimum": 0
+    },
+    "options": {
+      "$ref": "#/$defs/ExportPresetOptions"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "options"
+  ],
+  "$defs": {
+    "ExportPresetOptions": {
+      "type": "object",
+      "properties": {
+        "allow_quantization": {
+          "type": "boolean",
+          "default": false
+        },
+        "background": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "default": null,
+          "items": {
+            "type": "integer",
+            "format": "uint8",
+            "maximum": 255,
+            "minimum": 0
+          },
+          "maxItems": 3,
+          "minItems": 3
+        },
+        "format": {
+          "$ref": "#/$defs/QuickExportFormat",
+          "default": "png"
+        },
+        "height": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "default": null,
+          "minimum": 1
+        },
+        "quality": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint8",
+          "default": null,
+          "maximum": 100,
+          "minimum": 1
+        },
+        "target_space": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/QuickExportSpace"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "webp_lossless": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": null
+        },
+        "width": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "default": null,
+          "minimum": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "QuickExportFormat": {
+      "type": "string",
+      "enum": [
+        "png",
+        "tiff",
+        "jpeg",
+        "webp"
+      ]
+    },
+    "QuickExportSpace": {
+      "type": "string",
+      "enum": [
+        "srgb",
+        "display_p3"
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ExportPreset",
+  "type": "object",
+  "properties": {
+    "options": {
+      "$ref": "#/$defs/ExportPresetOptions"
+    },
+    "version": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "options"
+  ],
+  "$defs": {
+    "ExportPresetOptions": {
+      "type": "object",
+      "properties": {
+        "allow_quantization": {
+          "type": "boolean",
+          "default": false
+        },
+        "background": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "default": null,
+          "items": {
+            "type": "integer",
+            "format": "uint8",
+            "maximum": 255,
+            "minimum": 0
+          },
+          "maxItems": 3,
+          "minItems": 3
+        },
+        "format": {
+          "$ref": "#/$defs/QuickExportFormat",
+          "default": "png"
+        },
+        "height": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "default": null,
+          "minimum": 1
+        },
+        "quality": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint8",
+          "default": null,
+          "maximum": 100,
+          "minimum": 1
+        },
+        "target_space": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/QuickExportSpace"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "webp_lossless": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": null
+        },
+        "width": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "default": null,
+          "minimum": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "QuickExportFormat": {
+      "type": "string",
+      "enum": [
+        "png",
+        "tiff",
+        "jpeg",
+        "webp"
+      ]
+    },
+    "QuickExportSpace": {
+      "type": "string",
+      "enum": [
+        "srgb",
+        "display_p3"
+      ]
+    }
+  }
+}
+```
+
+### Examples
+
+```json
+{
+  "expected_version": 0,
+  "options": {
+    "allow_quantization": true,
+    "background": [
+      255,
+      255,
+      255
+    ],
+    "format": "jpeg",
+    "quality": 90,
+    "target_space": "srgb"
+  }
+}
+```
+
+## `file.quick_export` — 按预设快速导出
+
+Export through file.export's encoder/compositing/ICC/DPI/resampling/quantization rules using one app preset. Read file.export_preset.get first; required preset_version must match at prepare and commit across engines. Host picker authorizes a fresh destination and overwrite; preset carries no capability. AI omits resource to request the picker, never invents paths/tokens. Cancel/stale preset/resource/document fails before publication. No source/history/dirty/project-path change; file writes are not reversed by Undo. DefaultPNG preserves depth/alpha/ICC.16-bit JPEG/WebP requires allow_quantization=true. Native and AI share this operation. 中文：快速导出、使用上次导出设置、按预设导出图片、原图不变。
+
+Kind: `External` · Undoable: `false` · Batchable: `false`
+
+Effects: `document.read, file.write`
+
+Permissions: `bound_document, write_resource`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "QuickExport",
+  "type": "object",
+  "properties": {
+    "preset_version": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    },
+    "resource": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "resource",
+    "preset_version"
+  ]
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "QuickExportResult",
+  "type": "object",
+  "properties": {
+    "command": {
+      "type": "string"
+    },
+    "format": {
+      "$ref": "#/$defs/QuickExportFormat"
+    },
+    "height": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0
+    },
+    "preset_version": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    },
+    "status": {
+      "type": "string"
+    },
+    "width": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "status",
+    "command",
+    "preset_version",
+    "format",
+    "width",
+    "height"
+  ],
+  "$defs": {
+    "QuickExportFormat": {
+      "type": "string",
+      "enum": [
+        "png",
+        "tiff",
+        "jpeg",
+        "webp"
+      ]
+    }
+  }
+}
+```
+
+### Examples
+
+```json
+{
+  "preset_version": 0,
+  "resource": "fixture-export"
+}
+```
+
 ## `layer.create_group` — 新建组
 
 Create a pass-through compositing group inside the active group or alongside the active layer. Maximum nesting depth 16.

@@ -31,52 +31,7 @@ impl ExportPlan {
         {
             return Err(DocumentError::ResourceLimit.into());
         }
-        let format = match p.format.as_str() {
-            "png" => ExportFormat::Png,
-            "tiff" => ExportFormat::Tiff,
-            "webp" if p.webp_lossless == Some(false) => ExportFormat::WebPLossy {
-                quality: p.quality.unwrap_or(80),
-            },
-            "webp" => ExportFormat::WebP,
-            "jpeg" => ExportFormat::Jpeg {
-                quality: p.quality.unwrap_or(90),
-            },
-            _ => {
-                return Err(CommandError::Invalid(
-                    "format must be png, tiff, jpeg or webp".into(),
-                ));
-            }
-        };
-        if p.format != "webp" && p.webp_lossless.is_some() {
-            return Err(CommandError::Invalid(
-                "webp_lossless applies only to WebP".into(),
-            ));
-        }
-        if p.format != "jpeg" && p.background.is_some() {
-            return Err(CommandError::Invalid(
-                "background applies only to JPEG".into(),
-            ));
-        }
-        if p.format != "jpeg"
-            && !matches!(format, ExportFormat::WebPLossy { .. })
-            && p.quality.is_some()
-        {
-            return Err(CommandError::Invalid(
-                "quality applies only to JPEG or lossy WebP".into(),
-            ));
-        }
-        if p.format == "jpeg"
-            && (p.background.is_none() || !(1..=100).contains(&p.quality.unwrap_or(90)))
-        {
-            return Err(CommandError::Invalid(
-                "JPEG requires background RGB and quality 1..100".into(),
-            ));
-        }
-        if let ExportFormat::WebPLossy { quality } = format
-            && !(1..=100).contains(&quality)
-        {
-            return Err(CommandError::Invalid("WebP quality must be 1..100".into()));
-        }
+        let format = validate_format(p)?;
         if p.format == "webp" && (width > 16383 || height > 16383) {
             return Err(CommandError::Invalid(
                 "WebP dimensions must be at most 16383 pixels".into(),
@@ -208,4 +163,54 @@ impl ExportPlan {
             (pixels, _) => pixels,
         })
     }
+}
+
+pub(super) fn validate_format(p: &ExportFile) -> Result<ExportFormat, CommandError> {
+    let format = match p.format.as_str() {
+        "png" => ExportFormat::Png,
+        "tiff" => ExportFormat::Tiff,
+        "webp" if p.webp_lossless == Some(false) => ExportFormat::WebPLossy {
+            quality: p.quality.unwrap_or(80),
+        },
+        "webp" => ExportFormat::WebP,
+        "jpeg" => ExportFormat::Jpeg {
+            quality: p.quality.unwrap_or(90),
+        },
+        _ => {
+            return Err(CommandError::Invalid(
+                "format must be png, tiff, jpeg or webp".into(),
+            ));
+        }
+    };
+    if p.format != "webp" && p.webp_lossless.is_some() {
+        return Err(CommandError::Invalid(
+            "webp_lossless applies only to WebP".into(),
+        ));
+    }
+    if p.format != "jpeg" && p.background.is_some() {
+        return Err(CommandError::Invalid(
+            "background applies only to JPEG".into(),
+        ));
+    }
+    if p.format != "jpeg"
+        && !matches!(format, ExportFormat::WebPLossy { .. })
+        && p.quality.is_some()
+    {
+        return Err(CommandError::Invalid(
+            "quality applies only to JPEG or lossy WebP".into(),
+        ));
+    }
+    if p.format == "jpeg"
+        && (p.background.is_none() || !(1..=100).contains(&p.quality.unwrap_or(90)))
+    {
+        return Err(CommandError::Invalid(
+            "JPEG requires background RGB and quality 1..100".into(),
+        ));
+    }
+    if let ExportFormat::WebPLossy { quality } = format
+        && !(1..=100).contains(&quality)
+    {
+        return Err(CommandError::Invalid("WebP quality must be 1..100".into()));
+    }
+    Ok(format)
 }

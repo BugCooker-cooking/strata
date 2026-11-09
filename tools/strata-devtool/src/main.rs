@@ -384,13 +384,15 @@ fn examples() -> Result<(), Box<dyn Error>> {
                     args["resource"] =
                         json!(editor.grant_read(&store.path(&info.session_id)?, Source::Test)?);
                 }
-                "file.save" | "file.save_as" | "file.export" => {
+                "file.save" | "file.save_as" | "file.export" | "file.quick_export" => {
                     let grant = editor.grant_write(
-                        &dir.path().join(if spec.id == "file.export" {
-                            "export.png"
-                        } else {
-                            "output.strata"
-                        }),
+                        &dir.path().join(
+                            if matches!(spec.id, "file.export" | "file.quick_export") {
+                                "export.png"
+                            } else {
+                                "output.strata"
+                            },
+                        ),
                         false,
                         Source::Test,
                     )?;
@@ -405,6 +407,11 @@ fn examples() -> Result<(), Box<dyn Error>> {
             let result = run(&mut editor, spec.id, args)?;
             if !result.is_object() {
                 return Err(format!("{} returned non-object", spec.id).into());
+            }
+            if spec.id == "file.quick_export"
+                && (result["format"] != "png" || result["width"] != 16 || result["height"] != 16)
+            {
+                return Err("quick export example did not execute default preset at the actual fixture dimensions".into());
             }
             if origin_example.is_some_and(|origin| {
                 (0..2).any(|i| result["ruler_origin"][i].as_f64() != origin[i].as_f64())

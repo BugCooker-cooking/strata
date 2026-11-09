@@ -87,6 +87,38 @@ extension MainWindowController {
             } catch { self.showError(error) }
         }
     }
+    @objc func configureQuickExport(){
+        guard !busy,(state?.control?.kind ?? "user")=="user",let window else{return}
+        do{
+            let preset=try QuickExportPreferences().preset(engine)
+            let options=ExportOptionsController(bitDepth:state?.bitDepth ?? 8,width:state?.frame?.width ?? 1,height:state?.frame?.height ?? 1,presetEditing:true)
+            try options.loadPreset(preset.options)
+            let alert=NSAlert();alert.messageText="快速导出预设";alert.informativeText="跨文档记住输出设置。快速导出时选择目标；原文档不变，导出文件不受撤销保护。";alert.accessoryView=options.view;alert.addButton(withTitle:"保存预设");alert.addButton(withTitle:"取消")
+            alert.beginSheetModal(for:window){[weak self]response in
+                guard let self,response == .alertFirstButtonReturn else{return}
+                do{let values=try options.parameters(requireQuantization:false);self.perform("file.export_preset.set",["options":values,"expected_version":preset.version])}
+                catch{self.showError(error)}
+            }
+        }catch{showError(error)}
+    }
+    @objc func quickExportDocument(){
+        guard workspace.permissions.edits,workspace.hasDocument,let window else{return}
+        do{
+            guard quickExportError.isEmpty else{throw QuickExportError(quickExportError)}
+            let preset=try QuickExportPreferences().preset(engine),format=try QuickExportPreferences().format(preset)
+            if state?.bitDepth==16,["jpeg","webp"].contains(format),!preset.options["allow_quantization"].bool{throw QuickExportError("当前预设没有允许16位副本量化为8位。请在快速导出预设中明确允许，或改用PNG/TIFF；原文档不变。")}
+            let panel=NSSavePanel();panel.allowedContentTypes=[UTType(filenameExtension:format) ?? .data];panel.canCreateDirectories=true
+            panel.nameFieldStringValue=URL(fileURLWithPath:fileName).deletingPathExtension().lastPathComponent+"."+(format=="jpeg" ? "jpg":format)
+            panel.message="按已保存的\(format.uppercased())预设导出副本；源文档不变。"
+            panel.beginSheetModal(for:window){[weak self]response in
+                guard let self,response == .OK,let url=panel.url else{return}
+                do{
+                    let resource=try self.engine.grantWrite(path:url.path,overwrite:FileManager.default.fileExists(atPath:url.path))
+                    self.perform("file.quick_export",["resource":resource,"preset_version":preset.version])
+                }catch{self.showError(error)}
+            }
+        }catch{showError(error)}
+    }
     @objc func createLayer() {
         guard !busy, state?.frame != nil, let window else { return }
         let alert = NSAlert(); alert.messageText = "新建像素图层"; alert.addButton(withTitle: "创建"); alert.addButton(withTitle: "取消")

@@ -15,6 +15,219 @@ use uuid::Uuid;
 struct Host {
     editor: Mutex<Editor>,
 }
+
+#[test]
+fn quick_export_preset_needs_separate_settings_and_file_approvals_and_writes_real_png() {
+    let host = Host::new();
+    host.user(
+        "paint.fill",
+        json!({"layer":{"name":"Background"},"color":[0.3,0.5,0.8,0.5]}),
+    );
+    let before = host
+        .editor
+        .lock()
+        .unwrap()
+        .document()
+        .unwrap()
+        .to_archive()
+        .unwrap();
+    let state = host.snapshot().unwrap();
+    let mut session = host.session_with_prompt(
+        ExecutionMode::Direct,
+        "保存快速导出PNG预设，导出4乘4副本；原图和历史保持不变。",
+    );
+    reply(
+        &mut session,
+        &host,
+        vec![
+            call("search", "search_catalog", json!({"query":"快速导出"})),
+            call(
+                "describe",
+                "describe_commands",
+                json!({"ids":["file.export_preset.get","file.export_preset.set","file.quick_export"]}),
+            ),
+        ],
+    );
+    assert!(
+        result(session.poll(&host).unwrap())["matches"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|v| v["id"] == "file.quick_export")
+    );
+    let desc = result(session.poll(&host).unwrap());
+    assert!(
+        desc["commands"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|c| c["params"]["additionalProperties"] == false)
+    );
+    assert!(desc["commands"][2]["host_resource_workflow"].is_string());
+    let options = json!({"format":"png","width":4,"height":4,"target_space":"srgb"});
+    reply(
+        &mut session,
+        &host,
+        vec![invoke(
+            "preset",
+            "file.export_preset.set",
+            json!({"options":options,"expected_version":0}),
+        )],
+    );
+    let Step::Paused {
+        question_id,
+        reason,
+        operation,
+        ..
+    } = session.poll(&host).unwrap()
+    else {
+        panic!("settings must pause even in Direct mode")
+    };
+    assert_eq!(reason, "settings_approval");
+    assert_eq!(operation.unwrap()["params"]["options"], options);
+    assert_eq!(host.user("file.export_preset.get", json!({}))["version"], 0);
+    let p = result(
+        session
+            .respond(
+                &host,
+                HostAnswer {
+                    question_id,
+                    answer: String::new(),
+                    approved: true,
+                    resource: None,
+                },
+            )
+            .unwrap(),
+    )["result"]
+        .clone();
+    assert_eq!(p["version"], 1);
+    reply(
+        &mut session,
+        &host,
+        vec![invoke(
+            "quick",
+            "file.quick_export",
+            json!({"preset_version":p["version"],"resource":"guessed"}),
+        )],
+    );
+    let Step::Paused {
+        question_id,
+        reason,
+        operation,
+        ..
+    } = session.poll(&host).unwrap()
+    else {
+        panic!("preset must not grant file access")
+    };
+    assert_eq!(reason, "file_resource");
+    assert!(operation.unwrap()["params"]["resource"].is_null());
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("actual.png");
+    let token = host
+        .editor
+        .lock()
+        .unwrap()
+        .grant_write(
+            &path,
+            false,
+            Source::Ai {
+                turn_id: session.turn_id(),
+            },
+        )
+        .unwrap();
+    assert!(!path.exists());
+    let output = result(
+        session
+            .respond(
+                &host,
+                HostAnswer {
+                    question_id,
+                    answer: String::new(),
+                    approved: true,
+                    resource: Some(token),
+                },
+            )
+            .unwrap(),
+    );
+    assert_eq!(output["result"]["preset_version"], 1);
+    assert_eq!(output["result"]["width"], 4);
+    let png = std::fs::read(&path).unwrap();
+    assert_eq!(&png[..8], b"\x89PNG\r\n\x1a\n");
+    assert_eq!(&png[12..16], b"IHDR");
+    assert_eq!(u32::from_be_bytes(png[16..20].try_into().unwrap()), 4);
+    assert_eq!(u32::from_be_bytes(png[20..24].try_into().unwrap()), 4);
+    assert_eq!(png[24], 16);
+    assert_eq!(host.snapshot().unwrap().revision, state.revision);
+    assert_eq!(
+        host.snapshot().unwrap().history_cursor,
+        state.history_cursor
+    );
+    assert!(
+        host.editor
+            .lock()
+            .unwrap()
+            .document()
+            .unwrap()
+            .to_archive()
+            .unwrap()
+            == before
+    );
+    host.editor.lock().unwrap().stop_turn();
+    assert_eq!(host.user("file.export_preset.get", json!({}))["version"], 1);
+}
+#[test]
+fn declining_settings_does_not_change_defaults_and_settings_approval_does_not_authorize_edits() {
+    let host = Host::new();
+    let mut session = host.session(ExecutionMode::AskFirst);
+    for approve in [false, true] {
+        reply(
+            &mut session,
+            &host,
+            vec![invoke(
+                if approve { "accept" } else { "decline" },
+                "file.export_preset.set",
+                json!({"options":{"format":"tiff"},"expected_version":0}),
+            )],
+        );
+        let Step::Paused {
+            question_id,
+            reason,
+            ..
+        } = session.poll(&host).unwrap()
+        else {
+            panic!("settings approval missing")
+        };
+        assert_eq!(reason, "settings_approval");
+        let _ = session
+            .respond(
+                &host,
+                HostAnswer {
+                    question_id,
+                    answer: String::new(),
+                    approved: approve,
+                    resource: None,
+                },
+            )
+            .unwrap();
+        assert_eq!(
+            host.user("file.export_preset.get", json!({}))["version"],
+            if approve { 1 } else { 0 }
+        );
+    }
+    reply(
+        &mut session,
+        &host,
+        vec![invoke(
+            "edit",
+            "layer.create",
+            json!({"name":"Still needs edit approval"}),
+        )],
+    );
+    assert!(
+        matches!(session.poll(&host).unwrap(),Step::Paused{reason,..} if reason=="edit_approval")
+    );
+    host.editor.lock().unwrap().stop_turn();
+}
 impl Host {
     fn new() -> Self {
         let mut editor = Editor::new();

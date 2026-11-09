@@ -290,7 +290,12 @@ final class AssistantModel: ObservableObject {
             selectedResourceURL = url
             return try engine.aiGrantRead(turnId: turn, path: url.path)
         }
-        let format = command == "file.export" ? operation["params"]["format"].string ?? "png" : "strata"
+        let format:String
+        if command=="file.quick_export"{
+            let preset=try QuickExportPreferences().preset(engine)
+            guard let value=operation["params"]["preset_version"].number,UInt64(exactly:value)==preset.version else{throw AIClientError.message("快速导出预设已改变，请重新读取预设并发起导出。")}
+            format=try QuickExportPreferences().format(preset)
+        }else{format = command == "file.export" ? operation["params"]["format"].string ?? "png" : "strata"}
         guard ["png", "jpeg", "jpg", "webp", "tiff", "strata"].contains(format) else { throw AIClientError.message("请先选择支持的导出格式。") }
         let picker = NSSavePanel(); picker.allowedContentTypes = [UTType(filenameExtension: format) ?? .data]
         picker.nameFieldStringValue = "Strata.\(format)"; picker.message = "授权 AI 的这一次文件写入；目标文件不受文档撤销保护。"; panel = picker

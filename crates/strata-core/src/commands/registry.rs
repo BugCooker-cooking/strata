@@ -7,6 +7,7 @@ pub enum CommandKind {
     Query,
     Mutate,
     View,
+    Settings,
     External,
     Lifecycle,
     History,
@@ -41,7 +42,7 @@ fn build_catalog() -> Vec<CommandSpec> {
         ($id:expr,$params:ty,$kind:ident,$zh:expr,$en:expr,$description:expr,$example:expr) => {{
             let kind=CommandKind::$kind;
             list.push(CommandSpec { id:$id,path:($id).split('.').collect(),title_zh:$zh,title_en:$en,summary:$en,description:$description,kind,
-                effects:match kind { CommandKind::Query=>vec!["document.read"], CommandKind::View=>vec!["view.write"],_=>vec!["document.write"] },
+                effects:match kind { CommandKind::Query=>vec!["document.read"], CommandKind::View=>vec!["view.write"], CommandKind::Settings=>vec!["preferences.write"],_=>vec!["document.write"] },
                 permissions:vec!["bound_document"],batchable:matches!(kind,CommandKind::Query|CommandKind::Mutate),undoable:kind==CommandKind::Mutate,
                 params:schemars::schema_for!($params),returns:schemars::schema_for!(Value),
                 preconditions:vec!["Host-bound source, session, document and revision; control ownership and resource limits are checked."],examples:vec![$example] });
@@ -550,6 +551,33 @@ fn build_catalog() -> Vec<CommandSpec> {
         "Export image",
         "Export PNG/TIFF at document depth or JPEG/WebP at 8-bit. WebP defaults to lossless; webp_lossless=false enables lossy RGB with lossless alpha, quality 1..100 (default 80). JPEG quality is 1..100 (default 90) and requires an 8-bit RGB background in output space. quality is rejected for lossless WebP; webp_lossless is rejected for non-WebP. Optional width/height must both be positive, bounded to 512 MiB output samples; WebP dimensions <=16383. Resize uses linear-light premultiplied area reduction / bilinear enlargement. target_space is optional srgb/display_p3, otherwise keep working ICC. All outputs include document DPI. 16-bit to JPEG/WebP requires allow_quantization=true. Source samples/history/dirty state do not change.",
         json!({"resource":"fixture-export","format":"png"})
+    );
+    command!(
+        "file.export_preset.get",
+        Empty,
+        Query,
+        "读取快速导出预设",
+        "Read quick export preset",
+        "Read shared app export options and monotonically versioned state: format, optional fixed width/height, target_space, quality/matte/WebP mode and explicit quantization choice. DefaultPNG, source dimensions/depth/ICC. No document or resource required; grants no file access. Native app persists validated options across restart; portable hosts own persistence. Does not change document/history/dirty state. 中文：快速导出设置、读取导出预设、默认导出格式、导出质量。",
+        json!({})
+    );
+    command!(
+        "file.export_preset.set",
+        SetExportPreset,
+        Settings,
+        "设置快速导出预设",
+        "Set quick export preset",
+        "Replace shared app options with a strict options object; omitted fields reset to defaults. format=png(default)/tiff/jpeg/webp; optional width and height both positive with at most512MiB of8-bit samples; actual document-depth/memory limits apply at export. Omit both for each current document's original size. target_space=srgb/display_p3 or null keeps ICC. JPEG requires background RGB in output space and quality1..100(default90); WebP defaults lossless, webp_lossless=false with quality1..100(default80). Inapplicable format options reject. allow_quantization explicitly allows16->8 exported copies, never source changes. expected_version optionally guards get; equal canonical options are a no-op. App-global settings, outside document history/save/undo. No path/folder/write permission/automatic overwrite saved. AI requires separate settings approval even in Direct mode; does not grant ordinary edit approval. Native and AI share implementation. 中文：快速导出预设、默认PNG导出、JPEG白色背景、WebP无损、有损质量、导出固定尺寸、允许量化；修改应用设置，不写文档撤销。",
+        json!({"options":{"format":"jpeg","quality":90,"background":[255,255,255],"target_space":"srgb","allow_quantization":true},"expected_version":0})
+    );
+    command!(
+        "file.quick_export",
+        QuickExport,
+        External,
+        "按预设快速导出",
+        "Quick export using saved preset",
+        "Export through file.export's encoder/compositing/ICC/DPI/resampling/quantization rules using one app preset. Read file.export_preset.get first; required preset_version must match at prepare and commit across engines. Host picker authorizes a fresh destination and overwrite; preset carries no capability. AI omits resource to request the picker, never invents paths/tokens. Cancel/stale preset/resource/document fails before publication. No source/history/dirty/project-path change; file writes are not reversed by Undo. DefaultPNG preserves depth/alpha/ICC.16-bit JPEG/WebP requires allow_quantization=true. Native and AI share this operation. 中文：快速导出、使用上次导出设置、按预设导出图片、原图不变。",
+        json!({"resource":"fixture-export","preset_version":0})
     );
     command!(
         "layer.create_group",
@@ -1266,6 +1294,10 @@ fn build_catalog() -> Vec<CommandSpec> {
     );
     for item in &mut list {
         item.returns = match item.id {
+            "file.export_preset.get" | "file.export_preset.set" => {
+                schemars::schema_for!(ExportPreset)
+            }
+            "file.quick_export" => schemars::schema_for!(QuickExportResult),
             "view.guides.list" => schemars::schema_for!(GuidesResult),
             "view.guides.add" | "view.guides.update" | "view.guides.delete" => {
                 schemars::schema_for!(GuideResult)
@@ -1342,6 +1374,23 @@ fn build_catalog() -> Vec<CommandSpec> {
         if item.kind == CommandKind::External {
             item.effects = vec!["document.read", "file.write"];
             item.permissions.push("write_resource");
+        }
+        if item.id.starts_with("file.export_preset.") {
+            item.effects = if item.kind == CommandKind::Query {
+                vec!["preferences.read"]
+            } else {
+                vec!["preferences.write"]
+            };
+            item.permissions = if item.kind == CommandKind::Query {
+                vec![]
+            } else {
+                vec!["app_settings_approval"]
+            };
+            item.batchable = false;
+            item.undoable = false;
+            item.preconditions = vec![
+                "App-wide versioned settings; no document or file capability required. Writes require control ownership and separate AI settings approval.",
+            ];
         }
         if matches!(item.id, "edit.copy" | "edit.copy_merged") {
             item.effects = vec!["document.read", "clipboard.write"];

@@ -20,6 +20,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
     private var exposurePreviewTask: Task<Void, Never>?
     private var exposureActive = false
     var recovery: RecoveryMonitor?
+    var quickExportError:String{get{QuickExportPreferences.restoreError}set{QuickExportPreferences.restoreError=newValue}}
     var fileName = "未命名"
     var documentURL: URL?
     var state: EditorSnapshot? { workspace.snapshot }
@@ -161,13 +162,23 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         }
     }
     func validateMenuItem(_ item: NSMenuItem) -> Bool {
+        if window?.attachedSheet != nil{
+            return switch item.action{
+            case #selector(copyPixels(_:)),#selector(selectAllPixels(_:)):selectableText?.isSelectable == true
+            case #selector(cutPixels(_:)),#selector(pastePixels(_:)),#selector(clearPixels(_:)):textEditor != nil
+            case #selector(undo):canUndo
+            case #selector(redo):canRedo
+            case #selector(stopAI):assistant.running || busy
+            default:false
+            }
+        }
         if let action=item.action,[#selector(toggleRulers(_:)),#selector(toggleGuides(_:)),#selector(toggleGuideLock(_:)),#selector(toggleSnap(_:))].contains(action){
             let value=state?.presentation ?? .defaults
             item.state=(item.action == #selector(toggleRulers(_:)) ? value.rulersVisible:item.action == #selector(toggleGuides(_:)) ? value.guidesVisible:item.action == #selector(toggleGuideLock(_:)) ? value.guidesLocked:value.snapEnabled) ? .on:.off
             return !busy
         }
         return switch item.action {
-        case #selector(copyPixels(_:)):(window?.firstResponder as? NSTextView)?.isSelectable == true || (workspace.permissions.edits&&workspace.hasDocument)
+        case #selector(copyPixels(_:)):selectableText?.isSelectable == true || (workspace.permissions.edits&&workspace.hasDocument)
         case #selector(cutPixels(_:)),#selector(pastePixels(_:)),#selector(clearPixels(_:)):textEditor != nil || (workspace.permissions.edits&&workspace.hasDocument)
         case #selector(copyMergedPixels(_:)),#selector(pasteInPlace(_:)):workspace.permissions.edits&&workspace.hasDocument
         case #selector(selectAllPixels(_:)):textEditor != nil || (workspace.permissions.selectionEdits&&workspace.hasDocument)
@@ -179,7 +190,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         case #selector(autoTone),#selector(autoContrast),#selector(autoColor): workspace.permissions.edits && selected?.kind?.kind=="pixel" && selected?.visible == true && selected?.locks?.all != true && selected?.locks?.pixels != true
         case #selector(beginCanvasTransform): workspace.permissions.edits && selected?.canTransform(scope:"whole_layer")==true && selected?.visible == true
         case #selector(showGuides): !busy
-        case #selector(saveDocument), #selector(saveAs), #selector(exportDocument), #selector(placeImage), #selector(convertToSRGB), #selector(convertToP3),#selector(assignSRGB),#selector(assignP3): workspace.permissions.edits && workspace.hasDocument
+        case #selector(saveDocument), #selector(saveAs), #selector(exportDocument),#selector(quickExportDocument), #selector(placeImage), #selector(convertToSRGB), #selector(convertToP3),#selector(assignSRGB),#selector(assignP3): workspace.permissions.edits && workspace.hasDocument
+        case #selector(configureQuickExport): !busy && (state?.control?.kind ?? "user")=="user"
         case #selector(openImage), #selector(newTab), #selector(openRecent(_:)): !busy
         default: true
         }
@@ -267,6 +279,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
     @objc func newTab() { if let onNewTab { onNewTab() } else { newDocument() } }
     func handle(_ event: EngineEventDto) {
         switch event {
+        case .exportPresetChanged:
+            do{try QuickExportPreferences().save(from:engine);quickExportError=""}catch{quickExportError=error.localizedDescription}
         case .documentOpened: canvas.markDirty()
         case .stateChanged(let json):
             if let new=try? EditorSnapshot.decode(json),new.revision >= (state?.revision ?? 0),new.revision != state?.revision || ((new.paintColors?.version ?? 0) >= (state?.paintColors?.version ?? 0) && (new.presentation?.version ?? 0) >= (state?.presentation?.version ?? 0)){apply(new)}
@@ -411,11 +425,12 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
     @objc func duplicateLayer() { layerCommand("layer.duplicate") }
     @objc func deleteLayer() { layerCommand("layer.delete") }
     private func reorder(_ delta: Int) { guard let state, let layer = selected else{return};let siblings=state.layers.filter{$0.parent==layer.parent};guard let index=siblings.firstIndex(where:{$0.id==layer.id}),siblings.indices.contains(index+delta)else{return};layerCommand("layer.move_order",["index":index+delta]) }
-    var textEditor: NSTextView? { (window?.firstResponder as? NSTextView).flatMap { $0.isEditable ? $0 : nil } }
-    private var canUndo: Bool { textEditor.map { $0.undoManager?.canUndo == true } ?? workspace.canUndo }
-    private var canRedo: Bool { textEditor.map { $0.undoManager?.canRedo == true } ?? workspace.canRedo }
-    @objc func undo() { if let textEditor { textEditor.undoManager?.undo() } else if workspace.canUndo { perform("edit.undo", [:]) } }
-    @objc func redo() { if let textEditor { textEditor.undoManager?.redo() } else if workspace.canRedo { perform("edit.redo", [:]) } }
+    var selectableText:NSTextView?{var target=window;while let sheet=target?.attachedSheet{target=sheet};return target?.firstResponder as? NSTextView}
+    var textEditor: NSTextView? { selectableText.flatMap { $0.isEditable ? $0 : nil } }
+    private var canUndo: Bool { textEditor.map { $0.undoManager?.canUndo == true } ?? (window?.attachedSheet == nil && workspace.canUndo) }
+    private var canRedo: Bool { textEditor.map { $0.undoManager?.canRedo == true } ?? (window?.attachedSheet == nil && workspace.canRedo) }
+    @objc func undo() { if let textEditor { textEditor.undoManager?.undo() } else if window?.attachedSheet == nil,workspace.canUndo { perform("edit.undo", [:]) } }
+    @objc func redo() { if let textEditor { textEditor.undoManager?.redo() } else if window?.attachedSheet == nil,workspace.canRedo { perform("edit.redo", [:]) } }
     @objc func convertToEightBit(){perform("image.convert_bit_depth",["bit_depth":8])}
     @objc func autoTone(){autoCorrect("tone")}
     @objc func beginCanvasTransform(){workspace.selectTool(.freeTransform)}

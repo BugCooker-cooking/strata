@@ -20,6 +20,8 @@ mod group_transform_tests;
 mod guides;
 mod local;
 #[cfg(test)]
+mod quick_export_tests;
+#[cfg(test)]
 mod smart_guides_tests;
 mod subject;
 mod tonal_preview;
@@ -88,6 +90,7 @@ impl From<CanvasViewport> for Viewport {
 pub enum EngineEventDto {
     DocumentOpened { info: ImageInfo, generation: u64 },
     StateChanged { snapshot_json: String },
+    ExportPresetChanged,
 }
 #[derive(Debug, thiserror::Error, uniffi::Error)]
 pub enum StrataError {
@@ -163,7 +166,8 @@ struct Inner {
 impl Default for Inner {
     fn default() -> Self {
         Self {
-            editor: Editor::with_decoder(Arc::new(strata_platform::NativeDecoder)),
+            editor: Editor::with_decoder(Arc::new(strata_platform::NativeDecoder))
+                .with_export_presets(native_export_presets()),
             renderer: None,
             events: VecDeque::new(),
             delivering: false,
@@ -176,6 +180,11 @@ impl Default for Inner {
             paint: None,
         }
     }
+}
+fn native_export_presets() -> strata_core::commands::ExportPresetStore {
+    static PRESETS: std::sync::LazyLock<strata_core::commands::ExportPresetStore> =
+        std::sync::LazyLock::new(Default::default);
+    PRESETS.clone()
 }
 #[derive(uniffi::Object)]
 pub struct StrataEngine {
@@ -715,6 +724,9 @@ fn apply(
             info: ImageInfo::from(doc),
             generation: inner.open_generation,
         });
+    }
+    if command == "file.export_preset.set" {
+        inner.events.push_back(EngineEventDto::ExportPresetChanged);
     }
     if !command.starts_with("view.")
         || command.starts_with("view.guides.")

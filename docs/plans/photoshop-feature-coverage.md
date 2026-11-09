@@ -23,7 +23,7 @@
 | PS-01-9b14920078 | 文件 | 打开 PNG / JPEG / WebP / TIFF / HEIC / GIF / BMP | P0 | 已实现 | 当前设备已有证据；持续回归 · [当前实现与验证](2026-11-03-m1-closure.md) |
 | PS-01-b6d7cbc94d | 文件 | 最近打开 | P0 | 已实现 | 当前设备已有证据；持续回归 · [当前实现与验证](2026-11-03-m1-closure.md) |
 | PS-01-8f62b2552b | 文件 | 保存 / 另存为（Strata 格式） | P0 | 已实现 | 当前设备已有证据；持续回归 · [当前实现与验证](2026-11-03-m1-closure.md) |
-| PS-01-894622b1ce | 文件 | 快速导出 / 导出为（格式、尺寸、质量） | P0 | 部分实现 | 导出面板/参数已有证据；快速导出配置仍待补齐 · [当前实现与验证](2026-11-03-m1-closure.md) |
+| PS-01-894622b1ce | 文件 | 快速导出 / 导出为（格式、尺寸、质量） | P0 | 已实现 | Explicit export and real shared/versioned quick presets use the same PNG/TIFF/JPEG/WebP encoder with dimensions, ICC/DPI, precision/alpha and source protection. Full local core354+doc1/AI51, native116(115passed/1live-service opt-in skip), required Metal1, lint and140commands/209examples passed. Manual found size-field compression and sheet Cmd+A routing; both fixed, related11native tests and corrected arm64 Release passed. Sequential one-window manual saved/read JPEG83/sRGB/white256×384, wrote actualJPEG and original-sizePNG, verified metadata, defaults and clean source/history. Final process0/sourceSHA unchanged; only the test-created preference key removed to restore its original absence. Large-photo continuous performance/live-model quality and broader Photoshop remain separate. · [当前实现与验证](2026-11-03-m1-closure.md) · [Quick export preset implementation and local gates](../research/2026-11-m8-quick-export-progress.md) |
 | PS-01-e7337088bf | 文件 | 置入图片为图层 | P0 | 已实现 | 当前设备已有证据；持续回归 · [当前实现与验证](2026-11-03-m1-closure.md) |
 | PS-01-265b9a61ab | 文件 | 恢复到上次保存 | P1 | 待实现 | 待验收 |
 | PS-01-40267007aa | 文件 | PSD 导入 | P1 | 待实现 | 待验收 |
@@ -272,6 +272,6 @@
 | PS-19-d9de9483c3 | Adobe 的 AI 功能 | 移除干扰物（行人、电线）/ 反射去除 🤖 | P3 | 待实现 | 待验收 |
 | PS-19-ef0365d914 | Adobe 的 AI 功能 | Neural Filters：皮肤平滑、智能肖像、上色、超级缩放、JPEG 伪影去除、照片修复、风格转换、妆容迁移、景观混合器、深度模糊、色彩转移 🤖 | P3 | 待实现 | 待验收 |
 
-综合功能条目：265。实现状态：已实现 68；已实现（M3 集成中） 11；待实现 164；部分实现 13；重新核对 9。
+综合功能条目：265。实现状态：已实现 69；已实现（M3 集成中） 11；待实现 164；部分实现 12；重新核对 9。
 
 源清单行号可由 --json 查询。该数量是综合条目数，不能当作独立子功能总数或完成百分比。

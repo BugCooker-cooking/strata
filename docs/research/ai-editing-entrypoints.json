@@ -117,18 +117,48 @@
     },
     "PS-01-894622b1ce": {
       "scope": "editing",
-      "coverage": "partial",
+      "coverage": "complete",
       "commands": [
-        "file.export"
+        "file.export",
+        "file.export_preset.get",
+        "file.export_preset.set",
+        "file.quick_export"
       ],
       "prompts": [
         {
           "text": "导出宽度 2048 像素的 PNG。",
           "query": "导出图片",
           "command": "file.export"
+        },
+        {
+          "text": "读取已保存的快速导出设置，然后按当前预设导出这份文档的副本；目标文件由我选择。",
+          "query": "按预设导出图片",
+          "command": "file.quick_export"
+        },
+        {
+          "text": "把快速导出设置成JPEG、质量90、白色背景、sRGB，并明确允许16位副本量化；不修改原图。",
+          "query": "快速导出预设",
+          "command": "file.export_preset.set"
+        },
+        {
+          "text": "查看默认导出格式、尺寸、量化选择和预设版本。",
+          "query": "读取导出预设",
+          "command": "file.export_preset.get"
         }
       ],
-      "note": "导出参数入口完整；快速导出预设本身尚未完成。"
+      "note": "Existing file.export plus real file.export_preset.get/set and file.quick_export cover this row. App settings have strict schemas, validated persistence, shared versions, no file capabilities and no document undo; AI separately approves settings and each file resource, including Direct mode. Full local core/AI and actual file-decode/permission/concurrency tests, native persistence, Metal/Release/lint/209examples passed. Corrected one-window JPEG83/sRGB/white256×384 and original-sizePNG write/readback, clean-source/default restoration/normal quit/process0 passed. This completes the stated quick/explicit export row, not other file/PSD/RAW/batch or complete Photoshop scope.",
+      "variants": [
+        {
+          "command": "file.export_preset.set",
+          "path": "options.format",
+          "values": [
+            "png",
+            "tiff",
+            "jpeg",
+            "webp"
+          ]
+        }
+      ]
     },
     "PS-01-e7337088bf": {
       "scope": "editing",
