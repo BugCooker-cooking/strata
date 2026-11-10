@@ -62,6 +62,38 @@ extension MainWindowController {
     }
     @objc func saveDocument() { save(asNew: false) { _ in } }
     @objc func saveAs() { save(asNew: true) { _ in } }
+    @objc func duplicateDocument() {
+        guard workspace.permissions.edits, onDocumentDuplicated != nil,
+              let window, let snapshot = state, snapshot.documentId != nil else { return }
+
+        let alert = NSAlert()
+        alert.messageText = "复制文档"
+        alert.informativeText = "将当前文档复制到独立的未保存标签页。"
+        alert.addButton(withTitle: "创建副本")
+        alert.addButton(withTitle: "取消")
+
+        let stem = documentURL?.deletingPathExtension().lastPathComponent ?? fileName
+        let title = String(decoding: stem.utf8.prefix(240), as: UTF8.self) + " 副本"
+        let name = NSTextField(string: title)
+        name.setAccessibilityLabel("副本名称")
+        name.widthAnchor.constraint(equalToConstant: 320).isActive = true
+        let merged = NSButton(checkboxWithTitle: "仅复制画板内的可见合成", target: nil, action: nil)
+        let options = NSStackView(views: [name, merged])
+        options.orientation = .vertical
+        options.alignment = .leading
+        options.spacing = 8
+        options.frame = NSRect(x: 0, y: 0, width: 320, height: 60)
+        alert.accessoryView = options
+        alert.window.initialFirstResponder = name
+        alert.beginSheetModal(for: window) { [weak self] response in
+            guard let self, response == .alertFirstButtonReturn else { return }
+            self.perform("image.duplicate", [
+                "name": name.stringValue,
+                "mode": merged.state == .on ? "merged" : "layered",
+                "expected_revision": snapshot.revision
+            ])
+        }
+    }
     @objc func revertDocument(){
         guard workspace.permissions.edits,let window,let target=engine.revertSourcePath(),let initial=state else{return}
         let alert=NSAlert();alert.messageText="恢复到上次保存？";alert.informativeText="将重新读取\(URL(fileURLWithPath:target).lastPathComponent)，放弃当前修改并清除文档撤销/重做历史。磁盘原文件不变。";alert.addButton(withTitle:"恢复原文件");alert.addButton(withTitle:"取消")

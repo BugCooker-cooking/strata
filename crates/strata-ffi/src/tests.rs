@@ -15,6 +15,107 @@ fn photo(path: &Path) {
         .save(path)
         .unwrap();
 }
+
+#[test]
+fn required_metal_duplicate_opens_an_independent_engine_with_the_same_initial_frame() {
+    let create_renderer = || {
+        Renderer::new_offscreen(Viewport {
+            width: 32,
+            height: 24,
+            scale: 1.,
+        })
+    };
+    let renderer = match create_renderer() {
+        Ok(renderer) => renderer,
+        Err(strata_render::RenderError::NoAdapter)
+            if std::env::var_os("STRATA_REQUIRE_GPU").is_none() =>
+        {
+            return;
+        }
+        Err(error) => panic!("Metal: {error}"),
+    };
+    let events = Arc::new(Recorder::default());
+    let original = StrataEngine::new(events.clone());
+    original
+        .dispatch(
+            "file.new".into(),
+            json!({"width":32,"height":24,"bit_depth":16,"background":[10001,30003,50001,32769]})
+                .to_string(),
+        )
+        .unwrap();
+    original
+        .dispatch(
+            "layer.create".into(),
+            json!({"name":"Second","fill":[60001,15001,5001,40001]}).to_string(),
+        )
+        .unwrap();
+    let attach = |engine: &StrataEngine, mut renderer: Renderer| {
+        let mut inner = engine.lock().unwrap();
+        let scene = renderer
+            .prepare_document(inner.editor.document().unwrap(), true)
+            .unwrap();
+        renderer.commit_document(scene).unwrap();
+        renderer
+            .set_view(strata_render::ViewTransform {
+                zoom: 1.,
+                center_x: 16.,
+                center_y: 12.,
+            })
+            .unwrap();
+        inner.renderer = Some(renderer);
+    };
+    let frame = |engine: &StrataEngine| {
+        engine.render_frame().unwrap();
+        engine
+            .lock()
+            .unwrap()
+            .renderer
+            .as_ref()
+            .unwrap()
+            .read_offscreen_rgba()
+            .unwrap()
+    };
+    attach(&original, renderer);
+    let before = frame(&original);
+    let source_state = original.snapshot_json().unwrap();
+    original
+        .dispatch(
+            "image.duplicate".into(),
+            json!({"name":"Metal copy"}).to_string(),
+        )
+        .unwrap();
+    let copy = {
+        let events = events.0.lock().unwrap();
+        let mut duplicates = events.iter().filter_map(|event| match event {
+            EngineEventDto::DocumentDuplicated {
+                name,
+                activate,
+                copy,
+            } => {
+                assert_eq!(name, "Metal copy");
+                assert!(*activate);
+                Some(copy.clone())
+            }
+            _ => None,
+        });
+        let copy = duplicates.next().unwrap();
+        assert!(duplicates.next().is_none());
+        copy
+    };
+    let child = copy.take_engine(Arc::new(Recorder::default())).unwrap();
+    assert!(copy.take_engine(Arc::new(Recorder::default())).is_err());
+    attach(&child, create_renderer().unwrap());
+    assert_eq!(frame(&child), before);
+    child
+        .dispatch(
+            "layer.set_position".into(),
+            json!({"layer":{"name":"Second"},"x":7,"y":5}).to_string(),
+        )
+        .unwrap();
+    assert_ne!(frame(&child), before);
+    assert_eq!(frame(&original), before);
+    assert_eq!(original.snapshot_json().unwrap(), source_state);
+}
 #[test]
 fn version_no_canvas_and_view_commands() {
     let e = StrataEngine::new(Arc::new(Recorder::default()));

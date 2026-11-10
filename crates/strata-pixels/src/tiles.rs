@@ -234,12 +234,25 @@ impl TiledPixels {
         max_tiles: usize,
         pool: MemoryPool,
     ) -> Result<Self, TileError> {
+        Self::from_dense_with_pool_cancellable(width, height, source, max_tiles, pool, &|| false)
+    }
+    pub fn from_dense_with_pool_cancellable(
+        width: u32,
+        height: u32,
+        source: &PixelBuffer,
+        max_tiles: usize,
+        pool: MemoryPool,
+        cancel: &dyn Fn() -> bool,
+    ) -> Result<Self, TileError> {
         source
             .validate(width, height)
             .map_err(|_| TileError::InvalidBuffer)?;
         let mut result = Self::with_pool(source.format(), max_tiles, pool);
         for ty in 0..height.div_ceil(TILE_EDGE) {
             for tx in 0..width.div_ceil(TILE_EDGE) {
+                if cancel() {
+                    return Err(TileError::Cancelled);
+                }
                 let mut block = match source.format() {
                     PixelFormat::Rgba8 => PixelBuffer::Rgba8(zero_samples()?),
                     PixelFormat::Rgba16 => PixelBuffer::Rgba16(zero_samples()?),
@@ -438,6 +451,7 @@ fn copy_samples<T: Copy>(source: &[T]) -> Result<Vec<T>, TileError> {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum TileError {
+    Cancelled,
     Memory(String),
     InvalidBuffer,
     InvalidCoordinate {
@@ -457,6 +471,7 @@ pub enum TileError {
 impl fmt::Display for TileError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::Cancelled => write!(f, "tile import cancelled"),
             Self::Memory(e) => write!(f, "{e}"),
             Self::InvalidBuffer => write!(f, "invalid tile or image sample count"),
             Self::InvalidCoordinate { x, y } => {

@@ -2,7 +2,7 @@
 
 当前开发期审计快照。完整编辑功能与最终 AI 审计仍未闭环；不得把注册数量当作全部功能覆盖。
 
-真实注册命令 142；参数示例 211；综合功能 265；已有映射 93。
+真实注册命令 143；参数示例 213；综合功能 265；已有映射 96。
 
 已实现但未映射 0；部分入口 12；原生未知命令引用 0；未类型化返回 0。
 
@@ -55,7 +55,7 @@
 | PS-02-311ee1c4c5 | 定义画笔 / 图案 / 自定形状 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-02-57907a69fc | 偏好设置 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-02-91854349e1 | 自定义快捷键 / 菜单 / 工具栏 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
-| PS-02-21ab73cf70 | 功能搜索 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
+| PS-02-21ab73cf70 | 功能搜索 | 已实现 | 已映射 · infrastructure | `search_catalog`、`describe_commands` · The Command-F sheet uses the same bounded search_catalog and describe_commands implementations as AI. Native bilingual lookup and a one-window search-to-draft check passed. The draft remains available for user review before sending. |
 | PS-02-b2fd2e2a88 | 清理缓存 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-02-bc773443d0 | 拼写检查、查找替换文本 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-03-ad24731ea8 | 图像大小（多种重采样算法） | 部分实现 | 部分入口 | `image.resize` · 将图像大小改为512乘768像素，使用面积缩小并保留独立图层和蒙版。 · Pixels, retained-source unstyled text and unstyled groups have real size edits and all three sampling modes, with exact AI replacement approval and one-history turn undo. Editable fill/adjustment/style sizing and other professional resamplers remain open; do not interpret this partial entry as complete image sizing. |
@@ -63,7 +63,7 @@
 | PS-03-5f9716e5d8 | 图像旋转 / 翻转 | 部分实现 | 部分入口 | `image.orient`、`image.rotate`、`image.straighten` · 将整幅图像顺时针旋转 90 度，同时保留可编辑图层、链接蒙版和选区。 · All current types support exact orthogonal orientations. Pixel layers, unstyled text and unstyled groups support general angles and numeric/two-point straightening with optional safe inscribed crop. Generated/adjustment/style general geometry remains open; native canvas-dragged reference lines share the same operation/context-bound command; native/AI use identical commands with exact replacement approval and one-step undo. Native pointer input uses an operation-bound owned draft; it does not introduce a separate editing implementation or change AI parameters. |
 | PS-03-84941ac6e8 | 显示全部 | 已实现 | 已映射 | `image.reveal_all` · 扩展画板，显示全部可见源图层与样式边界，恢复被画板遮住的内容。 · 以可见源图层/生成填充和自身/祖先样式的保守边界扩展，不移动/缩放内容；隐藏层不参与，蒙版/剪贴/零透明度可能让边界大于最小可见 alpha 范围。 |
 | PS-03-51294954aa | 裁切（去透明边） | 已实现 | 已映射 | `image.trim` · Trim all fully transparent borders while preserving original editable layers. · Visible composite alpha>0 within the current frame, independent side booleans. No display quantization; hidden RGB/layers do not count. Sources remain stored. Tight repeat is a no-op without history; fully transparent input rejects. |
-| PS-03-0f4e217715 | 复制文档 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
+| PS-03-0f4e217715 | 复制文档 | 已实现 | 已映射 | `image.duplicate` · 复制当前图像，保留所有图层并命名为校样副本。 · The same image.duplicate command creates the new native tab from the menu and AI. Explicit workspace approval pins the source revision, and the AI turn stays in the source document. Core verified both modes and save isolation. AI replay checked decline, stale approval and real creation. Release and one-window tab acceptance passed. |
 | PS-03-691c261ce9 | 自动色调 / 自动对比度 / 自动颜色 | 已实现 | 已映射 | `image.auto` · 给当前像素层做自动色调，每端裁切0.5%，保留选区外像素和透明度。 · All three real methods, explicit visible raw pixel-layer input, exact alpha/selection weighted histograms with symmetric integer tail ranks, direct full-coverage codes and one soft linear blend. Exact approval, actual invokes and AI-turn archive undo verified. Native menu/parameters/shared preview, required real Metal/CPU/undo, arm64 App Release and single-window acceptance now passed after approval login recovered. The initial native preview fixture was already full-range and correctly no-op; a limited-range fixture fixed its incorrect history expectation. Full Photoshop, continuous performance, live-model quality and final per-feature AI closure remain separate and open. |
 | PS-03-c10dd16a58 | RGB 模式 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-03-484489e467 | 灰度模式 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
@@ -238,7 +238,7 @@
 | PS-13-4592c9e11f | 几何：Upright 透视校正 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-13-1b8faab964 | AI 蒙版（主体 / 天空 / 人物）🤖、AI 降噪 🤖、镜头模糊 🤖 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-14-cf2715aeb6 | 缩放 / 抓手 / 适合屏幕 / 100% | 已实现 | 已映射 | `view.pan`、`view.zoom`、`view.fit`、`view.actual_size` · 以实际像素 100% 显示当前画布，保持中心不变。 · 绝对 100% 与相对缩放分开；视图命令不改变文档或历史。 |
-| PS-14-c9a6761937 | 多文档标签页 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
+| PS-14-c9a6761937 | 多文档标签页 | 已实现 | 已映射 · host_managed | `image.duplicate` · The native tab host opens, selects and closes independent editors. AI can create a tab with image.duplicate through workspace approval. A turn stays in its authorized document and each tab manages its own control, history and saved state. M1b and current one-window switch/close evidence are linked in the feature tracker. |
 | PS-14-de2fd3ca59 | 标尺 / 参考线 / 对齐吸附 | 部分实现 | 部分入口 | `view.guides.list`、`view.guides.add`、`view.guides.update`、`view.guides.delete`、`view.guides.clear`、`view.presentation.get`、`view.presentation.set`、`layer.snap_position`、`view.rulers.convert` · 在画布X=120.5建立垂直参考线，保留稳定ID并允许撤销。 · Persistent guides, six ruler units/custom origin, owned corner origin drag/reset and shared integer layer snapping use real shared commands. Local core28/AI49/FFI1/Metal1/native111pass1skip/lint/206examples/Release passed; one27e0c8c Release manually checked fractional origin/outside cancel/reset, V/numeric alignment and source/history/default restoration before normal quit/process0. Held-pointer overlay appearance/latency and sustained large-photo/remaining view scope stay partial. |
 | PS-14-810f37be85 | 旋转视图 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-14-15d282cc9a | 智能参考线 | 部分实现 | 部分入口 | `layer.snap_position`、`view.presentation.get`、`view.presentation.set` · 使用智能参考线，将当前图层边缘或中心吸附到其他可见图层，并返回实际参考层ID和残差。 · Actual opt-in visible layer/group edges/centers use the shared strict layer.snap_position resolver and typed reference IDs/anchors/residuals. Automated exact-candidate/cache/cancel/scene gates retain their records. One current Release manually confirmed V move atX512/Y0, numeric509->512, one-step Undo and clean fixture/default restoration with artboard snap off/zero guides. No held-pointer appearance or large-photo performance claim; equal spacing and angle/size intelligence remain open. |

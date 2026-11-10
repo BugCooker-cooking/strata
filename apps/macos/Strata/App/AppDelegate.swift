@@ -30,7 +30,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func makeController() -> MainWindowController {
         let reference = WindowReference()
         let events = EngineEvents { event in reference.controller?.handle(event) }
-        let new = MainWindowController(engine: StrataEngine(listener: events))
+        return registerController(StrataEngine(listener: events), reference: reference, name: "未命名")
+    }
+
+    private func registerController(_ engine: StrataEngine, reference: WindowReference, name: String) -> MainWindowController {
+        let new = MainWindowController(engine: engine, fileName: name)
         reference.controller = new; controllers.append(new)
         if !exportPresetRestored{exportPresetRestored=true;do{try QuickExportPreferences().restore(on:new.engine)}catch{new.quickExportError="无法读取快速导出预设，请重新设置。\(error.localizedDescription)"}}
         new.syncRecentFiles()
@@ -52,6 +56,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             if let nextWindow = next.window { new?.window?.addTabbedWindow(nextWindow, ordered: .above) }
             next.showWindow(nil); next.window?.makeKeyAndOrderFront(nil); next.open(url)
         }
+        new.onDocumentDuplicated = { [weak self, weak new] name, activate, copy in
+            guard let self, let new else { return }
+            self.showDuplicate(name: name, activate: activate, copy: copy, source: new)
+        }
         new.onTheme = { [weak self] theme in
             UserDefaults.standard.set(theme.rawValue, forKey: "workspace.theme")
             self?.controllers.forEach { $0.applyTheme(theme) }
@@ -64,6 +72,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             if self?.controller === new { self?.controller = self?.controllers.last }
         }
         return new
+    }
+
+    private func showDuplicate(name: String, activate: Bool, copy: DuplicatedDocument, source: MainWindowController) {
+        guard let parent = source.window, controllers.contains(where: { $0 === source }) else { return }
+        do {
+            let reference = WindowReference()
+            let engine = try copy.takeEngine(listener: EngineEvents { event in reference.controller?.handle(event) })
+            let selected = parent.tabGroup?.selectedWindow ?? parent
+            let next = registerController(engine, reference: reference, name: name)
+            guard let window = next.window else { return }
+            parent.addTabbedWindow(window, ordered: .above)
+            if activate {
+                next.showWindow(nil)
+                window.makeKeyAndOrderFront(nil)
+            } else {
+                window.tabGroup?.selectedWindow = selected
+            }
+            next.canvas.fit()
+        } catch {
+            source.showError(error)
+        }
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -265,6 +294,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         edit.addItem(.separator())
         let transform=edit.addItem(withTitle:"自由变换",action:#selector(MainWindowController.beginCanvasTransform),keyEquivalent:"t");transform.target=controller
+        edit.addItem(.separator())
+        let search = edit.addItem(withTitle: "功能搜索…", action: #selector(MainWindowController.showCommandSearch), keyEquivalent: "f")
+        search.target = controller
         let editItem = NSMenuItem(title: "编辑", action: nil, keyEquivalent: ""); editItem.submenu = edit; bar.addItem(editItem)
         for (title, action, key) in [
             ("适合屏幕", #selector(MainWindowController.fit), "0"),
@@ -280,6 +312,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         for(title,action,key)in[("标尺",#selector(MainWindowController.toggleRulers(_:)),"r"),("参考线",#selector(MainWindowController.toggleGuides(_:)),";"),("锁定参考线",#selector(MainWindowController.toggleGuideLock(_:)),""),("吸附",#selector(MainWindowController.toggleSnap(_:)),""),("参考线与吸附设置",#selector(MainWindowController.showGuides),"")]{let item=view.addItem(withTitle:title,action:action,keyEquivalent:key);item.target=controller}
         let viewItem = NSMenuItem(title: "视图", action: nil, keyEquivalent: ""); viewItem.submenu = view; bar.addItem(viewItem)
         let image=NSMenu(title:"图像")
+        let duplicate = image.addItem(withTitle: "复制文档…", action: #selector(MainWindowController.duplicateDocument), keyEquivalent: "")
+        duplicate.target = controller
+        image.addItem(.separator())
         for(title,action)in[("自动色调",#selector(MainWindowController.autoTone)),("自动对比度",#selector(MainWindowController.autoContrast)),("自动颜色",#selector(MainWindowController.autoColor))]{let item=image.addItem(withTitle:title,action:action,keyEquivalent:"");item.target=controller}
         image.addItem(.separator())
         for(title,action) in [("转换为 8 位 / 通道",#selector(MainWindowController.convertToEightBit)),("转换为 16 位 / 通道",#selector(MainWindowController.convertToSixteenBit))]{let item=image.addItem(withTitle:title,action:action,keyEquivalent:"");item.target=controller}

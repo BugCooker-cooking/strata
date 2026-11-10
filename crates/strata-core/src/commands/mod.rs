@@ -7,6 +7,7 @@ mod clone_source;
 mod color_components;
 mod crop_delete;
 mod depth;
+mod duplicate_document;
 mod executor;
 mod export;
 mod export_preset;
@@ -38,6 +39,8 @@ mod tree;
 mod trim;
 mod typography;
 pub use cancellation::WorkCancellation;
+pub use duplicate_document::DocumentCopy;
+use duplicate_document::{DuplicateMode, DuplicateResult};
 pub use executor::{
     BrushInteraction, ClipboardImage, CommandError, Control, CropInteraction, Editor,
     ExposureInteraction, GeometryInteraction, HistoryInfo, MarqueeInteraction, MoveInteraction,
@@ -63,6 +66,14 @@ macro_rules! params {
     };
 }
 params!(Empty {});
+params!(DuplicateDocument {
+    #[schemars(length(min = 1, max = 256))]
+    name: String,
+    #[serde(default)]
+    mode: DuplicateMode,
+    #[serde(default)]
+    expected_revision: Option<u64>
+});
 params!(AddGuide {
     #[schemars(length(max = 256))]
     name: String,

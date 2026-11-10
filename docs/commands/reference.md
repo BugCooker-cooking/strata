@@ -10615,6 +10615,113 @@ Permissions: `bound_document, read_resource`
 }
 ```
 
+## `image.duplicate` — 复制文档
+
+Create one independent unsaved document with the supplied name (1..256 UTF-8 bytes, no control characters). layered (default) copies the current editable document, including hidden/off-artboard layers, masks, guides and current/previous selection. It keeps document-local layer and guide IDs for exact appearance and shares copy-on-write samples. merged copies the visible composite inside the current artboard at the same depth and working ICC, retaining alpha, guides and selections, with a 512 MiB flat image limit. Both retain frame origin and DPI. The copy starts with a fresh document ID and session, empty undo history and no file, clipboard, conversation or AI context permissions. The source stays active for the current AI turn. Use expected_revision to bind an inspected source. Native opens an independent tab; AI requires explicit approval to create the tab. No file write or source history entry. 中文：复制文档、复制当前图像、保留所有图层、仅复制可见合成、合并副本。
+
+Kind: `Workspace` · Undoable: `false` · Batchable: `false`
+
+Effects: `document.read, workspace.document.create`
+
+Permissions: `bound_document, workspace_creation_approval`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DuplicateDocument",
+  "type": "object",
+  "properties": {
+    "expected_revision": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "uint64",
+      "default": null,
+      "minimum": 0
+    },
+    "mode": {
+      "$ref": "#/$defs/DuplicateMode",
+      "default": "layered"
+    },
+    "name": {
+      "type": "string",
+      "maxLength": 256,
+      "minLength": 1
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "name"
+  ],
+  "$defs": {
+    "DuplicateMode": {
+      "type": "string",
+      "enum": [
+        "layered",
+        "merged"
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DuplicateResult",
+  "type": "object",
+  "properties": {
+    "copy_document_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "mode": {
+      "$ref": "#/$defs/DuplicateMode"
+    },
+    "name": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "copy_document_id",
+    "name",
+    "mode"
+  ],
+  "$defs": {
+    "DuplicateMode": {
+      "type": "string",
+      "enum": [
+        "layered",
+        "merged"
+      ]
+    }
+  }
+}
+```
+
+### Examples
+
+```json
+{
+  "name": "Working copy"
+}
+```
+
+```json
+{
+  "mode": "merged",
+  "name": "Merged copy"
+}
+```
+
 ## `file.revert_status` — 读取恢复原文件状态
 
 Read whether the current document has a saved project or originally opened image as its revert source; returns basename/source_kind and dirty only, never a path or file grant. available means a bound source exists, not that the disk file is still present or unchanged; no file read/refresh occurs. Unsaved new/recovered documents need a save first. 中文：恢复到上次保存、恢复原文件状态、原始图片、保存的工程。

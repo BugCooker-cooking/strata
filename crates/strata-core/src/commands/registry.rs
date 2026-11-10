@@ -8,6 +8,7 @@ pub enum CommandKind {
     Mutate,
     View,
     Settings,
+    Workspace,
     External,
     Lifecycle,
     History,
@@ -515,6 +516,15 @@ fn build_catalog() -> Vec<CommandSpec> {
         "Recover document",
         "Restore an authorized app recovery checkpoint as a dirty, untitled document. Never overwrite or authorize the original_path. Validate all samples before replacing content; discard_changes is required for a dirty current document.",
         json!({"resource":"fixture-read","discard_changes":true})
+    );
+    command!(
+        "image.duplicate",
+        DuplicateDocument,
+        Workspace,
+        "复制文档",
+        "Duplicate document",
+        "Create one independent unsaved document with the supplied name (1..256 UTF-8 bytes, no control characters). layered (default) copies the current editable document, including hidden/off-artboard layers, masks, guides and current/previous selection. It keeps document-local layer and guide IDs for exact appearance and shares copy-on-write samples. merged copies the visible composite inside the current artboard at the same depth and working ICC, retaining alpha, guides and selections, with a 512 MiB flat image limit. Both retain frame origin and DPI. The copy starts with a fresh document ID and session, empty undo history and no file, clipboard, conversation or AI context permissions. The source stays active for the current AI turn. Use expected_revision to bind an inspected source. Native opens an independent tab; AI requires explicit approval to create the tab. No file write or source history entry. 中文：复制文档、复制当前图像、保留所有图层、仅复制可见合成、合并副本。",
+        json!({"name":"Working copy"})
     );
     command!(
         "file.revert_status",
@@ -1312,6 +1322,7 @@ fn build_catalog() -> Vec<CommandSpec> {
     );
     for item in &mut list {
         item.returns = match item.id {
+            "image.duplicate" => schemars::schema_for!(DuplicateResult),
             "file.export_preset.get" | "file.export_preset.set" => {
                 schemars::schema_for!(ExportPreset)
             }
@@ -1394,6 +1405,12 @@ fn build_catalog() -> Vec<CommandSpec> {
         ) {
             item.effects.push("file.read");
             item.permissions.push("read_resource");
+        }
+        if item.id == "image.duplicate" {
+            item.effects = vec!["document.read", "workspace.document.create"];
+            item.permissions.push("workspace_creation_approval");
+            item.examples
+                .push(json!({"name":"Merged copy","mode":"merged"}));
         }
         if item.kind == CommandKind::External {
             item.effects = vec!["document.read", "file.write"];

@@ -1,10 +1,10 @@
 {
   "scope": "Development audit; not a claim that all Photoshop editing is implemented or AI-verified",
-  "registered_commands": 142,
-  "registered_examples": 211,
-  "catalog_sha256": "877ed16aa03057f0b73de3017845745b46e6e93c0b7204d60adbdac1ef2d2d35",
+  "registered_commands": 143,
+  "registered_examples": 213,
+  "catalog_sha256": "ef381ca4f62531318d8357dd309fe14c7ecdf9217db762cb28aa388d9e9319eb",
   "inventory_rows": 265,
-  "mapped_features": 93,
+  "mapped_features": 96,
   "unmapped_implemented_features": [],
   "partial_entrypoints": [
     "PS-04-cb66199f15",
@@ -46,12 +46,10 @@
     "PS-02-311ee1c4c5",
     "PS-02-57907a69fc",
     "PS-02-91854349e1",
-    "PS-02-21ab73cf70",
     "PS-02-b2fd2e2a88",
     "PS-02-bc773443d0",
     "PS-03-ad24731ea8",
     "PS-03-5f9716e5d8",
-    "PS-03-0f4e217715",
     "PS-03-c10dd16a58",
     "PS-03-484489e467",
     "PS-03-67a3559782",
@@ -171,7 +169,6 @@
     "PS-13-0529cd2d51",
     "PS-13-4592c9e11f",
     "PS-13-1b8faab964",
-    "PS-14-c9a6761937",
     "PS-14-de2fd3ca59",
     "PS-14-810f37be85",
     "PS-14-15d282cc9a",
@@ -209,7 +206,7 @@
   "unknown_native_command_references": {},
   "native_dispatch_prefixes": {
     "view.guides.": [
-      "apps/macos/Strata/App/MainWindowController.swift:370"
+      "apps/macos/Strata/App/MainWindowController.swift:393"
     ]
   },
   "untyped_command_returns": [],
@@ -1067,8 +1064,18 @@
       "name": "功能搜索",
       "priority": "P1",
       "source_line": 98,
-      "implementation": "待实现",
-      "entrypoint": null
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "infrastructure",
+        "coverage": "complete",
+        "commands": [],
+        "meta_tools": [
+          "search_catalog",
+          "describe_commands"
+        ],
+        "prompts": [],
+        "note": "The Command-F sheet uses the same bounded search_catalog and describe_commands implementations as AI. Native bilingual lookup and a one-window search-to-draft check passed. The draft remains available for user review before sending."
+      }
     },
     {
       "id": "PS-02-b2fd2e2a88",
@@ -1308,8 +1315,37 @@
       "name": "复制文档",
       "priority": "P1",
       "source_line": 111,
-      "implementation": "待实现",
-      "entrypoint": null
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "image.duplicate"
+        ],
+        "prompts": [
+          {
+            "text": "复制当前图像，保留所有图层并命名为校样副本。",
+            "query": "复制文档",
+            "command": "image.duplicate"
+          },
+          {
+            "text": "把画板内的可见合成复制成独立文档，命名为输出副本。",
+            "query": "合并副本",
+            "command": "image.duplicate"
+          }
+        ],
+        "variants": [
+          {
+            "command": "image.duplicate",
+            "path": "mode",
+            "values": [
+              "layered",
+              "merged"
+            ]
+          }
+        ],
+        "note": "The same image.duplicate command creates the new native tab from the menu and AI. Explicit workspace approval pins the source revision, and the AI turn stays in the source document. Core verified both modes and save isolation. AI replay checked decline, stale approval and real creation. Release and one-window tab acceptance passed."
+      }
     },
     {
       "id": "PS-03-691c261ce9",
@@ -4464,8 +4500,16 @@
       "name": "多文档标签页",
       "priority": "P0",
       "source_line": 345,
-      "implementation": "待实现",
-      "entrypoint": null
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "host_managed",
+        "coverage": "complete",
+        "commands": [
+          "image.duplicate"
+        ],
+        "prompts": [],
+        "note": "The native tab host opens, selects and closes independent editors. AI can create a tab with image.duplicate through workspace approval. A turn stays in its authorized document and each tab manages its own control, history and saved state. M1b and current one-window switch/close evidence are linked in the feature tracker."
+      }
     },
     {
       "id": "PS-14-de2fd3ca59",

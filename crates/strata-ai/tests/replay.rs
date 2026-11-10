@@ -8,12 +8,129 @@ use strata_ai::{
 };
 use strata_core::{
     Editor, Source,
-    commands::{Control, Snapshot},
+    commands::{Control, DocumentCopy, Snapshot},
 };
 use uuid::Uuid;
 
 struct Host {
     editor: Mutex<Editor>,
+    copies: Mutex<Vec<DocumentCopy>>,
+}
+
+#[test]
+fn duplicate_prompt_requires_fresh_workspace_approval_and_keeps_its_original_context() {
+    let host = Host::new();
+    host.user(
+        "layer.create",
+        json!({"name":"Editable pixels","fill":[10001,30003,50001,32769]}),
+    );
+    let source_id = host.snapshot().unwrap().document_id;
+    let mut session = host.session_with_prompt(
+        ExecutionMode::Direct,
+        "复制当前图像，保留图层并命名为校样副本。",
+    );
+    reply(
+        &mut session,
+        &host,
+        vec![
+            call("find-copy", "search_catalog", json!({"query":"复制文档"})),
+            call(
+                "describe-copy",
+                "describe_commands",
+                json!({"ids":["image.duplicate"]}),
+            ),
+        ],
+    );
+    assert!(
+        result(session.poll(&host).unwrap())["matches"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|item| item["id"] == "image.duplicate")
+    );
+    let described = result(session.poll(&host).unwrap());
+    assert_eq!(
+        described["commands"][0]["params"]["additionalProperties"],
+        false
+    );
+    assert_eq!(
+        described["commands"][0]["returns"]["additionalProperties"],
+        false
+    );
+
+    for (call_id, approve) in [
+        ("deny-copy", false),
+        ("stale-copy", true),
+        ("make-copy", true),
+    ] {
+        reply(
+            &mut session,
+            &host,
+            vec![invoke(
+                call_id,
+                "image.duplicate",
+                json!({"name":"校样副本","mode":"layered"}),
+            )],
+        );
+        let Step::Paused {
+            question_id,
+            reason,
+            operation,
+            ..
+        } = session.poll(&host).unwrap()
+        else {
+            panic!("workspace creation needs its own approval in Direct mode");
+        };
+        assert_eq!(reason, "workspace_approval");
+        assert_eq!(
+            operation.unwrap()["params"]["expected_revision"],
+            host.snapshot().unwrap().revision
+        );
+        assert!(host.copies.lock().unwrap().is_empty());
+        if call_id == "stale-copy" {
+            host.user("select.all", json!({}));
+        }
+        let reply = result(
+            session
+                .respond(
+                    &host,
+                    HostAnswer {
+                        question_id,
+                        answer: String::new(),
+                        approved: approve,
+                        resource: None,
+                    },
+                )
+                .unwrap(),
+        );
+        match call_id {
+            "deny-copy" => assert_eq!(reply["status"], "denied"),
+            "stale-copy" => assert_eq!(reply["error"], "command_failed"),
+            _ => {
+                let copies = host.copies.lock().unwrap();
+                assert_eq!(copies.len(), 1);
+                let copy = &copies[0];
+                assert_eq!(copy.name, "校样副本");
+                assert_eq!(
+                    reply["result"]["copy_document_id"],
+                    json!(copy.editor.snapshot().document_id)
+                );
+                assert_eq!(copy.editor.control(), &Control::User);
+                assert_eq!(copy.editor.document().unwrap().layers().len(), 2);
+                assert!(copy.editor.snapshot().history.is_empty());
+            }
+        }
+    }
+    reply(
+        &mut session,
+        &host,
+        vec![invoke("inspect-source", "document.inspect", json!({}))],
+    );
+    assert_eq!(
+        result(session.poll(&host).unwrap())["result"]["document_id"],
+        json!(source_id)
+    );
+    host.editor.lock().unwrap().stop_turn();
 }
 
 #[test]
@@ -438,6 +555,7 @@ impl Host {
             .unwrap();
         Self {
             editor: Mutex::new(editor),
+            copies: Mutex::new(Vec::new()),
         }
     }
     fn user(&self, id: &str, params: Value) -> Value {
@@ -494,9 +612,16 @@ impl ToolHost for Host {
             .request(Source::Ai { turn_id: turn })
             .with_timeout(timeout);
         request.call_id = call;
-        editor
-            .execute(request, id, params, |_| Ok(()))
-            .map_err(|e| AiError::Host(e.to_string()))
+        let prepared = editor
+            .prepare(request, id, params)
+            .map_err(|e| AiError::Host(e.to_string()))?;
+        let (result, copy) = editor
+            .commit_with_document_copy(prepared)
+            .map_err(|e| AiError::Host(e.to_string()))?;
+        if let Some(copy) = copy {
+            self.copies.lock().unwrap().push(copy);
+        }
+        Ok(result)
     }
     fn pause(&self, _: Uuid) -> Result<(), AiError> {
         self.editor

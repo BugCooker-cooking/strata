@@ -90,9 +90,56 @@ impl From<CanvasViewport> for Viewport {
 }
 #[derive(Debug, Clone, PartialEq, uniffi::Enum)]
 pub enum EngineEventDto {
-    DocumentOpened { info: ImageInfo, generation: u64 },
-    StateChanged { snapshot_json: String },
+    DocumentOpened {
+        info: ImageInfo,
+        generation: u64,
+    },
+    StateChanged {
+        snapshot_json: String,
+    },
     ExportPresetChanged,
+    DocumentDuplicated {
+        name: String,
+        activate: bool,
+        copy: Arc<DuplicatedDocument>,
+    },
+}
+
+#[derive(uniffi::Object)]
+pub struct DuplicatedDocument(Mutex<Option<Editor>>);
+
+impl std::fmt::Debug for DuplicatedDocument {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("DuplicatedDocument(..)")
+    }
+}
+impl PartialEq for DuplicatedDocument {
+    fn eq(&self, other: &Self) -> bool {
+        std::ptr::eq(self, other)
+    }
+}
+
+#[uniffi::export]
+impl DuplicatedDocument {
+    /// The trusted workspace attaches its own listener and takes ownership once.
+    pub fn take_engine(
+        &self,
+        listener: Arc<dyn EngineListener>,
+    ) -> Result<Arc<StrataEngine>, StrataError> {
+        let editor = self
+            .0
+            .lock()
+            .map_err(render_error)?
+            .take()
+            .ok_or_else(|| render_error("the copy already belongs to a document tab"))?;
+        Ok(StrataEngine::from_inner(
+            Inner {
+                editor,
+                ..Inner::default()
+            },
+            listener,
+        ))
+    }
 }
 #[derive(Debug, thiserror::Error, uniffi::Error)]
 pub enum StrataError {
@@ -245,19 +292,7 @@ impl StrataEngine {
     }
     #[uniffi::constructor]
     pub fn new(listener: Arc<dyn EngineListener>) -> Arc<Self> {
-        let inner = Inner::default();
-        let work_cancellation = inner.editor.work_cancellation();
-        Arc::new(Self {
-            inner: Mutex::new(inner),
-            work_cancellation,
-            active_ai_request: Mutex::new(None),
-            tonal_preview_sequence: std::sync::atomic::AtomicU64::new(0),
-            preview_work: Mutex::new(strata_core::commands::WorkCancellation::default()),
-            geometry_session: Mutex::new(None),
-            listener,
-            recovery: Mutex::new(None),
-            ai: Mutex::new(None),
-        })
+        Self::from_inner(Inner::default(), listener)
     }
     pub fn configure_recovery(&self, directory: String) -> Result<(), StrataError> {
         let store =
@@ -698,7 +733,18 @@ fn apply(
     // Same mutex covers core commit and renderer swap. The prepared scene belongs
     // to this renderer; swapping it performs no fallible GPU work.
     let old_revision = inner.editor.revision();
-    let result = inner.editor.commit(prepared).map_err(command_error)?;
+    let (result, copy) = inner
+        .editor
+        .commit_with_document_copy(prepared)
+        .map_err(command_error)?;
+    if let Some(copy) = copy {
+        inner.events.push_back(EngineEventDto::DocumentDuplicated {
+            name: copy.name,
+            activate: !matches!(copy.source, Source::Ai { .. }),
+            copy: Arc::new(DuplicatedDocument(Mutex::new(Some(copy.editor)))),
+        });
+        return Ok(result);
+    }
     if inner.editor.revision() != old_revision
         && let (Some(scene), Some(renderer)) = (scene, &mut inner.renderer)
     {
@@ -753,6 +799,20 @@ fn apply(
     Ok(result)
 }
 impl StrataEngine {
+    fn from_inner(inner: Inner, listener: Arc<dyn EngineListener>) -> Arc<Self> {
+        let work_cancellation = inner.editor.work_cancellation();
+        Arc::new(Self {
+            inner: Mutex::new(inner),
+            work_cancellation,
+            active_ai_request: Mutex::new(None),
+            tonal_preview_sequence: std::sync::atomic::AtomicU64::new(0),
+            preview_work: Mutex::new(strata_core::commands::WorkCancellation::default()),
+            geometry_session: Mutex::new(None),
+            listener,
+            recovery: Mutex::new(None),
+            ai: Mutex::new(None),
+        })
+    }
     fn lock(&self) -> Result<std::sync::MutexGuard<'_, Inner>, StrataError> {
         self.inner.lock().map_err(|_| StrataError::Internal {
             message: "state lock poisoned".into(),

@@ -20,6 +20,20 @@ fn parse_id(id: &str) -> Result<Uuid, StrataError> {
     Uuid::parse_str(id).map_err(ai_error)
 }
 
+#[uniffi::export]
+pub fn search_command_catalog(query: String) -> Result<String, StrataError> {
+    strata_ai::catalog::search(&query, 32)
+        .map(|value| value.to_string())
+        .map_err(ai_error)
+}
+
+#[uniffi::export]
+pub fn describe_catalog_command(id: String) -> Result<String, StrataError> {
+    strata_ai::catalog::describe(&[id])
+        .map(|value| value.to_string())
+        .map_err(ai_error)
+}
+
 /// No credential is passed to Rust. Native transport retrieves it from the
 /// platform secret store immediately before sending this exact destination.
 #[uniffi::export]

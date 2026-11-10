@@ -30,6 +30,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
     }
     var onNewTab: (() -> Void)?
     var onOpenURL: ((URL) -> Void)?
+    var onDocumentDuplicated: ((String, Bool, DuplicatedDocument) -> Void)?
     var onTheme: ((WorkspaceTheme) -> Void)?
     var onClosed: (() -> Void)?
     var onBecameMain: (() -> Void)?
@@ -41,7 +42,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         catch { workspace.recoveryStatus = "恢复目录不可用"; workspace.recoveryError = error.localizedDescription }
     }
 
-    init(engine: StrataEngine) {
+    init(engine: StrataEngine, fileName: String = "未命名") {
+        self.fileName = fileName
         self.engine = engine; canvas = CanvasView(engine: engine); assistant = AssistantModel(engine: engine)
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1512, height: 930), styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
         super.init(window: window)
@@ -193,6 +195,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         case #selector(saveDocument), #selector(saveAs), #selector(exportDocument),#selector(quickExportDocument), #selector(placeImage), #selector(convertToSRGB), #selector(convertToP3),#selector(assignSRGB),#selector(assignP3): workspace.permissions.edits && workspace.hasDocument
         case #selector(configureQuickExport): !busy && (state?.control?.kind ?? "user")=="user"
         case #selector(revertDocument):workspace.permissions.edits && workspace.hasDocument && engine.revertSourcePath() != nil
+        case #selector(duplicateDocument): workspace.permissions.edits && workspace.hasDocument && onDocumentDuplicated != nil
+        case #selector(showCommandSearch): true
         case #selector(openImage), #selector(newTab), #selector(openRecent(_:)): !busy
         default: true
         }
@@ -273,6 +277,23 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         workspace.theme = theme; window?.appearance = theme.appearance; canvas.markDirty()
     }
     @objc func toggleAssistant() { assistantItem.isCollapsed.toggle(); workspace.assistantVisible = !assistantItem.isCollapsed }
+    @objc func showCommandSearch() {
+        guard let window, window.attachedSheet == nil else { return }
+        let alert = NSAlert()
+        alert.messageText = "功能搜索"
+        alert.addButton(withTitle: "关闭").keyEquivalent = "\u{1b}"
+        let search = CommandSearchView(canDraft: workspace.hasDocument) { [weak self, weak alert] match in
+            guard let self, let alert, let window = self.window else { return }
+            window.endSheet(alert.window)
+            if self.assistantItem.isCollapsed { self.toggleAssistant() }
+            if !self.assistant.draft.isEmpty { self.assistant.draft += "\n\n" }
+            self.assistant.draft += "请帮我使用「\(match.title)」（\(match.id)）。"
+        }
+        let accessory = NSHostingView(rootView: search)
+        accessory.frame = NSRect(x: 0, y: 0, width: 630, height: 380)
+        alert.accessoryView = accessory
+        alert.beginSheetModal(for: window)
+    }
     @objc func togglePanels() {
         let hide = !inspectorItem.isCollapsed; inspectorItem.isCollapsed = hide; assistantItem.isCollapsed = hide
         workspace.inspectorVisible = !hide; workspace.assistantVisible = !hide
@@ -280,6 +301,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
     @objc func newTab() { if let onNewTab { onNewTab() } else { newDocument() } }
     func handle(_ event: EngineEventDto) {
         switch event {
+        case .documentDuplicated(let name, let activate, let copy):
+            onDocumentDuplicated?(name, activate, copy)
         case .exportPresetChanged:
             do{try QuickExportPreferences().save(from:engine);quickExportError=""}catch{quickExportError=error.localizedDescription}
         case .documentOpened: canvas.markDirty()

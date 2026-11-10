@@ -232,6 +232,10 @@ pub struct Snapshot {
 }
 
 enum Action {
+    Duplicate {
+        name: String,
+        index_budget: Arc<strata_pixels::memory::Reservation>,
+    },
     ExportPreset(u64, super::ExportPreset),
     Presentation(crate::Presentation),
     PaintColors(super::PaintColors),
@@ -315,6 +319,7 @@ struct Receipt {
 
 #[derive(Clone)]
 pub struct Editor {
+    copy_index_budget: Option<Arc<strata_pixels::memory::Reservation>>,
     export_presets: super::ExportPresetStore,
     presentation: crate::Presentation,
     paint_colors: super::PaintColors,
@@ -348,6 +353,7 @@ impl Default for Editor {
 impl Editor {
     pub fn new() -> Self {
         Self {
+            copy_index_budget: None,
             export_presets: Default::default(),
             presentation: Default::default(),
             paint_colors: Default::default(),
@@ -1792,6 +1798,33 @@ impl Editor {
                     (Action::View, json!({"view":id,"params":params}))
                 }
             }
+            CommandKind::Workspace => {
+                let duplicate: super::DuplicateDocument = parse(params.clone())?;
+                if duplicate
+                    .expected_revision
+                    .is_some_and(|revision| revision != self.revision)
+                {
+                    return Err(CommandError::Stale);
+                }
+                let original = self.document().ok_or(CommandError::NoDocument)?;
+                let (copy, index_budget) =
+                    super::duplicate_document::prepare(original, &duplicate, &|| {
+                        request.expired()
+                    })?;
+                let result = json!(super::DuplicateResult {
+                    copy_document_id: copy.id(),
+                    name: duplicate.name.clone(),
+                    mode: duplicate.mode,
+                });
+                candidate = Some(copy);
+                (
+                    Action::Duplicate {
+                        name: duplicate.name,
+                        index_budget,
+                    },
+                    result,
+                )
+            }
             CommandKind::Settings => {
                 let p: super::SetExportPreset = parse(params.clone())?;
                 let (expected, value) = self.export_presets.prepare(p)?;
@@ -1856,6 +1889,21 @@ impl Editor {
         })
     }
     pub fn commit(&mut self, prepared: PreparedCommand) -> Result<Value, CommandError> {
+        self.commit_inner(prepared, false).map(|(result, _)| result)
+    }
+    /// The workspace consumes the one detached editor only when its command
+    /// commits. A receipt retry returns the original result without a new tab.
+    pub fn commit_with_document_copy(
+        &mut self,
+        prepared: PreparedCommand,
+    ) -> Result<(Value, Option<super::DocumentCopy>), CommandError> {
+        self.commit_inner(prepared, true)
+    }
+    fn commit_inner(
+        &mut self,
+        prepared: PreparedCommand,
+        accept_copy: bool,
+    ) -> Result<(Value, Option<super::DocumentCopy>), CommandError> {
         // Two workers may prepare the same call before either commits. Recheck
         // its receipt under the host's commit lock, before checking revision.
         if prepared.request.session != self.session
@@ -1873,10 +1921,15 @@ impl Editor {
             {
                 return Err(CommandError::CallConflict);
             }
-            return Ok(old.result.clone());
+            return Ok((old.result.clone(), None));
         }
         if prepared.replay {
             return Err(CommandError::Expired);
+        }
+        if matches!(prepared.action, Action::Duplicate { .. }) && !accept_copy {
+            return Err(CommandError::Invalid(
+                "the workspace host must accept the new document".into(),
+            ));
         }
         if matches!(prepared.action, Action::External(_)) {
             if prepared.request.session != self.session
@@ -1964,7 +2017,10 @@ impl Editor {
             || matches!(prepared.action, Action::Query)
             || matches!(
                 prepared.action,
-                Action::PaintColors(_) | Action::Presentation(_) | Action::ExportPreset(_, _)
+                Action::PaintColors(_)
+                    | Action::Presentation(_)
+                    | Action::ExportPreset(_, _)
+                    | Action::Duplicate { .. }
             )
             || prepared.command.starts_with("view.guides.")
             || prepared.command == "view.presentation.get"
@@ -1986,7 +2042,23 @@ impl Editor {
                     | "type.update"
                     | "layer.snap_position"
             ) && prepared.result["changed"] == false);
+        let mut copy = None;
         match prepared.action {
+            Action::Duplicate { name, index_budget } => {
+                let document = prepared.candidate.ok_or(CommandError::NoDocument)?;
+                let mut editor = Self::with_memory_pool(self.pool.clone())
+                    .with_export_presets(self.export_presets.clone());
+                editor.selected = document.active_layer();
+                editor.document = Some(document);
+                editor.copy_index_budget = Some(index_budget);
+                editor.decoder = self.decoder.clone();
+                editor.selector = self.selector.clone();
+                copy = Some(super::DocumentCopy {
+                    name,
+                    editor,
+                    source: prepared.request.source.clone(),
+                });
+            }
             Action::ExportPreset(expected, value) => self.export_presets.commit(expected, value)?,
             Action::Presentation(value) => {
                 self.presentation = value;
@@ -2001,6 +2073,7 @@ impl Editor {
                 self.commit_copy(*copy, &prepared.command)?;
             }
             Action::Open(path, source) => {
+                self.copy_index_budget = None;
                 self.saved = prepared.candidate.as_ref().map(Document::state_id);
                 self.document = prepared.candidate;
                 self.history.clear();
@@ -2010,6 +2083,7 @@ impl Editor {
                 self.revision += 1;
             }
             Action::Recover => {
+                self.copy_index_budget = None;
                 self.document = prepared.candidate;
                 self.saved = None;
                 self.history.clear();
@@ -2077,6 +2151,7 @@ impl Editor {
                 }
             }
             Action::New => {
+                self.copy_index_budget = None;
                 self.document = prepared.candidate;
                 self.saved = None;
                 self.history.clear();
@@ -2128,7 +2203,7 @@ impl Editor {
                 issued: prepared.request.issued,
             },
         );
-        Ok(prepared.result)
+        Ok((prepared.result, copy))
     }
 }
 

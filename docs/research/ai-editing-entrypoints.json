@@ -2246,6 +2246,56 @@
         }
       ],
       "note": "Actual current-source lifecycle reload through file.open decoder/project/render preparation. Strict schemas, bilingual search/describe, discard_changes=true, optional expected_revision, fresh matching host-selected read resource and a source pin at commit. Metadata exposes only the current source basename/kind/dirty. Core/archive/decode/path/cancel/stale/display-failure, AI decline/fresh grant/real reload/context rebind and actual native/Metal/Release gates passed. One-window menu cancel/apply and last-window exit preserved source/default settings. Revert clears undo/redo; it is not an undoable edit or a source-file write. This closes the revert row, not remaining Photoshop/file capabilities."
+    },
+    "PS-03-0f4e217715": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "image.duplicate"
+      ],
+      "prompts": [
+        {
+          "text": "复制当前图像，保留所有图层并命名为校样副本。",
+          "query": "复制文档",
+          "command": "image.duplicate"
+        },
+        {
+          "text": "把画板内的可见合成复制成独立文档，命名为输出副本。",
+          "query": "合并副本",
+          "command": "image.duplicate"
+        }
+      ],
+      "variants": [
+        {
+          "command": "image.duplicate",
+          "path": "mode",
+          "values": [
+            "layered",
+            "merged"
+          ]
+        }
+      ],
+      "note": "The same image.duplicate command creates the new native tab from the menu and AI. Explicit workspace approval pins the source revision, and the AI turn stays in the source document. Core verified both modes and save isolation. AI replay checked decline, stale approval and real creation. Release and one-window tab acceptance passed."
+    },
+    "PS-02-21ab73cf70": {
+      "scope": "infrastructure",
+      "coverage": "complete",
+      "commands": [],
+      "meta_tools": [
+        "search_catalog",
+        "describe_commands"
+      ],
+      "prompts": [],
+      "note": "The Command-F sheet uses the same bounded search_catalog and describe_commands implementations as AI. Native bilingual lookup and a one-window search-to-draft check passed. The draft remains available for user review before sending."
+    },
+    "PS-14-c9a6761937": {
+      "scope": "host_managed",
+      "coverage": "complete",
+      "commands": [
+        "image.duplicate"
+      ],
+      "prompts": [],
+      "note": "The native tab host opens, selects and closes independent editors. AI can create a tab with image.duplicate through workspace approval. A turn stays in its authorized document and each tab manages its own control, history and saved state. M1b and current one-window switch/close evidence are linked in the feature tracker."
     }
   }
 }

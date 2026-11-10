@@ -1072,5 +1072,39 @@
         "path": "../research/2026-11-m8-revert-progress.md"
       }
     ]
+  },
+  "PS-03-0f4e217715": {
+    "implementation": "已实现",
+    "acceptance": "Layered and visible-artboard copies use independent editors and have exact initial appearance, separate saved state and history, and bounded shared storage. Core/file/pixel/AI, real Metal, native and Release checks passed. One window verified both copy modes, X40 on the duplicate versus X0 on the source, and closing unsaved copies.",
+    "evidence": [
+      {
+        "label": "Document duplication and feature search local checks",
+        "path": "../research/2026-11-m8-duplicate-search-progress.md"
+      }
+    ]
+  },
+  "PS-02-21ab73cf70": {
+    "implementation": "已实现",
+    "acceptance": "Native Command-F searches the real catalog, displays the shared description and can insert a prompt into the AI draft. Bilingual lookup and unsupported-command checks passed in XCTest. One Release window confirmed Chinese lookup and insertion into the draft.",
+    "evidence": [
+      {
+        "label": "Document duplication and feature search local checks",
+        "path": "../research/2026-11-m8-duplicate-search-progress.md"
+      }
+    ]
+  },
+  "PS-14-c9a6761937": {
+    "implementation": "已实现",
+    "acceptance": "M1b delivered independent native document tabs. Current local tests and one-window acceptance reconfirmed tab switching, independent edits/history and unsaved close prompts. AI context is bound to the owning document, and a duplicate starts a separate session.",
+    "evidence": [
+      {
+        "label": "M1b workspace closure",
+        "path": "2026-11-03-workspace-and-m1b.md"
+      },
+      {
+        "label": "Document duplication and feature search local checks",
+        "path": "../research/2026-11-m8-duplicate-search-progress.md"
+      }
+    ]
   }
 }

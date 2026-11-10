@@ -79,6 +79,13 @@ fn examples() -> Result<(), Box<dyn Error>> {
             };
             let mut args = example.clone();
             match spec.id {
+                "image.duplicate" => {
+                    run(
+                        &mut editor,
+                        "layer.create",
+                        json!({"name":"Color fixture","fill":[10001,30003,50001,32769]}),
+                    )?;
+                }
                 "view.rulers.convert" => {
                     run(
                         &mut editor,
@@ -411,7 +418,27 @@ fn examples() -> Result<(), Box<dyn Error>> {
             let origin_example = (spec.id == "view.presentation.set")
                 .then(|| args.get("ruler_origin").cloned())
                 .flatten();
-            let result = run(&mut editor, spec.id, args)?;
+            let result = if spec.id == "image.duplicate" {
+                let prepared = editor.prepare(editor.request(Source::Test), spec.id, args)?;
+                let (result, copy) = editor.commit_with_document_copy(prepared)?;
+                let copy = copy.ok_or("duplicate example produced no document")?;
+                let document = copy
+                    .editor
+                    .document()
+                    .ok_or("duplicate document is empty")?;
+                let source = editor.document().unwrap();
+                let expected_layers = if result["mode"] == "merged" { 1 } else { 2 };
+                if document.id() == source.id()
+                    || document.layers().len() != expected_layers
+                    || document.export_pixels()? != source.export_pixels()?
+                    || !copy.editor.dirty()
+                {
+                    return Err("duplicate example did not create the expected editable copy or artboard composite".into());
+                }
+                result
+            } else {
+                run(&mut editor, spec.id, args)?
+            };
             if !result.is_object() {
                 return Err(format!("{} returned non-object", spec.id).into());
             }

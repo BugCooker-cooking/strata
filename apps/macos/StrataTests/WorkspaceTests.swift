@@ -121,4 +121,51 @@ final class WorkspaceTests: XCTestCase {
         XCTAssertEqual(try EditorSnapshot.decode(first.snapshotJson()).layers.count, 1)
         XCTAssertEqual(try EditorSnapshot.decode(second.snapshotJson()).bitDepth, 16)
     }
+
+    @MainActor
+    func testDuplicateCommandDeliversOneUnsavedCopyWithSeparateControlAndHistory() async throws {
+        var opened: StrataEngine?
+        var count = 0
+        let delivered = expectation(description: "workspace receives a new document")
+        let source = StrataEngine(listener: EngineEvents { event in
+            guard case let .documentDuplicated(name, activate, copy) = event else { return }
+            count += 1
+            XCTAssertEqual(name, "Proof copy")
+            XCTAssertTrue(activate)
+            do {
+                opened = try copy.takeEngine(listener: EngineEvents { _ in })
+                XCTAssertThrowsError(try copy.takeEngine(listener: EngineEvents { _ in }))
+            } catch {
+                XCTFail("Copy transfer failed: \(error)")
+            }
+            delivered.fulfill()
+        })
+        _ = try source.dispatch(command: "file.new", paramsJson: commandJSON(["width": 8, "height": 6, "bit_depth": 16]))
+        _ = try source.dispatch(command: "layer.create", paramsJson: commandJSON(["name": "Edited layer"]))
+        let original = try source.snapshotJson()
+        _ = try source.dispatch(command: "image.duplicate", paramsJson: commandJSON(["name": "Proof copy"]))
+        await fulfillment(of: [delivered], timeout: 3)
+        let duplicate = try XCTUnwrap(opened)
+        let copyState = try EditorSnapshot.decode(duplicate.snapshotJson())
+        XCTAssertEqual(copyState.layers.map(\.name), ["Background", "Edited layer"])
+        XCTAssertNotEqual(copyState.documentId, try EditorSnapshot.decode(original).documentId)
+        XCTAssertTrue(copyState.dirty && copyState.history.isEmpty)
+        XCTAssertNil(duplicate.projectPath())
+        XCTAssertNil(duplicate.revertSourcePath())
+        _ = try duplicate.dispatch(command: "layer.rename", paramsJson: commandJSON(["layer": ["name": "Edited layer"], "name": "Copy edit"]))
+        XCTAssertEqual(try source.snapshotJson(), original)
+        XCTAssertEqual(count, 1)
+    }
+
+    func testFeatureSearchUsesBilingualRegistryAndShowsOnlyAvailableCommands() throws {
+        for query in ["复制文档", "duplicate document", "image.duplicate"] {
+            let matches = try CommandSearchCatalog.search(query)
+            XCTAssertTrue(matches.contains { $0.id == "image.duplicate" })
+        }
+        XCTAssertEqual(try CommandSearchCatalog.search("image.duplicate").first?.id, "image.duplicate")
+        XCTAssertTrue(try CommandSearchCatalog.description(for: "image.duplicate").contains("expected_revision"))
+        XCTAssertTrue(try CommandSearchCatalog.search("path.create_unimplemented").isEmpty)
+        XCTAssertTrue(try CommandSearchCatalog.search(" \n ").isEmpty)
+        XCTAssertThrowsError(try CommandSearchCatalog.search(String(repeating: "中", count: 86)))
+    }
 }

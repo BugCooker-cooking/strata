@@ -148,6 +148,7 @@ enum WaitReason {
     Question,
     Edit { destructive: bool },
     Settings { id: String, params: Value },
+    Workspace { id: String, params: Value },
     File { id: String, params: Value },
     Lifecycle { id: String, params: Value },
 }
@@ -525,6 +526,24 @@ impl Session {
                 vec!["选择文件".into(),"取消此操作".into()], Some(json!({"command":id,"params":safe_params})))?;
             return Ok(None);
         }
+        if spec.kind == CommandKind::Workspace {
+            let mut params = params;
+            if params.get("expected_revision").is_none_or(Value::is_null) {
+                params["expected_revision"] = json!(host.snapshot()?.revision);
+            }
+            self.wait(
+                host,
+                call.clone(),
+                WaitReason::Workspace {
+                    id: id.into(),
+                    params: params.clone(),
+                },
+                "允许按这些参数把当前文档复制到新标签页？本轮仍在原文档执行。".into(),
+                vec!["创建副本".into(), "取消".into()],
+                Some(json!({"command":id,"params":params})),
+            )?;
+            return Ok(None);
+        }
         if spec.kind == CommandKind::Settings {
             self.wait(host,call.clone(),WaitReason::Settings{id:id.into(),params:params.clone()},
                 "允许按本次参数修改应用的快速导出预设？此设置跨文档保存，不属于文档撤销，也不授权写入任何图片文件。".into(),vec!["保存此预设".into(),"取消".into()],Some(json!({"command":id,"params":params})))?;
@@ -572,6 +591,7 @@ impl Session {
             WaitReason::Question => "question",
             WaitReason::Edit { .. } => "edit_approval",
             WaitReason::Settings { .. } => "settings_approval",
+            WaitReason::Workspace { .. } => "workspace_approval",
             WaitReason::File { .. } => "file_resource",
             WaitReason::Lifecycle { .. } => "lifecycle_approval",
         };
@@ -772,6 +792,18 @@ impl Session {
                         )),
                         Err(error) => Err(error),
                     }
+                }
+            }
+            WaitReason::Workspace { id, params } => {
+                if answer.approved {
+                    host.execute(self.turn, Uuid::new_v4(), &id, params, self.command_timeout()).map(|data| {
+                        (json!({"result":data,"context":"The current AI turn stays on the source document. Open a separate authorized turn in the copy to edit it."}), None)
+                    })
+                } else {
+                    Ok((
+                        json!({"status":"denied","message":"The user declined to create the copy."}),
+                        None,
+                    ))
                 }
             }
             WaitReason::Settings { id, params } => {
