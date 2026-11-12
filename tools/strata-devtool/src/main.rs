@@ -275,6 +275,23 @@ fn examples() -> Result<(), Box<dyn Error>> {
                     run(&mut editor, "layer.create", json!({"name":"Second"}))?;
                     run(&mut editor, "layer.create", json!({"name":"Third"}))?;
                 }
+                "layer.rasterize" if args["layer"]["name"] == "RasterText" => {
+                    run(
+                        &mut editor,
+                        "type.create",
+                        json!({"name":"RasterText","spec":{"text":"Raster中文","font":"sans","font_size":10,"layout":{"type":"point"}},"color":[0.2,0.4,0.8,1],"x":2,"y":12}),
+                    )?;
+                    run(
+                        &mut editor,
+                        "transform.apply",
+                        json!({"layer":{"name":"RasterText"},"scope":"whole_layer","geometry":{"type":"affine","values":[0,1,-1,0,16,0]},"interpolation":"nearest"}),
+                    )?;
+                    run(
+                        &mut editor,
+                        "image.crop",
+                        json!({"rect":{"x":1,"y":1,"width":14,"height":14},"pixels":"delete"}),
+                    )?;
+                }
                 "layer.rasterize" => {
                     run(
                         &mut editor,
@@ -415,6 +432,8 @@ fn examples() -> Result<(), Box<dyn Error>> {
                 _ => {}
             }
             let smart_example = spec.id == "layer.snap_position" && args["layers"] == true;
+            let text_raster_example =
+                spec.id == "layer.rasterize" && args["layer"]["name"] == "RasterText";
             let origin_example = (spec.id == "view.presentation.set")
                 .then(|| args.get("ruler_origin").cloned())
                 .flatten();
@@ -484,6 +503,29 @@ fn examples() -> Result<(), Box<dyn Error>> {
                     return Err(
                         "ruler example did not execute the independent300dpi millimeter reference"
                             .into(),
+                    );
+                }
+            }
+            if text_raster_example {
+                let layer = editor.document().unwrap().layers().last().unwrap();
+                let mut has_ink = false;
+                for (_, tile) in layer.pixels().tiles() {
+                    let tile = tile?;
+                    has_ink |= match &*tile {
+                        strata_pixels::PixelBuffer::Rgba8(pixels) => {
+                            pixels.chunks_exact(4).any(|pixel| pixel[3] > 0)
+                        }
+                        strata_pixels::PixelBuffer::Rgba16(pixels) => {
+                            pixels.chunks_exact(4).any(|pixel| pixel[3] > 0)
+                        }
+                    };
+                }
+                if !matches!(layer.info().kind, strata_core::LayerKind::Pixel)
+                    || result["layer_id"] != json!(layer.id())
+                    || !has_ink
+                {
+                    return Err(
+                        "text rasterization example did not create real pixel content".into(),
                     );
                 }
             }

@@ -4,6 +4,49 @@ import XCTest
 
 final class EditableTextTests:XCTestCase{
     @MainActor
+    func testRasterizationAndUndoRestoreTextEditingWithOrderedGeometry() async throws {
+        let (engine, text) = try configured()
+        text.content = "Raster native"
+        text.fontSize = 24
+        text.newText(at: NSPoint(x: 8, y: 40))
+        text.apply()
+        try await idle(text)
+        let typeID = try XCTUnwrap(EditorSnapshot.decode(engine.snapshotJson()).activeLayer)
+        _ = try engine.dispatch(command: "transform.apply", paramsJson: commandJSON([
+            "layer": ["id":typeID], "scope":"whole_layer",
+            "geometry": ["type":"affine", "values":[0,1,-1,0,120,0]], "interpolation":"nearest"
+        ]))
+        _ = try engine.dispatch(command: "image.crop", paramsJson: commandJSON([
+            "rect":["x":16,"y":4,"width":140,"height":120], "pixels":"delete"
+        ]))
+        let before = try EditorSnapshot.decode(engine.snapshotJson())
+        let layer = try XCTUnwrap(before.layers.last)
+        let definition = try XCTUnwrap(layer.kind?.text)
+        XCTAssertEqual(definition["operations"].array.count, 2)
+        text.bind(before)
+        XCTAssertFalse(text.creating)
+        _ = try engine.dispatch(command: "layer.rasterize", paramsJson: commandJSON(["layer":["id":layer.id]]))
+        let baked = try EditorSnapshot.decode(engine.snapshotJson())
+        XCTAssertEqual(baked.layers.last?.id, layer.id)
+        XCTAssertEqual(baked.layers.last?.kind?.kind, "pixel")
+        XCTAssertEqual(baked.historyCursor, before.historyCursor+1)
+        text.bind(baked)
+        XCTAssertTrue(text.creating)
+        _ = try engine.dispatch(command: "edit.undo", paramsJson: "{}")
+        let restored = try EditorSnapshot.decode(engine.snapshotJson())
+        XCTAssertEqual(restored.layers.last?.kind?.text, definition)
+        text.bind(restored)
+        XCTAssertFalse(text.creating)
+        XCTAssertEqual(text.content, "Raster native")
+        text.content = "Reedited source"
+        text.apply()
+        try await idle(text)
+        let edited = try EditorSnapshot.decode(engine.snapshotJson())
+        XCTAssertEqual(edited.layers.last?.kind?.text?["operations"], definition["operations"])
+        XCTAssertEqual(edited.layers.last?.kind?.text?["spec"]["text"].string, "Reedited source")
+    }
+
+    @MainActor
     func testPointerPlacementIsOverlayOnlyAndCannotRetargetAfterContextOrToolChanges()throws{
         let(engine,text)=try configured(),model=WorkspaceModel(),canvas=CanvasView(engine:engine)
         model.snapshot=try EditorSnapshot.decode(engine.snapshotJson());model.textEditing=text;model.tool = .text;canvas.configureText(model)

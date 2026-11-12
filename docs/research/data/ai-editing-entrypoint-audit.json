@@ -1,8 +1,8 @@
 {
   "scope": "Development audit; not a claim that all Photoshop editing is implemented or AI-verified",
   "registered_commands": 147,
-  "registered_examples": 217,
-  "catalog_sha256": "f74c165bbdcc2073a38abd6f6a2c034e9580d256c2dd0b6b2deed95f5519ebc4",
+  "registered_examples": 218,
+  "catalog_sha256": "8eeb18d0eec69a117b285112d829cb4f2ba96157b51dc2c17b9cec07b1a3a49e",
   "inventory_rows": 265,
   "mapped_features": 98,
   "unmapped_implemented_features": [],
@@ -1939,9 +1939,14 @@
             "text": "栅格化当前填充图层。",
             "query": "栅格化",
             "command": "layer.rasterize"
+          },
+          {
+            "text": "将当前旋转和裁剪后的文字层栅格化为像素，撤销时恢复可编辑原文。",
+            "query": "栅格化文字",
+            "command": "layer.rasterize"
           }
         ],
-        "note": "当前支持类型已接入，文字/智能对象类型待后续实现。"
+        "note": "当前像素/填充/组/调整与可编辑文字已接入；文字按现有变换和裁剪烘焙显示，撤销恢复原文。智能对象等未来类型仍待实现。"
       }
     },
     {

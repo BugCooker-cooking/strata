@@ -748,7 +748,7 @@ fn build_catalog() -> Vec<CommandSpec> {
         Mutate,
         "栅格化",
         "Rasterize layer",
-        "Bake an editable fill or isolated group into document-depth pixels, preserving mask appearance, opacity/blend and off-artboard content. Adjustment layers require explicit bake_backdrop=true, consolidating the lower input stack. Undo restores editable structure.",
+        "Bake editable text, fills or an isolated group into document-depth pixels. Text uses its current glyph coverage and ordered transform/crop geometry; its source/layout and any enabled mask/style appearance are explicitly baked. Preserve working ICC/depth, opacity/blend, clipping and off-artboard content. AI requires exact destructive-edit approval even in direct mode. One undo restores the editable Unicode, typography, ordered geometry, masks/styles and original tree. Adjustment layers require explicit bake_backdrop=true, consolidating the lower input stack. The bounded raster bakes the displayed result with document-depth quantization. 中文：栅格化文字、文字转像素、栅格化文本、栅格化填充层、合并组为像素；按当前变换和裁剪烘焙显示，撤销恢复可编辑原文与排版。",
         json!({"layer":{"name":"Solid"}})
     );
     command!(
@@ -1606,6 +1606,9 @@ fn build_catalog() -> Vec<CommandSpec> {
         }
         if item.id == "type.create" {
             item.examples.push(json!({"name":"Paragraph","spec":{"text":"中文段落与Latin words\n保留文字源和换行","font":"cjk","font_size":18,"line_height":1.3,"tracking":0,"align":"right","layout":{"type":"paragraph","width":120,"height":80}},"color":[0.3,0.5,0.7,1],"x":1,"y":1}));
+        }
+        if item.id == "layer.rasterize" {
+            item.examples.push(json!({"layer":{"name":"RasterText"}}));
         }
         if item.id == "view.presentation.set" {
             item.examples

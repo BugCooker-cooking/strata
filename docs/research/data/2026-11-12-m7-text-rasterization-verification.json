@@ -1,0 +1,102 @@
+{
+  "date_local": "2026-11-12",
+  "timezone": "Asia/Taipei",
+  "base_checkpoint": "849f849",
+  "branch": "codex/v1-remaining",
+  "scope": "Existing M7 text rasterization discovery, executable transformed/cropped text example, exact AI approval/turn undo, native type re-edit recovery and explicit menu title. Rasterization pixel algorithm is unchanged. Manual acceptance remains pending Mac unlock.",
+  "source_sha256": {
+    "Cargo.lock": "77c307766dd371bc223adc24b302a1fddecec5b20eec565a55f183ab6c126ff0",
+    "apps/macos/Strata/Workspace/WorkspaceViews.swift": "ea8561296bc0c1c54e140b331538471abfa60360e18844fcabb9761299d9a949",
+    "apps/macos/StrataTests/EditableTextTests.swift": "8f9ecb3a55eee6fe3d2b0851ab47cf2b12091f8f60ab79483033d87336a0bdee",
+    "crates/strata-ai/Cargo.toml": "95c9970520a1a86a3a3da1d047f890d7932ab7226b8e4ee2418a0b9c29f537f0",
+    "crates/strata-ai/tests/replay.rs": "7516e76ed262f89960fd1678483a387b3a543976985a017173fdfcc6d88b7a7c",
+    "crates/strata-core/src/commands/registry.rs": "835489e857702f42ddcc838d7a0019b143b6752a783e2332ab892c93c7cd4933",
+    "tools/strata-devtool/src/main.rs": "56249667642d06536412a70627b6ed373c65fbfe588186e7e21186170b01e202"
+  },
+  "log_sha256": {
+    "build/m7-text-raster-ai.log": "d789f73814f1542646ed3da2b07ba6f1d5aa732c9a54256064dcfddfd34d44ea",
+    "build/m7-text-raster-ai.fixed.log": "8932fb0554cb9c0d1b5871b26bf51670218c746fc03920c0ab556558c859cb2c",
+    "build/m7-text-raster-clippy.log": "40de94ec2671443cfe5ea90bf8320656b7ae6c8b45e137175264dd75c9b8a75e",
+    "build/m7-text-raster-clippy.fixed.log": "2641aab55cd0fbf667b740e9068f1cb077f67e88728a2b6e08eb5841737a326d",
+    "build/m7-text-raster-swiftlint.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "build/m7-text-raster-commands.log": "8132bc8245ddecfa1bd78ad5c71b67257b05f24518eab8024d422a0d4b9ccc97",
+    "build/m7-text-raster-native.log": "94ded9e1530cb0b5ca50c3d3551d738bb11eb47f83b39dc29458691af289c77c",
+    "build/m7-text-raster-release.log": "1ef6bad3171311023e5add56f5255398fbb54144a596420194f615493894940f",
+    "build/m7-text-raster-audit.final.log": "90d6c78e5821fafa6c33e0393864d0e0b270e3536ad5151e763f17ef6f95e2d4",
+    "build/m7-text-raster-coverage.final.log": "5a1dec758218da7de7ad3c3d53fad2b72f4d6c797cc2f91048c85879ae69e262",
+    "build/m7-text-raster-strict.log": "58775cd558643dbf55e44703bbdc00f7f6982cb47d878a0c39d4f6ad5cfe0375"
+  },
+  "verification": {
+    "ai": {
+      "passed": 56,
+      "failed": 0,
+      "replay": 47,
+      "protocol": 7,
+      "prompt_mapping": 1,
+      "recordings": 1,
+      "network_requests": 0,
+      "log": "build/m7-text-raster-ai.fixed.log",
+      "new_case": "Quarter-turned/deletion-cropped text remains unchanged before exact Direct-mode approval; actual rasterization changes kind and creates one history, RGBA16 Display P3 differences <=3 codes; turn undo exactly restores archive including Unicode and two ordered operations."
+    },
+    "native": {
+      "passed": 7,
+      "failed": 0,
+      "scope": "EditableTextTests only",
+      "log": "build/m7-text-raster-native.log",
+      "new_case": "Existing native type editing model rebinds to new pixel kind, undo recovers full definition, subsequent type edit preserves both ordered geometry stages."
+    },
+    "commands": {
+      "registered": 147,
+      "executable_examples": 218,
+      "passed": true,
+      "new_example": "RasterText is created, quarter-turned and deletion-cropped, then produces a real pixel layer with nonzero alpha.",
+      "log": "build/m7-text-raster-commands.log"
+    },
+    "lint": {
+      "rust_fmt": "passed",
+      "clippy": "core/AI/devtool all targets passed with -D warnings",
+      "swiftlint": "strict passed"
+    },
+    "release": {
+      "arm64": true,
+      "passed": true,
+      "binary_sha256": "91604fbb9359eb1b6a5f1eec40ceb0b8bd40a37a378e86b035bf138b5ffa4921",
+      "log": "build/m7-text-raster-release.log"
+    },
+    "resolved_scaffold_compilation_failures": [
+      "Added an explicit dev-only dependency on the already-workspace strata-pixels crate for typed u16 comparisons; no external package was added.",
+      "Capture the rasterization-example discriminator before moving JSON command arguments."
+    ],
+    "heavy_checks_serial": true,
+    "max_compilation_jobs": 2,
+    "cloud_builds_executed": false
+  },
+  "native_manual": {
+    "status": "pending_mac_unlock",
+    "observation": "CUA reported the Mac locked and automatic unlock unavailable; requested manual unlock. No application was launched and no manual text action was performed.",
+    "strata_process_count": 0,
+    "fixture_sha256": "c1006da29913609963479b8641c0e6f6a43ff2c6d8b2f907c91a6daf1afaa2ea",
+    "remaining_steps": [
+      "Use one Release instance to create a test text layer and choose its Rasterize Type menu.",
+      "Verify pixel-layer result and normal display, undo to editable type and re-edit.",
+      "Undo fixture changes to the clean original sample, quit and confirm process count and sample hash."
+    ]
+  },
+  "audit": {
+    "mapped_features": 98,
+    "inventory_rows": 265,
+    "unfinished_composite_features": 180,
+    "partial_entrypoints": 13,
+    "unmapped_implemented": [],
+    "unknown_native_references": {},
+    "untyped_returns": [],
+    "final_audit_complete": false,
+    "strict_expected_exit": 1
+  },
+  "limits": [
+    "Current feature and AI closure are not asserted complete.",
+    "General rasterization retains partial scope for future smart-object types.",
+    "No new dedicated offscreen Metal, full native suite, large-image stress, FPS or other-platform run was required for this discovery/menu-copy increment.",
+    "Manual native acceptance remains pending user unlock; no cloud build or live-model network request was used."
+  ]
+}

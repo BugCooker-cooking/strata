@@ -289,11 +289,15 @@
   },
   "PS-04-853e6d30f3": {
     "implementation": "部分实现",
-    "acceptance": "已有类型已实现；文字/智能对象随对应类型接入",
+    "acceptance": "像素/填充/组/调整及可编辑文字已接入。补充了文字当前几何/裁剪的 AI 说明、实际示例和原生自动化；智能对象等未来类型仍待实现。单窗口文字补验等待 Mac 解锁。",
     "evidence": [
       {
         "label": "M3 计划",
         "path": "2026-11-05-m3-layers.md"
+      },
+      {
+        "label": "文字栅格化入口补验",
+        "path": "../research/2026-11-m7-text-rasterization-entrypoints.md"
       }
     ]
   },
@@ -1011,11 +1015,15 @@
   },
   "PS-11-cf9b897491": {
     "implementation": "已实现",
-    "acceptance": "可编辑文字共用既有layer.rasterize，保留蒙版/样式/原位深输出；核心真实栅格化数值对照及一次撤销精确恢复源定义通过。原生菜单与AI共用执行器；本轮单窗口未手工执行栅格化，未将该步骤声称为人工验收。",
+    "acceptance": "可编辑文字共用 layer.rasterize；AI 发现/精确批准、旋转与删除裁剪后 16 位 P3 显示码值、整轮撤销及原生撤销后继续编辑均通过本机自动化。单窗口补验等待 Mac 解锁，未声称已完成人工栅格化。",
     "evidence": [
       {
         "label": "可编辑文字进展",
         "path": "../research/2026-11-m7-editable-text-progress.md"
+      },
+      {
+        "label": "文字栅格化入口补验",
+        "path": "../research/2026-11-m7-text-rasterization-entrypoints.md"
       }
     ]
   },

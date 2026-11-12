@@ -13564,7 +13564,7 @@ Permissions: `bound_document`
 
 ## `layer.rasterize` — 栅格化
 
-Bake an editable fill or isolated group into document-depth pixels, preserving mask appearance, opacity/blend and off-artboard content. Adjustment layers require explicit bake_backdrop=true, consolidating the lower input stack. Undo restores editable structure.
+Bake editable text, fills or an isolated group into document-depth pixels. Text uses its current glyph coverage and ordered transform/crop geometry; its source/layout and any enabled mask/style appearance are explicitly baked. Preserve working ICC/depth, opacity/blend, clipping and off-artboard content. AI requires exact destructive-edit approval even in direct mode. One undo restores the editable Unicode, typography, ordered geometry, masks/styles and original tree. Adjustment layers require explicit bake_backdrop=true, consolidating the lower input stack. The bounded raster bakes the displayed result with document-depth quantization. 中文：栅格化文字、文字转像素、栅格化文本、栅格化填充层、合并组为像素；按当前变换和裁剪烘焙显示，撤销恢复可编辑原文与排版。
 
 Kind: `Mutate` · Undoable: `true` · Batchable: `true`
 
@@ -13654,6 +13654,14 @@ Permissions: `bound_document`
 {
   "layer": {
     "name": "Solid"
+  }
+}
+```
+
+```json
+{
+  "layer": {
+    "name": "RasterText"
   }
 }
 ```

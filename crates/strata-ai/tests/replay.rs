@@ -18,6 +18,135 @@ struct Host {
 }
 
 #[test]
+fn rasterize_type_prompt_bakes_ordered_geometry_only_after_exact_approval_and_undo_restores_source()
+{
+    let host = Host::new();
+    host.user("file.new", json!({"width":128,"height":96,"bit_depth":16,"working_space":"display_p3","discard_changes":true}));
+    host.user("type.create", json!({"name":"Raster type","spec":{"text":"Crop中文 Type","font":"sans","font_size":24,"layout":{"type":"point"}},"color":[0.2,0.4,0.8,1],"x":10,"y":40}));
+    host.user("transform.apply", json!({"layer":{"name":"Raster type"},"scope":"whole_layer","geometry":{"type":"affine","values":[0,1,-1,0,128,0]},"interpolation":"nearest"}));
+    host.user(
+        "image.crop",
+        json!({"rect":{"x":80,"y":8,"width":40,"height":64},"pixels":"delete"}),
+    );
+    let state = host.snapshot().unwrap();
+    let id = state.active_layer.unwrap();
+    let (original, pixels) = {
+        let editor = host.editor.lock().unwrap();
+        let doc = editor.document().unwrap();
+        (doc.to_archive().unwrap(), doc.export_pixels().unwrap())
+    };
+    assert_eq!(
+        original.metadata["layers"][1]["kind"]["text"]["operations"]
+            .as_array()
+            .unwrap()
+            .len(),
+        2
+    );
+    let mut session = host.session_with_prompt(
+        ExecutionMode::Direct,
+        "栅格化已经旋转并裁剪的文字，保留显示；允许撤销恢复可编辑原文。",
+    );
+    reply(
+        &mut session,
+        &host,
+        vec![
+            call(
+                "find-raster-type",
+                "search_catalog",
+                json!({"query":"栅格化文字"}),
+            ),
+            call(
+                "describe-raster-type",
+                "describe_commands",
+                json!({"ids":["layer.rasterize"]}),
+            ),
+            invoke(
+                "bake-raster-type",
+                "layer.rasterize",
+                json!({"layer":{"id":id}}),
+            ),
+        ],
+    );
+    assert!(
+        result(session.poll(&host).unwrap())["matches"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|item| item["id"] == "layer.rasterize")
+    );
+    let description = result(session.poll(&host).unwrap());
+    assert!(
+        description["commands"][0]["description"]
+            .as_str()
+            .unwrap()
+            .contains("editable text")
+    );
+    assert_eq!(
+        description["commands"][0]["params"]["additionalProperties"],
+        false
+    );
+    let Step::Paused {
+        question_id,
+        reason,
+        operation,
+        ..
+    } = session.poll(&host).unwrap()
+    else {
+        panic!("text rasterization needs exact approval in Direct mode");
+    };
+    assert_eq!(reason, "edit_approval");
+    assert_eq!(operation.unwrap()["params"]["layer"]["id"], json!(id));
+    assert_eq!(host.snapshot().unwrap().revision, state.revision);
+    let result = result(
+        session
+            .respond(
+                &host,
+                HostAnswer {
+                    question_id,
+                    answer: String::new(),
+                    approved: true,
+                    resource: None,
+                },
+            )
+            .unwrap(),
+    );
+    assert_eq!(result["result"]["layer_id"], json!(id));
+    {
+        let editor = host.editor.lock().unwrap();
+        let doc = editor.document().unwrap();
+        assert!(matches!(
+            doc.layers()[1].info().kind,
+            strata_core::LayerKind::Pixel
+        ));
+        let strata_pixels::PixelBuffer::Rgba16(before) = pixels else {
+            panic!("16-bit source")
+        };
+        let strata_pixels::PixelBuffer::Rgba16(after) = doc.export_pixels().unwrap() else {
+            panic!("16-bit result")
+        };
+        assert!(before.chunks_exact(4).any(|p| p[3] > 0));
+        assert_eq!(before.len(), after.len());
+        assert!(
+            before.iter().zip(after).all(|(a, b)| a.abs_diff(b) <= 3),
+            "rasterized type changed the displayed codes beyond document-depth rounding"
+        );
+        assert_eq!(editor.snapshot().history_cursor, state.history_cursor + 1);
+    }
+    host.editor.lock().unwrap().stop_turn();
+    host.user("edit.undo_turn", json!({"turn_id":session.turn_id()}));
+    assert!(
+        host.editor
+            .lock()
+            .unwrap()
+            .document()
+            .unwrap()
+            .to_archive()
+            .unwrap()
+            == original
+    );
+}
+
+#[test]
 fn cache_release_needs_its_own_approval_in_both_modes_and_preserves_history() {
     for mode in [ExecutionMode::AskFirst, ExecutionMode::Direct] {
         let host = Host::new();

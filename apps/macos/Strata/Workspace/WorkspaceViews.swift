@@ -338,7 +338,7 @@ private struct LayerPanel: View {
                                 if layer.kind?.kind=="pixel"{Button("背景转普通图层"){model.send(.command("layer.background_to_layer",["layer":["id":layer.id]]))}.disabled(!model.permissions.edits)}
                                 Button("将所选图层编组"){model.send(.groupSelected)}.disabled(!model.permissions.edits)
                                 Button(layer.clipped == true ? "释放剪贴蒙版" : "创建剪贴蒙版"){model.send(.command("layer.set_clipping",["layer":["id":layer.id],"clipped":layer.clipped != true]))}.disabled(!model.permissions.edits)
-                                Button(layer.isAdjustment ? "栅格化并合并下方输入" : "栅格化"){model.send(.command("layer.rasterize",["layer":["id":layer.id],"bake_backdrop":layer.isAdjustment]))}.disabled(!model.permissions.edits || layer.kind?.kind=="pixel")
+                                Button(layer.isAdjustment ? "栅格化并合并下方输入" : layer.kind?.kind == "text" ? "栅格化文字" : "栅格化"){model.send(.command("layer.rasterize",["layer":["id":layer.id],"bake_backdrop":layer.isAdjustment]))}.disabled(!model.permissions.edits || layer.kind?.kind=="pixel")
                                 Button("向下合并"){model.send(.command("layer.merge_down",["layer":["id":layer.id]]))}.disabled(!model.permissions.edits)
                                 Button("合并可见"){model.send(.command("layer.merge_visible",[:]))}.disabled(!model.permissions.edits)
                                 Button("拼合图像"){model.send(.command("layer.flatten",[:]))}.disabled(!model.permissions.edits)
