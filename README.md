@@ -24,7 +24,7 @@ Strata is an open-source, AI-operable image editor with a portable Rust core and
 
 2026-11-12 新增[应用偏好与资源预算设置](docs/research/2026-11-m8-preferences-progress.md)，提供 AI 默认方式、步数与超时、共享 CPU/GPU/磁盘额度和空闲资源释放。本机核心、内存、AI、真实 Metal、原生、Release 及命令示例通过；单窗口保存、缓存释放和重启恢复完成，样例与偏好恢复后已退出。
 
-同日补齐[文字栅格化的 AI 说明、示例与恢复回归](docs/research/2026-11-m7-text-rasterization-entrypoints.md)：已支持的文字能力现在可通过专用中英文提示发现；56 项 AI、7 项原生文字测试、218 个命令示例及 Release 通过。单窗口文字栅格化补验等待 Mac 解锁。
+同日补齐[文字栅格化的 AI 说明、示例与恢复回归](docs/research/2026-11-m7-text-rasterization-entrypoints.md)：已支持的文字能力现在可通过专用中英文提示发现；56 项 AI、7 项原生文字测试、218 个命令示例及 Release 通过。单窗口文字栅格化、撤销与继续编辑通过，恢复干净样例后已退出。
 
 2026-11-03 已落实原生工作区框架：文档标签、分组工具栏、属性/调整/历史、图层缩略图、可调侧栏、AI 未接入面板、标尺/缩放/导航与状态栏，支持深/浅主题。M1b 已推进独立文档标签、最近文件和可撤销的图片置入；M1b 的后续交付按分批验收记录推进。见 [工作区与 M1b 记录](docs/research/2026-11-workspace-progress.md)。
 

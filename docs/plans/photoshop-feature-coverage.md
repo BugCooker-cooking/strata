@@ -85,7 +85,7 @@
 | PS-04-cb66199f15 | 图层 | 调整图层 | P0 | 部分实现 | 曝光与色相饱和度已实现；其余类型待 M5 · [M3 计划](2026-11-05-m3-layers.md) |
 | PS-04-755f2b287b | 图层 | 填充图层：纯色 / 渐变 | P0 | 已实现（M3 集成中） | M3 验收中；后续绘画/调整类型继续扩充 · [M3 计划](2026-11-05-m3-layers.md) |
 | PS-04-af7f602330 | 图层 | 填充图层：图案 | P2 | 待实现 | 待验收 |
-| PS-04-853e6d30f3 | 图层 | 栅格化 | P0 | 部分实现 | 像素/填充/组/调整及可编辑文字已接入。补充了文字当前几何/裁剪的 AI 说明、实际示例和原生自动化；智能对象等未来类型仍待实现。单窗口文字补验等待 Mac 解锁。 · [M3 计划](2026-11-05-m3-layers.md) · [文字栅格化入口补验](../research/2026-11-m7-text-rasterization-entrypoints.md) |
+| PS-04-853e6d30f3 | 图层 | 栅格化 | P0 | 部分实现 | 像素/填充/组/调整及可编辑文字已接入。文字当前几何/裁剪的 AI 说明、实际示例和原生自动化通过；当前 Mac 单窗口中文文字栅格化、撤销恢复原文、继续编辑通过并恢复样例退出。智能对象等未来类型仍待实现。 · [M3 计划](2026-11-05-m3-layers.md) · [文字栅格化入口补验](../research/2026-11-m7-text-rasterization-entrypoints.md) |
 | PS-04-d6c3930e2f | 图层 | 图层样式：投影、描边、外发光、颜色叠加、渐变叠加 | P0 | 已实现（M3 集成中） | M3 验收中；后续绘画/调整类型继续扩充 · [M3 计划](2026-11-05-m3-layers.md) |
 | PS-04-6084cae48d | 图层 | 图层样式：内阴影、内发光、斜面浮雕、光泽、图案叠加；样式预设 | P1 | 待实现 | 待验收 |
 | PS-04-e65a84f08f | 图层 | 链接图层 | P1 | 待实现 | 待验收 |
@@ -207,7 +207,7 @@
 | PS-10-1e9f8da0f7 | 滤镜 | 防抖 | ✗ | 重新核对 | 待验收 |
 | PS-11-4490121dad | 文字 | 横排文字（点文字 / 段落文字） | P0 | 部分实现 | Retained horizontal point/paragraph source and uniform style passed base01272c1 local acceptance, then source-aware geometry/ordered crop and transparent ink bounds. User-unlocked single-window text rotation, serif/color/content re-edit, group scale/re-edit and step undo restored clean sample and quit. Automated numeric/persistence/AI/native/Metal/Release evidence is linked separately. System/imported fonts, inline caret/rich spans and advanced typography remain open. · [可编辑文字进展](../research/2026-11-m7-editable-text-progress.md) · [Retained text geometry / ordered crop](../research/2026-11-m7-text-geometry-progress.md) · [Text / group native acceptance](../research/2026-11-m7-group-transform-progress.md) |
 | PS-11-a524877cb6 | 文字 | 字体、字号、颜色、行距、字距、对齐 | P0 | 部分实现 | Retained horizontal point/paragraph source and uniform style passed base01272c1 local acceptance, then source-aware geometry/ordered crop and transparent ink bounds. User-unlocked single-window text rotation, serif/color/content re-edit, group scale/re-edit and step undo restored clean sample and quit. Automated numeric/persistence/AI/native/Metal/Release evidence is linked separately. System/imported fonts, inline caret/rich spans and advanced typography remain open. · [可编辑文字进展](../research/2026-11-m7-editable-text-progress.md) · [Retained text geometry / ordered crop](../research/2026-11-m7-text-geometry-progress.md) · [Text / group native acceptance](../research/2026-11-m7-group-transform-progress.md) |
-| PS-11-cf9b897491 | 文字 | 栅格化文字 | P0 | 已实现 | 可编辑文字共用 layer.rasterize；AI 发现/精确批准、旋转与删除裁剪后 16 位 P3 显示码值、整轮撤销及原生撤销后继续编辑均通过本机自动化。单窗口补验等待 Mac 解锁，未声称已完成人工栅格化。 · [可编辑文字进展](../research/2026-11-m7-editable-text-progress.md) · [文字栅格化入口补验](../research/2026-11-m7-text-rasterization-entrypoints.md) |
+| PS-11-cf9b897491 | 文字 | 栅格化文字 | P0 | 已实现 | 可编辑文字共用 layer.rasterize；AI 发现/精确批准、旋转与删除裁剪后 16 位 P3 显示码值、整轮撤销及原生撤销后继续编辑均通过本机自动化。当前 Mac 单窗口点文字栅格化、一次撤销恢复中文原文并继续编辑通过，样例恢复干净单层后退出；几何/裁剪的组合来自自动化证据。 · [可编辑文字进展](../research/2026-11-m7-editable-text-progress.md) · [文字栅格化入口补验](../research/2026-11-m7-text-rasterization-entrypoints.md) |
 | PS-11-c6c65f4de6 | 文字 | 直排文字 | P1 | 待实现 | 待验收 |
 | PS-11-0a97b13dc8 | 文字 | 文字变形 | P1 | 待实现 | 待验收 |
 | PS-11-4bfa8a3abe | 文字 | 路径文字 | P2 | 待实现 | 待验收 |

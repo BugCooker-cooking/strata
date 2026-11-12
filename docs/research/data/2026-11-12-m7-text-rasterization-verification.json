@@ -3,7 +3,7 @@
   "timezone": "Asia/Taipei",
   "base_checkpoint": "849f849",
   "branch": "codex/v1-remaining",
-  "scope": "Existing M7 text rasterization discovery, executable transformed/cropped text example, exact AI approval/turn undo, native type re-edit recovery and explicit menu title. Rasterization pixel algorithm is unchanged. Manual acceptance remains pending Mac unlock.",
+  "scope": "Existing M7 text rasterization discovery, executable transformed/cropped text example, exact AI approval/turn undo, native type re-edit recovery and explicit menu title. Rasterization pixel algorithm is unchanged. Current Mac single-window point-type rasterization, undo/re-edit and fixture cleanup have passed after user unlock.",
   "source_sha256": {
     "Cargo.lock": "77c307766dd371bc223adc24b302a1fddecec5b20eec565a55f183ab6c126ff0",
     "apps/macos/Strata/Workspace/WorkspaceViews.swift": "ea8561296bc0c1c54e140b331538471abfa60360e18844fcabb9761299d9a949",
@@ -72,15 +72,55 @@
     "cloud_builds_executed": false
   },
   "native_manual": {
-    "status": "pending_mac_unlock",
-    "observation": "CUA reported the Mac locked and automatic unlock unavailable; requested manual unlock. No application was launched and no manual text action was performed.",
-    "strata_process_count": 0,
-    "fixture_sha256": "c1006da29913609963479b8641c0e6f6a43ff2c6d8b2f907c91a6daf1afaa2ea",
-    "remaining_steps": [
-      "Use one Release instance to create a test text layer and choose its Rasterize Type menu.",
-      "Verify pixel-layer result and normal display, undo to editable type and re-edit.",
-      "Undo fixture changes to the clean original sample, quit and confirm process count and sample hash."
-    ]
+    "status": "passed_current_mac",
+    "accepted_source_checkpoint": "92321ad",
+    "date_local": "2026-11-12",
+    "timezone": "Asia/Taipei",
+    "finished_at_local": "2026-11-12 22:34 +08:00",
+    "previous_block": "The initial CUA attempt stopped before launch while the Mac was locked. Resumed after the user manually unlocked it.",
+    "max_simultaneous_strata_instances": 1,
+    "release_sha256": "91604fbb9359eb1b6a5f1eec40ceb0b8bd40a37a378e86b035bf138b5ffa4921",
+    "fixture": "docs/design/assets/sample-photo.jpg",
+    "fixture_format": "1024x1536, 8-bit, sRGB (assumed)",
+    "text_created": {
+      "content": "Raster 验收",
+      "font": "Noto Sans with bundled fallback",
+      "size_px": 32,
+      "x": 32,
+      "y": 32,
+      "layout": "point",
+      "alpha_percent": 100
+    },
+    "observed_steps": [
+      "Verified the exact Chinese text in the native editor before creating it.",
+      "The layer context menu exposed 栅格化文字; selecting it changed Raster 验收 from editable type to a pixel layer and displayed the Chinese text normally.",
+      "One document-toolbar undo restored editable type and the source Raster 验收.",
+      "Edited that restored source to Raster 仍可编辑; applying changed the displayed text while the layer remained editable type.",
+      "Undid the edit, verified Raster 验收 returned, then undid creation and restored the hand tool.",
+      "Verified one original sample-photo pixel layer at X=0/Y=0, no unsaved changes and undo disabled, then quit normally."
+    ],
+    "input_transport_note": "The first typeText attempt did not commit the full CJK input. That disposable draft was undone before using the documented clipboard-restoring paste API and verifying the exact source.",
+    "scope_note": "This manual case covers basic point type. Rotation/deletion-crop, P3 16-bit numeric equivalence and exact geometry archive restoration are covered by the automated cases above.",
+    "final_document": {
+      "layers": 1,
+      "name": "sample-photo",
+      "kind": "pixel",
+      "x": 0,
+      "y": 0,
+      "dirty": false,
+      "undo_enabled": false,
+      "tool": "hand"
+    },
+    "cleanup": {
+      "strata_process_count": 0,
+      "sha256": {
+        "docs/design/assets/sample-photo.jpg": "c1006da29913609963479b8641c0e6f6a43ff2c6d8b2f907c91a6daf1afaa2ea",
+        "build/DerivedData/Build/Products/Release/Strata.app/Contents/Resources/sample-photo.jpg": "c1006da29913609963479b8641c0e6f6a43ff2c6d8b2f907c91a6daf1afaa2ea",
+        "build/DerivedData/Build/Products/Release/Strata.app/Contents/MacOS/Strata": "91604fbb9359eb1b6a5f1eec40ceb0b8bd40a37a378e86b035bf138b5ffa4921"
+      },
+      "fixture_restored": true,
+      "no_source_file_write": true
+    }
   },
   "audit": {
     "mapped_features": 98,
@@ -97,6 +137,19 @@
     "Current feature and AI closure are not asserted complete.",
     "General rasterization retains partial scope for future smart-object types.",
     "No new dedicated offscreen Metal, full native suite, large-image stress, FPS or other-platform run was required for this discovery/menu-copy increment.",
-    "Manual native acceptance remains pending user unlock; no cloud build or live-model network request was used."
-  ]
+    "Manual point-type acceptance passed on the current Mac; other manual variants, full Photoshop coverage and final AI closure remain independently tracked. No cloud build or live-model network request was used."
+  ],
+  "native_closure_log_sha256": {
+    "build/m7-text-raster-native-closure-cleanup.json": "2744df0a81e9e9e53be1f4d0f4531ccc3245b6f1135e7603bd775c7f3c5adf10",
+    "build/m7-text-raster-native-closure-audit.log": "90d6c78e5821fafa6c33e0393864d0e0b270e3536ad5151e763f17ef6f95e2d4",
+    "build/m7-text-raster-native-closure-coverage.log": "5a1dec758218da7de7ad3c3d53fad2b72f4d6c797cc2f91048c85879ae69e262",
+    "build/m7-text-raster-native-closure-strict.log": "58775cd558643dbf55e44703bbdc00f7f6982cb47d878a0c39d4f6ad5cfe0375"
+  },
+  "native_closure_checks": {
+    "source_and_previous_log_hashes_match": true,
+    "source_code_changed": false,
+    "feature_and_ai_reports_synchronized": true,
+    "strict_final_audit_expected_exit": 1,
+    "cloud_builds_executed": false
+  }
 }
