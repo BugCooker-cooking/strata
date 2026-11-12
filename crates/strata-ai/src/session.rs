@@ -70,31 +70,7 @@ impl ContextGrant {
     }
 }
 
-#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "snake_case")]
-pub enum ExecutionMode {
-    AskFirst,
-    Direct,
-}
-
-#[derive(Clone, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
-pub struct SessionOptions {
-    pub mode: ExecutionMode,
-    pub max_steps: usize,
-    pub request_timeout_seconds: u64,
-    pub turn_timeout_seconds: u64,
-}
-impl Default for SessionOptions {
-    fn default() -> Self {
-        Self {
-            mode: ExecutionMode::AskFirst,
-            max_steps: 50,
-            request_timeout_seconds: 60,
-            turn_timeout_seconds: 300,
-        }
-    }
-}
+pub use strata_core::commands::{AiPreferences as SessionOptions, ExecutionMode};
 
 #[derive(Clone, Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
@@ -205,9 +181,7 @@ impl Session {
         }
         if prompt.trim().is_empty()
             || prompt.len() > 32768
-            || !(1..=200).contains(&options.max_steps)
-            || !(5..=120).contains(&options.request_timeout_seconds)
-            || !(30..=1800).contains(&options.turn_timeout_seconds)
+            || options.validate().is_err()
             || prior.len() > 100
             || prior.iter().any(|m| {
                 !matches!(m.role.as_str(), "user" | "assistant")
@@ -545,8 +519,28 @@ impl Session {
             return Ok(None);
         }
         if spec.kind == CommandKind::Settings {
-            self.wait(host,call.clone(),WaitReason::Settings{id:id.into(),params:params.clone()},
-                "允许按本次参数修改应用的快速导出预设？此设置跨文档保存，不属于文档撤销，也不授权写入任何图片文件。".into(),vec!["保存此预设".into(),"取消".into()],Some(json!({"command":id,"params":params})))?;
+            let question = match id {
+                "system.preferences.set" => {
+                    "允许按本次参数修改应用偏好？AI默认值用于下一回合，资源额度应用到全部文档。设置保存在应用中，文档撤销不会回退。"
+                }
+                "system.memory.trim" => {
+                    "允许释放空闲缓存并将可回收源块移入本机磁盘后备？使用中的读取者继续保留。"
+                }
+                _ => {
+                    "允许按本次参数修改应用的快速导出预设？此设置跨文档保存，不属于文档撤销，也不授权写入任何图片文件。"
+                }
+            };
+            self.wait(
+                host,
+                call.clone(),
+                WaitReason::Settings {
+                    id: id.into(),
+                    params: params.clone(),
+                },
+                question.into(),
+                vec!["允许此设置操作".into(), "取消".into()],
+                Some(json!({"command":id,"params":params})),
+            )?;
             return Ok(None);
         }
         let destructive = destructive(id, &params);

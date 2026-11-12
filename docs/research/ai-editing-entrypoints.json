@@ -2296,6 +2296,49 @@
       ],
       "prompts": [],
       "note": "The native tab host opens, selects and closes independent editors. AI can create a tab with image.duplicate through workspace approval. A turn stays in its authorized document and each tab manages its own control, history and saved state. M1b and current one-window switch/close evidence are linked in the feature tracker."
+    },
+    "PS-02-57907a69fc": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "system.preferences.get",
+        "system.preferences.set",
+        "system.memory.get"
+      ],
+      "prompts": [
+        {
+          "text": "读取当前应用偏好，把以后 AI 回合的默认方式设为先问我，步数上限设为 30，单请求超时 45 秒、回合超时 180 秒。",
+          "query": "AI步数上限",
+          "command": "system.preferences.set"
+        },
+        {
+          "text": "Read application preferences and current managed CPU, GPU and disk usage.",
+          "query": "Read application preferences",
+          "command": "system.preferences.get"
+        }
+      ],
+      "note": "AI 默认执行方式/步数/请求与回合超时、共享 CPU/GPU/磁盘后备额度通过统一执行器生效并原生持久化。写入须单独批准，不属于文档撤销；安全上下限不可取消。"
+    },
+    "PS-02-b2fd2e2a88": {
+      "scope": "editing",
+      "coverage": "partial",
+      "commands": [
+        "system.memory.get",
+        "system.memory.trim"
+      ],
+      "prompts": [
+        {
+          "text": "先读取托管资源占用，再释放全部文档的空闲缓存，保留源像素与历史。",
+          "query": "释放空闲缓存",
+          "command": "system.memory.trim"
+        },
+        {
+          "text": "Release idle caches while preserving document history and source samples.",
+          "query": "Release idle caches",
+          "command": "system.memory.trim"
+        }
+      ],
+      "note": "实际回收可释放的 CPU/GPU 缓存，并将未固定源/历史块写入校验磁盘后备；固定读取者保留。Photoshop Purge 的剪贴板、历史定向清除尚未提供，条目保留部分状态。"
     }
   }
 }

@@ -1,6 +1,7 @@
 //! Shared, process-wide pixel/cache reservations. A reservation lives as long as
 //! the allocation, including pinned readers and staged transactions. Disk-backed
 //! source/history blocks and disposable caches register for global LRU eviction.
+use schemars::JsonSchema;
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 use std::io::{Read, Seek, SeekFrom, Write};
@@ -13,7 +14,8 @@ use std::{
     },
 };
 
-#[derive(Clone, Copy, Debug, Serialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
 pub struct MemoryLimits {
     pub cpu_bytes: u64,
     pub gpu_bytes: u64,
@@ -36,7 +38,8 @@ pub enum MemoryKind {
     Gpu,
     Disk,
 }
-#[derive(Clone, Debug, Default, Serialize)]
+#[derive(Clone, Debug, Default, Serialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
 pub struct MemoryStats {
     pub backing_read_bytes: u64,
     pub backing_write_bytes: u64,
@@ -70,11 +73,11 @@ pub(crate) trait Evictable: Send + Sync {
     fn evict(&self) -> Result<bool, MemoryError>;
 }
 struct State {
+    limits: MemoryLimits,
     stats: MemoryStats,
     entries: HashMap<usize, (Weak<dyn Evictable>, u64)>,
 }
 struct Pool {
-    limits: MemoryLimits,
     state: Mutex<State>,
     clock: AtomicU64,
     backing: Mutex<BackingStore>,
@@ -135,7 +138,7 @@ pub struct MemoryPool(Arc<Pool>);
 impl fmt::Debug for MemoryPool {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("MemoryPool")
-            .field("limits", &self.0.limits)
+            .field("limits", &self.limits())
             .field("stats", &self.stats())
             .finish()
     }
@@ -143,8 +146,8 @@ impl fmt::Debug for MemoryPool {
 impl MemoryPool {
     pub fn new(limits: MemoryLimits) -> Self {
         Self(Arc::new(Pool {
-            limits,
             state: Mutex::new(State {
+                limits,
                 stats: MemoryStats::default(),
                 entries: HashMap::new(),
             }),
@@ -159,7 +162,32 @@ impl MemoryPool {
             .clone()
     }
     pub fn limits(&self) -> MemoryLimits {
-        self.0.limits
+        self.0
+            .state
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .limits
+    }
+    /// Install all three limits together after checking live reservations and
+    /// backing extent. The backing -> state lock order matches spill/reload.
+    pub fn set_limits(&self, limits: MemoryLimits) -> Result<(), MemoryError> {
+        let backing = self.0.backing.lock().unwrap_or_else(|e| e.into_inner());
+        let mut state = self.0.state.lock().unwrap_or_else(|e| e.into_inner());
+        for (kind, used, limit) in [
+            (MemoryKind::Source, state.stats.cpu_bytes, limits.cpu_bytes),
+            (MemoryKind::Gpu, state.stats.gpu_bytes, limits.gpu_bytes),
+            (
+                MemoryKind::Disk,
+                state.stats.disk_bytes.max(backing.end),
+                limits.disk_bytes,
+            ),
+        ] {
+            if used > limit {
+                return Err(MemoryError::Exhausted { kind, bytes: used });
+            }
+        }
+        state.limits = limits;
+        Ok(())
     }
     pub fn stats(&self) -> MemoryStats {
         self.0
@@ -230,7 +258,7 @@ impl MemoryPool {
             if backing
                 .end
                 .checked_add(len)
-                .is_none_or(|v| v > self.0.limits.disk_bytes)
+                .is_none_or(|v| v > self.limits().disk_bytes)
             {
                 return Err(MemoryError::Exhausted {
                     kind: MemoryKind::Disk,
@@ -284,11 +312,12 @@ impl MemoryPool {
     }
     fn try_reserve(&self, kind: MemoryKind, bytes: u64) -> Option<Reservation> {
         let mut state = self.0.state.lock().unwrap_or_else(|e| e.into_inner());
+        let limits = state.limits;
         let s = &mut state.stats;
         let (used, limit) = match kind {
-            MemoryKind::Gpu => (s.gpu_bytes, self.0.limits.gpu_bytes),
-            MemoryKind::Disk => (s.disk_bytes, self.0.limits.disk_bytes),
-            _ => (s.cpu_bytes, self.0.limits.cpu_bytes),
+            MemoryKind::Gpu => (s.gpu_bytes, limits.gpu_bytes),
+            MemoryKind::Disk => (s.disk_bytes, limits.disk_bytes),
+            _ => (s.cpu_bytes, limits.cpu_bytes),
         };
         if used.checked_add(bytes).is_none_or(|v| v > limit) {
             return None;
@@ -311,10 +340,11 @@ impl MemoryPool {
         })
     }
     pub fn reserve(&self, kind: MemoryKind, bytes: u64) -> Result<Reservation, MemoryError> {
+        let limits = self.limits();
         let limit = match kind {
-            MemoryKind::Gpu => self.0.limits.gpu_bytes,
-            MemoryKind::Disk => self.0.limits.disk_bytes,
-            _ => self.0.limits.cpu_bytes,
+            MemoryKind::Gpu => limits.gpu_bytes,
+            MemoryKind::Disk => limits.disk_bytes,
+            _ => limits.cpu_bytes,
         };
         if bytes > limit {
             return Err(MemoryError::Exhausted { kind, bytes });
@@ -401,6 +431,100 @@ impl MemoryPool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn limit_updates_check_live_reservations_atomically() {
+        let original = MemoryLimits {
+            cpu_bytes: 1024,
+            gpu_bytes: 1024,
+            disk_bytes: 1024,
+        };
+        let pool = MemoryPool::new(original);
+        let cpu = pool.reserve(MemoryKind::Transient, 512).unwrap();
+        let gpu = pool.reserve(MemoryKind::Gpu, 128).unwrap();
+        let disk = pool.reserve(MemoryKind::Disk, 128).unwrap();
+        for limits in [
+            MemoryLimits {
+                cpu_bytes: 256,
+                ..original
+            },
+            MemoryLimits {
+                gpu_bytes: 64,
+                ..original
+            },
+            MemoryLimits {
+                disk_bytes: 64,
+                ..original
+            },
+        ] {
+            assert!(pool.set_limits(limits).is_err());
+            assert_eq!(pool.limits(), original);
+        }
+        drop((cpu, gpu, disk));
+        let reduced = MemoryLimits {
+            cpu_bytes: 256,
+            gpu_bytes: 64,
+            disk_bytes: 64,
+        };
+        pool.set_limits(reduced).unwrap();
+        assert!(pool.reserve(MemoryKind::Transient, 257).is_err());
+        assert!(pool.reserve(MemoryKind::Gpu, 65).is_err());
+        assert!(pool.reserve(MemoryKind::Disk, 65).is_err());
+        assert_eq!(pool.stats().cpu_bytes, 0);
+        assert_eq!(pool.stats().peak_cpu_bytes, 512);
+    }
+
+    #[test]
+    fn reducing_disk_budget_respects_the_backing_extent_and_checksum() {
+        let pool = MemoryPool::new(MemoryLimits {
+            cpu_bytes: 1024,
+            gpu_bytes: 1024,
+            disk_bytes: 1024,
+        });
+        let first = pool.spill(&[1; 64]).unwrap();
+        let second = pool.spill(&[2; 64]).unwrap();
+        let third = pool.spill(&[3; 64]).unwrap();
+        drop(first);
+        assert_eq!(pool.stats().disk_bytes, 128);
+        let reduced = MemoryLimits {
+            disk_bytes: 128,
+            ..pool.limits()
+        };
+        assert!(pool.set_limits(reduced).is_err());
+        drop(third);
+        pool.set_limits(reduced).unwrap();
+        let mut decoded = [0; 64];
+        pool.reload(&second, &mut decoded).unwrap();
+        assert_eq!(decoded, [2; 64]);
+    }
+
+    #[test]
+    fn concurrent_reservations_obey_reconfigured_shared_limits() {
+        let pool = MemoryPool::new(MemoryLimits {
+            cpu_bytes: 1024,
+            gpu_bytes: 1024,
+            disk_bytes: 1024,
+        });
+        std::thread::scope(|scope| {
+            for _ in 0..3 {
+                let pool = pool.clone();
+                scope.spawn(move || {
+                    for _ in 0..200 {
+                        let reservation = pool.reserve(MemoryKind::Transient, 64).unwrap();
+                        assert!([512, 1024].contains(&pool.limits().cpu_bytes));
+                        drop(reservation);
+                    }
+                });
+            }
+            for round in 0..200 {
+                pool.set_limits(MemoryLimits {
+                    cpu_bytes: if round % 2 == 0 { 512 } else { 1024 },
+                    ..pool.limits()
+                })
+                .unwrap();
+            }
+        });
+        assert_eq!(pool.stats().cpu_bytes, 0);
+    }
     #[test]
     fn damaged_backing_is_reported_and_failed_writes_release_the_disk_reservation() {
         let pool = MemoryPool::new(MemoryLimits {

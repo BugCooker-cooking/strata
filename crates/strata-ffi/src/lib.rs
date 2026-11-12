@@ -20,6 +20,8 @@ mod group_transform_tests;
 mod guides;
 mod local;
 #[cfg(test)]
+mod preferences_tests;
+#[cfg(test)]
 mod quick_export_tests;
 #[cfg(test)]
 mod revert_tests;
@@ -98,6 +100,7 @@ pub enum EngineEventDto {
         snapshot_json: String,
     },
     ExportPresetChanged,
+    PreferencesChanged,
     DocumentDuplicated {
         name: String,
         activate: bool,
@@ -216,6 +219,7 @@ impl Default for Inner {
     fn default() -> Self {
         Self {
             editor: Editor::with_decoder(Arc::new(strata_platform::NativeDecoder))
+                .with_app_preferences(native_app_preferences())
                 .with_export_presets(native_export_presets()),
             renderer: None,
             events: VecDeque::new(),
@@ -234,6 +238,15 @@ fn native_export_presets() -> strata_core::commands::ExportPresetStore {
     static PRESETS: std::sync::LazyLock<strata_core::commands::ExportPresetStore> =
         std::sync::LazyLock::new(Default::default);
     PRESETS.clone()
+}
+fn native_app_preferences() -> strata_core::commands::AppPreferencesStore {
+    static PREFERENCES: std::sync::LazyLock<strata_core::commands::AppPreferencesStore> =
+        std::sync::LazyLock::new(|| {
+            strata_core::commands::AppPreferencesStore::new(
+                strata_pixels::memory::MemoryPool::global(),
+            )
+        });
+    PREFERENCES.clone()
 }
 #[derive(uniffi::Object)]
 pub struct StrataEngine {
@@ -787,6 +800,9 @@ fn apply(
     }
     if command == "file.export_preset.set" {
         inner.events.push_back(EngineEventDto::ExportPresetChanged);
+    }
+    if command == "system.preferences.set" {
+        inner.events.push_back(EngineEventDto::PreferencesChanged);
     }
     if !command.starts_with("view.")
         || command.starts_with("view.guides.")

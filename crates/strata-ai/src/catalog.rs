@@ -5,6 +5,7 @@ use strata_core::commands::catalog;
 
 pub fn domain_summary(domain: &str) -> &str {
     match domain {
+        "system" => "App preferences, performance and resource usage / 应用偏好与性能",
         "document" => "Document structure and state / 文档信息",
         "file" => "New, open, place, save and export / 文件",
         "edit" => "Shared undo and redo history / 编辑与历史",

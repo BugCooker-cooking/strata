@@ -2,9 +2,9 @@
 
 当前开发期审计快照。完整编辑功能与最终 AI 审计仍未闭环；不得把注册数量当作全部功能覆盖。
 
-真实注册命令 143；参数示例 213；综合功能 265；已有映射 96。
+真实注册命令 147；参数示例 217；综合功能 265；已有映射 98。
 
-已实现但未映射 0；部分入口 12；原生未知命令引用 0；未类型化返回 0。
+已实现但未映射 0；部分入口 13；原生未知命令引用 0；未类型化返回 0。
 
 配置/密钥及基础设施的宿主管理理由单列；纯 UI 状态不能隐瞒为已具备独立 AI 设置命令。
 
@@ -53,10 +53,10 @@
 | PS-02-adcb808036 | 描边 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-02-f62f8ca281 | 渐隐 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-02-311ee1c4c5 | 定义画笔 / 图案 / 自定形状 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
-| PS-02-57907a69fc | 偏好设置 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
+| PS-02-57907a69fc | 偏好设置 | 已实现 | 已映射 | `system.preferences.get`、`system.preferences.set`、`system.memory.get` · 读取当前应用偏好，把以后 AI 回合的默认方式设为先问我，步数上限设为 30，单请求超时 45 秒、回合超时 180 秒。 · AI 默认执行方式/步数/请求与回合超时、共享 CPU/GPU/磁盘后备额度通过统一执行器生效并原生持久化。写入须单独批准，不属于文档撤销；安全上下限不可取消。 |
 | PS-02-91854349e1 | 自定义快捷键 / 菜单 / 工具栏 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-02-21ab73cf70 | 功能搜索 | 已实现 | 已映射 · infrastructure | `search_catalog`、`describe_commands` · The Command-F sheet uses the same bounded search_catalog and describe_commands implementations as AI. Native bilingual lookup and a one-window search-to-draft check passed. The draft remains available for user review before sending. |
-| PS-02-b2fd2e2a88 | 清理缓存 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
+| PS-02-b2fd2e2a88 | 清理缓存 | 部分实现 | 部分入口 | `system.memory.get`、`system.memory.trim` · 先读取托管资源占用，再释放全部文档的空闲缓存，保留源像素与历史。 · 实际回收可释放的 CPU/GPU 缓存，并将未固定源/历史块写入校验磁盘后备；固定读取者保留。Photoshop Purge 的剪贴板、历史定向清除尚未提供，条目保留部分状态。 |
 | PS-02-bc773443d0 | 拼写检查、查找替换文本 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-03-ad24731ea8 | 图像大小（多种重采样算法） | 部分实现 | 部分入口 | `image.resize` · 将图像大小改为512乘768像素，使用面积缩小并保留独立图层和蒙版。 · Pixels, retained-source unstyled text and unstyled groups have real size edits and all three sampling modes, with exact AI replacement approval and one-history turn undo. Editable fill/adjustment/style sizing and other professional resamplers remain open; do not interpret this partial entry as complete image sizing. |
 | PS-03-45c2eea14c | 画布大小 | 已实现 | 已映射 | `image.canvas_size` · 固定画布右下角，把画布扩展到给定宽高，保留所有画板外内容，不缩放图层。 · 画布边界编辑保留结构与原码；生成填充/样式和空间调色冻结参考，选区裁到新边界，扩展覆盖为零。图像缩放与删除裁剪像素属于其他命令。 |
@@ -278,7 +278,7 @@
 
 ## 仍需核对
 
-- 部分入口：PS-04-cb66199f15、PS-04-853e6d30f3、PS-16-8de06204ac、PS-09-4f3d9835a7、PS-09-7cc6b0bb65、PS-09-7d349372b5、PS-03-5f9716e5d8、PS-03-ad24731ea8、PS-11-4490121dad、PS-11-a524877cb6、PS-14-de2fd3ca59、PS-14-15d282cc9a
+- 部分入口：PS-04-cb66199f15、PS-04-853e6d30f3、PS-16-8de06204ac、PS-09-4f3d9835a7、PS-09-7cc6b0bb65、PS-09-7d349372b5、PS-03-5f9716e5d8、PS-03-ad24731ea8、PS-11-4490121dad、PS-11-a524877cb6、PS-14-de2fd3ca59、PS-14-15d282cc9a、PS-02-b2fd2e2a88
 - 未类型化返回：无
 - 未关联功能条目的命令：
 - 动态拼接及纯宿主回调仍需人工逐项复核；已有提示映射不能代替最终模型端到端验收。

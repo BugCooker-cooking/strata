@@ -18,6 +18,208 @@ struct Host {
 }
 
 #[test]
+fn cache_release_needs_its_own_approval_in_both_modes_and_preserves_history() {
+    for mode in [ExecutionMode::AskFirst, ExecutionMode::Direct] {
+        let host = Host::new();
+        host.user(
+            "layer.create",
+            json!({"name":"Keep source and history","fill":[10001,30003,50001,32769]}),
+        );
+        let original = host
+            .editor
+            .lock()
+            .unwrap()
+            .document()
+            .unwrap()
+            .to_archive()
+            .unwrap();
+        let revision = host.snapshot().unwrap().revision;
+        let mut session = host.session(mode);
+        for approve in [false, true] {
+            reply(
+                &mut session,
+                &host,
+                vec![invoke(
+                    if approve {
+                        "release-idle"
+                    } else {
+                        "deny-release"
+                    },
+                    "system.memory.trim",
+                    json!({}),
+                )],
+            );
+            let Step::Paused {
+                question_id,
+                reason,
+                operation,
+                ..
+            } = session.poll(&host).unwrap()
+            else {
+                panic!("cache release requires separate approval in both modes");
+            };
+            assert_eq!(reason, "settings_approval");
+            assert_eq!(operation.unwrap()["command"], "system.memory.trim");
+            let response = result(
+                session
+                    .respond(
+                        &host,
+                        HostAnswer {
+                            question_id,
+                            answer: String::new(),
+                            approved: approve,
+                            resource: None,
+                        },
+                    )
+                    .unwrap(),
+            );
+            if approve {
+                assert!(response["result"]["usage"]["cpu_bytes"].is_u64());
+            }
+            assert_eq!(host.snapshot().unwrap().revision, revision);
+            assert!(
+                host.editor
+                    .lock()
+                    .unwrap()
+                    .document()
+                    .unwrap()
+                    .to_archive()
+                    .unwrap()
+                    == original
+            );
+        }
+        host.editor.lock().unwrap().stop_turn();
+    }
+}
+
+#[test]
+fn preference_approval_changes_future_limits_without_reconfiguring_the_current_turn() {
+    let host = Host::new();
+    let revision = host.snapshot().unwrap().revision;
+    let mut session = host.session(ExecutionMode::AskFirst);
+    let ai = json!({"mode":"direct","max_steps":1,"request_timeout_seconds":5,"turn_timeout_seconds":30});
+    reply(
+        &mut session,
+        &host,
+        vec![
+            call(
+                "find-preferences",
+                "search_catalog",
+                json!({"query":"AI步数上限"}),
+            ),
+            call(
+                "describe-preferences",
+                "describe_commands",
+                json!({"ids":["system.preferences.get","system.preferences.set","system.memory.trim"]}),
+            ),
+            invoke(
+                "save-preferences",
+                "system.preferences.set",
+                json!({"ai":ai,"expected_version":0}),
+            ),
+        ],
+    );
+    assert!(
+        result(session.poll(&host).unwrap())["matches"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|item| item["id"] == "system.preferences.get")
+    );
+    let described = result(session.poll(&host).unwrap());
+    assert!(
+        described["commands"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|command| command["params"]["additionalProperties"] == false
+                && command["returns"]["additionalProperties"] == false)
+    );
+    let Step::Paused {
+        question_id,
+        reason,
+        operation,
+        ..
+    } = session.poll(&host).unwrap()
+    else {
+        panic!("application settings require separate approval");
+    };
+    assert_eq!(reason, "settings_approval");
+    assert_eq!(operation.unwrap()["params"]["ai"], ai);
+    let saved = result(
+        session
+            .respond(
+                &host,
+                HostAnswer {
+                    question_id,
+                    answer: String::new(),
+                    approved: true,
+                    resource: None,
+                },
+            )
+            .unwrap(),
+    );
+    assert_eq!(saved["result"]["ai"], ai);
+    reply(
+        &mut session,
+        &host,
+        vec![
+            invoke("keep-old-limits", "system.preferences.get", json!({})),
+            invoke(
+                "needs-old-approval",
+                "layer.create",
+                json!({"name":"Still ask in this turn"}),
+            ),
+        ],
+    );
+    assert_eq!(result(session.poll(&host).unwrap())["result"]["ai"], ai);
+    assert!(
+        matches!(session.poll(&host).unwrap(), Step::Paused { reason, .. } if reason == "edit_approval")
+    );
+    assert_eq!(host.snapshot().unwrap().revision, revision);
+    host.editor.lock().unwrap().stop_turn();
+
+    let options = host.editor.lock().unwrap().app_preferences().unwrap().ai;
+    let grant = ContextGrant::approved(&host.snapshot().unwrap(), &config(), false, None).unwrap();
+    let turn = host.editor.lock().unwrap().begin_turn().unwrap();
+    let mut next = Session::new(
+        config(),
+        grant,
+        options,
+        turn,
+        &host.snapshot().unwrap(),
+        "Use the saved defaults".into(),
+        vec![],
+    )
+    .unwrap();
+    let Step::Request {
+        request_id,
+        timeout_seconds,
+        ..
+    } = next.poll(&host).unwrap()
+    else {
+        panic!("expected model request");
+    };
+    assert_eq!(timeout_seconds, 5);
+    next.accept_reply(
+        &host,
+        request_id,
+        ModelReply {
+            tool_calls: vec![
+                invoke("one-step", "document.inspect", json!({})),
+                invoke("past-limit", "layer.create", json!({"name":"Cannot run"})),
+            ],
+            ..Default::default()
+        },
+    )
+    .unwrap();
+    assert!(matches!(next.poll(&host).unwrap(), Step::Tool { .. }));
+    assert!(matches!(next.poll(&host), Err(AiError::Limit)));
+    assert_eq!(host.snapshot().unwrap().revision, revision);
+    assert_eq!(host.snapshot().unwrap().control, Control::User);
+}
+
+#[test]
 fn duplicate_prompt_requires_fresh_workspace_approval_and_keeps_its_original_context() {
     let host = Host::new();
     host.user(

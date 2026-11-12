@@ -1,10 +1,10 @@
 {
   "scope": "Development audit; not a claim that all Photoshop editing is implemented or AI-verified",
-  "registered_commands": 143,
-  "registered_examples": 213,
-  "catalog_sha256": "ef381ca4f62531318d8357dd309fe14c7ecdf9217db762cb28aa388d9e9319eb",
+  "registered_commands": 147,
+  "registered_examples": 217,
+  "catalog_sha256": "f74c165bbdcc2073a38abd6f6a2c034e9580d256c2dd0b6b2deed95f5519ebc4",
   "inventory_rows": 265,
-  "mapped_features": 96,
+  "mapped_features": 98,
   "unmapped_implemented_features": [],
   "partial_entrypoints": [
     "PS-04-cb66199f15",
@@ -18,7 +18,8 @@
     "PS-11-4490121dad",
     "PS-11-a524877cb6",
     "PS-14-de2fd3ca59",
-    "PS-14-15d282cc9a"
+    "PS-14-15d282cc9a",
+    "PS-02-b2fd2e2a88"
   ],
   "unfinished_features": [
     "PS-00-7d7224e709",
@@ -44,7 +45,6 @@
     "PS-02-adcb808036",
     "PS-02-f62f8ca281",
     "PS-02-311ee1c4c5",
-    "PS-02-57907a69fc",
     "PS-02-91854349e1",
     "PS-02-b2fd2e2a88",
     "PS-02-bc773443d0",
@@ -206,7 +206,7 @@
   "unknown_native_command_references": {},
   "native_dispatch_prefixes": {
     "view.guides.": [
-      "apps/macos/Strata/App/MainWindowController.swift:393"
+      "apps/macos/Strata/App/MainWindowController.swift:412"
     ]
   },
   "untyped_command_returns": [],
@@ -1044,8 +1044,29 @@
       "name": "偏好设置",
       "priority": "P0",
       "source_line": 96,
-      "implementation": "待实现",
-      "entrypoint": null
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "system.preferences.get",
+          "system.preferences.set",
+          "system.memory.get"
+        ],
+        "prompts": [
+          {
+            "text": "读取当前应用偏好，把以后 AI 回合的默认方式设为先问我，步数上限设为 30，单请求超时 45 秒、回合超时 180 秒。",
+            "query": "AI步数上限",
+            "command": "system.preferences.set"
+          },
+          {
+            "text": "Read application preferences and current managed CPU, GPU and disk usage.",
+            "query": "Read application preferences",
+            "command": "system.preferences.get"
+          }
+        ],
+        "note": "AI 默认执行方式/步数/请求与回合超时、共享 CPU/GPU/磁盘后备额度通过统一执行器生效并原生持久化。写入须单独批准，不属于文档撤销；安全上下限不可取消。"
+      }
     },
     {
       "id": "PS-02-91854349e1",
@@ -1084,8 +1105,28 @@
       "name": "清理缓存",
       "priority": "P2",
       "source_line": 99,
-      "implementation": "待实现",
-      "entrypoint": null
+      "implementation": "部分实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "partial",
+        "commands": [
+          "system.memory.get",
+          "system.memory.trim"
+        ],
+        "prompts": [
+          {
+            "text": "先读取托管资源占用，再释放全部文档的空闲缓存，保留源像素与历史。",
+            "query": "释放空闲缓存",
+            "command": "system.memory.trim"
+          },
+          {
+            "text": "Release idle caches while preserving document history and source samples.",
+            "query": "Release idle caches",
+            "command": "system.memory.trim"
+          }
+        ],
+        "note": "实际回收可释放的 CPU/GPU 缓存，并将未固定源/历史块写入校验磁盘后备；固定读取者保留。Photoshop Purge 的剪贴板、历史定向清除尚未提供，条目保留部分状态。"
+      }
     },
     {
       "id": "PS-02-bc773443d0",

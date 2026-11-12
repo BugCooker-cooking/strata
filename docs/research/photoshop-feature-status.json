@@ -1106,5 +1106,25 @@
         "path": "../research/2026-11-m8-duplicate-search-progress.md"
       }
     ]
+  },
+  "PS-02-57907a69fc": {
+    "implementation": "已实现",
+    "acceptance": "当前 Mac 本机核心/内存/AI/原生/真实 Metal/Release 与单窗口保存、非法值拒绝、缓存释放、重启恢复通过。原生与 AI 共用设置命令；安全上下限、整组预算失败和跨标签版本保护生效。",
+    "evidence": [
+      {
+        "label": "M8 应用偏好与资源预算",
+        "path": "../research/2026-11-m8-preferences-progress.md"
+      }
+    ]
+  },
+  "PS-02-b2fd2e2a88": {
+    "implementation": "部分实现",
+    "acceptance": "空闲缓存释放与源/历史块磁盘回收已接通；剪贴板与历史定向清除待实现。",
+    "evidence": [
+      {
+        "label": "M8 应用偏好与资源预算",
+        "path": "../research/2026-11-m8-preferences-progress.md"
+      }
+    ]
   }
 }

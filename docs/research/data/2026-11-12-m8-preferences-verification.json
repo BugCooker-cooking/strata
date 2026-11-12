@@ -1,0 +1,211 @@
+{
+  "date_local": "2026-11-12",
+  "timezone": "Asia/Taipei",
+  "base_checkpoint": "c6f5330",
+  "branch": "codex/v1-remaining",
+  "scope": "P0 EDIT-04 application preferences, shared managed memory budget updates and idle resource release. Closes preferences only; clipboard/history-targeted Purge and full Photoshop/AI closure remain open.",
+  "source_sha256": {
+    "apps/macos/Strata/AI/AssistantModel.swift": "ce255a66dcd88217ed7968375cf7de1c044120832fb6c7ac46c7f5ad741fa58f",
+    "apps/macos/Strata/App/AppDelegate.swift": "499a8d6d7717248c952778f804aa163dbaf31cc054609e9b243558fe351840da",
+    "apps/macos/Strata/App/MainWindowController.swift": "4e2afa088bee59766956182aa2f4216960664487d398c7896e87e928244f03bb",
+    "apps/macos/Strata/App/PreferencesOptionsController.swift": "20044d8d1e052c8813d4b618dbbcd6ace2458b6a35a6cbcce348096f51fd4b56",
+    "apps/macos/Strata/Workspace/ApplicationPreferences.swift": "ff6a54f4f9976197260d9c3fd051c23bfbf4223622554ec6dd9367a0c0f097bb",
+    "apps/macos/StrataTests/ApplicationPreferencesTests.swift": "52beb683c875200f1ba029b743db6c30fe609a2ccea131b0180e445d31cfb89a",
+    "crates/strata-ai/src/catalog.rs": "37faaf3cce2b35489d97d0443a3e6009e300920ee9aaf46b37f0988e41bff73c",
+    "crates/strata-ai/src/session.rs": "34cf286e6a5a505e7492edd36aa73d19c47c9c21507e0adc45f22f51c2821ab2",
+    "crates/strata-ai/tests/replay.rs": "702bd6b50958b08dac1e02eea87beddc0cf88a7fd43688f4f2e3b204789de82c",
+    "crates/strata-core/src/commands/executor.rs": "7f20431af5045af5f93ad745c81ff3e91db6c8330aeae06132c05253aaee9ed2",
+    "crates/strata-core/src/commands/mod.rs": "1e8474272218cc5dd95160fb52af5d62a0d984e5cb276ffe354b8010f89fb91a",
+    "crates/strata-core/src/commands/preferences.rs": "66b7b96fd3527dfc88b50e76805b0b0e444a2f2893cebc66e8b4c0fc2b40a4a3",
+    "crates/strata-core/src/commands/registry.rs": "240554cab494c9cb62f7cbb576d2a95cd1b33cfda62a4a633b1cb10a1cf4fcd3",
+    "crates/strata-core/tests/preferences.rs": "b0785676f4da6b616d69ffc5d1328c0b8f38eb051338b46f6afe08510b2d2e6a",
+    "crates/strata-ffi/src/ai.rs": "b202833f1395104c55c16c39a6ec9bfb079c8f70d1f9fe47b891de1aefdfd1a9",
+    "crates/strata-ffi/src/lib.rs": "ec2dfb437bf275f428ca078aa20ea22fe0685694041e135cfe6c1c6154f26896",
+    "crates/strata-ffi/src/preferences_tests.rs": "411481fbab58745d9e117ee29a843fad20289e19614ae098fd8a93931eb6e296",
+    "crates/strata-pixels/src/memory.rs": "971020bc457238dd23a9c3bc35fa94777ae877b7a251d874fd015631ca11373a",
+    "scripts/ai-entrypoints.py": "7e26259d0d624b07611d04f072a1e065af86ad90fb2d47aae5655284ae0a3116"
+  },
+  "log_sha256": {
+    "build/m8-preferences-core-pixels.log": "8c7d9f5c4b0cc3298ec274fdecc68853a4586eb6d619685c17fa7a1ef38cd952",
+    "build/m8-preferences-core-regression.log": "027d27b9d91ab4003c5f22a778acdf2b55a30c1155b0d29cbe1de4c84493f678",
+    "build/m8-preferences-pixels.log": "ca728fdb64c7d4e41a58dc9e6fa32ce3fe551a29944ec573845ccdb86ee728f9",
+    "build/m8-preferences-ai.log": "e98635f5120de48466a6e0ea00dbf6118970de35716a384d9482a9aa01fd6e9c",
+    "build/m8-preferences-ffi.log": "075c8f192bf32473d51ce00d9a12f0db558e1c3666be94d2479b39d89292b21f",
+    "build/m8-preferences-clippy.log": "4ff541fb29daa6907f3028a8687d5d8059f59aa5b6e085baa6e6556e94d973e3",
+    "build/m8-preferences-swiftlint.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "build/m8-preferences-portability.log": "f2a9320900517cc8fddc9791f552fe2683214d4b9c8227cca7a1589bfbc06a2c",
+    "build/m8-preferences-commands.log": "be869cde4162a1eca32fc9c40f53bd7ee05b79ce9a338dd8ef01025609c4cb36",
+    "build/m8-preferences-native.log": "067606ac1578844d1afc60bd656b50f5e9c280daebc307f432057f04dc44d1c9",
+    "build/m8-preferences-native.final.log": "2032a61bbb1647e8a0f9faee69d0eab022aa6523b5022aff8f90fb7eb049efff",
+    "build/m8-preferences-release.log": "6d095aade73aa4456456ee38a57ead3fc2904997844180b2a7d25d1d97ef0e1e",
+    "build/m8-preferences-release.final.log": "e3f186609e0f837c6adf3e60367d629a812e34b27ac826c1ddde6c967325507e",
+    "build/m8-preferences-audit.final.log": "90d6c78e5821fafa6c33e0393864d0e0b270e3536ad5151e763f17ef6f95e2d4",
+    "build/m8-preferences-strict.log": "58775cd558643dbf55e44703bbdc00f7f6982cb47d878a0c39d4f6ad5cfe0375"
+  },
+  "verification": {
+    "core_targeted": {
+      "passed": 25,
+      "failed": 0,
+      "ignored": 0,
+      "suites": {
+        "commands": 8,
+        "duplicate_document": 3,
+        "files": 6,
+        "preferences": 4,
+        "recovery": 4
+      },
+      "log": "build/m8-preferences-core-regression.log"
+    },
+    "pixels": {
+      "passed": 31,
+      "failed": 0,
+      "ignored": 0,
+      "new_budget_unit_cases": 3,
+      "log": "build/m8-preferences-pixels.log"
+    },
+    "ai": {
+      "passed": 55,
+      "failed": 0,
+      "ignored": 0,
+      "replay_cases": 46,
+      "protocol_cases": 7,
+      "recordings": 1,
+      "feature_prompt_mapping": 1,
+      "new_cases": 2,
+      "network_requests": 0,
+      "log": "build/m8-preferences-ai.log"
+    },
+    "ffi": {
+      "passed": 2,
+      "failed": 0,
+      "ignored": 0,
+      "required_actual_metal_cases": 1,
+      "new_turn_actual_limits_cases": 1,
+      "frame": "32x24 Display P3 16-bit source; exact RGBA equality before/after save, trim and restore, archive/snapshot/history unchanged",
+      "network_requests": 0,
+      "log": "build/m8-preferences-ffi.log"
+    },
+    "native_full": {
+      "executed": 125,
+      "passed": 124,
+      "skipped": 1,
+      "failed": 0,
+      "skipped_reason": "Explicit live-model acceptance opt-in disabled",
+      "log": "build/m8-preferences-native.log",
+      "scope_note": "Before the final native-only preference error-copy fix; final four preference tests below cover that change."
+    },
+    "native_final": {
+      "executed": 4,
+      "passed": 4,
+      "failed": 0,
+      "log": "build/m8-preferences-native.final.log",
+      "covers": "Actual saved turn options, persistence/corrupt data, invalid AI and memory values with relevant localized messages, stale panel preserving newer settings"
+    },
+    "lint": {
+      "rust_fmt": "passed",
+      "clippy": "passed for pixels/core/ai/ffi/devtool all targets with -D warnings",
+      "swiftlint": "passed strict",
+      "portability": "passed"
+    },
+    "commands": {
+      "commands": 147,
+      "executable_examples": 217,
+      "passed": true,
+      "log": "build/m8-preferences-commands.log"
+    },
+    "release": {
+      "architecture": "arm64",
+      "passed": true,
+      "binary_sha256": "6eb05046402ce102051cb4c74d79725e983d48164c97551b51debd54a4fafd99",
+      "log": "build/m8-preferences-release.final.log"
+    },
+    "heavy_checks_serial": true,
+    "max_compilation_jobs": 2,
+    "cloud_jobs_executed": false
+  },
+  "native_manual": {
+    "max_simultaneous_strata_instances": 1,
+    "final_release_launches_sequential": 2,
+    "fixture": "docs/design/assets/sample-photo.jpg",
+    "command_comma_opens_panel": true,
+    "initial_values": {
+      "mode": "ask_first",
+      "max_steps": 50,
+      "request_timeout_seconds": 60,
+      "turn_timeout_seconds": 300,
+      "cpu_mib": 2048,
+      "gpu_mib": 512,
+      "disk_mib": 32768
+    },
+    "step_zero_rejected_and_sheet_retained": true,
+    "error_copy_fix_observed": "Shows AI step/request/turn ranges instead of irrelevant layer/file advice.",
+    "saved_and_restarted_values": {
+      "mode": "ask_first",
+      "max_steps": 30,
+      "request_timeout_seconds": 45,
+      "turn_timeout_seconds": 180,
+      "cpu_mib": 1024,
+      "gpu_mib": 256,
+      "disk_mib": 16384
+    },
+    "usage_mib_before_trim": {
+      "cpu": 54.0,
+      "gpu": 45.9,
+      "disk": 0.0
+    },
+    "usage_mib_after_trim": {
+      "cpu": 0.0,
+      "gpu": 45.9,
+      "disk": 6.0
+    },
+    "usage_note": "Rounded managed pool counters at observation time, not total process/OS memory; displayed GPU readers remained pinned.",
+    "physical_restart_restored_settings_and_actual_budgets": true,
+    "final_document": {
+      "layers": 1,
+      "x": 0,
+      "y": 0,
+      "dirty": false,
+      "undo_enabled": false
+    },
+    "cleanup": {
+      "restored_preferences_before_removing_test_key": {
+        "ai": {
+          "max_steps": 50,
+          "mode": "ask_first",
+          "request_timeout_seconds": 60,
+          "turn_timeout_seconds": 300
+        },
+        "memory": {
+          "cpu_mib": 2048,
+          "disk_mib": 32768,
+          "gpu_mib": 512
+        }
+      },
+      "test_key_removed_to_original_absent_state": true,
+      "remaining_strata_processes": 0,
+      "sha256": {
+        "docs/design/assets/sample-photo.jpg": "c1006da29913609963479b8641c0e6f6a43ff2c6d8b2f907c91a6daf1afaa2ea",
+        "build/DerivedData/Build/Products/Release/Strata.app/Contents/Resources/sample-photo.jpg": "c1006da29913609963479b8641c0e6f6a43ff2c6d8b2f907c91a6daf1afaa2ea",
+        "build/DerivedData/Build/Products/Release/Strata.app/Contents/MacOS/Strata": "6eb05046402ce102051cb4c74d79725e983d48164c97551b51debd54a4fafd99"
+      }
+    }
+  },
+  "audit": {
+    "mapped_features": 98,
+    "inventory_rows": 265,
+    "unfinished_composite_features": 180,
+    "partial_entrypoints": 13,
+    "unmapped_implemented_features": [],
+    "unknown_native_command_references": {},
+    "untyped_command_returns": [],
+    "final_audit_complete": false,
+    "strict_gate_expected_exit_code": 1
+  },
+  "limits": [
+    "No live-model request or external credential was used.",
+    "No cloud build was enabled, triggered, rerun or awaited.",
+    "No new sustained large-image/FPS/50MP stress or other-platform hardware evidence is claimed.",
+    "Managed budget and trim commands preserve source samples/history; targeted clipboard/history purge remains unimplemented.",
+    "Full native suite predates the presentation-only final copy fix; final affected suite and final Release were rerun."
+  ]
+}

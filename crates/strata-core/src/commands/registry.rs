@@ -50,6 +50,42 @@ fn build_catalog() -> Vec<CommandSpec> {
         }}
     }
     command!(
+        "system.preferences.get",
+        Empty,
+        Query,
+        "读取应用偏好设置",
+        "Read application preferences",
+        "Read shared versioned AI defaults and managed CPU/GPU/disk budgets in MiB. AI defaults apply to new turns. Memory budgets apply to the existing shared pool. Native hosts persist validated groups across restart. Settings and this query are independent of document history and save paths. No document required. 中文：偏好设置、性能设置、默认先问我、AI步数上限、请求超时、回合超时、缓存额度。",
+        json!({})
+    );
+    command!(
+        "system.preferences.set",
+        SetPreferences,
+        Settings,
+        "修改应用偏好设置",
+        "Update application preferences",
+        "Update one or both complete ai/memory groups; omitted groups keep their current values. ai fields mode=ask_first/direct, max_steps1..200, request_timeout_seconds5..120 and turn_timeout_seconds30..1800 apply to subsequent turns. memory fields cpu_mib256..16384, gpu_mib64..4096 and disk_mib1024..262144 update the shared allocator immediately. Saving budgets below live reservations or backing-file extent rejects the entire update, including AI fields. Use system.memory.trim to release idle resources before retrying. expected_version optionally binds get. Equal values keep the version. Cross-document settings, outside document undo/history/dirty; AI requires exact separate settings approval in either execution mode. Native and AI share this implementation. 中文：设置偏好、AI执行限制、AI步数上限、默认直接执行、默认先问我、CPU缓存预算、GPU纹理预算、磁盘后备预算、修改超时；每组参数完整提交。",
+        json!({"ai":{"mode":"ask_first","max_steps":30,"request_timeout_seconds":45,"turn_timeout_seconds":180},"expected_version":0})
+    );
+    command!(
+        "system.memory.get",
+        Empty,
+        Query,
+        "读取资源占用",
+        "Read managed resource usage",
+        "Read the current shared pool's CPU/GPU/backing budgets and tracked source/cache/transient/GPU/disk usage in bytes. This reports managed allocations and excludes other process/OS allocations. Allocation peaks remain historical across budget changes. No document, file access or history effect. 中文：内存占用、缓存占用、GPU占用、磁盘后备占用、当前资源额度。",
+        json!({})
+    );
+    command!(
+        "system.memory.trim",
+        Empty,
+        Settings,
+        "释放空闲缓存",
+        "Release idle caches",
+        "Release unpinned display caches and spill eligible source/history tiles into the checksummed disk backing store through the existing shared pool. Active readers stay pinned. Returns actual post-operation usage and limits. Cancel/stale requests fail before eviction. Disk errors may leave some caches released; source samples and document history remain available. Settings approval is separate for AI. No document required. 中文：清理缓存、释放内存、释放空闲缓存、回收GPU缓存、清理性能缓存。",
+        json!({})
+    );
+    command!(
         "view.guides.list",
         ListGuides,
         Query,
@@ -1322,6 +1358,10 @@ fn build_catalog() -> Vec<CommandSpec> {
     );
     for item in &mut list {
         item.returns = match item.id {
+            "system.preferences.get" | "system.preferences.set" => {
+                schemars::schema_for!(AppPreferences)
+            }
+            "system.memory.get" | "system.memory.trim" => schemars::schema_for!(MemoryStatus),
             "image.duplicate" => schemars::schema_for!(DuplicateResult),
             "file.export_preset.get" | "file.export_preset.set" => {
                 schemars::schema_for!(ExportPreset)
@@ -1417,10 +1457,11 @@ fn build_catalog() -> Vec<CommandSpec> {
             item.permissions.push("write_resource");
         }
         if item.id.starts_with("file.export_preset.") {
-            item.effects = if item.kind == CommandKind::Query {
-                vec!["preferences.read"]
-            } else {
-                vec!["preferences.write"]
+            item.effects = match item.id {
+                "system.memory.get" => vec!["memory.read"],
+                "system.memory.trim" => vec!["memory.release", "memory.backing.write"],
+                "system.preferences.get" => vec!["preferences.read"],
+                _ => vec!["preferences.write", "memory.limits.write"],
             };
             item.permissions = if item.kind == CommandKind::Query {
                 vec![]
@@ -1431,6 +1472,23 @@ fn build_catalog() -> Vec<CommandSpec> {
             item.undoable = false;
             item.preconditions = vec![
                 "App-wide versioned settings; no document or file capability required. Writes require control ownership and separate AI settings approval.",
+            ];
+        }
+        if item.id.starts_with("system.") {
+            item.batchable = false;
+            item.undoable = false;
+            item.effects = if item.kind == CommandKind::Query {
+                vec!["preferences.read"]
+            } else {
+                vec!["preferences.write"]
+            };
+            item.permissions = if item.kind == CommandKind::Query {
+                vec![]
+            } else {
+                vec!["app_settings_approval"]
+            };
+            item.preconditions = vec![
+                "Shared application settings or resource operation. Host session/control ownership checked; no document required.",
             ];
         }
         if item.id == "file.revert_status" {

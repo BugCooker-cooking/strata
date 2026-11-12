@@ -49,10 +49,10 @@
 | PS-02-adcb808036 | 编辑 | 描边 | P1 | 待实现 | 待验收 |
 | PS-02-f62f8ca281 | 编辑 | 渐隐 | P2 | 待实现 | 待验收 |
 | PS-02-311ee1c4c5 | 编辑 | 定义画笔 / 图案 / 自定形状 | P2 | 待实现 | 待验收 |
-| PS-02-57907a69fc | 编辑 | 偏好设置 | P0 | 待实现 | 待验收 |
+| PS-02-57907a69fc | 编辑 | 偏好设置 | P0 | 已实现 | 当前 Mac 本机核心/内存/AI/原生/真实 Metal/Release 与单窗口保存、非法值拒绝、缓存释放、重启恢复通过。原生与 AI 共用设置命令；安全上下限、整组预算失败和跨标签版本保护生效。 · [M8 应用偏好与资源预算](../research/2026-11-m8-preferences-progress.md) |
 | PS-02-91854349e1 | 编辑 | 自定义快捷键 / 菜单 / 工具栏 | P2 | 待实现 | 待验收 |
 | PS-02-21ab73cf70 | 编辑 | 功能搜索 | P1 | 已实现 | Native Command-F searches the real catalog, displays the shared description and can insert a prompt into the AI draft. Bilingual lookup and unsupported-command checks passed in XCTest. One Release window confirmed Chinese lookup and insertion into the draft. · [Document duplication and feature search local checks](../research/2026-11-m8-duplicate-search-progress.md) |
-| PS-02-b2fd2e2a88 | 编辑 | 清理缓存 | P2 | 待实现 | 待验收 |
+| PS-02-b2fd2e2a88 | 编辑 | 清理缓存 | P2 | 部分实现 | 空闲缓存释放与源/历史块磁盘回收已接通；剪贴板与历史定向清除待实现。 · [M8 应用偏好与资源预算](../research/2026-11-m8-preferences-progress.md) |
 | PS-02-bc773443d0 | 编辑 | 拼写检查、查找替换文本 | P3 | 待实现 | 待验收 |
 | PS-03-ad24731ea8 | 图像 | 图像大小（多种重采样算法） | P0 | 部分实现 | Nearest/bilinear/area size changes now include retained-source unstyled text as well as pixels/groups. Local independent coverage references, source re-edit, persistence/undo, AI and native gates passed. Subsequent manual retained-text rotation and mixed-group scaling/re-edit are recorded separately; no manual whole-image text resize variant is asserted here. Editable fill/adjustment/style sizing and other professional algorithms remain open. · [尺寸重采样进展](../research/2026-11-m7-resize-progress.md) · [Retained text geometry / ordered crop](../research/2026-11-m7-text-geometry-progress.md) · [Subsequent native text/group manual scope](../research/data/2026-11-07-m7-native-text-guides-closure.json) |
 | PS-03-45c2eea14c | 图像 | 画布大小 | P0 | 已实现 | 九锚点、原码/锁定结构/蒙版/选区、旧工程迁移与撤销通过；当前设备原生/Metal/Release 已有证据；持续回归 · [M7 画布大小](../research/2026-11-m7-canvas-progress.md) |
@@ -272,6 +272,6 @@
 | PS-19-d9de9483c3 | Adobe 的 AI 功能 | 移除干扰物（行人、电线）/ 反射去除 🤖 | P3 | 待实现 | 待验收 |
 | PS-19-ef0365d914 | Adobe 的 AI 功能 | Neural Filters：皮肤平滑、智能肖像、上色、超级缩放、JPEG 伪影去除、照片修复、风格转换、妆容迁移、景观混合器、深度模糊、色彩转移 🤖 | P3 | 待实现 | 待验收 |
 
-综合功能条目：265。实现状态：已实现 73；已实现（M3 集成中） 11；待实现 160；部分实现 12；重新核对 9。
+综合功能条目：265。实现状态：已实现 74；已实现（M3 集成中） 11；待实现 158；部分实现 13；重新核对 9。
 
 源清单行号可由 --json 查询。该数量是综合条目数，不能当作独立子功能总数或完成百分比。

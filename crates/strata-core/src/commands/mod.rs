@@ -20,6 +20,7 @@ mod new;
 mod orthogonal;
 mod paint;
 mod pixel_transform;
+mod preferences;
 mod profiles;
 mod raster;
 mod registry;
@@ -51,6 +52,10 @@ pub use export_preset::{
     ExportPreset, ExportPresetOptions, ExportPresetStore, QuickExportFormat, QuickExportSpace,
 };
 use export_preset::{QuickExport, QuickExportResult, SetExportPreset};
+pub use preferences::{
+    AiPreferences, AppPreferences, AppPreferencesStore, ExecutionMode, MemoryPreferences,
+};
+use preferences::{MemoryStatus, SetPreferences};
 pub use registry::{CommandKind, CommandSpec, catalog};
 
 use crate::{BlendMode, LayerRef};

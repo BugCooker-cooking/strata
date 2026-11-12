@@ -197,6 +197,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         case #selector(revertDocument):workspace.permissions.edits && workspace.hasDocument && engine.revertSourcePath() != nil
         case #selector(duplicateDocument): workspace.permissions.edits && workspace.hasDocument && onDocumentDuplicated != nil
         case #selector(showCommandSearch): true
+        case #selector(showPreferences): !busy && (state?.control?.kind ?? "user") == "user"
         case #selector(openImage), #selector(newTab), #selector(openRecent(_:)): !busy
         default: true
         }
@@ -294,6 +295,22 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         alert.accessoryView = accessory
         alert.beginSheetModal(for: window)
     }
+    @objc func showPreferences() {
+        guard !busy, (state?.control?.kind ?? "user") == "user",
+              let window, window.attachedSheet == nil else { return }
+        do {
+            let options = try PreferencesOptionsController(engine: engine)
+            let alert = NSAlert()
+            alert.messageText = "应用偏好"
+            alert.addButton(withTitle: "关闭").keyEquivalent = "\u{1b}"
+            alert.accessoryView = options.view
+            options.onSaved = { [weak window, weak alert] in
+                guard let window, let alert else { return }
+                window.endSheet(alert.window)
+            }
+            alert.beginSheetModal(for: window) { _ in _ = options }
+        } catch { showError(error) }
+    }
     @objc func togglePanels() {
         let hide = !inspectorItem.isCollapsed; inspectorItem.isCollapsed = hide; assistantItem.isCollapsed = hide
         workspace.inspectorVisible = !hide; workspace.assistantVisible = !hide
@@ -301,6 +318,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
     @objc func newTab() { if let onNewTab { onNewTab() } else { newDocument() } }
     func handle(_ event: EngineEventDto) {
         switch event {
+        case .preferencesChanged:
+            try? ApplicationPreferences.shared.save(from: engine)
         case .documentDuplicated(let name, let activate, let copy):
             onDocumentDuplicated?(name, activate, copy)
         case .exportPresetChanged:

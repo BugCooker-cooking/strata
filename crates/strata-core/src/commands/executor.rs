@@ -232,6 +232,8 @@ pub struct Snapshot {
 }
 
 enum Action {
+    Preferences(u64, super::AppPreferences),
+    TrimMemory,
     Duplicate {
         name: String,
         index_budget: Arc<strata_pixels::memory::Reservation>,
@@ -319,6 +321,7 @@ struct Receipt {
 
 #[derive(Clone)]
 pub struct Editor {
+    preferences: super::AppPreferencesStore,
     copy_index_budget: Option<Arc<strata_pixels::memory::Reservation>>,
     export_presets: super::ExportPresetStore,
     presentation: crate::Presentation,
@@ -352,12 +355,14 @@ impl Default for Editor {
 }
 impl Editor {
     pub fn new() -> Self {
+        let pool = strata_pixels::memory::MemoryPool::global();
         Self {
+            preferences: super::AppPreferencesStore::new(pool.clone()),
             copy_index_budget: None,
             export_presets: Default::default(),
             presentation: Default::default(),
             paint_colors: Default::default(),
-            pool: strata_pixels::memory::MemoryPool::global(),
+            pool,
             document: None,
             session: Uuid::new_v4(),
             revision: 0,
@@ -391,6 +396,19 @@ impl Editor {
         self.export_presets = store;
         self
     }
+    /// Attach a shared settings store before opening the first document.
+    pub fn with_app_preferences(mut self, store: super::AppPreferencesStore) -> Self {
+        assert!(
+            self.document.is_none(),
+            "attach preferences before opening a document"
+        );
+        self.pool = store.pool();
+        self.preferences = store;
+        self
+    }
+    pub fn app_preferences(&self) -> Result<super::AppPreferences, CommandError> {
+        self.preferences.get()
+    }
     pub fn set_subject_selector(&mut self, selector: Arc<dyn crate::SubjectSelector>) {
         self.selector = Some(selector);
     }
@@ -400,6 +418,7 @@ impl Editor {
     }
     pub fn with_memory_pool(pool: strata_pixels::memory::MemoryPool) -> Self {
         Self {
+            preferences: super::AppPreferencesStore::new(pool.clone()),
             pool,
             ..Self::new()
         }
@@ -1319,7 +1338,11 @@ impl Editor {
                 }
                 (
                     Action::Query,
-                    if id == "file.revert_status" {
+                    if id == "system.preferences.get" {
+                        json!(self.preferences.get()?)
+                    } else if id == "system.memory.get" {
+                        json!(super::MemoryStatus::read(&self.pool))
+                    } else if id == "file.revert_status" {
                         self.revert_status()
                     } else if id == "file.export_preset.get" {
                         json!(self.export_presets.get()?)
@@ -1825,11 +1848,25 @@ impl Editor {
                     result,
                 )
             }
-            CommandKind::Settings => {
-                let p: super::SetExportPreset = parse(params.clone())?;
-                let (expected, value) = self.export_presets.prepare(p)?;
-                (Action::ExportPreset(expected, value.clone()), json!(value))
-            }
+            CommandKind::Settings => match id {
+                "system.preferences.set" => {
+                    let params: super::SetPreferences = parse(params.clone())?;
+                    let (expected, value) = self.preferences.prepare(params)?;
+                    (Action::Preferences(expected, value.clone()), json!(value))
+                }
+                "system.memory.trim" => {
+                    let _: Empty = parse(params.clone())?;
+                    (
+                        Action::TrimMemory,
+                        json!(super::MemoryStatus::read(&self.pool)),
+                    )
+                }
+                _ => {
+                    let p: super::SetExportPreset = parse(params.clone())?;
+                    let (expected, value) = self.export_presets.prepare(p)?;
+                    (Action::ExportPreset(expected, value.clone()), json!(value))
+                }
+            },
             CommandKind::External if id == "file.quick_export" => {
                 let p: super::QuickExport = parse(params.clone())?;
                 let preset = self.export_presets.get()?;
@@ -1901,7 +1938,7 @@ impl Editor {
     }
     fn commit_inner(
         &mut self,
-        prepared: PreparedCommand,
+        mut prepared: PreparedCommand,
         accept_copy: bool,
     ) -> Result<(Value, Option<super::DocumentCopy>), CommandError> {
         // Two workers may prepare the same call before either commits. Recheck
@@ -2020,6 +2057,8 @@ impl Editor {
                 Action::PaintColors(_)
                     | Action::Presentation(_)
                     | Action::ExportPreset(_, _)
+                    | Action::Preferences(_, _)
+                    | Action::TrimMemory
                     | Action::Duplicate { .. }
             )
             || prepared.command.starts_with("view.guides.")
@@ -2044,9 +2083,15 @@ impl Editor {
             ) && prepared.result["changed"] == false);
         let mut copy = None;
         match prepared.action {
+            Action::Preferences(expected, value) => self.preferences.commit(expected, value)?,
+            Action::TrimMemory => {
+                self.pool.trim().map_err(DocumentError::from)?;
+                prepared.result = json!(super::MemoryStatus::read(&self.pool));
+            }
             Action::Duplicate { name, index_budget } => {
                 let document = prepared.candidate.ok_or(CommandError::NoDocument)?;
                 let mut editor = Self::with_memory_pool(self.pool.clone())
+                    .with_app_preferences(self.preferences.clone())
                     .with_export_presets(self.export_presets.clone());
                 editor.selected = document.active_layer();
                 editor.document = Some(document);

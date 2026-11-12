@@ -121,7 +121,15 @@ impl StrataEngine {
         prior_json: String,
     ) -> Result<String, StrataError> {
         let config: ProviderConfig = serde_json::from_str(&config_json).map_err(ai_error)?;
-        let options: SessionOptions = serde_json::from_str(&options_json).map_err(ai_error)?;
+        let options: SessionOptions = if options_json.is_empty() {
+            self.lock()?
+                .editor
+                .app_preferences()
+                .map_err(command_error)?
+                .ai
+        } else {
+            serde_json::from_str(&options_json).map_err(ai_error)?
+        };
         let prior: Vec<Message> = serde_json::from_str(&prior_json).map_err(ai_error)?;
         self.issue_tonal_preview()?;
         let mut slot = self.ai.lock().map_err(ai_error)?;

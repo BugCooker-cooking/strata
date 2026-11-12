@@ -19,6 +19,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var recoveryDirectory: URL?
     private var memoryPressure: DispatchSourceMemoryPressure?
     private var exportPresetRestored=false
+    private var appPreferencesRestored = false
 
     // DispatchSource invokes this on its utility queue. Creating the callback
     // outside MainActor prevents Swift 6 from asserting main-queue isolation.
@@ -34,6 +35,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func registerController(_ engine: StrataEngine, reference: WindowReference, name: String) -> MainWindowController {
+        if !appPreferencesRestored {
+            appPreferencesRestored = true
+            try? ApplicationPreferences.shared.restore(on: engine)
+        }
         let new = MainWindowController(engine: engine, fileName: name)
         reference.controller = new; controllers.append(new)
         if !exportPresetRestored{exportPresetRestored=true;do{try QuickExportPreferences().restore(on:new.engine)}catch{new.quickExportError="无法读取快速导出预设，请重新设置。\(error.localizedDescription)"}}
@@ -260,6 +265,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let bar = NSMenu()
         let app = NSMenu()
         app.addItem(withTitle: "关于 Strata", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
+        let preferences = app.addItem(withTitle: "偏好设置…", action: #selector(MainWindowController.showPreferences), keyEquivalent: ",")
+        preferences.target = controller
         app.addItem(.separator())
         app.addItem(withTitle: "退出 Strata", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         let appItem = NSMenuItem(); appItem.submenu = app; bar.addItem(appItem)

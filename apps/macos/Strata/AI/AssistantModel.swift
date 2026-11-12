@@ -29,6 +29,7 @@ final class AssistantModel: ObservableObject {
     @Published var connectionStatus = ""
     let settings: AISettingsStore
     private let engine: StrataEngine
+    private let preferences: ApplicationPreferences
     private var task: Task<Void, Never>?
     private(set) var turn: String?
     private var document: String?
@@ -46,8 +47,14 @@ final class AssistantModel: ObservableObject {
     var canUndoTurn: ((String) -> Bool)?
     var onDocumentFile: ((URL?, String) -> Void)?
 
-    init(engine: StrataEngine, settings: AISettingsStore = .shared) {
+    init(engine: StrataEngine, settings: AISettingsStore = .shared, preferences: ApplicationPreferences = .shared) {
         self.engine = engine; self.settings = settings
+        self.preferences = preferences
+        askFirst = preferences.snapshot.ai.mode == "ask_first"
+        preferences.$snapshot.map(\.ai.mode).removeDuplicates().sink { [weak self] mode in
+            guard let self, !self.running else { return }
+            self.askFirst = mode == "ask_first"
+        }.store(in: &subscriptions)
         settings.objectWillChange.sink { [weak self] in self?.objectWillChange.send() }.store(in: &subscriptions)
     }
     var configured: Bool { settings.current?.toolsVerified == true }
@@ -150,7 +157,7 @@ final class AssistantModel: ObservableObject {
                     AIJSON.object(["role": .string($0.role), "text": .string(String($0.text.prefix(8000)))])
                 }
                 let priorJSON = try AIJSON.array(prior).encoded()
-                let options = try commandJSON(["mode": askFirst ? "ask_first" : "direct", "max_steps": 50, "request_timeout_seconds": 60, "turn_timeout_seconds": 300])
+                let options = try preferences.sessionOptions(engine: engine, askFirst: askFirst)
                 // No suspension between the final document check and grant creation.
                 let turn = try engine.aiBegin(configJson: configJSON, optionsJson: options, prompt: prompt, shareCanvas: shareCanvas ?? false, priorJson: priorJSON)
                 self.turn = turn; activeConfiguration = config; executions.append(AIExecution(id: turn))
@@ -269,7 +276,9 @@ final class AssistantModel: ObservableObject {
     }
     private func finishLocal(status: String) {
         if let turn, let index = executions.firstIndex(where: { $0.id == turn }) { executions[index].status = status }
-        running = false; paused = nil; streamMessage = nil; turn = nil; activeConfiguration = nil; persist(); onStateChanged?()
+        running = false; paused = nil; streamMessage = nil; turn = nil; activeConfiguration = nil
+        askFirst = preferences.snapshot.ai.mode == "ask_first"
+        persist(); onStateChanged?()
     }
     private func alert(title: String, message: String, buttons: [String]) async -> NSApplication.ModalResponse {
         guard let window = window?() else { return .alertThirdButtonReturn }
