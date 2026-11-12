@@ -2100,7 +2100,7 @@
           "command": "type.inspect"
         }
       ],
-      "note": "Existing real layer.rasterize handles the actual text glyph source through the same compositor/masks/styles; core save/recovery/rasterize/undo checks passed. Native/Metal/App Release/manual acceptance is still pending and not inferred from this mapping."
+      "note": "Real layer.rasterize bakes current text glyphs/ordered geometry and mask/style appearance. Core save/recovery/rasterize/undo and current AI/native/Release gates passed. Current-Mac manual point-type rasterize/undo/re-edit passed, with the clean fixture restored before quit; transformed/cropped 16-bit P3 numeric equivalence and exact geometry restoration are automated evidence."
     },
     "PS-14-de2fd3ca59": {
       "scope": "editing",

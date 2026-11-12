@@ -143,13 +143,15 @@
     "build/m7-text-raster-native-closure-cleanup.json": "2744df0a81e9e9e53be1f4d0f4531ccc3245b6f1135e7603bd775c7f3c5adf10",
     "build/m7-text-raster-native-closure-audit.log": "90d6c78e5821fafa6c33e0393864d0e0b270e3536ad5151e763f17ef6f95e2d4",
     "build/m7-text-raster-native-closure-coverage.log": "5a1dec758218da7de7ad3c3d53fad2b72f4d6c797cc2f91048c85879ae69e262",
-    "build/m7-text-raster-native-closure-strict.log": "58775cd558643dbf55e44703bbdc00f7f6982cb47d878a0c39d4f6ad5cfe0375"
+    "build/m7-text-raster-native-closure-strict.log": "58775cd558643dbf55e44703bbdc00f7f6982cb47d878a0c39d4f6ad5cfe0375",
+    "build/m7-text-raster-native-closure-mapping.log": "90d6c78e5821fafa6c33e0393864d0e0b270e3536ad5151e763f17ef6f95e2d4"
   },
   "native_closure_checks": {
     "source_and_previous_log_hashes_match": true,
     "source_code_changed": false,
     "feature_and_ai_reports_synchronized": true,
     "strict_final_audit_expected_exit": 1,
-    "cloud_builds_executed": false
+    "cloud_builds_executed": false,
+    "ai_acceptance_note_aligned": true
   }
 }
