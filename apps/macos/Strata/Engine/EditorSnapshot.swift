@@ -38,11 +38,14 @@ struct EditorSnapshot: Decodable, Sendable {
         let passThrough:Bool?
         let styles:AIJSON?
         var exposure: Double? { kind?.kind == "exposure" ? kind?.stops : nil }
-        func canTransform(scope:String)->Bool{["whole_layer","selection"].contains(scope) && ["pixel","text","group"].contains(kind?.kind ?? "pixel") && (scope != "selection" || (kind?.kind ?? "pixel")=="pixel") && locks?.all != true && locks?.pixels != true && locks?.position != true && locks?.transparency != true}
+        func canTransform(scope:String)->Bool{
+            let eligible = scope == "whole_layer" ? !isAdjustment || mask != nil : scope == "selection" && (kind?.kind ?? "pixel") == "pixel"
+            return eligible && locks?.all != true && locks?.pixels != true && locks?.position != true && locks?.transparency != true
+        }
         var isGroup:Bool{kind?.kind=="group"}
         var isAdjustment:Bool{["exposure","hue_saturation","adjustment"].contains(kind?.kind ?? "")}
         var title:String{
-            switch kind?.kind{case "text":"可编辑文字";case "group":"图层组";case "exposure":"曝光调整图层";case "solid":"纯色填充";case "gradient":"渐变填充";case "hue_saturation":"色相/饱和度调整";case "adjustment":tonalTitle(kind?.adjustment?["type"].string ?? "");default:"像素图层"}
+            switch kind?.kind{case "text":L10n.text("可编辑文字");case "group":L10n.text("图层组");case "exposure":L10n.text("曝光调整图层");case "solid":L10n.text("纯色填充");case "gradient":L10n.text("渐变填充");case "hue_saturation":L10n.text("色相/饱和度调整");case "adjustment":tonalTitle(kind?.adjustment?["type"].string ?? "");default:L10n.text("像素图层")}
         }
     }
     struct History: Decodable, Sendable { let command: String; let source: String; let turnId: String? }
@@ -52,6 +55,7 @@ struct EditorSnapshot: Decodable, Sendable {
     let documentId: String?
     let dirty: Bool
     let frame: Frame?
+    let colorMode: String?
     let bitDepth: UInt8?
     let resolutionDpi: UInt32?
     let preset: String?

@@ -10,6 +10,7 @@ struct CanvasBrushConfiguration: Equatable {
     var clone = false, aligned = true, cloneSource: [Double]?, cloneSample = "current_layer"
     var heal = false
     var spot = false
+    var spotHealMode = "proximity_match"
     var spotSearchRadius = 64.0
     var tonalCommand:String?
     var tonalRange = "midtones", tonalExposure = 0.5
@@ -42,7 +43,7 @@ final class CanvasBrushInput {
             }else if configuration.spot {
                 try engine.beginSpotHeal(layerId:layer)
             }else if configuration.clone {
-                guard configuration.cloneSource != nil else{throw AIClientError.message("请先按住 ⌥ 单击画布设置取样源点。")}
+                guard configuration.cloneSource != nil else{throw AIClientError.message(L10n.text("请先按住 ⌥ 单击画布设置取样源点。"))}
                 if configuration.heal{try engine.beginHeal(layerId:layer)}else{try engine.beginClone(layerId:layer)}
                 activeDestination=configuration.aligned ? cloneDestination ?? point : point
             }else{try engine.beginBrush(layerId: layer, target: configuration.target, erase: configuration.erase)}
@@ -67,8 +68,9 @@ final class CanvasBrushInput {
             if settings.clone,let source=settings.cloneSource,let destination {parameters["clone_source"]=["source":source,"destination":[Double(destination.x),Double(destination.y)],"sample":settings.cloneSample]}
             var payload:[String:Any] = settings.heal || settings.spot || settings.tonalCommand != nil ? ["stroke":parameters] : parameters
             if settings.spot {
-                guard settings.spotSearchRadius.isFinite,(1...512).contains(settings.spotSearchRadius) else{throw AIClientError.message("污点修复搜索范围需要在 1–512px 内。")}
+                guard settings.spotSearchRadius.isFinite,(1...512).contains(settings.spotSearchRadius) else{throw AIClientError.message(L10n.text("污点修复搜索范围需要在 1–512px 内。"))}
                 payload["sample"]=settings.cloneSample;payload["search_radius"]=Int(settings.spotSearchRadius)
+                payload["mode"] = settings.spotHealMode
             }
             if let command=settings.tonalCommand {
                 if command == "retouch.sponge" {payload["amount"]=settings.tonalExposure;payload["mode"]=settings.spongeMode;payload["vibrance"]=settings.spongeVibrance}

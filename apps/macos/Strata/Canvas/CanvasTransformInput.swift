@@ -5,7 +5,7 @@ private struct CanvasTransformFailure:LocalizedError,Sendable{let message:String
 
 enum CanvasTransformMode:String,CaseIterable{
     case scale,rotate,skew,distort,perspective
-    var title:String{switch self{case .scale:"缩放";case .rotate:"旋转";case .skew:"斜切";case .distort:"扭曲";case .perspective:"透视"}}
+    var title:String{switch self{case .scale:L10n.text("缩放");case .rotate:L10n.text("旋转");case .skew:L10n.text("斜切");case .distort:L10n.text("扭曲");case .perspective:L10n.text("透视")}}
 }
 enum TransformHandle:CaseIterable{
     case topLeft,top,topRight,right,bottomRight,bottom,bottomLeft,left
@@ -102,6 +102,7 @@ final class CanvasTransformInput:ObservableObject{
     private var generation=UUID()
     private var enabled=false
     private var scope="whole_layer"
+    private var layerIDs: [String] = []
     private var interpolation="bilinear"
     private var mode=CanvasTransformMode.scale
     private enum Drag{case move(NSPoint,TransformQuad),resize(TransformHandle,NSPoint,TransformQuad),rotate(NSPoint,TransformQuad),skew(TransformHandle,NSPoint,TransformQuad),distort(TransformHandle,NSPoint,TransformQuad),perspective(TransformHandle,NSPoint,TransformQuad)}
@@ -120,28 +121,36 @@ final class CanvasTransformInput:ObservableObject{
         if context?.document != snapshot.documentId || context?.revision != snapshot.revision || context?.layer != snapshot.activeLayer || context?.control != control{cancel()}
         context=(snapshot.documentId,snapshot.revision,snapshot.activeLayer,control)
     }
-    func configure(enabled:Bool,mode:String="scale",scope:String="whole_layer",interpolation:String="bilinear"){
+    func configure(enabled:Bool,mode:String="scale",scope:String="whole_layer",interpolation:String="bilinear",layers:[String]=[]){
         if !enabled{self.enabled=false;cancel();return}
+        if self.layerIDs != layers { cancel(); self.layerIDs = layers }
         guard !running else{return}
         if self.scope != scope{cancel()}
         let next=CanvasTransformMode(rawValue:mode) ?? .scale;if self.mode != next{gesture=nil};self.enabled=true;self.mode=next;self.scope=scope;self.interpolation=interpolation;onChanged?()
     }
     func start(){
         guard enabled,!running,let context,context.control=="user",let document=context.document,let layer=context.layer else{return}
-        cancel();error="";let current=generation,engine=engine,scope=scope;running=true;onRunning?(true)
+        cancel();error="";let current=generation,engine=engine,scope=scope,layers=layerIDs;running=true;onRunning?(true)
         Task{[weak self]in
             guard let self else{return}
             defer{self.running=false;self.onRunning?(false);self.onChanged?()}
             var created:String?
             do{
-                let owner=try await aiEngineWork{try engine.beginCanvasTransform(documentId:document,revision:context.revision,layerId:layer,scope:scope)};created=owner
+                let owner = try await aiEngineWork {
+                    if layers.isEmpty {
+                        try engine.beginCanvasTransform(documentId: document, revision: context.revision, layerId: layer, scope: scope)
+                    } else {
+                        try engine.beginCanvasTransformLayers(documentId: document, revision: context.revision, layerIds: layers)
+                    }
+                }
+                created=owner
                 guard self.generation==current else{try? engine.endCanvasTransform(token:owner,paramsJson:"{}",cancel:true);return}
                 self.token=owner
                 let json=try await aiEngineWork{try engine.canvasTransformBounds(token:owner)}
                 guard self.generation==current,self.token==owner else{return}
                 let value=try AIJSON.decode(json)["bounds"]
-                guard let x=value["x"].number,let y=value["y"].number,let w=value["width"].number,let h=value["height"].number,w>0,h>0 else{throw CanvasTransformFailure(message:"没有可变换的内容或选区。")}
-                let quad=TransformQuad(rect:CGRect(x:x,y:y,width:w,height:h));guard quad.valid else{throw CanvasTransformFailure(message:"变换边界超出有效范围。")}
+                guard let x=value["x"].number,let y=value["y"].number,let w=value["width"].number,let h=value["height"].number,w>0,h>0 else{throw CanvasTransformFailure(message:L10n.text("没有可变换的内容或选区。"))}
+                let quad=TransformQuad(rect:CGRect(x:x,y:y,width:w,height:h));guard quad.valid else{throw CanvasTransformFailure(message:L10n.text("变换边界超出有效范围。"))}
                 self.source=quad;self.draft=quad;self.lastValid=quad
             }catch{
                 if let created{try? engine.endCanvasTransform(token:created,paramsJson:"{}",cancel:true)}
@@ -173,19 +182,23 @@ final class CanvasTransformInput:ObservableObject{
         case .distort(let handle,let start,let base):next=base.distorted(handle:handle,delta:delta(start))
         case .perspective(let handle,let start,let base):next=base.perspective(handle:handle,delta:TransformQuad.subtract(point,start))
         }
-        draft=next;if next.valid{lastValid=next};error=next.valid ? "":"边框不能折叠、交叉或超出有效坐标。";onChanged?()
+        draft=next;if next.valid{lastValid=next};error=next.valid ? "":L10n.text("边框不能折叠、交叉或超出有效坐标。");onChanged?()
     }
-    func up(_ point:NSPoint,modifiers:NSEvent.ModifierFlags=[]){drag(point,modifiers:modifiers);gesture=nil;if draft?.valid==false{draft=lastValid;error="无效边框已恢复到上一个有效位置。";onChanged?()}}
+    func up(_ point:NSPoint,modifiers:NSEvent.ModifierFlags=[]){drag(point,modifiers:modifiers);gesture=nil;if draft?.valid==false{draft=lastValid;error=L10n.text("无效边框已恢复到上一个有效位置。");onChanged?()}}
     @discardableResult func nudge(x:CGFloat,y:CGFloat)->Bool{
-        guard !running,let draft else{return false};self.draft=draft.moved(NSPoint(x:x,y:y));if self.draft?.valid==true{lastValid=self.draft};error=self.draft?.valid==true ? "":"边框超出有效坐标。";onChanged?();return true
+        guard !running,let draft else{return false};self.draft=draft.moved(NSPoint(x:x,y:y));if self.draft?.valid==true{lastValid=self.draft};error=self.draft?.valid==true ? "":L10n.text("边框超出有效坐标。");onChanged?();return true
     }
     var parameters:[String:Any]?{
         guard canConfirm,let source,let draft,let layer=context?.layer else{return nil}
-        return ["layer":["id":layer],"scope":scope,"geometry":["type":"corners","source":source.json,"destination":draft.json],"interpolation":interpolation]
+        let geometry: [String: Any] = ["type": "corners", "source": source.json, "destination": draft.json]
+        if !layerIDs.isEmpty {
+            return ["layers": layerIDs.map { ["id": $0] }, "geometry": geometry, "interpolation": interpolation]
+        }
+        return ["layer": ["id": layer], "scope": scope, "geometry": geometry, "interpolation": interpolation]
     }
     @discardableResult func confirm()->Bool{
         guard !running,let token else{return false}
-        guard let parameters else{error="请调整为有效的变换边框。";return true}
+        guard let parameters else{error=L10n.text("请调整为有效的变换边框。");return true}
         do{
             let json=try commandJSON(parameters),engine=engine,current=generation;gesture=nil;running=true;onRunning?(true)
             Task{[weak self]in

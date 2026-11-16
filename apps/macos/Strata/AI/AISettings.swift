@@ -6,7 +6,7 @@ import LocalAuthentication
 
 enum AIProvider: String, Codable, CaseIterable, Sendable {
     case anthropic, openAi = "open_ai", local
-    var title: String { switch self { case .anthropic: "Anthropic"; case .openAi: "OpenAI 兼容"; case .local: "本地模型" } }
+    var title: String { switch self { case .anthropic: "Anthropic"; case .openAi: L10n.text("OpenAI 兼容"); case .local: L10n.text("本地模型") } }
     var defaultEndpoint: String { switch self { case .anthropic: "https://api.anthropic.com/v1"; case .openAi: "https://api.openai.com/v1"; case .local: "http://127.0.0.1:11434/v1" } }
 }
 
@@ -47,11 +47,11 @@ struct KeychainAISecrets: AISecretStore {
         var result: CFTypeRef?
         let status = SecItemCopyMatching(request as CFDictionary, &result)
         if status == errSecItemNotFound { return nil }
-        guard status == errSecSuccess, let data = result as? Data, let value = String(data: data, encoding: .utf8) else { throw AIClientError.message("无法从钥匙串读取密钥（\(status)）。") }
+        guard status == errSecSuccess, let data = result as? Data, let value = String(data: data, encoding: .utf8) else { throw AIClientError.message(L10n.format("无法从钥匙串读取密钥（{0}）。", String(describing: status))) }
         return value
     }
     func save(_ value: String, account: String) throws {
-        guard !value.contains("\n"), !value.contains("\r"), value.utf8.count <= 16384 else { throw AIClientError.message("密钥格式无效。") }
+        guard !value.contains("\n"), !value.contains("\r"), value.utf8.count <= 16384 else { throw AIClientError.message(L10n.text("密钥格式无效。")) }
         let attributes = [kSecValueData as String: Data(value.utf8)]
         var status = SecItemUpdate(query(account) as CFDictionary, attributes as CFDictionary)
         if status == errSecItemNotFound {
@@ -59,11 +59,11 @@ struct KeychainAISecrets: AISecretStore {
             request[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
             status = SecItemAdd(request as CFDictionary, nil)
         }
-        guard status == errSecSuccess else { throw AIClientError.message("无法保存到钥匙串（\(status)）。") }
+        guard status == errSecSuccess else { throw AIClientError.message(L10n.format("无法保存到钥匙串（{0}）。", String(describing: status))) }
     }
     func remove(account: String) throws {
         let status = SecItemDelete(query(account) as CFDictionary)
-        guard status == errSecSuccess || status == errSecItemNotFound else { throw AIClientError.message("无法删除钥匙串密钥（\(status)）。") }
+        guard status == errSecSuccess || status == errSecItemNotFound else { throw AIClientError.message(L10n.format("无法删除钥匙串密钥（{0}）。", String(describing: status))) }
     }
 }
 
@@ -86,12 +86,12 @@ private final class AISecretGate: @unchecked Sendable{
     func end(){lock.withLock{active=false}}
 }
 func readAISecret(_ store:any AISecretStore,account:String,timeout:TimeInterval=15)async throws->String?{
-    guard AISecretGate.shared.begin()else{throw AIClientError.message("钥匙串上一次读取仍在等待系统，请先解锁当前 Mac 会话。")}
+    guard AISecretGate.shared.begin()else{throw AIClientError.message(L10n.text("钥匙串上一次读取仍在等待系统，请先解锁当前 Mac 会话。"))}
     return try await withCheckedThrowingContinuation{continuation in
         let pending=AISecretContinuation(continuation)
         DispatchQueue.global(qos:.userInitiated).async{defer{AISecretGate.shared.end()};pending.finish(Result{try store.read(account:account)})}
         DispatchQueue.global(qos:.utility).asyncAfter(deadline:.now()+timeout){
-            pending.finish(.failure(AIClientError.message("钥匙串读取超时。请解锁当前 Mac 会话后重试；本轮未发送模型请求。")))
+            pending.finish(.failure(AIClientError.message(L10n.text("钥匙串读取超时。请解锁当前 Mac 会话后重试；本轮未发送模型请求。"))))
         }
     }
 }
@@ -112,13 +112,13 @@ final class AISettingsStore: ObservableObject {
     func credential(for config: AIConfiguration, replacement: String = "") throws -> String {
         if !replacement.isEmpty { return replacement }
         let value = try secrets.read(account: config.secretAccount()) ?? ""
-        if config.kind != .local && value.isEmpty { throw AIClientError.message("请为这个服务地址与模型录入 API Key。") }
+        if config.kind != .local && value.isEmpty { throw AIClientError.message(L10n.text("请为这个服务地址与模型录入 API Key。")) }
         return value
     }
     func credentialAsync(for config:AIConfiguration,replacement:String="")async throws->String{
         if !replacement.isEmpty{return replacement}
         let value=try await readAISecret(secrets,account:config.secretAccount()) ?? ""
-        if config.kind != .local&&value.isEmpty{throw AIClientError.message("请为这个服务地址与模型录入 API Key。")}
+        if config.kind != .local&&value.isEmpty{throw AIClientError.message(L10n.text("请为这个服务地址与模型录入 API Key。"))}
         return value
     }
     func save(_ config: AIConfiguration, key: String) throws {
@@ -139,7 +139,7 @@ final class AISettingsStore: ObservableObject {
 enum AIClientError: LocalizedError, Sendable {
     case message(String), http(Int)
     var errorDescription: String? {
-        switch self { case .message(let text): text; case .http(let code): "模型服务返回 HTTP \(code)。请检查地址、模型、权限或稍后重试。" }
+        switch self { case .message(let text): text; case .http(let code): L10n.format("模型服务返回 HTTP {0}。请检查地址、模型、权限或稍后重试。", String(describing: code)) }
     }
     var retryable: Bool { if case .http(let code) = self { return code == 408 || code == 429 || code >= 500 }; return false }
 }

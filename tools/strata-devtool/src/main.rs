@@ -163,6 +163,30 @@ fn examples() -> Result<(), Box<dyn Error>> {
                         json!({"name":"TypeGeometry","spec":{"text":"Type","font":"sans","font_size":16,"layout":{"type":"point"}},"color":[0.2,0.4,0.8,1],"x":1,"y":18}),
                     )?;
                 }
+                "transform.apply_layers" | "image.resize" | "image.rotate" | "image.straighten" => {
+                    run(
+                        &mut editor,
+                        "paint.fill",
+                        json!({"layer":{"name":"Background"},"color":[0.4,0.5,0.6,1]}),
+                    )?;
+                    run(
+                        &mut editor,
+                        "layer.fill.gradient",
+                        json!({"name":"Transform fill","start":[10001,30003,50001,65535],"end":[50001,30003,10001,32768],"angle":29}),
+                    )?;
+                    run(
+                        &mut editor,
+                        "layer.add_adjustment",
+                        json!({"name":"Exposure","type":"exposure","stops":0.5,"mask":"white"}),
+                    )?;
+                }
+                "transform.apply" if args["layer"]["name"] == "Transform fill" => {
+                    run(
+                        &mut editor,
+                        "layer.fill.solid",
+                        json!({"name":"Transform fill","color":[10001,30003,50001,65535]}),
+                    )?;
+                }
                 "type.update" | "type.inspect" => {
                     run(
                         &mut editor,
@@ -203,13 +227,25 @@ fn examples() -> Result<(), Box<dyn Error>> {
                     )?;
                     run(&mut editor, "select.none", json!({}))?;
                 }
-                "retouch.spot_heal" | "transform.apply" | "image.resize" | "image.straighten" => {
+                "retouch.spot_heal" | "transform.apply" => {
                     run(
                         &mut editor,
                         "paint.fill",
                         json!({"layer":{"name":"Background"},"color":[0.4,0.5,0.6,1]}),
                     )?;
-                    if args["scope"] == "selection" {
+                    if spec.id == "retouch.spot_heal" {
+                        run(
+                            &mut editor,
+                            "select.marquee",
+                            json!({"x":11,"y":8,"width":1,"height":1}),
+                        )?;
+                        run(
+                            &mut editor,
+                            "paint.fill",
+                            json!({"layer":{"name":"Background"},"color":[1,0,0.3,1]}),
+                        )?;
+                        run(&mut editor, "select.none", json!({}))?;
+                    } else if args["scope"] == "selection" {
                         run(
                             &mut editor,
                             "select.marquee",
@@ -537,8 +573,15 @@ fn examples() -> Result<(), Box<dyn Error>> {
                     "automatic correction example did not execute a real pixel change".into(),
                 );
             }
-            if spec.id == "transform.apply" && result["changed"] != true {
+            if matches!(spec.id, "transform.apply" | "transform.apply_layers")
+                && result["changed"] != true
+            {
                 return Err("transform example did not execute a real geometry change".into());
+            }
+            if spec.id == "retouch.spot_heal"
+                && result["healing"]["domain_pixels"].as_u64().unwrap_or(0) == 0
+            {
+                return Err("spot healing example did not repair any pixels".into());
             }
             if matches!(spec.id, "type.create" | "type.update")
                 && (result["changed"] != true

@@ -73,11 +73,11 @@ struct PointColorControls:View {
             Text(tonalTitle(draft.type)).fontWeight(.medium)
             controls
             HStack{
-                Button("应用调整"){commit()}.disabled(!dirty)
-                Button("重置"){let type=draft.type;draft=PointColorDraft();draft.type=type;rangeIndex=0;mixerRow=0;stopIndex=0}
+                Button(L10n.text("应用调整")){commit()}.disabled(!dirty)
+                Button(L10n.text("重置")){let type=draft.type;draft=PointColorDraft();draft.type=type;rangeIndex=0;mixerRow=0;stopIndex=0}
             }
             if let preview=model.tonalPreview {TonalPreviewControls(preview:preview,parameters:try? commandJSON(draft.parameters))}
-            Text(dirty ? "参数尚未应用；应用后可撤销。" : "参数已保存到调整层。").font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))
+            Text(dirty ? L10n.text("参数尚未应用；应用后可撤销。") : L10n.text("参数已保存到调整层。")).font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))
         }.textFieldStyle(.roundedBorder).disabled(!model.permissions.edits || model.selected?.locks?.all == true)
             .onAppear(perform:sync).onChange(of:model.selected?.id){_,_ in sync()}
             .onChange(of:model.selected?.kind?.adjustment){_,_ in draft=PointColorDraft(model.selected?.kind?.adjustment);stopIndex=min(stopIndex,draft.stops.count-1)}
@@ -85,63 +85,63 @@ struct PointColorControls:View {
     @ViewBuilder private var controls:some View{
         switch draft.type{
         case "vibrance":
-            row("自然饱和度",$draft.vibrance);row("饱和度",$draft.saturation);note("−100…100 · 自然饱和度优先增强低饱和区域并减弱肤色范围。")
+            row(L10n.text("自然饱和度"),$draft.vibrance);row(L10n.text("饱和度"),$draft.saturation);note(L10n.text("−100…100 · 自然饱和度优先增强低饱和区域并减弱肤色范围。"))
         case "white_balance":
-            row("色温偏移",$draft.temperature);row("色调偏移",$draft.tintShift);Toggle("保持亮度",isOn:$draft.preserveLuminance)
-            note("−100…100 · 色温正值偏暖，负值偏冷；色调正值偏洋红，负值偏绿。")
+            row(L10n.text("色温偏移"),$draft.temperature);row(L10n.text("色调偏移"),$draft.tintShift);Toggle(L10n.text("保持亮度"),isOn:$draft.preserveLuminance)
+            note(L10n.text("−100…100 · 色温正值偏暖，负值偏冷；色调正值偏洋红，负值偏绿。"))
         case "shadows_highlights":
-            row("提亮阴影 %",$draft.shadowsAmount);row("压低高光 %",$draft.highlightsAmount)
-            row("阴影范围",$draft.shadowsWidth);row("高光范围",$draft.highlightsWidth);row("局部半径 px",$draft.localRadius)
-            note("强度 0…100 · 范围 0.01…1 · 半径 0…256。调整局部明暗；原始图层保持可编辑。")
+            row(L10n.text("提亮阴影 %"),$draft.shadowsAmount);row(L10n.text("压低高光 %"),$draft.highlightsAmount)
+            row(L10n.text("阴影范围"),$draft.shadowsWidth);row(L10n.text("高光范围"),$draft.highlightsWidth);row(L10n.text("局部半径 px"),$draft.localRadius)
+            note(L10n.text("强度 0…100 · 范围 0.01…1 · 半径 0…256。调整局部明暗；原始图层保持可编辑。"))
         case "color_balance":
-            Picker("色调范围",selection:$rangeIndex){Text("阴影").tag(0);Text("中间调").tag(1);Text("高光").tag(2)}.pickerStyle(.segmented)
-            vector($draft.balance[rangeIndex],labels:["青色 ↔ 红色","洋红 ↔ 绿色","黄色 ↔ 蓝色"])
-            Toggle("保持亮度",isOn:$draft.preserveLuminance);note("−100…100 · 正值增强红 / 绿 / 蓝。")
+            Picker(L10n.text("色调范围"),selection:$rangeIndex){Text(L10n.text("阴影")).tag(0);Text(L10n.text("中间调")).tag(1);Text(L10n.text("高光")).tag(2)}.pickerStyle(.segmented)
+            vector($draft.balance[rangeIndex],labels:[L10n.text("青色 ↔ 红色"),L10n.text("洋红 ↔ 绿色"),L10n.text("黄色 ↔ 蓝色")])
+            Toggle(L10n.text("保持亮度"),isOn:$draft.preserveLuminance);note(L10n.text("−100…100 · 正值增强红 / 绿 / 蓝。"))
         case "black_white":
-            vector($draft.weights,labels:["红色","黄色","绿色","青色","蓝色","洋红"])
-            Toggle("着色",isOn:$draft.tinted)
-            if draft.tinted{color("着色颜色",$draft.tint);row("着色强度 %",$draft.tintAmount)}
-            note("六类色相响应 −200…300 · 着色强度 0…100。")
+            vector($draft.weights,labels:[L10n.text("红色"),L10n.text("黄色"),L10n.text("绿色"),L10n.text("青色"),L10n.text("蓝色"),L10n.text("洋红")])
+            Toggle(L10n.text("着色"),isOn:$draft.tinted)
+            if draft.tinted{color(L10n.text("着色颜色"),$draft.tint);row(L10n.text("着色强度 %"),$draft.tintAmount)}
+            note(L10n.text("六类色相响应 −200…300 · 着色强度 0…100。"))
         case "photo_filter":
-            color("滤镜颜色",$draft.color);row("浓度 %",$draft.density);Toggle("保持亮度",isOn:$draft.preserveLuminance);note("浓度 0…100 · 颜色使用当前工作 ICC。")
+            color(L10n.text("滤镜颜色"),$draft.color);row(L10n.text("浓度 %"),$draft.density);Toggle(L10n.text("保持亮度"),isOn:$draft.preserveLuminance);note(L10n.text("浓度 0…100 · 颜色使用当前工作 ICC。"))
         case "channel_mixer":
-            Toggle("单色",isOn:$draft.monochrome)
-            if draft.monochrome{vector($draft.gray,labels:["红色系数","绿色系数","蓝色系数","常数"])}
+            Toggle(L10n.text("单色"),isOn:$draft.monochrome)
+            if draft.monochrome{vector($draft.gray,labels:[L10n.text("红色系数"),L10n.text("绿色系数"),L10n.text("蓝色系数"),L10n.text("常数")])}
             else{
-                Picker("输出通道",selection:$mixerRow){Text("红").tag(0);Text("绿").tag(1);Text("蓝").tag(2)}.pickerStyle(.segmented)
-                vector($draft.matrix[mixerRow],labels:["红色系数","绿色系数","蓝色系数","常数"])
+                Picker(L10n.text("输出通道"),selection:$mixerRow){Text(L10n.text("红")).tag(0);Text(L10n.text("绿")).tag(1);Text(L10n.text("蓝")).tag(2)}.pickerStyle(.segmented)
+                vector($draft.matrix[mixerRow],labels:[L10n.text("红色系数"),L10n.text("绿色系数"),L10n.text("蓝色系数"),L10n.text("常数")])
             }
-            note("系数 −2…2 · 1 代表 100%。")
+            note(L10n.text("系数 −2…2 · 1 代表 100%。"))
         case "posterize":
-            HStack{Text("色阶数");TextField("色阶数",value:$draft.levels,format:.number)};note("每通道 2…65536 级，保持文档位深。")
-        case "threshold":row("亮度阈值",$draft.threshold);note("0…1 · 高于或等于阈值的区域变白。")
+            HStack{Text(L10n.text("色阶数"));TextField(L10n.text("色阶数"),value:$draft.levels,format:.number)};note(L10n.text("每通道 2…65536 级，保持文档位深。"))
+        case "threshold":row(L10n.text("亮度阈值"),$draft.threshold);note(L10n.text("0…1 · 高于或等于阈值的区域变白。"))
         case "gradient_map":gradient
         case "selective_color":
-            Picker("颜色范围",selection:$rangeIndex){ForEach(Array(["红","黄","绿","青","蓝","洋红","白","中性色","黑"].enumerated()),id:\.offset){i,title in Text(title).tag(i)}}
-            vector($draft.ranges[rangeIndex],labels:["青色 %","洋红 %","黄色 %","黑色 %"])
-            Toggle("相对",isOn:$draft.relative);note("−100…100 · 关闭相对时使用绝对通道偏移。")
-        case "invert":note("将编码工作 RGB 的每个通道反相，保留 alpha。")
-        case "desaturate":note("使用 HSL 明度去色；保留原图层，可用蒙版限制区域。")
+            Picker(L10n.text("颜色范围"),selection:$rangeIndex){ForEach(Array([L10n.text("红"),L10n.text("黄"),L10n.text("绿"),L10n.text("青"),L10n.text("蓝"),L10n.text("洋红"),L10n.text("白"),L10n.text("中性色"),L10n.text("黑")].enumerated()),id:\.offset){i,title in Text(title).tag(i)}}
+            vector($draft.ranges[rangeIndex],labels:[L10n.text("青色 %"),L10n.text("洋红 %"),L10n.text("黄色 %"),L10n.text("黑色 %")])
+            Toggle(L10n.text("相对"),isOn:$draft.relative);note(L10n.text("−100…100 · 关闭相对时使用绝对通道偏移。"))
+        case "invert":note(L10n.text("将编码工作 RGB 的每个通道反相，保留 alpha。"))
+        case "desaturate":note(L10n.text("使用 HSL 明度去色；保留原图层，可用蒙版限制区域。"))
         default:EmptyView()
         }
     }
     private var gradient:some View{
         VStack(alignment:.leading,spacing:8){
-            Toggle("反向",isOn:$draft.reverse)
-            Picker("渐变色标",selection:$stopIndex){ForEach(draft.stops.indices,id:\.self){i in Text("色标 \(i+1)").tag(i)}}
+            Toggle(L10n.text("反向"),isOn:$draft.reverse)
+            Picker(L10n.text("渐变色标"),selection:$stopIndex){ForEach(draft.stops.indices,id:\.self){i in Text(L10n.format("色标 {0}", String(describing: i+1))).tag(i)}}
             if draft.stops.indices.contains(stopIndex){
-                row("位置",$draft.stops[stopIndex].at).disabled(stopIndex==0 || stopIndex+1==draft.stops.count)
-                color("颜色",$draft.stops[stopIndex].color)
+                row(L10n.text("位置"),$draft.stops[stopIndex].at).disabled(stopIndex==0 || stopIndex+1==draft.stops.count)
+                color(L10n.text("颜色"),$draft.stops[stopIndex].color)
             }
             HStack{
-                Button("添加色标"){
+                Button(L10n.text("添加色标")){
                     let a=min(stopIndex,draft.stops.count-2),b=a+1
                     let next=PointGradientStop(at:(draft.stops[a].at+draft.stops[b].at)/2,color:(0..<3).map{(draft.stops[a].color[$0]+draft.stops[b].color[$0])/2})
                     draft.stops.insert(next,at:b);stopIndex=b
                 }.disabled(draft.stops.count>=64)
-                Button("移除色标"){draft.stops.remove(at:stopIndex);stopIndex=max(0,stopIndex-1)}.disabled(stopIndex==0 || stopIndex+1==draft.stops.count)
+                Button(L10n.text("移除色标")){draft.stops.remove(at:stopIndex);stopIndex=max(0,stopIndex-1)}.disabled(stopIndex==0 || stopIndex+1==draft.stops.count)
             }
-            note("位置 0…1 且严格递增；按工作 RGB 亮度映射并在编码 RGB 中插值。")
+            note(L10n.text("位置 0…1 且严格递增；按工作 RGB 亮度映射并在编码 RGB 中插值。"))
         }
     }
     private func row(_ title:String,_ value:Binding<Double>)->some View{

@@ -59,12 +59,12 @@ final class RecoveryMonitor {
                 DispatchQueue.global(qos: .utility).async { try? engine.clearRecoveryIfClean(); if let old { try? engine.discardRecovery(id: old) } }
             }
         } else if schedule.due != nil {
-            controller?.workspace.recoveryStatus = "等待恢复检查点"
+            controller?.workspace.recoveryStatus = L10n.text("等待恢复检查点")
         }
     }
     private func tick() {
         guard let controller, let revision = schedule.begin(now: ProcessInfo.processInfo.systemUptime, busy: controller.busy) else { return }
-        controller.workspace.recoveryStatus = "正在写入恢复副本…"
+        controller.workspace.recoveryStatus = L10n.text("正在写入恢复副本…")
         let engine = engine, label = controller.fileName
         DispatchQueue.global(qos: .utility).async { [weak self] in
             let result = Result { try engine.checkpointRecovery(label: label) }
@@ -75,13 +75,13 @@ final class RecoveryMonitor {
                 case .success(let json):
                     if json != "null", self.schedule.revision == revision, self.schedule.due == nil {
                         let time = DateFormatter.localizedString(from: Date(), dateStyle: .none, timeStyle: .short)
-                        self.controller?.workspace.recoveryStatus = "恢复副本 \(time)"
+                        self.controller?.workspace.recoveryStatus = L10n.format("恢复副本 {0}", String(describing: time))
                         self.controller?.workspace.recoveryError = ""
                         // Keep the original crash copy until a replacement exists.
                         if let id = self.recoveredEntry { try? engine.discardRecovery(id: id); self.recoveredEntry = nil }
                     }
                 case .failure(let error):
-                    self.controller?.workspace.recoveryStatus = "恢复副本写入失败"
+                    self.controller?.workspace.recoveryStatus = L10n.text("恢复副本写入失败")
                     self.controller?.workspace.recoveryError = error.localizedDescription
                 }
             }
@@ -94,7 +94,7 @@ final class RecoveryMonitor {
         DispatchQueue.global(qos: .utility).async { [weak self] in
             let result = Result { try engine.discardRecovery(id: nil); if let old { try engine.discardRecovery(id: old) } }
             DispatchQueue.main.async {
-                if case .failure = result { self?.controller?.workspace.recoveryStatus = "恢复副本清理失败" }
+                if case .failure = result { self?.controller?.workspace.recoveryStatus = L10n.text("恢复副本清理失败") }
                 completion()
             }
         }

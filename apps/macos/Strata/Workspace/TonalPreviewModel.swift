@@ -46,7 +46,7 @@ final class TonalPreviewModel: ObservableObject {
         do {
             let sequence = try engine.issueTonalPreview()
             requestedSequence=sequence
-            guard let settings else { error = "参数格式无效；请检查数值。"; pending = nil; return }
+            guard let settings else { error = L10n.text("参数格式无效；请检查数值。"); pending = nil; return }
             pending = (settings, sequence); error = ""; drain()
         } catch { self.error = error.localizedDescription }
     }
@@ -139,11 +139,11 @@ struct TonalPreviewControls: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Toggle("画布预览", isOn: Binding(get: { preview.enabled }, set: { preview.setEnabled($0, settings: parameters) }))
+                Toggle(L10n.text("画布预览"), isOn: Binding(get: { preview.enabled }, set: { preview.setEnabled($0, settings: parameters) }))
                     .disabled(preview.applying)
                 if preview.busy { ProgressView().controlSize(.small) }
             }
-            if preview.enabled { Text("预览尚未写入文档；点击应用保存，关闭预览恢复原效果。").font(.system(size: 10)).foregroundStyle(Color(nsColor: WorkspaceColors.secondary)) }
+            if preview.enabled { Text(L10n.text("预览尚未写入文档；点击应用保存，关闭预览恢复原效果。")).font(.system(size: 10)).foregroundStyle(Color(nsColor: WorkspaceColors.secondary)) }
             if !preview.error.isEmpty { Text(preview.error).font(.system(size: 10)).foregroundStyle(Color(nsColor: WorkspaceColors.danger)).textSelection(.enabled) }
         }.onAppear{preview.configureFilter(filterCommand)}
             .onChange(of:filterCommand){_,value in preview.configureFilter(value)}

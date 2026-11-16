@@ -4,6 +4,8 @@ struct CommandSearchMatch: Decodable, Identifiable {
     let id: String
     let title: String
     let summary: String
+    var displayTitle: String { L10n.language == .english ? summary : title }
+    var subtitle: String { L10n.language == .english ? id : summary }
 }
 
 enum CommandSearchCatalog {
@@ -40,22 +42,22 @@ struct CommandSearchView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            TextField("输入名称或关键词，如裁剪、快速导出", text: $input)
+            TextField(L10n.text("输入名称或关键词，如裁剪、快速导出"), text: $input)
                 .textFieldStyle(.roundedBorder)
-                .accessibilityLabel("搜索功能")
+                .accessibilityLabel(L10n.text("搜索功能"))
                 .focused($searchFocused)
             if results.isEmpty {
                 ContentUnavailableView(
-                    input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "搜索 Strata 功能" : "没有找到功能",
+                    input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? L10n.text("搜索 Strata 功能") : L10n.text("没有找到功能"),
                     systemImage: "magnifyingglass",
-                    description: Text(errorMessage.isEmpty ? "可使用中文、英文或命令名称搜索。" : errorMessage)
+                    description: Text(errorMessage.isEmpty ? L10n.text("可使用中文、英文或命令名称搜索。") : errorMessage)
                 )
             } else {
                 HStack(spacing: 12) {
                     List(results, selection: $selectedID) { match in
                         VStack(alignment: .leading, spacing: 3) {
-                            Text(match.title)
-                            Text(match.summary).font(.caption).foregroundStyle(.secondary)
+                            Text(match.displayTitle)
+                            Text(match.subtitle).font(.caption).foregroundStyle(.secondary)
                         }
                         .tag(match.id)
                     }
@@ -63,15 +65,15 @@ struct CommandSearchView: View {
                     Divider()
                     VStack(alignment: .leading, spacing: 8) {
                         if let selected {
-                            Text(selected.title).font(.headline)
+                            Text(selected.displayTitle).font(.headline)
                             ScrollView {
                                 Text(description.isEmpty ? selected.summary : description)
                                     .textSelection(.enabled)
                                     .frame(maxWidth: .infinity, alignment: .leading)
                             }
                             if canDraft {
-                                Button("带入 AI 草稿") { addToDraft(selected) }
-                                    .help("将这项功能带到聊天输入框，供你继续编辑")
+                                Button(L10n.text("带入 AI 草稿")) { addToDraft(selected) }
+                                    .help(L10n.text("将这项功能带到聊天输入框，供你继续编辑"))
                             }
                         }
                     }
@@ -94,7 +96,7 @@ struct CommandSearchView: View {
             errorMessage = ""
         } catch {
             results = []
-            errorMessage = query.utf8.count > 256 ? "关键词过长，请缩短后重试。" : "暂时无法搜索命令目录。"
+            errorMessage = query.utf8.count > 256 ? L10n.text("关键词过长，请缩短后重试。") : L10n.text("暂时无法搜索命令目录。")
         }
         if selected == nil { selectedID = results.first?.id }
     }

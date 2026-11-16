@@ -46,6 +46,19 @@ impl Geometry {
             output: size,
         }
     }
+    pub(crate) fn homography(&self) -> Result<crate::geometry::Homography, DocumentError> {
+        let [sx, sy] =
+            std::array::from_fn(|i| f64::from(self.output[i]) / f64::from(self.input[i]));
+        crate::geometry::Homography::affine([
+            sx,
+            0.0,
+            0.0,
+            sy,
+            self.origin[0] as f64 * (1.0 - sx),
+            self.origin[1] as f64 * (1.0 - sy),
+        ])
+        .map_err(|e| DocumentError::Invalid(e.to_string()))
+    }
     fn edge(&self, value: i64, axis: usize, ceil: bool) -> Result<i64, DocumentError> {
         self.half_edge(2 * i128::from(value), axis, ceil)
     }

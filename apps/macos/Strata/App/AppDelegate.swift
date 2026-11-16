@@ -31,7 +31,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func makeController() -> MainWindowController {
         let reference = WindowReference()
         let events = EngineEvents { event in reference.controller?.handle(event) }
-        return registerController(StrataEngine(listener: events), reference: reference, name: "未命名")
+        return registerController(StrataEngine(listener: events), reference: reference, name: L10n.text("未命名"))
     }
 
     private func registerController(_ engine: StrataEngine, reference: WindowReference, name: String) -> MainWindowController {
@@ -41,7 +41,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         let new = MainWindowController(engine: engine, fileName: name)
         reference.controller = new; controllers.append(new)
-        if !exportPresetRestored{exportPresetRestored=true;do{try QuickExportPreferences().restore(on:new.engine)}catch{new.quickExportError="无法读取快速导出预设，请重新设置。\(error.localizedDescription)"}}
+        if !exportPresetRestored{exportPresetRestored=true;do{try QuickExportPreferences().restore(on:new.engine)}catch{new.quickExportError=L10n.format("无法读取快速导出预设，请重新设置。{0}", String(describing: error.localizedDescription))}}
         new.syncRecentFiles()
         if let recoveryDirectory { new.startRecovery(directory: recoveryDirectory) }
         new.onNewTab = { [weak self, weak new] in
@@ -192,10 +192,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             let active = Set(controllers.compactMap { $0.state?.sessionId } + controllers.compactMap { $0.recovery?.recoveredEntry })
             let entries = try RecoveryEntry.decode(controller.engine.recoveryEntriesJson()).filter { !active.contains($0.id) }
             guard !entries.isEmpty else { return false }
-            let alert = NSAlert(); alert.messageText = "找到 \(entries.count) 份未保存的恢复副本"
-            let names = entries.prefix(5).map { $0.info?.label ?? "无法读取的副本" }.joined(separator: "\n")
-            alert.informativeText = "\(names)\n\n恢复后将作为未保存文档打开，请另存工程。无法读取的副本会保留，供再次尝试。"
-            alert.addButton(withTitle: "恢复副本"); alert.addButton(withTitle: "稍后"); alert.addButton(withTitle: "丢弃这些副本")
+            let alert = NSAlert(); alert.messageText = L10n.format("找到 {0} 份未保存的恢复副本", String(describing: entries.count))
+            let names = entries.prefix(5).map { $0.info?.label ?? L10n.text("无法读取的副本") }.joined(separator: "\n")
+            alert.informativeText = L10n.format("{0}\n\n恢复后将作为未保存文档打开，请另存工程。无法读取的副本会保留，供再次尝试。", String(describing: names))
+            alert.addButton(withTitle: L10n.text("恢复副本")); alert.addButton(withTitle: L10n.text("稍后")); alert.addButton(withTitle: L10n.text("丢弃这些副本"))
             alert.beginSheetModal(for: window) { [weak self] response in
                 guard let self else { return }
                 if response == .alertFirstButtonReturn { self.restore(entries, index: 0) }
@@ -220,7 +220,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         do {
             let resource = try next.engine.grantRead(path: entry.path)
             next.perform("file.recover", ["resource": resource]) { [weak self, weak next] ok in
-                if ok, let next { next.documentURL = nil; next.fileName = info.label + "（恢复）"; next.recovery?.recoveredEntry = entry.id; next.refresh() }
+                if ok, let next { next.documentURL = nil; next.fileName = info.label + L10n.text("（恢复）"); next.recovery?.recoveredEntry = entry.id; next.refresh() }
                 self?.restore(entries, index: index + 1)
             }
         } catch { next.showError(error) }
@@ -260,82 +260,106 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         return true
     }
 
+    @objc private func setInterfaceLanguage(_ sender: NSMenuItem) {
+        guard let code = sender.representedObject as? String, let language = InterfaceLanguage(rawValue: code),
+              language != L10n.preferredLanguage() else { return }
+        L10n.setPreferredLanguage(language)
+        sender.menu?.items.forEach { $0.state = $0 === sender ? .on : .off }
+        guard language != L10n.language, let window = controller?.window, window.attachedSheet == nil else { return }
+        let alert = NSAlert()
+        alert.messageText = L10n.text("已保存界面语言")
+        alert.informativeText = L10n.text("再次打开 Strata 时使用所选语言。")
+        alert.addButton(withTitle: L10n.text("好"))
+        alert.beginSheetModal(for: window)
+    }
+
     private func installMenu(_ controller: MainWindowController) {
         controller.syncRecentFiles()
         let bar = NSMenu()
         let app = NSMenu()
-        app.addItem(withTitle: "关于 Strata", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
-        let preferences = app.addItem(withTitle: "偏好设置…", action: #selector(MainWindowController.showPreferences), keyEquivalent: ",")
+        app.addItem(withTitle: L10n.text("关于 Strata"), action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
+        let preferences = app.addItem(withTitle: L10n.text("偏好设置…"), action: #selector(MainWindowController.showPreferences), keyEquivalent: ",")
         preferences.target = controller
+        let title = L10n.text("界面语言")
+        let languages = NSMenu(title: title)
+        for language in InterfaceLanguage.allCases {
+            let item = languages.addItem(withTitle: language.name, action: #selector(setInterfaceLanguage(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = language.rawValue
+            item.state = language == L10n.preferredLanguage() ? .on : .off
+        }
+        let languageItem = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+        languageItem.submenu = languages
+        app.addItem(languageItem)
         app.addItem(.separator())
-        app.addItem(withTitle: "退出 Strata", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        app.addItem(withTitle: L10n.text("退出 Strata"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         let appItem = NSMenuItem(); appItem.submenu = app; bar.addItem(appItem)
-        let file = NSMenu(title: "文件")
-        let open = file.addItem(withTitle: "打开文件…", action: #selector(MainWindowController.openImage), keyEquivalent: "o")
+        let file = NSMenu(title: L10n.text("文件"))
+        let open = file.addItem(withTitle: L10n.text("打开文件…"), action: #selector(MainWindowController.openImage), keyEquivalent: "o")
         open.target = controller
-        let recent = NSMenu(title: "最近打开"); recent.delegate = self
-        let recentItem = NSMenuItem(title: "最近打开", action: nil, keyEquivalent: ""); recentItem.submenu = recent; file.addItem(recentItem)
-        let recovery = file.addItem(withTitle: "恢复未保存文档…", action: #selector(showRecovery), keyEquivalent: ""); recovery.target = self
-        let place = file.addItem(withTitle: "置入图片…", action: #selector(MainWindowController.placeImage), keyEquivalent: "P"); place.target = controller
+        let recent = NSMenu(title: L10n.text("最近打开")); recent.delegate = self
+        let recentItem = NSMenuItem(title: L10n.text("最近打开"), action: nil, keyEquivalent: ""); recentItem.submenu = recent; file.addItem(recentItem)
+        let recovery = file.addItem(withTitle: L10n.text("恢复未保存文档…"), action: #selector(showRecovery), keyEquivalent: ""); recovery.target = self
+        let place = file.addItem(withTitle: L10n.text("置入图片…"), action: #selector(MainWindowController.placeImage), keyEquivalent: "P"); place.target = controller
         for (title, action, key) in [
-            ("新建标签页…", #selector(MainWindowController.newTab), "n"),
-            ("保存", #selector(MainWindowController.saveDocument), "s"),
-            ("另存为…", #selector(MainWindowController.saveAs), "S"),
-            ("恢复到上次保存…",#selector(MainWindowController.revertDocument),""),
-            ("导出…", #selector(MainWindowController.exportDocument), "e"),
-            ("快速导出…", #selector(MainWindowController.quickExportDocument), "E"),
-            ("快速导出预设…", #selector(MainWindowController.configureQuickExport), "")
+            (L10n.text("新建标签页…"), #selector(MainWindowController.newTab), "n"),
+            (L10n.text("保存"), #selector(MainWindowController.saveDocument), "s"),
+            (L10n.text("另存为…"), #selector(MainWindowController.saveAs), "S"),
+            (L10n.text("恢复到上次保存…"),#selector(MainWindowController.revertDocument),""),
+            (L10n.text("导出…"), #selector(MainWindowController.exportDocument), "e"),
+            (L10n.text("快速导出…"), #selector(MainWindowController.quickExportDocument), "E"),
+            (L10n.text("快速导出预设…"), #selector(MainWindowController.configureQuickExport), "")
         ] { let item = file.addItem(withTitle: title, action: action, keyEquivalent: key); item.target = controller }
-        file.addItem(withTitle: "关闭标签页", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
-        let fileItem = NSMenuItem(title: "文件", action: nil, keyEquivalent: ""); fileItem.submenu = file; bar.addItem(fileItem)
-        let view = NSMenu(title: "视图")
-        let edit = NSMenu(title: "编辑")
-        for (title, action, key) in [("撤销", #selector(MainWindowController.undo), "z"), ("重做", #selector(MainWindowController.redo), "Z")] {
+        file.addItem(withTitle: L10n.text("关闭标签页"), action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
+        let fileItem = NSMenuItem(title: L10n.text("文件"), action: nil, keyEquivalent: ""); fileItem.submenu = file; bar.addItem(fileItem)
+        let view = NSMenu(title: L10n.text("视图"))
+        let edit = NSMenu(title: L10n.text("编辑"))
+        for (title, action, key) in [(L10n.text("撤销"), #selector(MainWindowController.undo), "z"), (L10n.text("重做"), #selector(MainWindowController.redo), "Z")] {
             let item = edit.addItem(withTitle: title, action: action, keyEquivalent: key); item.target = controller
         }
         edit.addItem(.separator())
-        let stopAI = edit.addItem(withTitle: "停止当前操作", action: #selector(MainWindowController.stopAI), keyEquivalent: "."); stopAI.target = controller
+        let stopAI = edit.addItem(withTitle: L10n.text("停止当前操作"), action: #selector(MainWindowController.stopAI), keyEquivalent: "."); stopAI.target = controller
         edit.addItem(.separator())
-        for (title, action, key) in [("剪切", #selector(MainWindowController.cutPixels(_:)), "x"), ("复制", #selector(MainWindowController.copyPixels(_:)), "c"), ("粘贴", #selector(MainWindowController.pastePixels(_:)), "v"), ("全选", #selector(MainWindowController.selectAllPixels(_:)), "a"),("合并拷贝",#selector(MainWindowController.copyMergedPixels(_:)),"C"),("原位粘贴",#selector(MainWindowController.pasteInPlace(_:)),"V"),("清除",#selector(MainWindowController.clearPixels(_:)),"")] {
+        for (title, action, key) in [(L10n.text("剪切"), #selector(MainWindowController.cutPixels(_:)), "x"), (L10n.text("复制"), #selector(MainWindowController.copyPixels(_:)), "c"), (L10n.text("粘贴"), #selector(MainWindowController.pastePixels(_:)), "v"), (L10n.text("全选"), #selector(MainWindowController.selectAllPixels(_:)), "a"),(L10n.text("合并拷贝"),#selector(MainWindowController.copyMergedPixels(_:)),"C"),(L10n.text("原位粘贴"),#selector(MainWindowController.pasteInPlace(_:)),"V"),(L10n.text("清除"),#selector(MainWindowController.clearPixels(_:)),"")] {
             let item=edit.addItem(withTitle: title, action: action, keyEquivalent: key);item.target=controller
         }
         edit.addItem(.separator())
-        let transform=edit.addItem(withTitle:"自由变换",action:#selector(MainWindowController.beginCanvasTransform),keyEquivalent:"t");transform.target=controller
+        let transform=edit.addItem(withTitle:L10n.text("自由变换"),action:#selector(MainWindowController.beginCanvasTransform),keyEquivalent:"t");transform.target=controller
         edit.addItem(.separator())
-        let search = edit.addItem(withTitle: "功能搜索…", action: #selector(MainWindowController.showCommandSearch), keyEquivalent: "f")
+        let search = edit.addItem(withTitle: L10n.text("功能搜索…"), action: #selector(MainWindowController.showCommandSearch), keyEquivalent: "f")
         search.target = controller
-        let editItem = NSMenuItem(title: "编辑", action: nil, keyEquivalent: ""); editItem.submenu = edit; bar.addItem(editItem)
+        let editItem = NSMenuItem(title: L10n.text("编辑"), action: nil, keyEquivalent: ""); editItem.submenu = edit; bar.addItem(editItem)
         for (title, action, key) in [
-            ("适合屏幕", #selector(MainWindowController.fit), "0"),
-            ("实际像素", #selector(MainWindowController.actualSize), "1"),
-            ("显示 / 收起 AI 助手", #selector(MainWindowController.toggleAssistant), "j"),
-            ("放大", #selector(MainWindowController.zoomIn), "="),
-            ("缩小", #selector(MainWindowController.zoomOut), "-")
+            (L10n.text("适合屏幕"), #selector(MainWindowController.fit), "0"),
+            (L10n.text("实际像素"), #selector(MainWindowController.actualSize), "1"),
+            (L10n.text("显示 / 收起 AI 助手"), #selector(MainWindowController.toggleAssistant), "j"),
+            (L10n.text("放大"), #selector(MainWindowController.zoomIn), "="),
+            (L10n.text("缩小"), #selector(MainWindowController.zoomOut), "-")
         ] {
             let item = view.addItem(withTitle: title, action: action, keyEquivalent: key)
             item.target = controller
         }
         view.addItem(.separator())
-        for(title,action,key)in[("标尺",#selector(MainWindowController.toggleRulers(_:)),"r"),("参考线",#selector(MainWindowController.toggleGuides(_:)),";"),("锁定参考线",#selector(MainWindowController.toggleGuideLock(_:)),""),("吸附",#selector(MainWindowController.toggleSnap(_:)),""),("参考线与吸附设置",#selector(MainWindowController.showGuides),"")]{let item=view.addItem(withTitle:title,action:action,keyEquivalent:key);item.target=controller}
-        let viewItem = NSMenuItem(title: "视图", action: nil, keyEquivalent: ""); viewItem.submenu = view; bar.addItem(viewItem)
-        let image=NSMenu(title:"图像")
-        let duplicate = image.addItem(withTitle: "复制文档…", action: #selector(MainWindowController.duplicateDocument), keyEquivalent: "")
+        for(title,action,key)in[(L10n.text("标尺"),#selector(MainWindowController.toggleRulers(_:)),"r"),(L10n.text("参考线"),#selector(MainWindowController.toggleGuides(_:)),";"),(L10n.text("锁定参考线"),#selector(MainWindowController.toggleGuideLock(_:)),""),(L10n.text("吸附"),#selector(MainWindowController.toggleSnap(_:)),""),(L10n.text("参考线与吸附设置"),#selector(MainWindowController.showGuides),"")]{let item=view.addItem(withTitle:title,action:action,keyEquivalent:key);item.target=controller}
+        let viewItem = NSMenuItem(title: L10n.text("视图"), action: nil, keyEquivalent: ""); viewItem.submenu = view; bar.addItem(viewItem)
+        let image=NSMenu(title:L10n.text("图像"))
+        let duplicate = image.addItem(withTitle: L10n.text("复制文档…"), action: #selector(MainWindowController.duplicateDocument), keyEquivalent: "")
         duplicate.target = controller
         image.addItem(.separator())
-        for(title,action)in[("自动色调",#selector(MainWindowController.autoTone)),("自动对比度",#selector(MainWindowController.autoContrast)),("自动颜色",#selector(MainWindowController.autoColor))]{let item=image.addItem(withTitle:title,action:action,keyEquivalent:"");item.target=controller}
+        for(title,action)in[(L10n.text("自动色调"),#selector(MainWindowController.autoTone)),(L10n.text("自动对比度"),#selector(MainWindowController.autoContrast)),(L10n.text("自动颜色"),#selector(MainWindowController.autoColor))]{let item=image.addItem(withTitle:title,action:action,keyEquivalent:"");item.target=controller}
         image.addItem(.separator())
-        for(title,action) in [("转换为 8 位 / 通道",#selector(MainWindowController.convertToEightBit)),("转换为 16 位 / 通道",#selector(MainWindowController.convertToSixteenBit))]{let item=image.addItem(withTitle:title,action:action,keyEquivalent:"");item.target=controller}
-        let imageItem=NSMenuItem(title:"图像",action:nil,keyEquivalent:"");imageItem.submenu=image;bar.addItem(imageItem)
-        let color = NSMenu(title: "色彩")
-        for (title, action) in [("指定 sRGB（保留数值）",#selector(MainWindowController.assignSRGB)),("指定 Display P3（保留数值）",#selector(MainWindowController.assignP3)),("转换为 sRGB（保持颜色）", #selector(MainWindowController.convertToSRGB)), ("转换为 Display P3（保持颜色）", #selector(MainWindowController.convertToP3))] {
+        for(title,action) in [(L10n.text("转换为 8 位 / 通道"),#selector(MainWindowController.convertToEightBit)),(L10n.text("转换为 16 位 / 通道"),#selector(MainWindowController.convertToSixteenBit))]{let item=image.addItem(withTitle:title,action:action,keyEquivalent:"");item.target=controller}
+        let imageItem=NSMenuItem(title:L10n.text("图像"),action:nil,keyEquivalent:"");imageItem.submenu=image;bar.addItem(imageItem)
+        let color = NSMenu(title: L10n.text("色彩"))
+        for (title, action) in [(L10n.text("指定 sRGB（保留数值）"),#selector(MainWindowController.assignSRGB)),(L10n.text("指定 Display P3（保留数值）"),#selector(MainWindowController.assignP3)),(L10n.text("转换为 sRGB（保持颜色）"), #selector(MainWindowController.convertToSRGB)), (L10n.text("转换为 Display P3（保持颜色）"), #selector(MainWindowController.convertToP3))] {
             let item = color.addItem(withTitle: title, action: action, keyEquivalent: ""); item.target = controller
         }
-        let colorItem = NSMenuItem(title: "色彩", action: nil, keyEquivalent: ""); colorItem.submenu = color; bar.addItem(colorItem)
+        let colorItem = NSMenuItem(title: L10n.text("色彩"), action: nil, keyEquivalent: ""); colorItem.submenu = color; bar.addItem(colorItem)
         NSApp.mainMenu = bar
     }
 
     func menuNeedsUpdate(_ menu: NSMenu) {
-        guard menu.title == "最近打开" else { return }
+        guard menu.title == L10n.text("最近打开") else { return }
         menu.removeAllItems()
         controller?.syncRecentFiles()
         let json = try? controller?.engine.dispatch(command: "file.recent.list", paramsJson: "{}")
@@ -344,10 +368,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             guard let path = value.path else { continue }
             let url = URL(fileURLWithPath: path)
             let item = menu.addItem(withTitle: value.name, action: #selector(MainWindowController.openRecent(_:)), keyEquivalent: "")
-            item.target = controller; item.representedObject = url; item.toolTip = value.available ? path : "文件不可用：\(path)"; item.isEnabled = value.available
+            item.target = controller; item.representedObject = url; item.toolTip = value.available ? path : L10n.format("文件不可用：{0}", String(describing: path)); item.isEnabled = value.available
         }
-        if menu.items.isEmpty { let item = menu.addItem(withTitle: "暂无最近文件", action: nil, keyEquivalent: ""); item.isEnabled = false }
-        else { menu.addItem(.separator()); let clear = menu.addItem(withTitle: "清除菜单", action: #selector(clearRecent), keyEquivalent: ""); clear.target = self }
+        if menu.items.isEmpty { let item = menu.addItem(withTitle: L10n.text("暂无最近文件"), action: nil, keyEquivalent: ""); item.isEnabled = false }
+        else { menu.addItem(.separator()); let clear = menu.addItem(withTitle: L10n.text("清除菜单"), action: #selector(clearRecent), keyEquivalent: ""); clear.target = self }
     }
     @objc private func clearRecent() { RecentFileStore().clear(); controllers.forEach { $0.syncRecentFiles() } }
 }

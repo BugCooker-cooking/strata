@@ -38,44 +38,44 @@ struct FilterPanel:View{
     var body:some View{
         ScrollView{VStack(alignment:.leading,spacing:10){
             Group{
-            Picker("滤镜",selection:$command){Text("高斯模糊").tag("filter.gaussian_blur");Text("USM 锐化").tag("filter.unsharp_mask");Text("高反差保留").tag("filter.high_pass");Text("添加杂色").tag("filter.add_noise");Text("自动色调 / 对比度 / 颜色").tag("image.auto")}.labelsHidden().accessibilityLabel("滤镜与自动校正")
+            Picker(L10n.text("滤镜"),selection:$command){Text(L10n.text("高斯模糊")).tag("filter.gaussian_blur");Text(L10n.text("USM 锐化")).tag("filter.unsharp_mask");Text(L10n.text("高反差保留")).tag("filter.high_pass");Text(L10n.text("添加杂色")).tag("filter.add_noise");Text(L10n.text("自动色调 / 对比度 / 颜色")).tag("image.auto")}.labelsHidden().accessibilityLabel(L10n.text("滤镜与自动校正"))
             if command=="image.auto"{
-                Picker("自动校正方式",selection:$autoMethod){Text("自动色调").tag("tone");Text("自动对比度").tag("contrast");Text("自动颜色").tag("color")}
-                number("每端裁切",value:$clipPercent,unit:"%")
+                Picker(L10n.text("自动校正方式"),selection:$autoMethod){Text(L10n.text("自动色调")).tag("tone");Text(L10n.text("自动对比度")).tag("contrast");Text(L10n.text("自动颜色")).tag("color")}
+                number(L10n.text("每端裁切"),value:$clipPercent,unit:"%")
                 if autoMethod=="color"{
-                    number("中间调中和",value:$neutralizePercent,unit:"%")
-                    Text("以通道中位数估计中性中间调，可能改变有意保留的色偏；可降低中和强度。").font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))
+                    number(L10n.text("中间调中和"),value:$neutralizePercent,unit:"%")
+                    Text(L10n.text("以通道中位数估计中性中间调，可能改变有意保留的色偏；可降低中和强度。")).font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))
                 }
-                Text("分析当前像素层与选区，保留透明度和选区外原码；预览不写历史，应用后可一次撤销。").font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))
+                Text(L10n.text("分析当前像素层与选区，保留透明度和选区外原码；预览不写历史，应用后可一次撤销。")).font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))
             }else if command == "filter.add_noise"{
-                number("数量",value:$noiseAmount,unit:"%")
-                Picker("分布",selection:$distribution){Text("均匀").tag("uniform");Text("高斯").tag("gaussian")}
-                Toggle("单色",isOn:$monochrome)
-                TextField("随机种子",text:$seed).textFieldStyle(.roundedBorder).accessibilityLabel("杂色随机种子")
-                Text("相同种子保留相同颗粒分布。").font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))
+                number(L10n.text("数量"),value:$noiseAmount,unit:"%")
+                Picker(L10n.text("分布"),selection:$distribution){Text(L10n.text("均匀")).tag("uniform");Text(L10n.text("高斯")).tag("gaussian")}
+                Toggle(L10n.text("单色"),isOn:$monochrome)
+                TextField(L10n.text("随机种子"),text:$seed).textFieldStyle(.roundedBorder).accessibilityLabel(L10n.text("杂色随机种子"))
+                Text(L10n.text("相同种子保留相同颗粒分布。")).font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))
             }else{
-                number("标准差",value:$sigma,unit:"px")
-                Slider(value:$sigma,in:0.1...64).accessibilityLabel("模糊标准差")
+                number(L10n.text("标准差"),value:$sigma,unit:"px")
+                Slider(value:$sigma,in:0.1...64).accessibilityLabel(L10n.text("模糊标准差"))
                 if command == "filter.high_pass"{
-                    Picker("高反差模式",selection:$highPassSpace){Text("叠加锐化（线性光）").tag("linear_p3");Text("50% 工作 RGB 灰").tag("working_rgb")}
-                    Text("线性光模式让平坦区域在叠加混合中保持中性；工作 RGB 模式生成 50% 编码灰。标准差越大，保留的结构越宽；两者均保留原透明度。").font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))
+                    Picker(L10n.text("高反差模式"),selection:$highPassSpace){Text(L10n.text("叠加锐化（线性光）")).tag("linear_p3");Text(L10n.text("50% 工作 RGB 灰")).tag("working_rgb")}
+                    Text(L10n.text("线性光模式让平坦区域在叠加混合中保持中性；工作 RGB 模式生成 50% 编码灰。标准差越大，保留的结构越宽；两者均保留原透明度。")).font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))
                 }
                 if command == "filter.unsharp_mask"{
-                    number("数量",value:$amount,unit:"%")
-                    number("阈值",value:$threshold,unit:"%")
-                    Text("阈值按线性 RGB 差值计算，保留原透明度。").font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))
+                    number(L10n.text("数量"),value:$amount,unit:"%")
+                    number(L10n.text("阈值"),value:$threshold,unit:"%")
+                    Text(L10n.text("阈值按线性 RGB 差值计算，保留原透明度。")).font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))
                 }
             }
             }.disabled(!available)
             TonalPreviewControls(preview:preview,parameters:parameters.flatMap{try? commandJSON($0)},filterCommand:command).disabled(!available)
             HStack{
-                Button("应用"){commit()}.buttonStyle(WorkspaceButtonStyle(selected:true)).disabled(!available||parameters == nil||preview.applying)
-                Button("取消预览"){preview.cancel()}.buttonStyle(WorkspaceButtonStyle()).disabled(!preview.enabled && !preview.busy && !preview.applying)
+                Button(L10n.text("应用")){commit()}.buttonStyle(WorkspaceButtonStyle(selected:true)).disabled(!available||parameters == nil||preview.applying)
+                Button(L10n.text("取消预览")){preview.cancel()}.buttonStyle(WorkspaceButtonStyle()).disabled(!preview.enabled && !preview.busy && !preview.applying)
             }
-            if !available && !preview.applying{Text("请选择可编辑的像素图层。").font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))}
+            if !available && !preview.applying{Text(L10n.text("请选择可编辑的像素图层。")).font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))}
         }.padding(12)}
     }
-    private func number(_ title:String,value:Binding<Double>,unit:String)->some View{HStack{Text(title);TextField(title,value:value,format:.number.precision(.fractionLength(2))).textFieldStyle(.roundedBorder).accessibilityLabel("滤镜"+title);Text(unit)}}
+    private func number(_ title:String,value:Binding<Double>,unit:String)->some View{HStack{Text(title);TextField(title,value:value,format:.number.precision(.fractionLength(2))).textFieldStyle(.roundedBorder).accessibilityLabel(L10n.format("滤镜{0}", title));Text(unit)}}
     private func commit(){
         guard let layer=model.selected,var parameters else{return}
         if preview.enabled,let json=try? commandJSON(parameters){preview.apply(json);return}

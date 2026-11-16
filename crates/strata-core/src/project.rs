@@ -40,7 +40,11 @@ impl Document {
             previous_selection: self.previous_selection.as_ref().map(TiledMask::layout),
             resolution_dpi: self.resolution_dpi,
             preset: self.preset.clone(),
-            version: if !self.guides.is_empty() {9} else if self.layers.iter().any(|l|matches!(&l.info.kind, crate::LayerKind::Text{text} if !text.operations.is_empty())) {
+            version: if self.layers.iter().any(|l| l.info.generated_geometry.is_some()) {
+                10
+            } else if !self.guides.is_empty() {
+                9
+            } else if self.layers.iter().any(|l|matches!(&l.info.kind, crate::LayerKind::Text{text} if !text.operations.is_empty())) {
                 8
             } else if self
                 .layers
@@ -102,7 +106,7 @@ impl Document {
     ) -> Result<Self, DocumentError> {
         let meta: Manifest =
             serde_json::from_value(metadata).map_err(|e| DocumentError::Invalid(e.to_string()))?;
-        if !matches!(meta.version, 0..=9)
+        if !matches!(meta.version, 0..=10)
             || meta.layers.len() > crate::MAX_LAYERS
             || meta.guides.len() > crate::MAX_GUIDES
             || meta.working_icc.len() > 4 * 1024 * 1024
@@ -114,6 +118,11 @@ impl Document {
         {
             return Err(DocumentError::Invalid(
                 "project version or metadata size".into(),
+            ));
+        }
+        if meta.version < 10 && meta.layers.iter().any(|l| l.generated_geometry.is_some()) {
+            return Err(DocumentError::Invalid(
+                "generated geometry requires manifest version 10".into(),
             ));
         }
         if meta.version < 9 && !meta.guides.is_empty() {

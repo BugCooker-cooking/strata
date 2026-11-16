@@ -1,6 +1,6 @@
 # Strata v1.0 P0 交付与验收矩阵
 
-状态：2026-11-04，M0/M1、工作区与 M1b 的当前设备执行范围已闭环，缺设备项单独追踪；下表仍是完整 P0 门槛，不按单一子项提前关闭整行。依据：[功能清单](../research/photoshop-feature-inventory.md) · [路线图](2026-11-02-strata-v1-roadmap.md) · [总体设计](../design/2026-11-02-strata-v1-design.md)。
+当前结果与证据见 [2026-11-16 P0 核对](../research/2026-11-p0-closure.md)。下表定义完整 P0 门槛。依据：[功能清单](../research/photoshop-feature-inventory.md) · [路线图](2026-11-02-strata-v1-roadmap.md) · [总体设计](../design/2026-11-02-strata-v1-design.md)。
 
 本表逐行覆盖源清单标为 P0 的功能；同一行列出的多个动作都必须验收，不能只测一个代表动作。ID 是稳定的验收场景标识，不代表已有测试文件。每个里程碑详细计划须将所属 ID 绑定具体测试、标准图与负责人；没有实测证据不勾选完成。
 

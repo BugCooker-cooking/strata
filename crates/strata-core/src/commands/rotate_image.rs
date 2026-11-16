@@ -1,8 +1,7 @@
-//! Arbitrary rotation for pixels, unstyled text and groups. Unsupported editable
-//! types are rejected before sampling; quarter turns reuse full-type isometries.
+//! Arbitrary layered rotation. Quarter turns reuse the exact axis permutations.
 use super::*;
 use crate::{
-    Document, DocumentError, LayerKind,
+    Document, DocumentError, GeneratedGeometry, LayerKind,
     geometry::Homography,
     geometry_pixels::{self, PixelSource, Sampling},
 };
@@ -108,23 +107,6 @@ pub(super) fn mutate(
     }
     for layer in &doc.layers {
         let info = layer.info();
-        match &info.kind {
-            LayerKind::Pixel | LayerKind::Text { .. } | LayerKind::Group => {}
-            LayerKind::Solid { .. }
-            | LayerKind::Gradient { .. }
-            | LayerKind::Exposure { .. }
-            | LayerKind::HueSaturation { .. }
-            | LayerKind::Adjustment { .. } => {
-                return Err(invalid(
-                    "arbitrary image rotation currently supports pixel layers and unstyled groups; editable fills/adjustments require later geometry support and are never implicitly rasterized",
-                ));
-            }
-        }
-        if !info.styles.is_empty() || info.generated_size.is_some() {
-            return Err(invalid(
-                "arbitrary image rotation does not yet support layer styles or frozen style references",
-            ));
-        }
         let l = info.locks;
         if l.all || l.pixels || l.position || l.transparency {
             return Err(invalid(
@@ -259,6 +241,11 @@ pub(super) fn mutate(
             super::local::attach(target, mask);
             target.info.mask.as_mut().unwrap().enabled = enabled;
         }
+        GeneratedGeometry::update_reference(&mut target.info, info, &old, &transform)?;
+        target.info.spatial_bounds = info
+            .spatial_bounds
+            .map(|b| geometry_pixels::transformed_bounds(b, &transform, Sampling::Nearest))
+            .transpose()?;
     }
     check(cancel)?;
     doc.selection = selection;

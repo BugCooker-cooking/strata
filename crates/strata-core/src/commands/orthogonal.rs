@@ -2,7 +2,7 @@
 //! layers. This is not flattening and never clips content to the old artboard.
 use super::*;
 use crate::{
-    Document, DocumentError, LayerKind,
+    Document, DocumentError, GeneratedGeometry, LayerKind,
     geometry::Homography,
     geometry_pixels::{self, PixelSource, Sampling},
 };
@@ -248,14 +248,18 @@ pub(super) fn mutate(
         } else {
             generated_crop
         };
-        if let LayerKind::Gradient {
-            angle: direction, ..
-        } = &mut layer.info.kind
-        {
-            *direction = angle(*direction, coefficients);
-        }
-        if let Some(overlay) = &mut layer.info.styles.gradient_overlay {
-            overlay.angle = angle(overlay.angle, coefficients);
+        if info.generated_geometry.is_some() {
+            GeneratedGeometry::update_reference(&mut layer.info, info, &before, &transform)?;
+        } else {
+            if let LayerKind::Gradient {
+                angle: direction, ..
+            } = &mut layer.info.kind
+            {
+                *direction = angle(*direction, coefficients);
+            }
+            if let Some(overlay) = &mut layer.info.styles.gradient_overlay {
+                overlay.angle = angle(overlay.angle, coefficients);
+            }
         }
         if let Some(shadow) = &mut layer.info.styles.drop_shadow {
             let dx = f64::from(shadow.offset_x);

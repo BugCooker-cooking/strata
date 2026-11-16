@@ -372,7 +372,7 @@ fn hidden_group_offboard_sources_disabled_masks_and_both_selections_keep_their_g
     assert_eq!(e.document().unwrap().to_archive().unwrap(), before);
 }
 #[test]
-fn equal_size_is_noop_and_invalid_locked_or_unsupported_edits_are_atomic() {
+fn equal_size_is_noop_and_resizing_preserves_definitions_and_observes_locks() {
     let original = fixture(9, 7, 16);
     for kind in ["solid", "style", "adjustment", "lock", "ancestor"] {
         let mut e = original.clone();
@@ -427,16 +427,28 @@ fn equal_size_is_noop_and_invalid_locked_or_unsupported_edits_are_atomic() {
             run(&mut e, "image.resize", json!({"width":9,"height":7}))["changed"],
             false
         );
-        assert!(
-            e.execute(
-                e.request(Source::User),
-                "image.resize",
-                json!({"width":13,"height":11}),
-                |_| Ok(())
-            )
-            .is_err()
+        let result = e.execute(
+            e.request(Source::User),
+            "image.resize",
+            json!({"width":13,"height":11}),
+            |_| Ok(()),
         );
-        assert_eq!(e.revision(), revision);
+        if matches!(kind, "lock" | "ancestor") {
+            assert!(result.is_err());
+            assert_eq!(e.revision(), revision);
+        } else {
+            assert_eq!(result.unwrap()["changed"], true);
+            let after = e.document().unwrap();
+            assert_eq!(
+                after.to_archive().unwrap().metadata["layers"]
+                    .as_array()
+                    .unwrap()
+                    .len(),
+                before.metadata["layers"].as_array().unwrap().len()
+            );
+            assert_eq!(e.snapshot().history_cursor, cursor + 1);
+            run(&mut e, "edit.undo", json!({}));
+        }
         assert_eq!(e.snapshot().history_cursor, cursor);
         assert_eq!(e.document().unwrap().to_archive().unwrap(), before);
     }

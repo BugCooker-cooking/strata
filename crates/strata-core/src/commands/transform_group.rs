@@ -1,7 +1,7 @@
 //! One staged group operation keeps children editable and never flattens them.
 use super::*;
 use crate::{
-    Document, DocumentError, LayerId, LayerKind,
+    Document, DocumentError, GeneratedGeometry, LayerId, LayerKind,
     geometry::Homography,
     geometry_pixels::{self, Sampling},
 };
@@ -34,29 +34,20 @@ fn extend(
     }
     Ok(())
 }
-fn subtree(doc: &Document, id: LayerId) -> impl Iterator<Item = usize> + '_ {
+fn subtree<'a>(doc: &'a Document, roots: &'a [LayerId]) -> impl Iterator<Item = usize> + 'a {
     doc.layers
         .iter()
         .enumerate()
-        .filter(move |(_, l)| l.id() == id || doc.is_descendant(l.id(), id))
+        .filter(move |(_, l)| {
+            roots
+                .iter()
+                .any(|&root| l.id() == root || doc.is_descendant(l.id(), root))
+        })
         .map(|(i, _)| i)
 }
 pub(super) fn validate(doc: &Document, id: LayerId) -> Result<(), CommandError> {
-    for i in subtree(doc, id) {
+    for i in subtree(doc, &[id]) {
         let info = doc.layers[i].info();
-        if !matches!(
-            info.kind,
-            LayerKind::Pixel | LayerKind::Text { .. } | LayerKind::Group
-        ) {
-            return Err(invalid(
-                "group transform supports pixel/text/group subtrees; fills and adjustments are never implicitly rasterized",
-            ));
-        }
-        if !info.styles.is_empty() {
-            return Err(invalid(
-                "group transform requires no active styles in the subtree; style geometry remains separate",
-            ));
-        }
         let locks = info.locks;
         if locks.all || locks.pixels || locks.position || locks.transparency {
             return Err(invalid(
@@ -73,9 +64,17 @@ pub(super) fn visible_bounds(
     id: LayerId,
     cancel: &dyn Fn() -> bool,
 ) -> Result<Option<CoverageRect>, DocumentError> {
+    visible_bounds_of(doc, &[id], cancel)
+}
+
+pub(super) fn visible_bounds_of(
+    doc: &Document,
+    roots: &[LayerId],
+    cancel: &dyn Fn() -> bool,
+) -> Result<Option<CoverageRect>, DocumentError> {
     let mut result = None;
     let mut visits = 0u64;
-    for i in subtree(doc, id) {
+    for i in subtree(doc, roots) {
         if cancel() {
             return Err(DocumentError::Cancelled);
         }
@@ -145,6 +144,21 @@ pub(super) fn apply(
             "group transform needs a visible group and ancestors",
         ));
     }
+    let result = apply_roots(doc, &[target], transform, interpolation, cancel)?;
+    Ok(serde_json::json!({
+        "layer_id":target,"scope":"whole_layer","output_bounds":result.output_bounds,
+        "source_artboard_clipped":false,"mask_transformed":result.mask_transformed,
+        "selection_transformed":false,"changed":result.changed
+    }))
+}
+
+pub(super) fn apply_roots(
+    doc: &mut Document,
+    roots: &[LayerId],
+    transform: &Homography,
+    interpolation: TransformInterpolation,
+    cancel: &dyn Fn() -> bool,
+) -> Result<TransformLayersResult, CommandError> {
     let source = doc.clone();
     let translation = transform.integer_translation();
     let sampling = match interpolation {
@@ -156,7 +170,7 @@ pub(super) fn apply(
     let mut output_visits = 0u64;
     let mut visible = None;
     let mut masks = false;
-    for index in subtree(&source, target) {
+    for index in subtree(&source, roots) {
         if cancel() {
             return Err(CommandError::Expired);
         }
@@ -165,14 +179,17 @@ pub(super) fn apply(
         if input_visits > 64_000_000 {
             return Err(DocumentError::ResourceLimit.into());
         }
-        let bounds = if matches!(layer.info.kind, LayerKind::Group) {
-            None
-        } else {
-            super::transform::bounds(&source, layer, cancel)?
-        };
+        let bounds =
+            if matches!(layer.info.kind, LayerKind::Group) || layer.info.kind.is_adjustment() {
+                None
+            } else {
+                super::transform::bounds(&source, layer, cancel)?
+            };
         let origin = if let Some(bounds) = bounds {
             let output = geometry_pixels::transformed_bounds(bounds, transform, sampling)?;
-            if translation.is_none() {
+            if translation.is_none()
+                && matches!(layer.info.kind, LayerKind::Pixel | LayerKind::Text { .. })
+            {
                 output_visits += u64::from(output.width) * u64::from(output.height);
             }
             let logical =
@@ -204,31 +221,38 @@ pub(super) fn apply(
             origin,
         });
     }
-    let visible = visible
-        .ok_or_else(|| invalid("group has no visible finite pixel/text content to transform"))?;
+    let visible = visible.ok_or_else(|| {
+        invalid("layers have no visible finite pixel, text or fill content to transform")
+    })?;
     let output_bounds = geometry_pixels::transformed_bounds(visible, transform, sampling)?;
-    let root = source.layers.iter().find(|l| l.id() == target).unwrap();
+    let result = |changed| TransformLayersResult {
+        layer_ids: roots.to_vec(),
+        output_bounds,
+        mask_transformed: masks,
+        changed,
+    };
     if let Some([dx, dy]) = translation {
         if dx != 0 || dy != 0 {
-            super::tree::move_position(
-                doc,
-                target,
-                root.info
-                    .x
-                    .checked_add(dx)
-                    .ok_or(DocumentError::ResourceLimit)?,
-                root.info
-                    .y
-                    .checked_add(dy)
-                    .ok_or(DocumentError::ResourceLimit)?,
-            )?;
+            for &target in roots {
+                let root = source.layers.iter().find(|l| l.id() == target).unwrap();
+                super::tree::move_position(
+                    doc,
+                    target,
+                    root.info
+                        .x
+                        .checked_add(dx)
+                        .ok_or(DocumentError::ResourceLimit)?,
+                    root.info
+                        .y
+                        .checked_add(dy)
+                        .ok_or(DocumentError::ResourceLimit)?,
+                )?;
+            }
         }
         if cancel() {
             return Err(CommandError::Expired);
         }
-        return Ok(
-            serde_json::json!({"layer_id":target,"scope":"whole_layer","output_bounds":output_bounds,"source_artboard_clipped":false,"mask_transformed":masks,"selection_transformed":false,"changed":dx!=0||dy!=0}),
-        );
+        return Ok(result(dx != 0 || dy != 0));
     }
     // Work out all storage anchors before any output is sampled. Source boxes
     // are cached from the one bounded scan; groups do not rescan nested pixels.
@@ -314,11 +338,15 @@ pub(super) fn apply(
             layer.info.mask.as_mut().unwrap().enabled =
                 original.info.mask.as_ref().unwrap().enabled;
         }
+        GeneratedGeometry::update_reference(
+            &mut layer.info,
+            &original.info,
+            &source.frame,
+            transform,
+        )?;
     }
     if cancel() {
         return Err(CommandError::Expired);
     }
-    Ok(
-        serde_json::json!({"layer_id":target,"scope":"whole_layer","output_bounds":output_bounds,"source_artboard_clipped":false,"mask_transformed":masks,"selection_transformed":false,"changed":true}),
-    )
+    Ok(result(true))
 }

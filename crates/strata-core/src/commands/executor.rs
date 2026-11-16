@@ -95,6 +95,7 @@ pub struct GeometryInteraction {
     epoch: u64,
     command: &'static str,
     transform_target: Option<(LayerId, TransformScope)>,
+    transform_roots: Vec<LayerId>,
     guide_target: Option<crate::GuideId>,
 }
 pub type CropInteraction = GeometryInteraction;
@@ -219,6 +220,7 @@ pub struct Snapshot {
     pub revision: u64,
     pub dirty: bool,
     pub frame: Option<crate::Frame>,
+    pub color_mode: Option<ColorMode>,
     pub bit_depth: Option<u8>,
     pub profile_name: Option<String>,
     pub profile_fallback: bool,
@@ -229,6 +231,12 @@ pub struct Snapshot {
     pub executions: Vec<Value>,
     pub control_events: Vec<Value>,
     pub control: Control,
+}
+
+#[derive(Clone, Copy, Debug, Serialize, JsonSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum ColorMode {
+    Rgb,
 }
 
 enum Action {
@@ -531,6 +539,7 @@ impl Editor {
             epoch: self.epoch,
             command,
             transform_target: None,
+            transform_roots: Vec::new(),
             guide_target: None,
         })
     }
@@ -560,11 +569,21 @@ impl Editor {
         let (target, _) = super::transform::target(doc, &layer)?;
         if doc.active_layer() != Some(target) || !doc.effective_visibility(target) {
             return Err(CommandError::Invalid(
-                "canvas transform must start on the active visible pixel or editable text layer"
-                    .into(),
+                "canvas transform must start on the active visible layer".into(),
             ));
         }
         interaction.transform_target = Some((target, scope));
+        Ok(interaction)
+    }
+    pub fn begin_canvas_transform_layers(
+        &self,
+        layers: &[LayerRef],
+    ) -> Result<GeometryInteraction, CommandError> {
+        let mut interaction = self.begin_geometry("transform.apply_layers")?;
+        let doc = self.document().ok_or(CommandError::NoDocument)?;
+        let active = doc.active_layer().ok_or(CommandError::Stale)?;
+        interaction.transform_target = Some((active, TransformScope::WholeLayer));
+        interaction.transform_roots = super::transform::roots(doc, layers)?;
         Ok(interaction)
     }
     pub fn begin_guide(
@@ -609,12 +628,21 @@ impl Editor {
         interaction: &GeometryInteraction,
     ) -> Result<LayerBoundsResult, CommandError> {
         let (layer, scope) = self.check_canvas_transform(interaction)?;
-        super::transform::canvas_bounds(
-            self.document().ok_or(CommandError::NoDocument)?,
-            &LayerRef::Id(layer),
-            scope,
-            &|| interaction.request.expired(),
-        )
+        let doc = self.document().ok_or(CommandError::NoDocument)?;
+        if !interaction.transform_roots.is_empty() {
+            let bounds = super::transform_group::visible_bounds_of(
+                doc,
+                &interaction.transform_roots,
+                &|| interaction.request.expired(),
+            )?;
+            return Ok(LayerBoundsResult {
+                layer_id: layer,
+                bounds,
+            });
+        }
+        super::transform::canvas_bounds(doc, &LayerRef::Id(layer), scope, &|| {
+            interaction.request.expired()
+        })
     }
     pub fn canvas_transform_context_matches(&self, interaction: &GeometryInteraction) -> bool {
         self.check_canvas_transform(interaction).is_ok()
@@ -625,8 +653,10 @@ impl Editor {
     ) -> Result<(LayerId, TransformScope), CommandError> {
         self.check_request(&interaction.request)?;
         let (layer, scope) = interaction.transform_target.ok_or(CommandError::Stale)?;
-        if interaction.command != "transform.apply"
-            || interaction.epoch != self.epoch
+        if !matches!(
+            interaction.command,
+            "transform.apply" | "transform.apply_layers"
+        ) || interaction.epoch != self.epoch
             || self.document().and_then(Document::active_layer) != Some(layer)
         {
             return Err(CommandError::Stale);
@@ -639,17 +669,20 @@ impl Editor {
         params: Value,
     ) -> Result<PreparedCommand, CommandError> {
         let (layer, scope) = self.check_canvas_transform(interaction)?;
-        let parsed: TransformApply = parse(params.clone())?;
-        let target = self
-            .document()
-            .ok_or(CommandError::NoDocument)?
-            .resolve(&parsed.layer)?;
-        if target != layer || parsed.scope != scope {
+        let doc = self.document().ok_or(CommandError::NoDocument)?;
+        let matches_target = if interaction.command == "transform.apply_layers" {
+            let parsed: TransformLayers = parse(params.clone())?;
+            super::transform::roots(doc, &parsed.layers)? == interaction.transform_roots
+        } else {
+            let parsed: TransformApply = parse(params.clone())?;
+            doc.resolve(&parsed.layer)? == layer && parsed.scope == scope
+        };
+        if !matches_target {
             return Err(CommandError::Invalid(
                 "canvas transform layer and scope are anchored to their initial values".into(),
             ));
         }
-        let mut prepared = self.prepare_geometry(interaction, "transform.apply", params)?;
+        let mut prepared = self.prepare_geometry(interaction, interaction.command, params)?;
         prepared.required_active_layer = Some(layer);
         Ok(prepared)
     }
@@ -1131,6 +1164,7 @@ impl Editor {
             revision: self.revision,
             dirty: self.dirty(),
             frame: self.document.as_ref().map(|d| d.frame().clone()),
+            color_mode: self.document.as_ref().map(|_| ColorMode::Rgb),
             bit_depth: self.document.as_ref().map(Document::bit_depth),
             profile_name: self.document.as_ref().map(|d| d.profile_name().into()),
             profile_fallback: self
@@ -1376,15 +1410,9 @@ impl Editor {
                         let doc = self.document().ok_or(CommandError::NoDocument)?;
                         let target = doc.resolve(&p.layer)?;
                         let layer = doc.layers().iter().find(|l| l.id() == target).unwrap();
-                        if !matches!(
-                            layer.info().kind,
-                            crate::LayerKind::Pixel
-                                | crate::LayerKind::Text { .. }
-                                | crate::LayerKind::Group
-                        ) || !doc.effective_visibility(target)
-                        {
+                        if !doc.effective_visibility(target) {
                             return Err(CommandError::Invalid(
-                                "bounds query requires a visible pixel/text layer or group".into(),
+                                "bounds query requires a visible layer".into(),
                             ));
                         }
                         let bounds = super::transform::bounds(doc, layer, &|| request.expired())?;
@@ -2078,6 +2106,7 @@ impl Editor {
                     | "image.convert_bit_depth"
                     | "image.auto"
                     | "transform.apply"
+                    | "transform.apply_layers"
                     | "type.update"
                     | "layer.snap_position"
             ) && prepared.result["changed"] == false);

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Audit real editing commands against feature mappings and native references.
 
-Development checks reject broken links/stale reports. --require-complete also
-rejects unfinished features and partial coverage; it is the final closure gate.
+Development checks reject broken links and stale reports. --require-p0 checks
+the v1.0 feature scope. --require-complete checks the entire inventory.
 """
 import argparse
 import hashlib
@@ -150,7 +150,7 @@ def render(report):
               '- 未类型化返回：' + ('、'.join(f'`{v}`' for v in report['untyped_command_returns']) or '无'),
               '- 未关联功能条目的命令：' + '、'.join(f'`{v}`' for v in report['commands_without_feature_links']),
               '- 动态拼接及纯宿主回调仍需人工逐项复核；已有提示映射不能代替最终模型端到端验收。',
-              '- `--require-complete` 才是最终严格门槛；开发期检查只保证引用有效及报告同步。', '']
+              '- `--require-p0` 检查 P0 实现与入口。`--require-complete` 检查完整清单。', '']
     return '\n'.join(lines)
 
 
@@ -158,6 +158,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--catalog', type=Path, required=True)
     parser.add_argument('--check', action='store_true')
+    parser.add_argument('--require-p0', action='store_true')
     parser.add_argument('--require-complete', action='store_true')
     args = parser.parse_args()
     report = audit(json.loads(args.catalog.read_text()))
@@ -171,6 +172,26 @@ def main():
             path.write_text(text)
     if report['unknown_native_command_references']:
         raise SystemExit(f"Unknown native command references: {report['unknown_native_command_references']}")
+    if args.require_p0:
+        gaps = []
+        p0_count = 0
+        for feature in report['features']:
+            if feature['priority'] != 'P0':
+                continue
+            p0_count += 1
+            issues = []
+            if feature['implementation'] != '已实现':
+                issues.append(feature['implementation'])
+            entry = feature['entrypoint']
+            if entry is None or entry['coverage'] != 'complete':
+                issues.append('AI 入口待核对' if entry is None else 'AI 入口不完整')
+            if issues:
+                gaps.append(f"{feature['id']} {feature['name']} ({'、'.join(issues)})")
+        if report['untyped_command_returns']:
+            gaps.append(f"未类型化命令返回: {', '.join(report['untyped_command_returns'])}")
+        if gaps:
+            raise SystemExit('P0 待核对条目\n' + '\n'.join(gaps))
+        print(f'P0: {p0_count} composite entries have complete implementation and entrypoint records.')
     if args.require_complete and not report['final_audit_complete']:
         raise SystemExit('Full editing/AI entrypoint closure is not complete; inspect the audit report.')
     print(f"AI audit: {report['registered_commands']} commands, {report['mapped_features']}/{report['inventory_rows']} composite rows mapped; final closure remains {report['final_audit_complete']}.")

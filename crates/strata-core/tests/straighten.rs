@@ -349,7 +349,7 @@ fn zero_correction_noop_cannot_revert_new_selection_and_invalid_or_thin_crops_ar
     );
 }
 #[test]
-fn unsupported_types_locks_budget_and_actual_cancellation_cannot_publish_rotation_or_crop() {
+fn editable_types_can_straighten_and_failures_cannot_publish_rotation_or_crop() {
     for kind in ["fill", "style", "lock"] {
         let mut e = fixture(16, [40, 26]);
         let id = e.snapshot().active_layer;
@@ -386,16 +386,19 @@ fn unsupported_types_locks_budget_and_actual_cancellation_cannot_publish_rotatio
             )["changed"],
             false
         );
-        assert!(
-            e.execute(
-                e.request(Source::User),
-                "image.straighten",
-                json!({"reference":{"type":"angle","angle_degrees":5}}),
-                |_| Ok(())
-            )
-            .is_err()
+        let result = e.execute(
+            e.request(Source::User),
+            "image.straighten",
+            json!({"reference":{"type":"angle","angle_degrees":5}}),
+            |_| Ok(()),
         );
-        assert_eq!(e.revision(), revision);
+        if kind == "lock" {
+            assert!(result.is_err());
+            assert_eq!(e.revision(), revision);
+        } else {
+            assert_eq!(result.unwrap()["cropped"], true);
+            run(&mut e, "edit.undo", json!({}));
+        }
         assert_eq!(e.document().unwrap().to_archive().unwrap(), before);
     }
     for budget in [8 * 1024 * 1024, 128 * 1024 * 1024] {

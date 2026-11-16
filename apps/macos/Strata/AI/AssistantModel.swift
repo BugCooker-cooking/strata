@@ -5,7 +5,7 @@ import UniformTypeIdentifiers
 
 struct AIExecution: Identifiable {
     let id: String
-    var status = "执行中"
+    var status = L10n.text("执行中")
     var steps: [AIJSON] = []
     var inputTokens: Double = 0
     var outputTokens: Double = 0
@@ -58,7 +58,7 @@ final class AssistantModel: ObservableObject {
         settings.objectWillChange.sink { [weak self] in self?.objectWillChange.send() }.store(in: &subscriptions)
     }
     var configured: Bool { settings.current?.toolsVerified == true }
-    var status: String { running ? (paused == nil ? "执行中" : "等待你的决定") : configured ? "已连接 · 空闲" : "未接入模型" }
+    var status: String { running ? (paused == nil ? L10n.text("执行中") : L10n.text("等待你的决定")) : configured ? L10n.text("已连接 · 空闲") : L10n.text("未接入模型") }
     func bind(document next: String?, inheritedTurn: String? = nil) {
         guard document != next else { return }
         if running, let turn, inheritedTurn == turn { document = next; contextApprovals = [:]; persist(); return }
@@ -66,13 +66,13 @@ final class AssistantModel: ObservableObject {
         document = next; contextApprovals = [:]; executions = []; messages = []; conversations=[]
         if let next {
             do { let store=try AIConversationStore.applicationStore();messages=try store.load(document:next);conversations=try store.list(document:next) }
-            catch { self.error = "对话记录读取失败：\(error.localizedDescription)" }
+            catch { self.error = L10n.format("对话记录读取失败：{0}", String(describing: error.localizedDescription)) }
         }
     }
     private func persist() {
         guard let document else { return }
         do { let store=try AIConversationStore.applicationStore();try store.save(messages,document:document);conversations=try store.list(document:document) }
-        catch { self.error = "对话记录未保存：\(error.localizedDescription)" }
+        catch { self.error = L10n.format("对话记录未保存：{0}", String(describing: error.localizedDescription)) }
     }
     func newConversation() {
         guard !running else { return }
@@ -89,7 +89,7 @@ final class AssistantModel: ObservableObject {
         }catch{self.error=error.localizedDescription}
     }
     func testAndSave(_ draft: AIConfiguration, key: String) async {
-        guard !testing else { return }; testing = true; connectionStatus = "正在验证工具调用…"; error = ""
+        guard !testing else { return }; testing = true; connectionStatus = L10n.text("正在验证工具调用…"); error = ""
         defer { testing = false }
         do {
             var config = draft; config.vision = false; config.toolsVerified = false
@@ -98,20 +98,20 @@ final class AssistantModel: ObservableObject {
             let transport = AITransport()
             let toolWire = try AIWireRequest.decode(aiProbeRequest(configJson: configJSON, vision: false))
             let toolData = try await transport.collect(toolWire, key: credential)
-            guard try aiProbeResult(configJson: configJSON, response: toolData, vision: false) else { throw AIClientError.message("连接成功，但模型未完成工具调用探测。请选择支持工具的模型。") }
-            config.toolsVerified = true; connectionStatus = "工具调用通过；正在检测看图能力…"
+            guard try aiProbeResult(configJson: configJSON, response: toolData, vision: false) else { throw AIClientError.message(L10n.text("连接成功，但模型未完成工具调用探测。请选择支持工具的模型。")) }
+            config.toolsVerified = true; connectionStatus = L10n.text("工具调用通过；正在检测看图能力…")
             do {
                 let visionWire = try AIWireRequest.decode(aiProbeRequest(configJson: configJSON, vision: true))
                 let visionData = try await transport.collect(visionWire, key: credential)
                 config.vision = try aiProbeResult(configJson: configJSON, response: visionData, vision: true)
             } catch { config.vision = false }
             try settings.save(config, key: key)
-            connectionStatus = config.vision ? "工具调用与看图探测通过" : "工具调用通过 · 画布仅提供文字统计"
+            connectionStatus = config.vision ? L10n.text("工具调用与看图探测通过") : L10n.text("工具调用通过 · 画布仅提供文字统计")
             settingsVisible = false; onStateChanged?()
-        } catch { self.error = error.localizedDescription; connectionStatus = "连接未通过" }
+        } catch { self.error = error.localizedDescription; connectionStatus = L10n.text("连接未通过") }
     }
     func listModels(_ draft: AIConfiguration, key: String) async -> [String] {
-        guard !testing else { return [] }; testing = true; error = ""; connectionStatus = "正在读取模型列表…"
+        guard !testing else { return [] }; testing = true; error = ""; connectionStatus = L10n.text("正在读取模型列表…")
         defer { testing = false }
         do {
             var config = draft
@@ -121,9 +121,9 @@ final class AssistantModel: ObservableObject {
             let data = try await AITransport().collect(request, key: credential)
             let response = try AIJSON.decode(String(decoding: data, as: UTF8.self))
             let models = Array(Set(response["data"].array.compactMap { $0["id"].string }.filter { !$0.isEmpty && $0.utf8.count <= 256 })).sorted()
-            guard !models.isEmpty else { throw AIClientError.message("接口没有返回可用模型列表；可以手工填写模型名称。") }
-            connectionStatus = "已读取 \(models.count) 个模型"; return Array(models.prefix(500))
-        } catch { self.error = error.localizedDescription; connectionStatus = "模型列表读取失败，可手工填写"; return [] }
+            guard !models.isEmpty else { throw AIClientError.message(L10n.text("接口没有返回可用模型列表；可以手工填写模型名称。")) }
+            connectionStatus = L10n.format("已读取 {0} 个模型", String(describing: models.count)); return Array(models.prefix(500))
+        } catch { self.error = error.localizedDescription; connectionStatus = L10n.text("模型列表读取失败，可手工填写"); return [] }
     }
     func send() {
         guard !running, configured, let config = settings.current else { return }
@@ -142,14 +142,14 @@ final class AssistantModel: ObservableObject {
                 var shareCanvas = contextApprovals[approvalKey]
                 if shareCanvas == nil {
                     let destination = try config.validated()["url"].string ?? config.endpoint
-                    let connection = destination.hasPrefix("http://") && config.kind != .local ? "\n此连接使用明文 HTTP，密钥与上下文不会加密。" : ""
-                    let choice = await alert(title: "授权本轮文档上下文", message: "目的地：\(destination)\n模型：\(config.model)\(connection)\n\n将发送你的消息和当前文档的尺寸、色彩、可见图层名称及历史摘要。你可以同时允许模型按需读取当前画板的可见合成图；隐藏图层内容和其他文档不会自动发送。", buttons: config.vision ? ["共享可见画布与元数据", "仅共享元数据", "取消"] : ["共享元数据与画布统计", "取消"])
+                    let connection = destination.hasPrefix("http://") && config.kind != .local ? L10n.text("\n此连接使用明文 HTTP，密钥与上下文不会加密。") : ""
+                    let choice = await alert(title: L10n.text("授权本轮文档上下文"), message: L10n.format("目的地：{0}\n模型：{1}{2}\n\n将发送你的消息和当前文档的尺寸、色彩、可见图层名称及历史摘要。你可以同时允许模型按需读取当前画板的可见合成图；隐藏图层内容和其他文档不会自动发送。", String(describing: destination), String(describing: config.model), String(describing: connection)), buttons: config.vision ? [L10n.text("共享可见画布与元数据"), L10n.text("仅共享元数据"), L10n.text("取消")] : [L10n.text("共享元数据与画布统计"), L10n.text("取消")])
                     try Task.checkCancellation()
-                    if (config.vision && ![NSApplication.ModalResponse.alertFirstButtonReturn, .alertSecondButtonReturn].contains(choice)) || (!config.vision && choice != .alertFirstButtonReturn) { finishLocal(status: "未授权上下文"); draft = prompt; return }
+                    if (config.vision && ![NSApplication.ModalResponse.alertFirstButtonReturn, .alertSecondButtonReturn].contains(choice)) || (!config.vision && choice != .alertFirstButtonReturn) { finishLocal(status: L10n.text("未授权上下文")); draft = prompt; return }
                     shareCanvas = config.vision && choice == .alertFirstButtonReturn
                     contextApprovals[approvalKey] = shareCanvas
                 }
-                guard self.document == boundDocument else { throw AIClientError.message("活动文档已改变，请重新发送。") }
+                guard self.document == boundDocument else { throw AIClientError.message(L10n.text("活动文档已改变，请重新发送。")) }
                 let credential = try await settings.credentialAsync(for: config)
                 try Task.checkCancellation()
                 guard self.document==boundDocument,self.generation==generation else{throw CancellationError()}
@@ -164,7 +164,7 @@ final class AssistantModel: ObservableObject {
                 messages.append(AIChatMessage(role: "user", text: prompt, turn: turn)); persist(); onStateChanged?()
                 try await drive(config: config, credential: credential, turn: turn)
             } catch is CancellationError { }
-            catch { guard self.generation == generation, !Task.isCancelled else { return }; if let turn { try? engine.aiStop(turnId: turn) }; self.error = error.localizedDescription; finishLocal(status: "失败，已释放操作权") }
+            catch { guard self.generation == generation, !Task.isCancelled else { return }; if let turn { try? engine.aiStop(turnId: turn) }; self.error = error.localizedDescription; finishLocal(status: L10n.text("失败，已释放操作权")) }
         }
     }
     private func drive(config: AIConfiguration, credential: String, turn: String) async throws {
@@ -174,7 +174,7 @@ final class AssistantModel: ObservableObject {
             let step = try AIJSON.decode(raw)
             switch step["kind"].string {
             case "request":
-                guard let requestID = step["request_id"].string else { throw AIClientError.message("缺少模型请求标识。") }
+                guard let requestID = step["request_id"].string else { throw AIClientError.message(L10n.text("缺少模型请求标识。")) }
                 let wire = try AIWireRequest.decode(step["request"].encoded())
                 let message = AIChatMessage(role: "assistant", text: "", turn: turn)
                 streamMessage = message.id; messages.append(message)
@@ -190,7 +190,7 @@ final class AssistantModel: ObservableObject {
                     try Task.checkCancellation()
                     let retryable = (error as? AIClientError)?.retryable == true || ((error as? URLError).map { [.networkConnectionLost, .cannotConnectToHost, .notConnectedToInternet, .timedOut].contains($0.code) } ?? false)
                     try await aiEngineWork { try engine.aiRequestFailed(requestId: requestID, retryable: retryable) }
-                    if retryable { messages.append(AIChatMessage(role: "system", text: "网络请求失败，正在有限重试；已提交的步骤不会重复执行。", turn: turn)) }
+                    if retryable { messages.append(AIChatMessage(role: "system", text: L10n.text("网络请求失败，正在有限重试；已提交的步骤不会重复执行。"), turn: turn)) }
                 }
                 messages.removeAll { $0.role == "assistant" && $0.text.isEmpty }; streamMessage = nil; persist()
             case "tool": record(step, turn: turn)
@@ -204,8 +204,8 @@ final class AssistantModel: ObservableObject {
                     executions[index].elapsed = (step["elapsed_ms"].number ?? 0) / 1000
                     executions[index].externalWrites = Int(step["external_writes"].number ?? 0)
                 }
-                finishLocal(status: step["status"].string == "completed" ? "已完成" : "已停止（\(step["status"].string ?? "unknown")）"); return
-            default: throw AIClientError.message("无法识别 AI 回合状态。")
+                finishLocal(status: step["status"].string == "completed" ? L10n.text("已完成") : L10n.format("已停止（{0}）", String(describing: step["status"].string ?? "unknown"))); return
+            default: throw AIClientError.message(L10n.text("无法识别 AI 回合状态。"))
             }
         }
     }
@@ -214,7 +214,7 @@ final class AssistantModel: ObservableObject {
         messages[index].text += delta
     }
     private func completeClipboardWrite(_ pending:AIJSON,turn:String)async throws{
-        guard let resource=pending["operation"]["resource"].string else{throw AIClientError.message("剪贴板写入资源缺失。")}
+        guard let resource=pending["operation"]["resource"].string else{throw AIClientError.message(L10n.text("剪贴板写入资源缺失。"))}
         let engine=engine;var success=false
         do{
             let transfer=try await aiEngineWork{try engine.clipboardExport(resource:resource,turnId:turn)}
@@ -263,7 +263,7 @@ final class AssistantModel: ObservableObject {
                 if pending["reason"].string == "question" { messages.append(AIChatMessage(role: "user", text: text ?? answer, turn: turn)) }
                 answer = ""; persist(); try await drive(config: config, credential: credential, turn: turn)
             } catch is CancellationError { }
-            catch { guard self.generation == generation, !Task.isCancelled else { return }; try? engine.aiStop(turnId: turn); self.error = error.localizedDescription; finishLocal(status: "失败，已释放操作权") }
+            catch { guard self.generation == generation, !Task.isCancelled else { return }; try? engine.aiStop(turnId: turn); self.error = error.localizedDescription; finishLocal(status: L10n.text("失败，已释放操作权")) }
         }
     }
     func stop() {
@@ -271,8 +271,8 @@ final class AssistantModel: ObservableObject {
         task?.cancel(); task = nil; panel?.cancel(nil); panel = nil
         if let alertWindow, let window = window?(), window.attachedSheet === alertWindow { window.endSheet(alertWindow, returnCode: .cancel) }
         if let turn { try? engine.aiStop(turnId: turn) }
-        messages.append(AIChatMessage(role: "system", text: "本轮已停止。已提交的文档修改保留，可从历史撤销；已完成的保存/导出和系统剪贴板写入不会随文档撤销恢复。", turn: turn))
-        finishLocal(status: "已停止")
+        messages.append(AIChatMessage(role: "system", text: L10n.text("本轮已停止。已提交的文档修改保留，可从历史撤销；已完成的保存/导出和系统剪贴板写入不会随文档撤销恢复。"), turn: turn))
+        finishLocal(status: L10n.text("已停止"))
     }
     private func finishLocal(status: String) {
         if let turn, let index = executions.firstIndex(where: { $0.id == turn }) { executions[index].status = status }
@@ -293,7 +293,7 @@ final class AssistantModel: ObservableObject {
         let operation = pending["operation"]; let command = operation["command"].string ?? ""
         if ["file.place", "file.open", "file.recover","file.revert"].contains(command) {
             let picker = NSOpenPanel(); picker.allowedContentTypes = [.png, .jpeg, .tiff, .webP, .heic, .gif, .bmp, UTType(filenameExtension: "strata") ?? .data]; picker.allowsMultipleSelection = false
-            picker.message = command=="file.revert" ? "请选择当前文档的原文件或上次保存的工程；恢复会放弃当前修改与历史。":"授权本轮 AI 读取并置入所选图片";picker.allowsOtherFileTypes=true; panel = picker
+            picker.message = command=="file.revert" ? L10n.text("请选择当前文档的原文件或上次保存的工程；恢复会放弃当前修改与历史。"):L10n.text("授权本轮 AI 读取并置入所选图片");picker.allowsOtherFileTypes=true; panel = picker
             let choice = await withCheckedContinuation { continuation in picker.beginSheetModal(for: window) { continuation.resume(returning: $0) } }
             panel = nil; guard choice == .OK, let url = picker.url, self.turn == turn else { return nil }
             selectedResourceURL = url
@@ -302,17 +302,17 @@ final class AssistantModel: ObservableObject {
         let format:String
         if command=="file.quick_export"{
             let preset=try QuickExportPreferences().preset(engine)
-            guard let value=operation["params"]["preset_version"].number,UInt64(exactly:value)==preset.version else{throw AIClientError.message("快速导出预设已改变，请重新读取预设并发起导出。")}
+            guard let value=operation["params"]["preset_version"].number,UInt64(exactly:value)==preset.version else{throw AIClientError.message(L10n.text("快速导出预设已改变，请重新读取预设并发起导出。"))}
             format=try QuickExportPreferences().format(preset)
         }else{format = command == "file.export" ? operation["params"]["format"].string ?? "png" : "strata"}
-        guard ["png", "jpeg", "jpg", "webp", "tiff", "strata"].contains(format) else { throw AIClientError.message("请先选择支持的导出格式。") }
+        guard ["png", "jpeg", "jpg", "webp", "tiff", "strata"].contains(format) else { throw AIClientError.message(L10n.text("请先选择支持的导出格式。")) }
         let picker = NSSavePanel(); picker.allowedContentTypes = [UTType(filenameExtension: format) ?? .data]
-        picker.nameFieldStringValue = "Strata.\(format)"; picker.message = "授权 AI 的这一次文件写入；目标文件不受文档撤销保护。"; panel = picker
+        picker.nameFieldStringValue = "Strata.\(format)"; picker.message = L10n.text("授权 AI 的这一次文件写入；目标文件不受文档撤销保护。"); panel = picker
         let choice = await withCheckedContinuation { continuation in picker.beginSheetModal(for: window) { continuation.resume(returning: $0) } }
         panel = nil; guard choice == .OK, let url = picker.url, self.turn == turn else { return nil }
         let exists = FileManager.default.fileExists(atPath: url.path)
         if exists {
-            let choice = await alert(title: "确认覆盖文件", message: "本次 AI 操作将替换：\n\(url.path)\n\n撤销图层编辑不会还原这个磁盘文件。", buttons: ["覆盖", "取消"])
+            let choice = await alert(title: L10n.text("确认覆盖文件"), message: L10n.format("本次 AI 操作将替换：\n{0}\n\n撤销图层编辑不会还原这个磁盘文件。", String(describing: url.path)), buttons: [L10n.text("覆盖"), L10n.text("取消")])
             guard choice == .alertFirstButtonReturn, self.turn == turn else { return nil }
         }
         selectedResourceURL = url

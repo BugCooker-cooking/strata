@@ -5,16 +5,16 @@ struct CropToolOptions:View{
     @ObservedObject var input:CanvasCropInput
     var body:some View{
         HStack(spacing:9){
-            Picker("裁剪操作",selection:Binding(get:{model.cropMode},set:{model.cropMode=$0;model.send(.tool(.crop))})){Text("裁剪框").tag("crop");Text("拉直参考线").tag("straighten")}.labelsHidden().accessibilityLabel("裁剪操作").frame(width:140).disabled(input.running || model.straightenInput?.running == true || !model.permissions.edits)
+            Picker(L10n.text("裁剪操作"),selection:Binding(get:{model.cropMode},set:{model.cropMode=$0;model.send(.tool(.crop))})){Text(L10n.text("裁剪框")).tag("crop");Text(L10n.text("拉直参考线")).tag("straighten")}.labelsHidden().accessibilityLabel(L10n.text("裁剪操作")).frame(width:140).disabled(input.running || model.straightenInput?.running == true || !model.permissions.edits)
             if model.cropMode=="straighten",let straighten=model.straightenInput{
                 StraightenToolOptions(model:model,input:straighten)
             }else{
-            Picker("裁剪比例",selection:Binding(get:{model.cropRatio},set:{model.cropRatio=$0;model.send(.tool(.crop))})){Text("自由").tag("free");Text("1:1").tag("1:1");Text("4:3").tag("4:3");Text("3:2").tag("3:2");Text("16:9").tag("16:9")}.frame(width:100).disabled(input.running || !model.permissions.edits)
+            Picker(L10n.text("裁剪比例"),selection:Binding(get:{model.cropRatio},set:{model.cropRatio=$0;model.send(.tool(.crop))})){Text(L10n.text("自由")).tag("free");Text("1:1").tag("1:1");Text("4:3").tag("4:3");Text("3:2").tag("3:2");Text("16:9").tag("16:9")}.frame(width:100).disabled(input.running || !model.permissions.edits)
             if let rect=input.draft{Text("\(Int64(rect.minX)), \(Int64(rect.minY)) · \(Int(rect.width))×\(Int(rect.height)) px").monospacedDigit()}
-            else{Text("拖动框内移动 · 手柄缩放 · 回车应用 · Esc 取消").foregroundStyle(Color(nsColor:WorkspaceColors.secondary))}
-            Toggle("删除裁剪像素",isOn:Binding(get:{model.cropDeletesPixels},set:{model.cropDeletesPixels=$0;model.send(.tool(.crop))})).disabled(input.running || !model.permissions.edits)
-            Button("应用裁剪"){input.confirm()}.buttonStyle(WorkspaceButtonStyle(selected:true)).disabled(input.draft == nil||input.running || !model.permissions.edits)
-            Button("取消裁剪"){input.cancel()}.buttonStyle(WorkspaceButtonStyle()).disabled(!input.hasDraft && !input.running)
+            else{Text(L10n.text("拖动框内移动 · 手柄缩放 · 回车应用 · Esc 取消")).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))}
+            Toggle(L10n.text("删除裁剪像素"),isOn:Binding(get:{model.cropDeletesPixels},set:{model.cropDeletesPixels=$0;model.send(.tool(.crop))})).disabled(input.running || !model.permissions.edits)
+            Button(L10n.text("应用裁剪")){input.confirm()}.buttonStyle(WorkspaceButtonStyle(selected:true)).disabled(input.draft == nil||input.running || !model.permissions.edits)
+            Button(L10n.text("取消裁剪")){input.cancel()}.buttonStyle(WorkspaceButtonStyle()).disabled(!input.hasDraft && !input.running)
             if !input.error.isEmpty{Text(input.error).foregroundStyle(Color(nsColor:WorkspaceColors.danger)).lineLimit(1)}
             }
         }
@@ -44,15 +44,15 @@ struct CropPanel:View{
     }
     private var numericControls:some View{
         VStack(alignment:.leading,spacing:8){
-            Text(deletePixels ? "矩形裁剪 · 删除框外像素":"矩形裁剪 · 保留像素").fontWeight(.medium)
-            Text(deletePixels ? "删除框外像素与蒙版覆盖；生成填充保留有限范围，图层仍可编辑，可撤销恢复。":"按画布坐标裁剪画板；边界外的原图、图层与蒙版会保留。").font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))
-            HStack{field("裁剪 X",$x);field("裁剪 Y",$y)}
-            HStack{field("裁剪宽度",$width);field("裁剪高度",$height)}
-            Toggle("删除裁剪像素",isOn:$deletePixels)
-            Picker("比例",selection:$ratio){Text("自由").tag("free");Text("1:1").tag("1:1");Text("4:3").tag("4:3");Text("3:2").tag("3:2");Text("16:9").tag("16:9")}
-            if ratio != "free"{Text("从左上角开始，在输入框范围内取符合比例的最大整数矩形。").font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))}
-            Button("应用裁剪"){if let parameters{model.send(.command("image.crop",parameters))}}.buttonStyle(WorkspaceButtonStyle(selected:true)).disabled(parameters == nil)
-            Button("显示全部可见图层内容"){model.send(.command("image.reveal_all",[:]))}.buttonStyle(WorkspaceButtonStyle())
+            Text(deletePixels ? L10n.text("矩形裁剪 · 删除框外像素"):L10n.text("矩形裁剪 · 保留像素")).fontWeight(.medium)
+            Text(deletePixels ? L10n.text("删除框外像素与蒙版覆盖；生成填充保留有限范围，图层仍可编辑，可撤销恢复。"):L10n.text("按画布坐标裁剪画板；边界外的原图、图层与蒙版会保留。")).font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))
+            HStack{field(L10n.text("裁剪 X"),$x);field(L10n.text("裁剪 Y"),$y)}
+            HStack{field(L10n.text("裁剪宽度"),$width);field(L10n.text("裁剪高度"),$height)}
+            Toggle(L10n.text("删除裁剪像素"),isOn:$deletePixels)
+            Picker(L10n.text("比例"),selection:$ratio){Text(L10n.text("自由")).tag("free");Text("1:1").tag("1:1");Text("4:3").tag("4:3");Text("3:2").tag("3:2");Text("16:9").tag("16:9")}
+            if ratio != "free"{Text(L10n.text("从左上角开始，在输入框范围内取符合比例的最大整数矩形。")).font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))}
+            Button(L10n.text("应用裁剪")){if let parameters{model.send(.command("image.crop",parameters))}}.buttonStyle(WorkspaceButtonStyle(selected:true)).disabled(parameters == nil)
+            Button(L10n.text("显示全部可见图层内容")){model.send(.command("image.reveal_all",[:]))}.buttonStyle(WorkspaceButtonStyle())
         }.disabled(!model.permissions.edits || model.snapshot?.frame == nil)
     }
     private func field(_ title:String,_ value:Binding<Double>)->some View{HStack{Text(title);TextField(title,value:value,format:.number.precision(.fractionLength(0))).textFieldStyle(.roundedBorder).accessibilityLabel(title)}}
@@ -64,15 +64,15 @@ private struct CropDraftInspector:View{
     @ObservedObject var input:CanvasCropInput
     var body:some View{
         VStack(alignment:.leading,spacing:8){
-            Text(model.cropDeletesPixels ? "裁剪草稿 · 删除框外像素":"裁剪草稿 · 保留像素").fontWeight(.medium)
+            Text(model.cropDeletesPixels ? L10n.text("裁剪草稿 · 删除框外像素"):L10n.text("裁剪草稿 · 保留像素")).fontWeight(.medium)
             if let rect=input.draft{
                 Text("X \(Int64(rect.minX)) · Y \(Int64(rect.minY))").monospacedDigit()
                 Text("\(Int(rect.width)) × \(Int(rect.height)) px").monospacedDigit()
-                Text("草稿尚未写入文档；应用后可撤销。").font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))
-            }else{Text("在画布上拖出裁剪框；顶部可以选择比例。").font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))}
+                Text(L10n.text("草稿尚未写入文档；应用后可撤销。")).font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))
+            }else{Text(L10n.text("在画布上拖出裁剪框；顶部可以选择比例。")).font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))}
             HStack{
-                Button("应用裁剪草稿"){input.confirm()}.buttonStyle(WorkspaceButtonStyle(selected:true)).disabled(input.draft == nil || input.running || !model.permissions.edits)
-                Button("取消裁剪草稿"){input.cancel()}.buttonStyle(WorkspaceButtonStyle()).disabled(!input.hasDraft && !input.running)
+                Button(L10n.text("应用裁剪草稿")){input.confirm()}.buttonStyle(WorkspaceButtonStyle(selected:true)).disabled(input.draft == nil || input.running || !model.permissions.edits)
+                Button(L10n.text("取消裁剪草稿")){input.cancel()}.buttonStyle(WorkspaceButtonStyle()).disabled(!input.hasDraft && !input.running)
             }
             if !input.error.isEmpty{Text(input.error).font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.danger))}
         }

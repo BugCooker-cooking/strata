@@ -261,7 +261,7 @@ fn group_bounds_and_result_never_disclose_hidden_child_extent_and_query_keeps_ne
     );
 }
 #[test]
-fn unsupported_styles_fills_locks_selected_scope_and_failed_publication_leave_original_tree() {
+fn groups_accept_fills_and_styles_and_reject_locked_children_or_failed_publication() {
     for change in ["fill", "style", "locked"] {
         let (mut e, g) = fixture(16);
         match change {
@@ -270,7 +270,7 @@ fn unsupported_styles_fills_locks_selected_scope_and_failed_publication_leave_or
                 run(
                     &mut e,
                     "layer.fill.solid",
-                    json!({"name":"Unsupported","color":[65535,0,0,65535]}),
+                    json!({"name":"Editable fill","color":[65535,0,0,65535]}),
                 );
             }
             "style" => {
@@ -289,7 +289,13 @@ fn unsupported_styles_fills_locks_selected_scope_and_failed_publication_leave_or
             }
         };
         let before = archive(&e);
-        assert!(e.execute(e.request(Source::User),"transform.apply",json!({"layer":{"id":g},"scope":"whole_layer","geometry":{"type":"components","rotation_degrees":12}}),|_|Ok(())).is_err());
+        let result = e.execute(e.request(Source::User),"transform.apply",json!({"layer":{"id":g},"scope":"whole_layer","geometry":{"type":"components","rotation_degrees":12}}),|_|Ok(()));
+        if change == "locked" {
+            assert!(result.is_err());
+        } else {
+            assert_eq!(result.unwrap()["changed"], true);
+            run(&mut e, "edit.undo", json!({}));
+        }
         assert!(archive(&e) == before);
     }
     let (mut e, g) = fixture(16);
@@ -299,6 +305,50 @@ fn unsupported_styles_fills_locks_selected_scope_and_failed_publication_leave_or
     assert!(archive(&e) == before);
     assert!(e.execute(e.request(Source::User),"transform.apply",json!({"layer":{"id":g},"scope":"whole_layer","geometry":{"type":"components","rotation_degrees":12}}),|_|Err("display failed".into())).is_err());
     assert!(archive(&e) == before);
+}
+
+#[test]
+fn owned_multi_layer_transform_carries_nested_selection_once_and_rejects_target_swap() {
+    use strata_core::LayerRef;
+    let (mut e, group) = fixture(16);
+    run(
+        &mut e,
+        "layer.select",
+        json!({"layer":{"name":"Background"}}),
+    );
+    let fill = run(
+        &mut e,
+        "layer.fill.solid",
+        json!({"name":"New fill","color":[10000,30000,50000,65535]}),
+    )["layer_id"]
+        .clone();
+    let refs = json!([{"id":group}, {"name":"A"}, {"id":fill}]);
+    let params = json!({"layers":refs,"geometry":{"type":"components","translation":[7,-3]}});
+    let layers: Vec<LayerRef> = serde_json::from_value(refs).unwrap();
+    let before = archive(&e);
+    let history = e.snapshot().history_cursor;
+    let owned = e.begin_canvas_transform_layers(&layers).unwrap();
+    assert!(e.canvas_transform_bounds(&owned).unwrap().bounds.is_some());
+    assert!(e.prepare_canvas_transform(&owned, json!({
+        "layers":[{"id":group},{"name":"A"}],"geometry":{"type":"components","translation":[7,-3]}
+    })).is_err());
+    assert_eq!(archive(&e), before);
+    let result = run(&mut e, "transform.apply_layers", params);
+    assert_eq!(result["layer_ids"].as_array().unwrap().len(), 2);
+    assert_eq!(e.snapshot().history_cursor, history + 1);
+    let previous = before.metadata["layers"].as_array().unwrap();
+    for layer in &e.snapshot().layers {
+        if ["A", "G", "New fill"].contains(&layer.name.as_str()) {
+            let old = previous
+                .iter()
+                .find(|entry| entry["id"] == json!(layer.id))
+                .unwrap();
+            assert_eq!(layer.x, old["x"].as_i64().unwrap() + 7);
+            assert_eq!(layer.y, old["y"].as_i64().unwrap() - 3);
+        }
+    }
+    run(&mut e, "edit.undo", json!({}));
+    assert_eq!(archive(&e), before);
 }
 
 #[test]

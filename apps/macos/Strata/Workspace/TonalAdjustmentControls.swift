@@ -2,11 +2,11 @@ import SwiftUI
 
 func tonalTitle(_ type: String) -> String {
     switch type {
-    case "levels": "色阶"; case "curves": "曲线"; case "brightness_contrast": "亮度 / 对比度"
-    case "vibrance": "自然饱和度"; case "white_balance": "色温 / 色调"; case "shadows_highlights": "阴影 / 高光"; case "color_balance": "色彩平衡"; case "black_white": "黑白"; case "photo_filter": "照片滤镜"
-    case "channel_mixer": "通道混合器"; case "invert": "反相"; case "posterize": "色调分离"; case "threshold": "阈值"
-    case "gradient_map": "渐变映射"; case "selective_color": "可选颜色"; case "desaturate": "去色"
-    default: "调色调整层"
+    case "levels": L10n.text("色阶"); case "curves": L10n.text("曲线"); case "brightness_contrast": L10n.text("亮度 / 对比度")
+    case "vibrance": L10n.text("自然饱和度"); case "white_balance": L10n.text("色温 / 色调"); case "shadows_highlights": L10n.text("阴影 / 高光"); case "color_balance": L10n.text("色彩平衡"); case "black_white": L10n.text("黑白"); case "photo_filter": L10n.text("照片滤镜")
+    case "channel_mixer": L10n.text("通道混合器"); case "invert": L10n.text("反相"); case "posterize": L10n.text("色调分离"); case "threshold": L10n.text("阈值")
+    case "gradient_map": L10n.text("渐变映射"); case "selective_color": L10n.text("可选颜色"); case "desaturate": L10n.text("去色")
+    default: L10n.text("调色调整层")
     }
 }
 struct TonalLevelRange: Codable, Equatable {
@@ -65,26 +65,26 @@ struct TonalAdjustmentControls: View {
         VStack(alignment: .leading, spacing: 9) {
             Text(tonalTitle(draft.type)).fontWeight(.medium)
             if draft.type == "brightness_contrast" {
-                row("亮度", $draft.brightness); row("对比度", $draft.contrast)
-                Text("−100…100 · 当前工作色彩空间").font(.system(size: 10)).foregroundStyle(Color(nsColor: WorkspaceColors.secondary))
+                row(L10n.text("亮度"), $draft.brightness); row(L10n.text("对比度"), $draft.contrast)
+                Text(L10n.text("−100…100 · 当前工作色彩空间")).font(.system(size: 10)).foregroundStyle(Color(nsColor: WorkspaceColors.secondary))
             } else {
-                Picker("调整通道", selection: $channel) {
-                    Text("RGB").tag(0); Text("红").tag(1); Text("绿").tag(2); Text("蓝").tag(3)
+                Picker(L10n.text("调整通道"), selection: $channel) {
+                    Text("RGB").tag(0); Text(L10n.text("红")).tag(1); Text(L10n.text("绿")).tag(2); Text(L10n.text("蓝")).tag(3)
                 }.pickerStyle(.segmented)
                 if draft.type == "levels" {
-                    level("输入黑点", \.inputBlack); level("输入白点", \.inputWhite); level("中间调 Gamma", \.gamma)
-                    level("输出黑点", \.outputBlack); level("输出白点", \.outputWhite)
-                    Text("端点 0…1 · Gamma 0.1…10").font(.system(size: 10)).foregroundStyle(Color(nsColor: WorkspaceColors.secondary))
+                    level(L10n.text("输入黑点"), \.inputBlack); level(L10n.text("输入白点"), \.inputWhite); level(L10n.text("中间调 Gamma"), \.gamma)
+                    level(L10n.text("输出黑点"), \.outputBlack); level(L10n.text("输出白点"), \.outputWhite)
+                    Text(L10n.text("端点 0…1 · Gamma 0.1…10")).font(.system(size: 10)).foregroundStyle(Color(nsColor: WorkspaceColors.secondary))
                 } else {
                     TonalCurveEditor(points: $draft.curves[channel])
                 }
             }
             HStack {
-                Button("应用调整") { commit() }.disabled(!dirty)
-                Button("重置") { draft = TonalDraft(); draft.type = model.selected?.kind?.adjustment?["type"].string ?? "brightness_contrast" }
+                Button(L10n.text("应用调整")) { commit() }.disabled(!dirty)
+                Button(L10n.text("重置")) { draft = TonalDraft(); draft.type = model.selected?.kind?.adjustment?["type"].string ?? "brightness_contrast" }
             }
             if let preview = model.tonalPreview { TonalPreviewControls(preview: preview, parameters: try? commandJSON(draft.parameters)) }
-            Text(dirty ? "参数尚未应用；应用后可撤销。" : "参数已保存到调整层。").font(.system(size: 10)).foregroundStyle(Color(nsColor: WorkspaceColors.secondary))
+            Text(dirty ? L10n.text("参数尚未应用；应用后可撤销。") : L10n.text("参数已保存到调整层。")).font(.system(size: 10)).foregroundStyle(Color(nsColor: WorkspaceColors.secondary))
         }.textFieldStyle(.roundedBorder)
             .disabled(!model.permissions.edits || model.selected?.locks?.all == true)
             .onAppear(perform: sync)
@@ -140,21 +140,21 @@ struct TonalCurveEditor: View {
                     if index>0,index+1<points.count {points[index].x=min(points[index+1].x-0.00001,max(points[index-1].x+0.00001,x))}
                     points[index].y=y
                 }.onEnded{_ in dragged=nil})
-            }.frame(height:160).background(Color(nsColor:WorkspaceColors.input)).accessibilityLabel("曲线控制图；拖动控制点，或单击增加点。下方可用键盘输入。")
-            Picker("控制点",selection:$selected) {ForEach(points.indices,id:\.self){i in Text("点 \(i+1)").tag(i)}}
+            }.frame(height:160).background(Color(nsColor:WorkspaceColors.input)).accessibilityLabel(L10n.text("曲线控制图；拖动控制点，或单击增加点。下方可用键盘输入。"))
+            Picker(L10n.text("控制点"),selection:$selected) {ForEach(points.indices,id:\.self){i in Text(L10n.format("点 {0}", String(describing: i+1))).tag(i)}}
             if points.indices.contains(selected) {
                 HStack {
-                    Text("输入");TextField("曲线输入",value:$points[selected].x,format:.number.precision(.fractionLength(4))).disabled(selected==0 || selected+1==points.count)
-                    Text("输出");TextField("曲线输出",value:$points[selected].y,format:.number.precision(.fractionLength(4)))
+                    Text(L10n.text("输入"));TextField(L10n.text("曲线输入"),value:$points[selected].x,format:.number.precision(.fractionLength(4))).disabled(selected==0 || selected+1==points.count)
+                    Text(L10n.text("输出"));TextField(L10n.text("曲线输出"),value:$points[selected].y,format:.number.precision(.fractionLength(4)))
                 }.font(.system(size:10))
-                Button("移除控制点"){points.remove(at:selected);selected=max(0,selected-1)}.disabled(selected==0 || selected+1==points.count)
+                Button(L10n.text("移除控制点")){points.remove(at:selected);selected=max(0,selected-1)}.disabled(selected==0 || selected+1==points.count)
             }
-            Button("添加中间控制点") {
+            Button(L10n.text("添加中间控制点")) {
                 let left = min(selected,max(0,points.count-2)), right = left+1
                 let point = TonalCurvePoint((points[left].x+points[right].x)/2,(points[left].y+points[right].y)/2)
                 points.insert(point,at:right);selected=right
             }.disabled(points.count>=64)
-            Text("输入/输出 0…1 · 应用前可继续编辑").font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))
+            Text(L10n.text("输入/输出 0…1 · 应用前可继续编辑")).font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))
         }.onChange(of:points.count){_,count in selected=min(selected,max(0,count-1));dragged=nil}
     }
 }

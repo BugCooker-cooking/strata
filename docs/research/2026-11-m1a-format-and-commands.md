@@ -24,6 +24,15 @@ M1b 导出扩展：`format` 可选 `png/tiff/jpeg/webp`。WebP 默认无损；`w
 
 ## 命令执行
 
+`strata-devtool run` 可按顺序执行 JSON 中的注册命令，并逐行返回结果。以下脚本用已声明的读取资源打开示例照片，缩成 320 × 480，另存为新工程，最后读取文档属性。路径相对于运行目录，示例从仓库根目录执行。
+
+```sh
+mkdir -p build
+cargo run --locked -p strata-devtool -- run docs/commands/resize-and-save.json
+```
+
+输出为 `build/resize-and-save.strata`。如果该文件已存在，可在脚本的 `output` 资源里指定另一个文件名。每个命令使用相同的参数和文件授权规则。脚本按命令提交，如需把多个内存编辑放在一个撤销步骤，可在脚本中调用 `document.batch`。
+
 `cargo run -p strata-devtool -- catalog` 输出从类型生成的参数/结果 JSON Schema、双语标题、英文说明、权限、副作用和隔离示例；`make commands` 执行 28 个注册命令的隔离示例，并检查自动生成的 [命令参考](../commands/reference.md) 是否与注册表一致。`strata-devtool docs OUT.md` 可重新生成。目录是源码真值，schema 不手工复制。
 
 | 类别 | 命令 |

@@ -1,8 +1,7 @@
-//! Document-size resampling retains layer identity and never flattens. Editable
-//! types without a defined sizing model are rejected before any pixels change.
+//! Document-size resampling retains the editable source and layer tree.
 use super::*;
 use crate::{
-    Document, DocumentError, LayerKind,
+    Document, DocumentError, GeneratedGeometry, LayerKind,
     geometry_pixels::{self, PixelSource},
     geometry_resize::{self, Geometry, Work},
 };
@@ -44,23 +43,6 @@ pub(super) fn mutate(
     }
     for layer in &doc.layers {
         let info = layer.info();
-        match &info.kind {
-            LayerKind::Pixel | LayerKind::Text { .. } | LayerKind::Group => {}
-            LayerKind::Solid { .. }
-            | LayerKind::Gradient { .. }
-            | LayerKind::Exposure { .. }
-            | LayerKind::HueSaturation { .. }
-            | LayerKind::Adjustment { .. } => {
-                return Err(CommandError::Invalid(
-                    "image resizing currently supports pixel layers and unstyled groups; editable fills/adjustments are not implicitly rasterized".into()
-                ));
-            }
-        }
-        if !info.styles.is_empty() || info.generated_size.is_some() {
-            return Err(CommandError::Invalid(
-                "image resizing does not yet support styles or frozen style references".into(),
-            ));
-        }
         let l = info.locks;
         if l.all || l.pixels || l.position || l.transparency {
             return Err(CommandError::Invalid("unlock every affected pixel/position/transparency/all layer or ancestor lock before resizing".into()));
@@ -68,6 +50,7 @@ pub(super) fn mutate(
     }
     let source = doc.clone();
     let geometry = Geometry::new(&before, [p.width, p.height]);
+    let transform = geometry.homography()?;
     let pool = doc.memory_pool();
     let mut work = Work::default();
     let frame = crate::Frame {
@@ -199,6 +182,11 @@ pub(super) fn mutate(
             super::local::attach(target, mask);
             target.info.mask.as_mut().unwrap().enabled = info.mask.as_ref().unwrap().enabled;
         }
+        GeneratedGeometry::update_reference(&mut target.info, info, &before, &transform)?;
+        target.info.spatial_bounds = info
+            .spatial_bounds
+            .map(|b| geometry.bounds(b))
+            .transpose()?;
     }
     check(cancel)?;
     doc.selection = selection;

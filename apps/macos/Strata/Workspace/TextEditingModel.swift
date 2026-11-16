@@ -3,7 +3,7 @@ import SwiftUI
 
 @MainActor
 final class TextEditingModel:ObservableObject{
-    @Published var content="文字"
+    @Published var content=L10n.text("文字")
     @Published var font="sans"
     @Published var fontSize=32.0
     @Published var lineHeight=1.2
@@ -57,12 +57,12 @@ final class TextEditingModel:ObservableObject{
         if layout=="paragraph"{guard width.isFinite,height.isFinite,let w=UInt32(exactly:width),let h=UInt32(exactly:height),(1...100000).contains(w),(1...100000).contains(h)else{return nil};area["width"]=w;area["height"]=h}
         let spec:[String:Any]=["text":content,"font":font,"font_size":fontSize,"line_height":lineHeight,"tracking":tracking,"align":align,"layout":area]
         var parameters:[String:Any]=["spec":spec,"color":[red/100,green/100,blue/100,alpha/100]]
-        if creating{guard let px=Int64(exactly:x),let py=Int64(exactly:y),abs(x)<=1e12,abs(y)<=1e12 else{return nil};parameters["name"]=String(content.prefix(32)).isEmpty ? "文字":String(content.prefix(32));parameters["x"]=px;parameters["y"]=py}
+        if creating{guard let px=Int64(exactly:x),let py=Int64(exactly:y),abs(x)<=1e12,abs(y)<=1e12 else{return nil};parameters["name"]=String(content.prefix(32)).isEmpty ? L10n.text("文字"):String(content.prefix(32));parameters["x"]=px;parameters["y"]=py}
         else{guard let target else{return nil};parameters["layer"]=["id":target]}
         return parameters
     }
     var canApply:Bool{!running && snapshot?.documentId != nil && (snapshot?.control?.kind ?? "user")=="user" && parameters != nil}
-    func revert(){guard !running else{return};generation=UUID();if creating{content="文字";font="sans";fontSize=32;lineHeight=1.2;tracking=0;align="left";layout="point";width=240;height=120;newText();useForeground()}else{loadCurrent()}}
+    func revert(){guard !running else{return};generation=UUID();if creating{content=L10n.text("文字");font="sans";fontSize=32;lineHeight=1.2;tracking=0;align="left";layout="point";width=240;height=120;newText();useForeground()}else{loadCurrent()}}
     func apply(){
         guard canApply,let snapshot,let document=snapshot.documentId,let parameters else{return}
         do{
@@ -83,24 +83,24 @@ struct TextEditingPanel:View{
     @FocusState private var editingContent:Bool
     var body:some View{
         ScrollView{VStack(alignment:.leading,spacing:8){
-            Text(text.creating ? "新建可编辑文字":"编辑文字图层").fontWeight(.medium)
-            TextEditor(text:$text.content).font(.system(size:13)).frame(minHeight:90,idealHeight:120).accessibilityLabel("文字内容").focused($editingContent)
-            Picker("字体",selection:$text.font){Text("Noto Sans").tag("sans");Text("Noto Serif").tag("serif");Text("Noto Sans CJK SC").tag("cjk")}
-            number("字号",value:$text.fontSize,unit:"px")
-            number("行距",value:$text.lineHeight,unit:"em")
-            number("字距",value:$text.tracking,unit:"px")
-            Picker("文字对齐",selection:$text.align){Text("左对齐").tag("left");Text("居中").tag("center");Text("右对齐").tag("right");Text("两端对齐").tag("justified")}
-            Picker("文字类型",selection:$text.layout){Text("点文字").tag("point");Text("段落文字").tag("paragraph")}
-            if text.layout=="paragraph"{number("段落宽",value:$text.width,unit:"px");number("段落高",value:$text.height,unit:"px")}
-            if text.creating{number("文字 X",value:$text.x,unit:"px");number("文字 Y",value:$text.y,unit:"px")}
-            HStack{Button("使用前景色"){text.useForeground()};Button("新建文字"){text.newText()}}.buttonStyle(WorkspaceButtonStyle())
-            HStack{Text("文字颜色");TextField("文字红",value:$text.red,format:.number.precision(.fractionLength(2)));TextField("文字绿",value:$text.green,format:.number.precision(.fractionLength(2)));TextField("文字蓝",value:$text.blue,format:.number.precision(.fractionLength(2)))}.textFieldStyle(.roundedBorder)
-            number("文字透明度",value:$text.alpha,unit:"%")
-            Text("颜色按当前工作 RGB 百分比；点文字 Y 为首行基线，段落为框左上角。溢出内容保留，可增大段落框显示。").font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))
-            HStack{Button(text.creating ? "创建文字":"应用文字修改"){editingContent=false;text.apply()}.buttonStyle(WorkspaceButtonStyle(selected:true)).disabled(!text.canApply);Button(text.creating ? "恢复默认":"恢复当前值"){text.revert()}.buttonStyle(WorkspaceButtonStyle())}
-            Text("修改在应用后更新画布，保留已有几何与删除裁剪，可一次撤销。").font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))
+            Text(text.creating ? L10n.text("新建可编辑文字"):L10n.text("编辑文字图层")).fontWeight(.medium)
+            TextEditor(text:$text.content).font(.system(size:13)).frame(minHeight:90,idealHeight:120).accessibilityLabel(L10n.text("文字内容")).focused($editingContent)
+            Picker(L10n.text("字体"),selection:$text.font){Text("Noto Sans").tag("sans");Text("Noto Serif").tag("serif");Text("Noto Sans CJK SC").tag("cjk")}
+            number(L10n.text("字号"),value:$text.fontSize,unit:"px")
+            number(L10n.text("行距"),value:$text.lineHeight,unit:"em")
+            number(L10n.text("字距"),value:$text.tracking,unit:"px")
+            Picker(L10n.text("文字对齐"),selection:$text.align){Text(L10n.text("左对齐")).tag("left");Text(L10n.text("居中")).tag("center");Text(L10n.text("右对齐")).tag("right");Text(L10n.text("两端对齐")).tag("justified")}
+            Picker(L10n.text("文字类型"),selection:$text.layout){Text(L10n.text("点文字")).tag("point");Text(L10n.text("段落文字")).tag("paragraph")}
+            if text.layout=="paragraph"{number(L10n.text("段落宽"),value:$text.width,unit:"px");number(L10n.text("段落高"),value:$text.height,unit:"px")}
+            if text.creating{number(L10n.text("文字 X"),value:$text.x,unit:"px");number(L10n.text("文字 Y"),value:$text.y,unit:"px")}
+            HStack{Button(L10n.text("使用前景色")){text.useForeground()};Button(L10n.text("新建文字")){text.newText()}}.buttonStyle(WorkspaceButtonStyle())
+            HStack{Text(L10n.text("文字颜色"));TextField(L10n.text("文字红"),value:$text.red,format:.number.precision(.fractionLength(2)));TextField(L10n.text("文字绿"),value:$text.green,format:.number.precision(.fractionLength(2)));TextField(L10n.text("文字蓝"),value:$text.blue,format:.number.precision(.fractionLength(2)))}.textFieldStyle(.roundedBorder)
+            number(L10n.text("文字透明度"),value:$text.alpha,unit:"%")
+            Text(L10n.text("颜色按当前工作 RGB 百分比；点文字 Y 为首行基线，段落为框左上角。溢出内容保留，可增大段落框显示。")).font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))
+            HStack{Button(text.creating ? L10n.text("创建文字"):L10n.text("应用文字修改")){editingContent=false;text.apply()}.buttonStyle(WorkspaceButtonStyle(selected:true)).disabled(!text.canApply);Button(text.creating ? L10n.text("恢复默认"):L10n.text("恢复当前值")){text.revert()}.buttonStyle(WorkspaceButtonStyle())}
+            Text(L10n.text("修改在应用后更新画布，保留已有几何与删除裁剪，可一次撤销。")).font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))
             if !text.error.isEmpty{Text(text.error).font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.danger)).textSelection(.enabled)}
-            if text.parameters==nil{Text("请检查字号、行距、字距、颜色及整数段落尺寸。").font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))}
+            if text.parameters==nil{Text(L10n.text("请检查字号、行距、字距、颜色及整数段落尺寸。")).font(.system(size:10)).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))}
         }.padding(12).disabled(!model.permissions.edits || text.running)}.onChange(of:text.placementID){_,_ in editingContent=true}.onChange(of:text.layout){_,_ in model.send(.configureText)}
     }
     private func number(_ title:String,value:Binding<Double>,unit:String)->some View{HStack{Text(title);TextField(title,value:value,format:.number.precision(.fractionLength(2))).textFieldStyle(.roundedBorder).accessibilityLabel(title);Text(unit)}}

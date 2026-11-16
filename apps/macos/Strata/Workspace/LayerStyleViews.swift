@@ -27,20 +27,20 @@ struct LayerStyleControls:View{
     @State private var gradientScale=1.0
     @State private var radial=false
     var body:some View{
-        DisclosureGroup("图层样式"){
+        DisclosureGroup(L10n.text("图层样式")){
             VStack(alignment:.leading,spacing:10){
-                Toggle("投影",isOn:$shadow)
-                if shadow{ColorPicker("投影颜色",selection:$shadowColor);number("水平位移",value:$dx);number("垂直位移",value:$dy);number("模糊",value:$blur)}
-                Toggle("描边",isOn:$stroke)
-                if stroke{ColorPicker("描边颜色",selection:$strokeColor);number("描边大小",value:$strokeSize)
-                    Picker("位置",selection:$strokePosition){Text("外部").tag("outside");Text("内部").tag("inside");Text("居中").tag("center")}}
-                Toggle("外发光",isOn:$glow)
-                if glow{ColorPicker("发光颜色",selection:$glowColor);number("发光范围",value:$glowSize)}
-                Toggle("颜色叠加",isOn:$overlay)
-                if overlay{ColorPicker("叠加颜色",selection:$overlayColor);number("不透明度（0–1）",value:$opacity);blend("混合模式",value:$overlayBlend)}
-                Toggle("渐变叠加",isOn:$gradient)
-                if gradient{ColorPicker("渐变起点",selection:$start);ColorPicker("渐变终点",selection:$end);number("角度",value:$angle);number("缩放",value:$gradientScale);Toggle("径向",isOn:$radial);number("不透明度（0–1）",value:$gradientOpacity);blend("混合模式",value:$gradientBlend)}
-                Button("应用样式"){apply()}
+                Toggle(L10n.text("投影"),isOn:$shadow)
+                if shadow{ColorPicker(L10n.text("投影颜色"),selection:$shadowColor);number(L10n.text("水平位移"),value:$dx);number(L10n.text("垂直位移"),value:$dy);number(L10n.text("模糊"),value:$blur)}
+                Toggle(L10n.text("描边"),isOn:$stroke)
+                if stroke{ColorPicker(L10n.text("描边颜色"),selection:$strokeColor);number(L10n.text("描边大小"),value:$strokeSize)
+                    Picker(L10n.text("位置"),selection:$strokePosition){Text(L10n.text("外部")).tag("outside");Text(L10n.text("内部")).tag("inside");Text(L10n.text("居中")).tag("center")}}
+                Toggle(L10n.text("外发光"),isOn:$glow)
+                if glow{ColorPicker(L10n.text("发光颜色"),selection:$glowColor);number(L10n.text("发光范围"),value:$glowSize)}
+                Toggle(L10n.text("颜色叠加"),isOn:$overlay)
+                if overlay{ColorPicker(L10n.text("叠加颜色"),selection:$overlayColor);number(L10n.text("不透明度（0–1）"),value:$opacity);blend(L10n.text("混合模式"),value:$overlayBlend)}
+                Toggle(L10n.text("渐变叠加"),isOn:$gradient)
+                if gradient{ColorPicker(L10n.text("渐变起点"),selection:$start);ColorPicker(L10n.text("渐变终点"),selection:$end);number(L10n.text("角度"),value:$angle);number(L10n.text("缩放"),value:$gradientScale);Toggle(L10n.text("径向"),isOn:$radial);number(L10n.text("不透明度（0–1）"),value:$gradientOpacity);blend(L10n.text("混合模式"),value:$gradientBlend)}
+                Button(L10n.text("应用样式")){apply()}
             }.padding(.top,8)
         }.disabled(!model.permissions.edits || model.selected?.locks?.all == true)
             .onAppear(perform:sync).onChange(of:model.selected?.id){_,_ in sync()}.onChange(of:model.snapshot?.revision){_,_ in sync()}

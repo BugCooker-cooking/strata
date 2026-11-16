@@ -44,6 +44,7 @@ fn required_metal_owned_group_transform_preserves_editable_children_and_exact_un
             json!({"layer":{"name":"G"},"source":"white"}).to_string(),
         )
         .unwrap();
+    engine.dispatch("layer.fill.gradient".into(),json!({"name":"Editable gradient","start":[20000,30000,41500,10000],"end":[10000,45000,34500,52000],"angle":15}).to_string()).unwrap();
     engine.dispatch("type.create".into(),json!({"name":"Type","spec":{"text":"Group","font":"sans","font_size":16,"layout":{"type":"point"}},"color":[0.8,0.2,0.1,1],"x":4,"y":25}).to_string()).unwrap();
     engine
         .dispatch(
@@ -118,6 +119,13 @@ fn required_metal_owned_group_transform_preserves_editable_children_and_exact_un
     {
         let inner = engine.lock().unwrap();
         let doc = inner.editor.document().unwrap();
+        let gradient = doc
+            .layers()
+            .iter()
+            .find(|layer| layer.info().name == "Editable gradient")
+            .unwrap();
+        assert!(gradient.info().generated_geometry.is_some());
+        assert_eq!(gradient.pixels().tile_count(), 0);
         assert!(matches!(
             doc.layers().last().unwrap().info().kind,
             strata_core::LayerKind::Text { .. }

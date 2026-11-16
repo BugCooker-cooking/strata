@@ -348,7 +348,7 @@ fn group_masks_hidden_offboard_sources_and_selections_rotate_without_layer_flatt
     assert_eq!(e.document().unwrap().to_archive().unwrap(), before);
 }
 #[test]
-fn unsupported_types_styles_and_locks_reject_before_publication() {
+fn arbitrary_rotation_accepts_editable_types_and_styles_and_rejects_locks() {
     let mut e = fixture(16);
     for extra in ["fill", "adjustment", "style", "lock"] {
         let mut a = e.clone();
@@ -386,16 +386,19 @@ fn unsupported_types_styles_and_locks_reject_before_publication() {
         }
         let before = a.document().unwrap().to_archive().unwrap();
         let revision = a.revision();
-        assert!(
-            a.execute(
-                a.request(Source::User),
-                "image.rotate",
-                json!({"angle_degrees":27}),
-                |_| Ok(())
-            )
-            .is_err()
+        let result = a.execute(
+            a.request(Source::User),
+            "image.rotate",
+            json!({"angle_degrees":27}),
+            |_| Ok(()),
         );
-        assert_eq!(a.revision(), revision);
+        if extra == "lock" {
+            assert!(result.is_err());
+            assert_eq!(a.revision(), revision);
+        } else {
+            assert_eq!(result.unwrap()["changed"], true);
+            run(&mut a, "edit.undo", json!({}));
+        }
         assert_eq!(a.document().unwrap().to_archive().unwrap(), before);
     }
     for p in [

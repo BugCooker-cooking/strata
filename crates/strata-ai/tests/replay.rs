@@ -18,6 +18,87 @@ struct Host {
 }
 
 #[test]
+fn multi_layer_transform_pauses_for_exact_approval_and_undo_restores_fill_and_pixels() {
+    let host = Host::new();
+    host.user(
+        "paint.fill",
+        json!({"layer":{"name":"Background"},"color":[0.4,0.5,0.6,1]}),
+    );
+    host.user(
+        "layer.fill.gradient",
+        json!({"name":"Tint","start":[10001,30003,50001,65535],"end":[50001,30003,10001,32768]}),
+    );
+    let archive = || {
+        host.editor
+            .lock()
+            .unwrap()
+            .document()
+            .unwrap()
+            .to_archive()
+            .unwrap()
+    };
+    let before = archive();
+    let initial = host.snapshot().unwrap();
+    let params = json!({"layers":[{"name":"Background"},{"name":"Tint"}],
+        "geometry":{"type":"components","rotation_degrees":15,"pivot":[4,4]}});
+    let mut session =
+        host.session_with_prompt(ExecutionMode::Direct, "把照片与渐变填充一起旋转十五度");
+    reply(
+        &mut session,
+        &host,
+        vec![
+            call(
+                "find-multi",
+                "search_catalog",
+                json!({"query":"多图层自由变换"}),
+            ),
+            invoke("rotate-multi", "transform.apply_layers", params.clone()),
+        ],
+    );
+    assert!(
+        result(session.poll(&host).unwrap())["matches"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|m| m["id"] == "transform.apply_layers")
+    );
+    let Step::Paused {
+        question_id,
+        operation,
+        ..
+    } = session.poll(&host).unwrap()
+    else {
+        panic!("multi-layer transform must require approval")
+    };
+    assert_eq!(operation.unwrap()["params"], params);
+    assert_eq!(archive(), before);
+    let moved = result(
+        session
+            .respond(
+                &host,
+                HostAnswer {
+                    question_id,
+                    answer: String::new(),
+                    approved: true,
+                    resource: None,
+                },
+            )
+            .unwrap(),
+    );
+    assert_eq!(moved["result"]["layer_ids"].as_array().unwrap().len(), 2);
+    assert_eq!(
+        host.snapshot().unwrap().history_cursor,
+        initial.history_cursor + 1
+    );
+    let after = archive();
+    assert!(after.metadata["layers"][1]["generated_geometry"].is_object());
+    assert_eq!(after.metadata["layers"][1]["kind"]["kind"], "gradient");
+    host.editor.lock().unwrap().stop_turn();
+    host.user("edit.undo_turn", json!({"turn_id":session.turn_id()}));
+    assert_eq!(archive(), before);
+}
+
+#[test]
 fn rasterize_type_prompt_bakes_ordered_geometry_only_after_exact_approval_and_undo_restores_source()
 {
     let host = Host::new();

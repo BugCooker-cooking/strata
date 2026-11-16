@@ -19,7 +19,7 @@ struct AITransport: Sendable {
     func send(_ wire: AIWireRequest, key: String, timeout: TimeInterval = 60,
               onChunk: @escaping @Sendable (Data) async throws -> Void) async throws {
         guard let url = URL(string: wire.url), ["https", "http"].contains(url.scheme ?? ""), ["POST", "GET"].contains(wire.method),
-              !key.contains("\r"), !key.contains("\n") else { throw AIClientError.message("服务地址或密钥格式无效。") }
+              !key.contains("\r"), !key.contains("\n") else { throw AIClientError.message(L10n.text("服务地址或密钥格式无效。")) }
         let config = URLSessionConfiguration.ephemeral
         config.httpCookieStorage = nil; config.urlCredentialStorage = nil; config.urlCache = nil
         config.requestCachePolicy = .reloadIgnoringLocalCacheData
@@ -37,12 +37,12 @@ struct AITransport: Sendable {
         if wire.provider == .anthropic { request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version") }
         try await withTaskCancellationHandler {
             let (bytes, response) = try await session.bytes(for: request)
-            guard let response = response as? HTTPURLResponse, response.url == url else { throw AIClientError.message("模型服务响应地址不匹配。") }
+            guard let response = response as? HTTPURLResponse, response.url == url else { throw AIClientError.message(L10n.text("模型服务响应地址不匹配。")) }
             guard (200..<300).contains(response.statusCode) else { throw AIClientError.http(response.statusCode) }
             var buffer = Data(); var total = 0
             for try await byte in bytes {
                 try Task.checkCancellation(); buffer.append(byte); total += 1
-                guard total <= 4 * 1024 * 1024 else { throw AIClientError.message("模型回复超过 4 MiB 限制，已停止。") }
+                guard total <= 4 * 1024 * 1024 else { throw AIClientError.message(L10n.text("模型回复超过 4 MiB 限制，已停止。")) }
                 if byte == 10 || buffer.count >= 8192 { try await onChunk(buffer); buffer.removeAll(keepingCapacity: true) }
             }
             if !buffer.isEmpty { try await onChunk(buffer) }

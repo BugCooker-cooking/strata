@@ -169,6 +169,7 @@ fn fingerprint(doc: &Document, coord: TileCoord, layers: usize) -> u64 {
             layer.info.clipped.hash(&mut hash);
             layer.info.generated_size.hash(&mut hash);
             layer.info.generated_crop.hash(&mut hash);
+            layer.info.generated_geometry.hash(&mut hash);
             layer.info.spatial_bounds.hash(&mut hash);
             layer.info.pass_through.hash(&mut hash);
             if !layer.info.styles.is_empty() {
@@ -1118,22 +1119,48 @@ pub(crate) fn generated_fill(
     let axis = [angle.cos(), angle.sin()];
     let span = (w * axis[0].abs() + h * axis[1].abs()) * scale;
     let mut out = vec![[0.0; 4]; 256 * 256];
+    let geometry = layer.info.generated_geometry.as_ref();
+    let mapping = geometry
+        .map(crate::GeneratedGeometry::mapping)
+        .transpose()?;
+    if let Some(geometry) = geometry
+        && geometry
+            .bounds([layer.info.x, layer.info.y])?
+            .is_none_or(|b| !b.intersects_tile(coord))
+    {
+        return Ok(out);
+    }
     for y in 0..256usize {
         for x in 0..256usize {
             let sx = i128::from(ox) + x as i128 - i128::from(layer.info.x);
             let sy = i128::from(oy) + y as i128 - i128::from(layer.info.y);
-            if sx < 0 || sy < 0 || sx >= i128::from(width) || sy >= i128::from(height) {
+            let center = [sx as f64 + 0.5, sy as f64 + 0.5];
+            let [u, v] = if let (Some(geometry), Some(mapping)) = (geometry, mapping) {
+                if !geometry.contains(center) {
+                    continue;
+                }
+                let Ok(point) = mapping.unmap(center) else {
+                    continue;
+                };
+                point
+            } else {
+                if sx < 0 || sy < 0 || sx >= i128::from(width) || sy >= i128::from(height) {
+                    continue;
+                }
+                if let Some(crop) = &layer.info.generated_crop
+                    && crop
+                        .bounds
+                        .is_none_or(|b| !b.contains(sx as i64, sy as i64))
+                {
+                    continue;
+                }
+                center
+            };
+            if u < 0.0 || v < 0.0 || u >= w || v >= h {
                 continue;
             }
-            if let Some(crop) = &layer.info.generated_crop
-                && crop
-                    .bounds
-                    .is_none_or(|b| !b.contains(sx as i64, sy as i64))
-            {
-                continue;
-            }
-            let px = sx as f64 + 0.5 - w / 2.0;
-            let py = sy as f64 + 0.5 - h / 2.0;
+            let px = u - w / 2.0;
+            let py = v - h / 2.0;
             let t = if matches!(layer.info.kind, LayerKind::Solid { .. }) {
                 0.0
             } else if radial {

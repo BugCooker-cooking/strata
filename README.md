@@ -12,7 +12,9 @@ Strata is an open-source, AI-operable image editor with a portable Rust core and
 
 当前持续补齐 M7 编辑功能与 M8 产品化：在可移植AI、选区/蒙版/图层/调整基础上，已增加绘画与修复、基础滤镜及高反差保留、配置/位深与图像几何、原生裁剪/拉直/自由变换手柄、自动RGB校正，以及保留源定义的横排点/段落文字。原生应用和AI共用命令执行器，保留8/16位源样本、工作ICC、撤销和工程恢复。最近本机增量证据见[文字](docs/research/2026-11-m7-editable-text-progress.md)、[变换手柄](docs/research/2026-11-m7-transform-handles-progress.md)及[完整跟踪表](docs/plans/photoshop-feature-coverage.md)。
 
-完整范围继续覆盖PS功能清单P0–P3，尚未全部实现。一般可编辑类型的几何、连续变形像素反馈、富文本/字体、矢量路径/形状、智能对象、PSD/RAW及其余专业编辑仍继续开发；实时性能、困难照片质量、真实模型与外部设备门槛独立追踪。当前统一目录为147条真实命令及218个参数示例；最终[逐功能AI入口审计](docs/plans/ai-editing-entrypoint-coverage.md)仍未闭环，数量不代表完整覆盖。上图是v1界面设计稿，当前仍为开发版本。2026-11-05起仅本机验证，云端工作流保持禁用；下面早期CI链接只保留历史证据。
+2026-11-16 的 [P0 功能核对](docs/research/2026-11-p0-closure.md)覆盖多图层自由变换、可编辑填充与样式的整图几何、三种污点修复、双语界面、文档 RGB 属性和本机命令脚本。验收结果和剩余证据见该记录及[逐功能 AI 入口审计](docs/plans/ai-editing-entrypoint-coverage.md)。
+
+矢量路径和形状、智能对象、PSD、RAW、富文本及其他 P1–P3 编辑能力继续按[完整清单](docs/plans/photoshop-feature-coverage.md)追踪。真实模型质量、持续性能、其他设备和正式发布各有独立门槛。上图为 v1 界面设计稿。2026-11-05 起验证只在本机执行，以下 CI 链接为历史证据。
 
 最近新增了保留原文的文字几何、嵌套图层组变换，以及持久参考线、标尺开关和移动吸附；核心、AI调用、原生测试、真实Metal、Release及单窗口增量验收已通过，示例已恢复并关闭。见[文字几何](docs/research/2026-11-m7-text-geometry-progress.md)和[参考线/吸附](docs/research/2026-11-m7-guides-snap-progress.md)；当前没有遗留测试实例。新增[图层智能参考线](docs/research/2026-11-m7-smart-guides-progress.md)与[标尺角标原点拖动/重置](docs/research/2026-11-m7-ruler-origin-drag-progress.md)通过本机自动化与Release，原生112项中111通过/1联网测试按配置跳过。用户解锁后，同一个Release窗口验证了V/数值实际吸附、小数原点/画布外取消/双击重置，恢复干净示例并退出，进程0；[单窗口范围记录](docs/research/data/2026-11-09-m7-smart-origin-native-closure.json)明确未观察的拖动中辅助线外观/延迟与持续大图门槛。
 

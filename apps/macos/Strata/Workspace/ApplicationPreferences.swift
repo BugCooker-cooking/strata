@@ -45,7 +45,7 @@ final class ApplicationPreferences: ObservableObject {
                 guard saved.utf8.count <= 8192,
                       var options = try JSONSerialization.jsonObject(with: Data(saved.utf8)) as? [String: Any],
                       Set(options.keys) == ["ai", "memory"] else {
-                    throw QuickExportError("应用偏好数据无效，请重新保存偏好设置。")
+                    throw QuickExportError(L10n.text("应用偏好数据无效，请重新保存偏好设置。"))
                 }
                 options["expected_version"] = try read(from: engine).version
                 _ = try engine.dispatch(command: "system.preferences.set", paramsJson: commandJSON(options))
@@ -53,7 +53,7 @@ final class ApplicationPreferences: ObservableObject {
             snapshot = try read(from: engine)
             restoreError = ""
         } catch {
-            restoreError = "应用偏好未能恢复，请重新保存偏好设置。\(error.localizedDescription)"
+            restoreError = L10n.format("应用偏好未能恢复，请重新保存偏好设置。{0}", String(describing: error.localizedDescription))
             throw error
         }
     }
@@ -64,7 +64,7 @@ final class ApplicationPreferences: ObservableObject {
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         let current = try decoder.decode(ApplicationPreferencesSnapshot.self, from: Data(json.utf8))
         guard var values = try JSONSerialization.jsonObject(with: Data(json.utf8)) as? [String: Any] else {
-            throw QuickExportError("无法读取应用偏好。")
+            throw QuickExportError(L10n.text("无法读取应用偏好。"))
         }
         values.removeValue(forKey: "version")
         let encoded = try JSONSerialization.data(withJSONObject: values, options: [.sortedKeys])

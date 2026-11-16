@@ -8,6 +8,10 @@ pub(crate) struct NativeGeometry {
     work: strata_core::commands::WorkCancellation,
     finishing: bool,
 }
+pub(crate) enum TransformSelection {
+    Layer(strata_core::LayerRef, strata_core::commands::TransformScope),
+    Layers(Vec<strata_core::LayerRef>),
+}
 impl NativeGeometry {
     pub(crate) fn cancel(&self) {
         self.work.cancel();
@@ -43,7 +47,28 @@ impl StrataEngine {
             document_id,
             revision,
             "transform.apply",
-            Some((layer, scope)),
+            Some(TransformSelection::Layer(layer, scope)),
+            None,
+        )
+    }
+    pub fn begin_canvas_transform_layers(
+        &self,
+        document_id: String,
+        revision: u64,
+        layer_ids: Vec<String>,
+    ) -> Result<String, StrataError> {
+        if !(2..=64).contains(&layer_ids.len()) {
+            return Err(render_error("select between 2 and 64 layers"));
+        }
+        let layers = layer_ids
+            .into_iter()
+            .map(|id| serde_json::from_value(json!({"id":id})).map_err(render_error))
+            .collect::<Result<Vec<_>, _>>()?;
+        self.begin_geometry(
+            document_id,
+            revision,
+            "transform.apply_layers",
+            Some(TransformSelection::Layers(layers)),
             None,
         )
     }
@@ -54,7 +79,11 @@ impl StrataEngine {
             let slot = self.geometry_session.lock().map_err(render_error)?;
             let value = slot
                 .as_ref()
-                .filter(|c| c.token == token && c.command == "transform.apply" && !c.finishing)
+                .filter(|c| {
+                    c.token == token
+                        && matches!(c.command, "transform.apply" | "transform.apply_layers")
+                        && !c.finishing
+                })
                 .ok_or_else(cancelled)?;
             value.interaction.with_work_cancellation(&value.work)
         };
@@ -86,7 +115,18 @@ impl StrataEngine {
         params_json: String,
         cancel: bool,
     ) -> Result<(), StrataError> {
-        self.end_geometry(token, params_json, cancel, "transform.apply")
+        let command = self
+            .geometry_session
+            .lock()
+            .map_err(render_error)?
+            .as_ref()
+            .filter(|c| {
+                c.token == token
+                    && matches!(c.command, "transform.apply" | "transform.apply_layers")
+            })
+            .map(|c| c.command)
+            .ok_or_else(cancelled)?;
+        self.end_geometry(token, params_json, cancel, command)
     }
     pub fn end_crop(
         &self,
@@ -128,7 +168,7 @@ impl StrataEngine {
         document_id: String,
         revision: u64,
         command: &'static str,
-        transform: Option<(strata_core::LayerRef, strata_core::commands::TransformScope)>,
+        transform: Option<TransformSelection>,
         guide: Option<(u64, Option<strata_core::GuideRef>)>,
     ) -> Result<String, StrataError> {
         let mut inner = self.lock()?;
@@ -159,9 +199,15 @@ impl StrataEngine {
         let interaction = match command {
             "image.crop" => inner.editor.begin_crop(),
             "image.straighten" => inner.editor.begin_straighten(),
-            "transform.apply" => {
-                let (layer, scope) = transform.expect("native transform target");
-                inner.editor.begin_canvas_transform(layer, scope)
+            "transform.apply" | "transform.apply_layers" => {
+                match transform.expect("native transform targets") {
+                    TransformSelection::Layer(layer, scope) => {
+                        inner.editor.begin_canvas_transform(layer, scope)
+                    }
+                    TransformSelection::Layers(layers) => {
+                        inner.editor.begin_canvas_transform_layers(&layers)
+                    }
+                }
             }
             "view.guides.add" | "view.guides.update" => inner
                 .editor
@@ -221,7 +267,9 @@ impl StrataEngine {
             let prepared = match command {
                 "image.crop" => editor.prepare_crop(&interaction, params.clone()),
                 "image.straighten" => editor.prepare_straighten(&interaction, params.clone()),
-                "transform.apply" => editor.prepare_canvas_transform(&interaction, params.clone()),
+                "transform.apply" | "transform.apply_layers" => {
+                    editor.prepare_canvas_transform(&interaction, params.clone())
+                }
                 "view.guides.add" | "view.guides.update" => {
                     editor.prepare_guide(&interaction, params.clone())
                 }

@@ -61,8 +61,8 @@ final class CanvasStraightenInput:ObservableObject{
     private func publish(_ line:StraightenLine?){draft=line;error="";onChanged?()}
     private func validateLine(){
         guard let draft else{error="";return}
-        if !draft.valid{error="请拖出两个有效且不同的参考点。"}
-        else if correction == nil{error="校正超过 ±45°；请选择另一对齐方向。"}
+        if !draft.valid{error=L10n.text("请拖出两个有效且不同的参考点。")}
+        else if correction == nil{error=L10n.text("校正超过 ±45°；请选择另一对齐方向。")}
         else{error=""}
     }
     @discardableResult

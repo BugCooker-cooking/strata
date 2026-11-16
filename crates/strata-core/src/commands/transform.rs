@@ -1,7 +1,7 @@
-//! Pixel/text and finite group projective transforms; never silent flattening.
+//! Projective transforms of editable layers, finite groups and selected pixels.
 use super::*;
 use crate::{
-    Document, DocumentError, LayerKind,
+    Document, DocumentError, GeneratedGeometry, LayerKind,
     geometry::Homography,
     geometry_pixels::{self, PixelSource, Sampling},
 };
@@ -76,14 +76,6 @@ pub(super) fn target(
 ) -> Result<(crate::LayerId, usize), CommandError> {
     let target = doc.resolve(layer)?;
     let index = doc.layers().iter().position(|l| l.id() == target).unwrap();
-    if !matches!(
-        doc.layers()[index].info().kind,
-        LayerKind::Pixel | LayerKind::Text { .. } | LayerKind::Group
-    ) {
-        return Err(invalid(
-            "transform requires a pixel/text layer or supported group subtree; generated layers are not implicitly rasterized",
-        ));
-    }
     if doc.layers().iter().any(|l| {
         (l.id() == target || doc.is_descendant(target, l.id()))
             && (l.info().locks.all
@@ -99,6 +91,38 @@ pub(super) fn target(
         super::transform_group::validate(doc, target)?;
     }
     Ok((target, index))
+}
+
+/// Pick the outermost selected roots in stable document order. An explicitly
+/// selected descendant travels with its group and is transformed only once.
+pub(super) fn roots(
+    doc: &Document,
+    layers: &[LayerRef],
+) -> Result<Vec<crate::LayerId>, CommandError> {
+    if !(2..=64).contains(&layers.len()) {
+        return Err(invalid("select between 2 and 64 layers"));
+    }
+    let mut selected = std::collections::HashSet::with_capacity(layers.len());
+    for layer in layers {
+        if !selected.insert(doc.resolve(layer)?) {
+            return Err(invalid("transform layer references must be unique"));
+        }
+    }
+    let roots: Vec<_> = doc
+        .layers()
+        .iter()
+        .map(crate::Layer::id)
+        .filter(|&id| {
+            selected.contains(&id)
+                && !selected
+                    .iter()
+                    .any(|&other| other != id && doc.is_descendant(id, other))
+        })
+        .collect();
+    for &id in &roots {
+        target(doc, &LayerRef::Id(id))?;
+    }
+    Ok(roots)
 }
 pub(super) fn canvas_bounds(
     doc: &Document,
@@ -141,8 +165,33 @@ pub(super) fn bounds(
     layer: &crate::Layer,
     cancel: &dyn Fn() -> bool,
 ) -> Result<Option<strata_pixels::CoverageRect>, DocumentError> {
-    if matches!(layer.info().kind, LayerKind::Group) {
-        return super::transform_group::visible_bounds(doc, layer.id(), cancel);
+    let info = layer.info();
+    match info.kind {
+        LayerKind::Group => return super::transform_group::visible_bounds(doc, layer.id(), cancel),
+        LayerKind::Solid { .. } | LayerKind::Gradient { .. } => {
+            return doc.generated_canvas_bounds(layer);
+        }
+        LayerKind::Exposure { .. }
+        | LayerKind::HueSaturation { .. }
+        | LayerKind::Adjustment { .. } => {
+            if let Some((mask, metadata)) = layer.mask.as_ref().zip(info.mask.as_ref()) {
+                let Some(mut bounds) = crate::geometry_masks::coverage_bounds(mask, cancel)? else {
+                    return Ok(None);
+                };
+                bounds.x = i64::try_from(
+                    i128::from(bounds.x) + i128::from(info.x) - i128::from(metadata.anchor_x),
+                )
+                .map_err(|_| DocumentError::ResourceLimit)?;
+                bounds.y = i64::try_from(
+                    i128::from(bounds.y) + i128::from(info.y) - i128::from(metadata.anchor_y),
+                )
+                .map_err(|_| DocumentError::ResourceLimit)?;
+                bounds.validate()?;
+                return Ok(Some(bounds));
+            }
+            return Ok(None);
+        }
+        LayerKind::Pixel | LayerKind::Text { .. } => {}
     }
     let bounds =
         geometry_pixels::content_bounds(layer.pixels(), [layer.info().x, layer.info().y], cancel)?;
@@ -176,6 +225,17 @@ pub(super) fn mutate(
     params: Value,
     cancel: &dyn Fn() -> bool,
 ) -> Result<Option<Value>, CommandError> {
+    if id == "transform.apply_layers" {
+        if cancel() {
+            return Err(CommandError::Expired);
+        }
+        let p: TransformLayers = parse(params)?;
+        let transform = matrix(&p.geometry)?;
+        let roots = roots(doc, &p.layers)?;
+        let result =
+            super::transform_group::apply_roots(doc, &roots, &transform, p.interpolation, cancel)?;
+        return Ok(Some(serde_json::json!(result)));
+    }
     if id != "transform.apply" {
         return Ok(None);
     }
@@ -210,7 +270,7 @@ pub(super) fn mutate(
             .map(Some);
     }
     let bounds = bounds(doc, &layer, cancel)?
-        .ok_or_else(|| invalid("layer has no stored pixels or text ink to transform"))?;
+        .ok_or_else(|| invalid("layer has no finite content or mask coverage to transform"))?;
     apply_leaf(doc, index, &transform, p.interpolation, bounds, cancel).map(Some)
 }
 pub(super) fn apply_leaf(
@@ -259,10 +319,8 @@ pub(super) fn apply_leaf(
     } else {
         None
     };
-    let output = if let Some(text) = &text {
-        text.pixels.clone()
-    } else {
-        geometry_pixels::transform_pixels_at(
+    let output = if matches!(layer.info.kind, LayerKind::Pixel) {
+        Some(geometry_pixels::transform_pixels_at(
             PixelSource {
                 pixels: layer.pixels(),
                 offset,
@@ -274,7 +332,9 @@ pub(super) fn apply_leaf(
             origin,
             doc.memory_pool(),
             cancel,
-        )?
+        )?)
+    } else {
+        None
     };
     let mask = if let (Some(mask), Some(info)) = (&layer.mask, &layer.info().mask) {
         let offset = [
@@ -303,13 +363,22 @@ pub(super) fn apply_leaf(
     if cancel() {
         return Err(CommandError::Expired);
     }
-    doc.layers[index].pixels = output;
+    if let Some(output) = output {
+        doc.layers[index].pixels = output;
+    }
     if let Some(text) = text {
+        doc.layers[index].pixels = text.pixels;
         doc.layers[index].info.kind = text.info.kind;
         doc.layers[index].info.generated_crop = None;
     }
     doc.layers[index].info.x = origin[0];
     doc.layers[index].info.y = origin[1];
+    GeneratedGeometry::update_reference(
+        &mut doc.layers[index].info,
+        &layer.info,
+        &doc.frame,
+        transform,
+    )?;
     if let Some(mask) = mask {
         let enabled = layer.info().mask.as_ref().is_some_and(|m| m.enabled);
         super::local::attach(&mut doc.layers[index], mask);

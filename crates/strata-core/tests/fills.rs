@@ -1,5 +1,5 @@
 use serde_json::{Value, json};
-use strata_core::{Editor, Source};
+use strata_core::{Document, Editor, Source};
 use strata_pixels::PixelBuffer;
 fn run(e: &mut Editor, id: &str, p: Value) -> Value {
     e.execute(e.request(Source::User), id, p, |_| Ok(()))
@@ -103,4 +103,117 @@ fn hue_saturation_adjustment_masks_its_effect_and_does_not_rewrite_source() {
         .is_err()
     );
     assert_eq!(e.revision(), before);
+}
+
+#[test]
+fn scaled_gradient_uses_original_gradient_space_and_remains_editable_after_reopen() {
+    let mut e = Editor::new();
+    run(
+        &mut e,
+        "file.new",
+        json!({"width":8,"height":6,"bit_depth":16}),
+    );
+    let layer = run(
+        &mut e,
+        "layer.fill.gradient",
+        json!({"name":"Ramp","start":[0,0,0,65535],"end":[65535,65535,65535,65535],"angle":0}),
+    )["layer_id"]
+        .clone();
+    run(
+        &mut e,
+        "image.resize",
+        json!({"width":16,"height":3,"interpolation":"area"}),
+    );
+    let document = e.document().unwrap();
+    let saved = document.to_archive().unwrap();
+    assert_eq!(saved.metadata["version"], 10);
+    let reopened = Document::from_archive(saved.clone()).unwrap();
+    assert_eq!(reopened.to_archive().unwrap(), saved);
+    let PixelBuffer::Rgba16(codes) = reopened.export_pixels().unwrap() else {
+        panic!()
+    };
+    for (x, pixel) in codes.chunks_exact(4).take(16).enumerate() {
+        let t = (x as f64 + 0.5) / 16.0;
+        let expected = ((1.055 * t.powf(1.0 / 2.4) - 0.055) * 65535.0).round() as u16;
+        assert!(
+            pixel[0].abs_diff(expected) < 32,
+            "{x}: {} vs {expected}",
+            pixel[0]
+        );
+        assert_eq!(pixel[3], 65535);
+    }
+    let mut forged = saved;
+    forged.metadata["version"] = json!(9);
+    assert!(Document::from_archive(forged).is_err());
+    run(
+        &mut e,
+        "layer.fill.gradient.set",
+        json!({"layer":{"id":layer},"start":[10000,10000,10000,65535],"end":[10000,10000,10000,65535],"angle":0,"scale":1}),
+    );
+    let document = e.document().unwrap();
+    assert_eq!(document.layers()[1].pixels().tile_count(), 0);
+    let PixelBuffer::Rgba16(codes) = document.export_pixels().unwrap() else {
+        panic!()
+    };
+    assert!(
+        codes
+            .chunks_exact(4)
+            .all(|px| px[0].abs_diff(10000) <= 3 && px[3] == 65535)
+    );
+}
+
+#[test]
+fn projective_fill_does_not_restore_deleted_coverage_after_reframe_or_orientation() {
+    let mut e = Editor::new();
+    run(
+        &mut e,
+        "file.new",
+        json!({"width":16,"height":16,"bit_depth":16}),
+    );
+    let layer = run(
+        &mut e,
+        "layer.fill.solid",
+        json!({"name":"Square","color":[20001,30001,50001,65535]}),
+    )["layer_id"]
+        .clone();
+    run(
+        &mut e,
+        "transform.apply",
+        json!({
+            "layer":{"id":layer},"scope":"whole_layer","geometry":{"type":"corners",
+                "source":[[0,0],[16,0],[16,16],[0,16]],"destination":[[8,0],[16,8],[8,16],[0,8]]}
+        }),
+    );
+    let original = e.document().unwrap().to_archive().unwrap();
+    run(
+        &mut e,
+        "image.crop",
+        json!({"rect":{"x":4,"y":0,"width":8,"height":8},"pixels":"delete"}),
+    );
+    run(
+        &mut e,
+        "image.crop",
+        json!({"rect":{"x":0,"y":0,"width":16,"height":16},"pixels":"preserve"}),
+    );
+    let PixelBuffer::Rgba16(codes) = e.document().unwrap().export_pixels().unwrap() else {
+        panic!()
+    };
+    let alpha = |x: usize, y: usize| codes[(y * 16 + x) * 4 + 3];
+    assert_eq!(
+        [alpha(8, 4), alpha(4, 0), alpha(13, 7), alpha(8, 10)],
+        [65535, 0, 0, 0]
+    );
+    run(&mut e, "image.orient", json!({"operation":"rotate_90_cw"}));
+    let PixelBuffer::Rgba16(rotated) = e.document().unwrap().export_pixels().unwrap() else {
+        panic!()
+    };
+    for y in 0..16 {
+        for x in 0..16 {
+            assert_eq!(rotated[(x * 16 + (15 - y)) * 4 + 3], alpha(x, y));
+        }
+    }
+    for _ in 0..3 {
+        run(&mut e, "edit.undo", json!({}));
+    }
+    assert_eq!(e.document().unwrap().to_archive().unwrap(), original);
 }

@@ -1,0 +1,12 @@
+{
+  "resources": [
+    {"name": "sample", "path": "docs/design/assets/sample-photo.jpg"},
+    {"name": "output", "path": "build/resize-and-save.strata", "write": true}
+  ],
+  "commands": [
+    {"command": "file.open", "params": {"resource": "sample"}},
+    {"command": "image.resize", "params": {"width": 320, "height": 480, "interpolation": "area"}},
+    {"command": "file.save_as", "params": {"resource": "output"}},
+    {"command": "document.inspect", "params": {}}
+  ]
+}

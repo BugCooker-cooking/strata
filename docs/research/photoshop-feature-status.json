@@ -164,82 +164,146 @@
     ]
   },
   "PS-04-430fc8e2db": {
-    "implementation": "已实现（M3 集成中）",
-    "acceptance": "M3 验收中；后续绘画/调整类型继续扩充",
+    "implementation": "已实现",
+    "acceptance": "本机图层、命令和合成测试覆盖该条目的各动作。历史与单窗口证据见 M3 及 P0 核对记录。",
     "evidence": [
       {
         "label": "M3 计划",
         "path": "2026-11-05-m3-layers.md"
+      },
+      {
+        "label": "M3 图层本机验收",
+        "path": "../research/2026-11-m3-layers-progress.md"
+      },
+      {
+        "label": "2026-11-16 P0 核对",
+        "path": "../research/2026-11-p0-closure.md"
       }
     ]
   },
   "PS-04-4e8bda1fd0": {
-    "implementation": "已实现（M3 集成中）",
-    "acceptance": "M3 验收中；后续绘画/调整类型继续扩充",
+    "implementation": "已实现",
+    "acceptance": "本机图层、命令和合成测试覆盖该条目的各动作。历史与单窗口证据见 M3 及 P0 核对记录。",
     "evidence": [
       {
         "label": "M3 计划",
         "path": "2026-11-05-m3-layers.md"
+      },
+      {
+        "label": "M3 图层本机验收",
+        "path": "../research/2026-11-m3-layers-progress.md"
+      },
+      {
+        "label": "2026-11-16 P0 核对",
+        "path": "../research/2026-11-p0-closure.md"
       }
     ]
   },
   "PS-04-fe6945c814": {
-    "implementation": "已实现（M3 集成中）",
-    "acceptance": "M3 验收中；后续绘画/调整类型继续扩充",
+    "implementation": "已实现",
+    "acceptance": "本机图层、命令和合成测试覆盖该条目的各动作。历史与单窗口证据见 M3 及 P0 核对记录。",
     "evidence": [
       {
         "label": "M3 计划",
         "path": "2026-11-05-m3-layers.md"
+      },
+      {
+        "label": "M3 图层本机验收",
+        "path": "../research/2026-11-m3-layers-progress.md"
+      },
+      {
+        "label": "2026-11-16 P0 核对",
+        "path": "../research/2026-11-p0-closure.md"
       }
     ]
   },
   "PS-04-54bcfbb2ac": {
-    "implementation": "已实现（M3 集成中）",
-    "acceptance": "M3 验收中；后续绘画/调整类型继续扩充",
+    "implementation": "已实现",
+    "acceptance": "本机图层、命令和合成测试覆盖该条目的各动作。历史与单窗口证据见 M3 及 P0 核对记录。",
     "evidence": [
       {
         "label": "M3 计划",
         "path": "2026-11-05-m3-layers.md"
+      },
+      {
+        "label": "M3 图层本机验收",
+        "path": "../research/2026-11-m3-layers-progress.md"
+      },
+      {
+        "label": "2026-11-16 P0 核对",
+        "path": "../research/2026-11-p0-closure.md"
       }
     ]
   },
   "PS-04-a7fe5679e6": {
-    "implementation": "已实现（M3 集成中）",
-    "acceptance": "M3 验收中；后续绘画/调整类型继续扩充",
+    "implementation": "已实现",
+    "acceptance": "本机图层、命令和合成测试覆盖该条目的各动作。历史与单窗口证据见 M3 及 P0 核对记录。",
     "evidence": [
       {
         "label": "M3 计划",
         "path": "2026-11-05-m3-layers.md"
+      },
+      {
+        "label": "M3 图层本机验收",
+        "path": "../research/2026-11-m3-layers-progress.md"
+      },
+      {
+        "label": "2026-11-16 P0 核对",
+        "path": "../research/2026-11-p0-closure.md"
       }
     ]
   },
   "PS-04-bd9b0e9d03": {
-    "implementation": "已实现（M3 集成中）",
-    "acceptance": "M3 验收中；后续绘画/调整类型继续扩充",
+    "implementation": "已实现",
+    "acceptance": "本机图层、命令和合成测试覆盖该条目的各动作。历史与单窗口证据见 M3 及 P0 核对记录。",
     "evidence": [
       {
         "label": "M3 计划",
         "path": "2026-11-05-m3-layers.md"
+      },
+      {
+        "label": "M3 图层本机验收",
+        "path": "../research/2026-11-m3-layers-progress.md"
+      },
+      {
+        "label": "2026-11-16 P0 核对",
+        "path": "../research/2026-11-p0-closure.md"
       }
     ]
   },
   "PS-04-e5e334c943": {
-    "implementation": "已实现（M3 集成中）",
-    "acceptance": "M3 验收中；后续绘画/调整类型继续扩充",
+    "implementation": "已实现",
+    "acceptance": "本机图层、命令和合成测试覆盖该条目的各动作。历史与单窗口证据见 M3 及 P0 核对记录。",
     "evidence": [
       {
         "label": "M3 计划",
         "path": "2026-11-05-m3-layers.md"
+      },
+      {
+        "label": "M3 图层本机验收",
+        "path": "../research/2026-11-m3-layers-progress.md"
+      },
+      {
+        "label": "2026-11-16 P0 核对",
+        "path": "../research/2026-11-p0-closure.md"
       }
     ]
   },
   "PS-04-e77c27785e": {
-    "implementation": "已实现（M3 集成中）",
-    "acceptance": "M3 验收中；后续绘画/调整类型继续扩充",
+    "implementation": "已实现",
+    "acceptance": "本机图层、命令和合成测试覆盖该条目的各动作。历史与单窗口证据见 M3 及 P0 核对记录。",
     "evidence": [
       {
         "label": "M3 计划",
         "path": "2026-11-05-m3-layers.md"
+      },
+      {
+        "label": "M3 图层本机验收",
+        "path": "../research/2026-11-m3-layers-progress.md"
+      },
+      {
+        "label": "2026-11-16 P0 核对",
+        "path": "../research/2026-11-p0-closure.md"
       }
     ]
   },
@@ -258,38 +322,62 @@
     ]
   },
   "PS-04-9101e755a1": {
-    "implementation": "已实现（M3 集成中）",
-    "acceptance": "M3 验收中；后续绘画/调整类型继续扩充",
+    "implementation": "已实现",
+    "acceptance": "本机图层、命令和合成测试覆盖该条目的各动作。历史与单窗口证据见 M3 及 P0 核对记录。",
     "evidence": [
       {
         "label": "M3 计划",
         "path": "2026-11-05-m3-layers.md"
+      },
+      {
+        "label": "M3 图层本机验收",
+        "path": "../research/2026-11-m3-layers-progress.md"
+      },
+      {
+        "label": "2026-11-16 P0 核对",
+        "path": "../research/2026-11-p0-closure.md"
       }
     ]
   },
   "PS-04-cb66199f15": {
-    "implementation": "部分实现",
-    "acceptance": "曝光与色相饱和度已实现；其余类型待 M5",
+    "implementation": "已实现",
+    "acceptance": "曝光、色相／饱和度和 P0 全部调色类型已有本机、原生、AI 和 Metal 样例。空间调整和普通调色分别保留蒙版与参数。",
     "evidence": [
       {
         "label": "M3 计划",
         "path": "2026-11-05-m3-layers.md"
+      },
+      {
+        "label": "2026-11-16 P0 核对",
+        "path": "../research/2026-11-p0-closure.md"
+      },
+      {
+        "label": "M5 调色与局部调整",
+        "path": "../research/2026-11-m5-adjustments-progress.md"
       }
     ]
   },
   "PS-04-755f2b287b": {
-    "implementation": "已实现（M3 集成中）",
-    "acceptance": "M3 验收中；后续绘画/调整类型继续扩充",
+    "implementation": "已实现",
+    "acceptance": "本机图层、命令和合成测试覆盖该条目的各动作。历史与单窗口证据见 M3 及 P0 核对记录。",
     "evidence": [
       {
         "label": "M3 计划",
         "path": "2026-11-05-m3-layers.md"
+      },
+      {
+        "label": "M3 图层本机验收",
+        "path": "../research/2026-11-m3-layers-progress.md"
+      },
+      {
+        "label": "2026-11-16 P0 核对",
+        "path": "../research/2026-11-p0-closure.md"
       }
     ]
   },
   "PS-04-853e6d30f3": {
-    "implementation": "部分实现",
-    "acceptance": "像素/填充/组/调整及可编辑文字已接入。文字当前几何/裁剪的 AI 说明、实际示例和原生自动化通过；当前 Mac 单窗口中文文字栅格化、撤销恢复原文、继续编辑通过并恢复样例退出。智能对象等未来类型仍待实现。",
+    "implementation": "已实现",
+    "acceptance": "P0 图层类型可显式栅格化。当前 Mac 文字单窗口验收覆盖栅格化、一次撤销与继续编辑。",
     "evidence": [
       {
         "label": "M3 计划",
@@ -298,16 +386,28 @@
       {
         "label": "文字栅格化入口补验",
         "path": "../research/2026-11-m7-text-rasterization-entrypoints.md"
+      },
+      {
+        "label": "2026-11-16 P0 核对",
+        "path": "../research/2026-11-p0-closure.md"
       }
     ]
   },
   "PS-04-d6c3930e2f": {
-    "implementation": "已实现（M3 集成中）",
-    "acceptance": "M3 验收中；后续绘画/调整类型继续扩充",
+    "implementation": "已实现",
+    "acceptance": "本机图层、命令和合成测试覆盖该条目的各动作。历史与单窗口证据见 M3 及 P0 核对记录。",
     "evidence": [
       {
         "label": "M3 计划",
         "path": "2026-11-05-m3-layers.md"
+      },
+      {
+        "label": "M3 图层本机验收",
+        "path": "../research/2026-11-m3-layers-progress.md"
+      },
+      {
+        "label": "2026-11-16 P0 核对",
+        "path": "../research/2026-11-p0-closure.md"
       }
     ]
   },
@@ -625,11 +725,15 @@
   },
   "PS-07-7fd32754e9": {
     "implementation": "已实现",
-    "acceptance": "本机核心/原生输入/Metal/Release 通过；手工、照片质量与连续性能仍待验收",
+    "acceptance": "近邻匹配、创建纹理及内容识别覆盖双位深、保护区、确定重放、撤销和结构色带。逐项证据见 P0 核对记录。",
     "evidence": [
       {
         "label": "M6 自动近邻污点修复",
         "path": "../research/2026-11-m6-paint-retouch-progress.md"
+      },
+      {
+        "label": "2026-11-16 P0 核对",
+        "path": "../research/2026-11-p0-closure.md"
       }
     ]
   },
@@ -744,8 +848,8 @@
     ]
   },
   "PS-09-4f3d9835a7": {
-    "implementation": "部分实现",
-    "acceptance": "Retained-source text and whole nested pixel/text/unstyled-group transforms passed local core332 plus final31 targeted, AI46, native104 (103passed/1live-network skip), required Metal1, Release/lint/201examples and one-window group scale/source re-edit/exact undo. Hidden children transform without exposing their extent. Generated/adjustment/active-style geometry and continuous warped-image feedback remain open.",
+    "implementation": "已实现",
+    "acceptance": "缩放、旋转、斜切、扭曲、透视、翻转及多选和蒙版进入统一核心。可编辑图层保留原定义，嵌套同选只变换一次，锁或无效几何原子拒绝。",
     "evidence": [
       {
         "label": "M7 整层变换/视图检查点",
@@ -766,6 +870,10 @@
       {
         "label": "Editable nested group geometry",
         "path": "../research/2026-11-m7-group-transform-progress.md"
+      },
+      {
+        "label": "2026-11-16 P0 核对",
+        "path": "../research/2026-11-p0-closure.md"
       }
     ]
   },
@@ -808,8 +916,8 @@
     ]
   },
   "PS-09-7cc6b0bb65": {
-    "implementation": "部分实现",
-    "acceptance": "Pixel rulers, persistent H/V reference CRUD/pagination, versioned display/lock/snap settings and shared V/numeric/AI guide-artboard edge/center snapping passed local automated gates and single-window checks. Manual first-switch T->V bug was fixed, full native104 and corrected Release direct-switch drag confirmed guide movement with photoX0/Y0. Ruler show/hide/layout, half-pixel line and text snapping/one undo passed. Custom ruler origins/physical units, layer-to-layer smart guides and sustained large-image feedback remain open; scope stays partial.",
+    "implementation": "已实现",
+    "acceptance": "V 拖动、数值与 AI 共用可见层、画板和参考线吸附，本机测试及单窗口检查通过。",
     "evidence": [
       {
         "label": "M7 移动与几何边界",
@@ -822,12 +930,20 @@
       {
         "label": "Corrected native text / guide closure",
         "path": "../research/2026-11-m7-group-transform-progress.md"
+      },
+      {
+        "label": "2026-11-16 P0 核对",
+        "path": "../research/2026-11-p0-closure.md"
+      },
+      {
+        "label": "M7 可见图层间吸附",
+        "path": "../research/2026-11-m7-smart-guides-progress.md"
       }
     ]
   },
   "PS-09-7d349372b5": {
-    "implementation": "部分实现",
-    "acceptance": "数值/拖框/比例/八手柄/移动/保留与删除裁剪，以及数值/两点/画布拖线拉直已有本机核心、AI、原生、Metal、Release 与单窗口证据；生成/调整/样式/文字的一般几何仍开放。",
+    "implementation": "已实现",
+    "acceptance": "覆盖拖框、比例和八手柄，保留／删除均有撤销证据。角度、两点和画布拉直支持所有现有图层类型。",
     "evidence": [
       {
         "label": "M7 裁剪/显示全部",
@@ -852,6 +968,10 @@
       {
         "label": "画布参考线会话",
         "path": "../research/2026-11-m7-straighten-gesture-progress.md"
+      },
+      {
+        "label": "2026-11-16 P0 核对",
+        "path": "../research/2026-11-p0-closure.md"
       }
     ]
   },
@@ -866,8 +986,8 @@
     ]
   },
   "PS-03-5f9716e5d8": {
-    "implementation": "部分实现",
-    "acceptance": "All current types, including text, support five exact orthogonal orientations. Pixels, unstyled text and groups support general angles/straightening; text retains source, ordered crop and geometry. Local automated gates passed. Subsequent single-window text rotation/re-edit and mixed group scale/re-edit passed in the native closure record; this does not assert a manual check of every whole-image angle/text variant. Generated/adjustment/style arbitrary geometry remains open.",
+    "implementation": "已实现",
+    "acceptance": "五种精确方向与任意角度覆盖现有图层类型，保留文本、填充、调整、样式及蒙版。裁剪后的填充支撑范围有回归。",
     "evidence": [
       {
         "label": "M7 整图正交变换",
@@ -892,6 +1012,10 @@
       {
         "label": "Subsequent native text/group manual scope",
         "path": "../research/data/2026-11-07-m7-native-text-guides-closure.json"
+      },
+      {
+        "label": "2026-11-16 P0 核对",
+        "path": "../research/2026-11-p0-closure.md"
       }
     ]
   },
@@ -906,8 +1030,8 @@
     ]
   },
   "PS-03-ad24731ea8": {
-    "implementation": "部分实现",
-    "acceptance": "Nearest/bilinear/area size changes now include retained-source unstyled text as well as pixels/groups. Local independent coverage references, source re-edit, persistence/undo, AI and native gates passed. Subsequent manual retained-text rotation and mixed-group scaling/re-edit are recorded separately; no manual whole-image text resize variant is asserted here. Editable fill/adjustment/style sizing and other professional algorithms remain open.",
+    "implementation": "已实现",
+    "acceptance": "最近邻、双线性和面积三种算法。现有层类型、蒙版和选区支持缩放。实际渐变样本的色码、重开、旧清单版本拒绝和一次撤销有本机证据。",
     "evidence": [
       {
         "label": "尺寸重采样进展",
@@ -920,6 +1044,10 @@
       {
         "label": "Subsequent native text/group manual scope",
         "path": "../research/data/2026-11-07-m7-native-text-guides-closure.json"
+      },
+      {
+        "label": "2026-11-16 P0 核对",
+        "path": "../research/2026-11-p0-closure.md"
       }
     ]
   },
@@ -978,8 +1106,8 @@
     ]
   },
   "PS-11-4490121dad": {
-    "implementation": "部分实现",
-    "acceptance": "Retained horizontal point/paragraph source and uniform style passed base01272c1 local acceptance, then source-aware geometry/ordered crop and transparent ink bounds. User-unlocked single-window text rotation, serif/color/content re-edit, group scale/re-edit and step undo restored clean sample and quit. Automated numeric/persistence/AI/native/Metal/Release evidence is linked separately. System/imported fonts, inline caret/rich spans and advanced typography remain open.",
+    "implementation": "已实现",
+    "acceptance": "可编辑横排点文字及段落文字具有 CJK 排版、缺字提示、工程往返与修改后保留几何的证据。",
     "evidence": [
       {
         "label": "可编辑文字进展",
@@ -992,12 +1120,16 @@
       {
         "label": "Text / group native acceptance",
         "path": "../research/2026-11-m7-group-transform-progress.md"
+      },
+      {
+        "label": "2026-11-16 P0 核对",
+        "path": "../research/2026-11-p0-closure.md"
       }
     ]
   },
   "PS-11-a524877cb6": {
-    "implementation": "部分实现",
-    "acceptance": "Retained horizontal point/paragraph source and uniform style passed base01272c1 local acceptance, then source-aware geometry/ordered crop and transparent ink bounds. User-unlocked single-window text rotation, serif/color/content re-edit, group scale/re-edit and step undo restored clean sample and quit. Automated numeric/persistence/AI/native/Metal/Release evidence is linked separately. System/imported fonts, inline caret/rich spans and advanced typography remain open.",
+    "implementation": "已实现",
+    "acceptance": "内置字体、字号、颜色、行距、字距、对齐均有实际属性、排版和原生测试。可用实际参数修改并撤销。",
     "evidence": [
       {
         "label": "可编辑文字进展",
@@ -1010,6 +1142,10 @@
       {
         "label": "Text / group native acceptance",
         "path": "../research/2026-11-m7-group-transform-progress.md"
+      },
+      {
+        "label": "2026-11-16 P0 核对",
+        "path": "../research/2026-11-p0-closure.md"
       }
     ]
   },
@@ -1028,8 +1164,8 @@
     ]
   },
   "PS-14-de2fd3ca59": {
-    "implementation": "部分实现",
-    "acceptance": "Six ruler units/custom origin and owned corner drag/reset share core view metrics and commands. Latest local core28/AI49/FFI1/required Metal1/native112(111passed/1live-service opt-in skip)/lint/137commands/206examples/arm64 Release passed. One current Release manually verified fractional origin203.101034/302.720963, outside release keeps value, double-click reset0/0; photo/history unchanged. The same window verified visible-layer V/numeric snapping and restored clean/default state before normal quit, process0/sourceSHA unchanged. Held-pointer overlay appearance/latency, sustained large-photo interaction and other view scope remain open.",
+    "implementation": "已实现",
+    "acceptance": "六种标尺单位、自定义原点、参考线增删改和锁定、画板／图层边缘与中心吸附已有本机和单窗口证据。",
     "evidence": [
       {
         "label": "Guides and snap local progress",
@@ -1054,6 +1190,10 @@
       {
         "label": "Single-window smart snap and origin acceptance",
         "path": "../research/data/2026-11-09-m7-smart-origin-native-closure.json"
+      },
+      {
+        "label": "2026-11-16 P0 核对",
+        "path": "../research/2026-11-p0-closure.md"
       }
     ]
   },
@@ -1132,6 +1272,46 @@
       {
         "label": "M8 应用偏好与资源预算",
         "path": "../research/2026-11-m8-preferences-progress.md"
+      }
+    ]
+  },
+  "PS-00-7d7224e709": {
+    "implementation": "已实现",
+    "acceptance": "原生菜单选择简体中文或英语，下次启动生效。界面文本、文案参数和语言持久化见 P0 核对。",
+    "evidence": [
+      {
+        "label": "2026-11-16 P0 核对",
+        "path": "../research/2026-11-p0-closure.md"
+      }
+    ]
+  },
+  "PS-03-c10dd16a58": {
+    "implementation": "已实现",
+    "acceptance": "RGB 模式在检查器和统一文档查询中明确显示，位深与 ICC 独立报告。原生不支持的样本格式有转换指引。",
+    "evidence": [
+      {
+        "label": "2026-11-16 P0 核对",
+        "path": "../research/2026-11-p0-closure.md"
+      }
+    ]
+  },
+  "PS-17-86de52d178": {
+    "implementation": "已实现",
+    "acceptance": "属性面板及工具选项读写当前快照。文字、调整、样式和蒙版由同一注册命令处理。",
+    "evidence": [
+      {
+        "label": "2026-11-16 P0 核对",
+        "path": "../research/2026-11-p0-closure.md"
+      }
+    ]
+  },
+  "PS-18-5d4f709636": {
+    "implementation": "已实现",
+    "acceptance": "脚本通过本机命令序列执行器，包含读取、尺寸调整、保存与读回示例。",
+    "evidence": [
+      {
+        "label": "2026-11-16 P0 核对",
+        "path": "../research/2026-11-p0-closure.md"
       }
     ]
   }

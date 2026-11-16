@@ -160,7 +160,7 @@ final class CanvasView: NSView {
         paintInput.onCommitted = {[weak self] in self?.markDirty();self?.onCommitted?()}
         paintInput.onSample = {[weak self] color,background,profile in self?.onColorSample?(color,background,profile)}
         paintInput.onError = {[weak self] error in self?.onError?(error)}
-        setAccessibilityLabel("图像画布；滚动或拖动平移，捏合缩放")
+        setAccessibilityLabel(L10n.text("图像画布；滚动或拖动平移，捏合缩放"))
         addSubview(stats)
         stats.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
@@ -432,7 +432,7 @@ final class CanvasView: NSView {
         let enabled=model.tool == .freeTransform
         if enabled && !transformTool{cancelLayerDrag()}
         transformTool=enabled
-        transformInput.configure(enabled:enabled,mode:model.canvasTransformMode,scope:model.canvasTransformScope,interpolation:model.canvasTransformInterpolation)
+        transformInput.configure(enabled:enabled,mode:model.canvasTransformMode,scope:model.canvasTransformScope,interpolation:model.canvasTransformInterpolation,layers:model.transformLayerIDs)
     }
     func configureText(_ model:WorkspaceModel){
         if let state=model.snapshot{
@@ -504,7 +504,7 @@ final class CanvasView: NSView {
             size:bounded(model.brushSize,0.5...4096,24),hardness:bounded(model.brushHardness/100,0...1,0.8),
             opacity:bounded(model.brushOpacity/100,0...1,1),flow:bounded(model.brushFlow/100,0...1,1),
             spacing:bounded(model.brushSpacing/100,0.01...2,0.2),color:rgba,
-            value:maskValue,pressureSize:model.brushPressureSize,pressureOpacity:model.brushPressureOpacity,clone:cloneTool,aligned:model.cloneAligned,cloneSource:model.cloneSource,cloneSample:model.cloneSample,heal:model.tool == .heal && !spot,spot:spot,spotSearchRadius:bounded(model.spotSearchRadius,1...512,64),
+            value:maskValue,pressureSize:model.brushPressureSize,pressureOpacity:model.brushPressureOpacity,clone:cloneTool,aligned:model.cloneAligned,cloneSource:model.cloneSource,cloneSample:model.cloneSample,heal:model.tool == .heal && !spot,spot:spot,spotHealMode:model.spotHealMode,spotSearchRadius:bounded(model.spotSearchRadius,1...512,64),
             tonalCommand:tonal ? "retouch."+model.tonalBrushMode : nil,tonalRange:model.tonalBrushRange,tonalExposure:bounded(model.tonalBrushExposure/100,0...1,0.5),protectTones:model.tonalBrushProtect,spongeMode:model.spongeMode,spongeVibrance:model.spongeVibrance)
         brushInput.configure(configuration)
     }

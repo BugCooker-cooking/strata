@@ -30,6 +30,7 @@ mod rotate_image;
 mod sample_selection;
 mod selection;
 mod spot_heal;
+mod spot_synthesis;
 mod straighten;
 mod tonal;
 mod tonal_brush;
@@ -43,7 +44,7 @@ pub use cancellation::WorkCancellation;
 pub use duplicate_document::DocumentCopy;
 use duplicate_document::{DuplicateMode, DuplicateResult};
 pub use executor::{
-    BrushInteraction, ClipboardImage, CommandError, Control, CropInteraction, Editor,
+    BrushInteraction, ClipboardImage, ColorMode, CommandError, Control, CropInteraction, Editor,
     ExposureInteraction, GeometryInteraction, HistoryInfo, MarqueeInteraction, MoveInteraction,
     PaintInteraction, PreparedCommand, Request, Snapshot, Source, StraightenInteraction,
     TonalInteraction,
@@ -700,6 +701,13 @@ params!(TransformApply {
     #[serde(default)]
     interpolation: TransformInterpolation
 });
+params!(TransformLayers {
+    #[schemars(length(min = 2, max = 64))]
+    layers: Vec<LayerRef>,
+    geometry: TransformGeometry,
+    #[serde(default)]
+    interpolation: TransformInterpolation
+});
 #[derive(Serialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct TransformResult {
@@ -709,6 +717,14 @@ pub struct TransformResult {
     pub source_artboard_clipped: bool,
     pub mask_transformed: bool,
     pub selection_transformed: bool,
+    pub changed: bool,
+}
+#[derive(Serialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct TransformLayersResult {
+    pub layer_ids: Vec<crate::LayerId>,
+    pub output_bounds: strata_pixels::CoverageRect,
+    pub mask_transformed: bool,
     pub changed: bool,
 }
 #[derive(Serialize, JsonSchema)]
@@ -1070,8 +1086,18 @@ pub struct HealResult {
 fn spot_radius() -> u32 {
     64
 }
+#[derive(Clone, Copy, Debug, Default, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum SpotHealMode {
+    #[default]
+    ProximityMatch,
+    CreateTexture,
+    ContentAware,
+}
 params!(SpotHealStroke {
     stroke: BrushStroke,
+    #[serde(default)]
+    mode: SpotHealMode,
     #[serde(default = "sample_current")]
     sample: SelectionSample,
     #[serde(default = "spot_radius")]
@@ -1082,8 +1108,10 @@ params!(SpotHealStroke {
     tolerance: f64
 });
 #[derive(Serialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
 pub struct SpotHealResult {
     pub layer_id: crate::LayerId,
+    pub mode: SpotHealMode,
     pub source: Option<[f64; 2]>,
     pub candidates: usize,
     pub boundary_error: f64,

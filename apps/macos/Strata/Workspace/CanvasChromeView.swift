@@ -107,7 +107,7 @@ final class CanvasRulerCorner:NSView{
     var onCancel:(()->Void)?
     override var isFlipped:Bool{true}
     override var acceptsFirstResponder:Bool{true}
-    override init(frame:NSRect){super.init(frame:frame);toolTip="拖动设置标尺零点；双击重置 / Drag ruler origin; double-click resets";setAccessibilityElement(true);setAccessibilityRole(.button);setAccessibilityLabel("标尺原点：拖动设置，双击重置")}
+    override init(frame:NSRect){super.init(frame:frame);toolTip=L10n.text("拖动设置标尺零点；双击重置 / Drag ruler origin; double-click resets");setAccessibilityElement(true);setAccessibilityRole(.button);setAccessibilityLabel(L10n.text("标尺原点：拖动设置，双击重置"))}
     convenience init(){self.init(frame:.zero)}
     required init?(coder:NSCoder){nil}
     override func mouseDown(with event:NSEvent){window?.makeFirstResponder(self);if event.clickCount>=2{onCancel?();onReset?()}else{onPointer?(0,event)}}
@@ -127,9 +127,9 @@ private struct CanvasControlBanner: View {
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: model.snapshot?.control?.kind == "paused" ? "pause.circle" : "sparkles")
-            Text(model.snapshot?.control?.kind == "paused" ? "AI 等你决定 · 可撤销与切换显隐" : "AI 执行中 · 可缩放平移查看").lineLimit(1)
+            Text(model.snapshot?.control?.kind == "paused" ? L10n.text("AI 等你决定 · 可撤销与切换显隐") : L10n.text("AI 执行中 · 可缩放平移查看")).lineLimit(1)
             Spacer(minLength: 0)
-            Button("停止 ⌘.") { model.assistant?.stop() }.buttonStyle(.borderless)
+            Button(L10n.text("停止 ⌘.")) { model.assistant?.stop() }.buttonStyle(.borderless)
         }.font(.system(size: 11)).padding(.horizontal, 10).frame(maxWidth: .infinity, maxHeight: .infinity)
             .foregroundStyle(Color(nsColor: model.snapshot?.control?.kind == "paused" ? WorkspaceColors.warning : WorkspaceColors.ai))
             .background(RoundedRectangle(cornerRadius: 6).fill(Color(nsColor: WorkspaceColors.panel).opacity(0.95)))
@@ -142,10 +142,10 @@ private struct CanvasEmptyState: View {
         if !model.hasDocument {
             VStack(spacing: 14) {
                 Image(systemName: "photo.on.rectangle.angled").font(.system(size: 28))
-                Text("从一张图片开始").font(.system(size: 17, weight: .medium))
+                Text(L10n.text("从一张图片开始")).font(.system(size: 17, weight: .medium))
                 HStack {
-                    Button("打开文件…") { model.send(.open) }
-                    Button("新建文档…") { model.send(.new) }
+                    Button(L10n.text("打开文件…")) { model.send(.open) }
+                    Button(L10n.text("新建文档…")) { model.send(.new) }
                 }
             }.padding(28).foregroundStyle(Color(nsColor: WorkspaceColors.secondary))
                 .background(RoundedRectangle(cornerRadius: 12).fill(Color(nsColor: WorkspaceColors.panel)))
@@ -158,10 +158,10 @@ private struct CanvasZoomBar: View {
     @ObservedObject var readout: CanvasReadout
     var body: some View {
         HStack(spacing: 2) {
-            WorkspaceIconButton(title: "缩小", symbol: "minus") { model.send(.zoom(0.8)) }
-            Button("\(Int((readout.zoom * 100).rounded()))%") { model.send(.actualSize) }.buttonStyle(WorkspaceButtonStyle()).font(.system(size: 11)).monospacedDigit().frame(minWidth: 43).help("实际像素 100%")
-            WorkspaceIconButton(title: "放大", symbol: "plus") { model.send(.zoom(1.25)) }
-            WorkspaceIconButton(title: "适合屏幕 (⌘0)", symbol: "viewfinder") { model.send(.fit) }
+            WorkspaceIconButton(title: L10n.text("缩小"), symbol: "minus") { model.send(.zoom(0.8)) }
+            Button("\(Int((readout.zoom * 100).rounded()))%") { model.send(.actualSize) }.buttonStyle(WorkspaceButtonStyle()).font(.system(size: 11)).monospacedDigit().frame(minWidth: 43).help(L10n.text("实际像素 100%"))
+            WorkspaceIconButton(title: L10n.text("放大"), symbol: "plus") { model.send(.zoom(1.25)) }
+            WorkspaceIconButton(title: L10n.text("适合屏幕 (⌘0)"), symbol: "viewfinder") { model.send(.fit) }
         }.padding(3).background(RoundedRectangle(cornerRadius: 8).fill(Color(nsColor: WorkspaceColors.panel)))
             .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color(nsColor: WorkspaceColors.border)))
     }
@@ -222,13 +222,13 @@ private final class CanvasNavigator: NSView {
     private var mapScale: CGFloat = 1
     private var mapOrigin = CGPoint.zero
     override var isFlipped: Bool { true }
-    override init(frame: NSRect) { super.init(frame: frame); setAccessibilityLabel("画布导航，点击移动视野") }
+    override init(frame: NSRect) { super.init(frame: frame); setAccessibilityLabel(L10n.text("画布导航，点击移动视野")) }
     convenience init() { self.init(frame: .zero) }
     required init?(coder: NSCoder) { nil }
     override func draw(_ dirtyRect: NSRect) {
         WorkspaceColors.panel.setFill(); NSBezierPath(roundedRect: bounds, xRadius: 8, yRadius: 8).fill()
         WorkspaceColors.border.setStroke(); NSBezierPath(roundedRect: bounds.insetBy(dx: 0.5, dy: 0.5), xRadius: 8, yRadius: 8).stroke()
-        ("导航" as NSString).draw(at: NSPoint(x: 8, y: 5), withAttributes: [.font: NSFont.systemFont(ofSize: 9), .foregroundColor: WorkspaceColors.muted])
+        (L10n.text("导航") as NSString).draw(at: NSPoint(x: 8, y: 5), withAttributes: [.font: NSFont.systemFont(ofSize: 9), .foregroundColor: WorkspaceColors.muted])
         guard let artboard, !viewport.isEmpty else { return }
         let union = artboard.union(viewport)
         mapScale = min((bounds.width - 20) / max(1, union.width), (bounds.height - 29) / max(1, union.height))

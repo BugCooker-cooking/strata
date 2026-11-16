@@ -40,10 +40,19 @@ fn apply_matrix(
     }
     Ok(())
 }
-struct SolveLimits {
-    iterations: u32,
-    tolerance: f64,
+pub(super) struct SolveLimits {
+    pub iterations: u32,
+    pub tolerance: f64,
 }
+pub(super) enum Guide {
+    Sampled(CloneSource),
+    Synthesized {
+        mode: SpotHealMode,
+        sample: SelectionSample,
+        radius: u32,
+    },
+}
+
 fn solve(
     rhs: &[[f64; 3]],
     initial: Vec<[f64; 3]>,
@@ -169,9 +178,43 @@ pub(super) fn mutate(
             CommandError::Invalid("healing needs an explicit clone_source".into())
         })?;
     let (target, coverage) = footprint(doc, &p.stroke, cancel)?;
-    let result = |pixels, steps, rms| json!({"layer_id":target,"domain_pixels":pixels,"iterations":steps,"residual_rms":rms,"method":"linear P3 Poisson source gradients with immutable target Dirichlet boundary"});
+    apply(
+        doc,
+        &p.stroke,
+        (target, coverage),
+        Guide::Sampled(clone),
+        SolveLimits {
+            iterations: p.max_iterations,
+            tolerance: p.tolerance,
+        },
+        cancel,
+    )
+    .map(Some)
+}
+
+pub(super) fn apply(
+    doc: &mut Document,
+    stroke: &BrushStroke,
+    (target, coverage): (LayerId, strata_pixels::TiledMask),
+    guide: Guide,
+    limits: SolveLimits,
+    cancel: &dyn Fn() -> bool,
+) -> Result<Value, CommandError> {
+    let method = match guide {
+        Guide::Sampled(_) => {
+            "linear P3 Poisson source gradients with immutable target Dirichlet boundary"
+        }
+        Guide::Synthesized {
+            mode: SpotHealMode::CreateTexture,
+            ..
+        } => "boundary texture synthesis with linear P3 Poisson blending",
+        Guide::Synthesized { .. } => {
+            "directional content reconstruction with linear P3 Poisson blending"
+        }
+    };
+    let result = |pixels, steps, rms| json!({"layer_id":target,"domain_pixels":pixels,"iterations":steps,"residual_rms":rms,"method":method});
     let Some(bounds) = coverage.content_bounds().map_err(DocumentError::from)? else {
-        return Ok(Some(result(0, 0, 0.0)));
+        return Ok(result(0, 0, 0.0));
     };
     let width = bounds.width as usize + 2;
     let height = bounds.height as usize + 2;
@@ -188,11 +231,18 @@ pub(super) fn mutate(
         .memory_pool()
         .reserve(MemoryKind::Transient, area as u64 * 256 + 8 * 1024 * 1024)
         .map_err(DocumentError::from)?;
-    let first = p
-        .stroke
+    let first = stroke
         .points
         .first()
         .ok_or_else(|| CommandError::Invalid("empty healing path".into()))?;
+    let clone = match &guide {
+        Guide::Sampled(clone) => clone.clone(),
+        Guide::Synthesized { sample, .. } => CloneSource {
+            source: [first.x, first.y],
+            destination: None,
+            sample: *sample,
+        },
+    };
     let mut sampler = super::clone_source::CloneSampler::new(doc, target, &clone, first)?;
     let left = bounds
         .x
@@ -215,12 +265,16 @@ pub(super) fn mutate(
             let i = y * width + x;
             let gx = left + x as i64;
             let gy = top + y as i64;
-            source[i] = sampler.color(gx as f64 + 0.5, gy as f64 + 0.5, cancel)?;
             destination[i] = sampler.destination_color(
                 gx.clamp(f.x, right) as f64 + 0.5,
                 gy.clamp(f.y, bottom) as f64 + 0.5,
                 cancel,
             )?;
+            source[i] = if matches!(guide, Guide::Sampled(_)) {
+                sampler.color(gx as f64 + 0.5, gy as f64 + 0.5, cancel)?
+            } else {
+                destination[i]
+            };
             if x > 0
                 && x + 1 < width
                 && y > 0
@@ -235,7 +289,11 @@ pub(super) fn mutate(
         }
     }
     if unknown.is_empty() {
-        return Ok(Some(result(0, 0, 0.0)));
+        return Ok(result(0, 0, 0.0));
+    }
+    drop(sampler);
+    if let Guide::Synthesized { mode, radius, .. } = guide {
+        super::spot_synthesis::guide(mode, &destination, &ids, width, radius, &mut source, cancel)?;
     }
     let mut rhs = vec![[0.0; 3]; unknown.len()];
     let mut initial = Vec::with_capacity(unknown.len());
@@ -257,18 +315,8 @@ pub(super) fn mutate(
             }
         }
     }
-    let (solved, iterations, residual) = solve(
-        &rhs,
-        initial,
-        &unknown,
-        &ids,
-        width,
-        SolveLimits {
-            iterations: p.max_iterations,
-            tolerance: p.tolerance,
-        },
-        cancel,
-    )?;
+    let (solved, iterations, residual) =
+        solve(&rhs, initial, &unknown, &ids, width, limits, cancel)?;
     let mut linear = vec![[0.0f32; 4]; area];
     for (n, &i) in unknown.iter().enumerate() {
         linear[i] = [
@@ -292,8 +340,15 @@ pub(super) fn mutate(
     // Coverage already includes the current selection, pressure and whole-
     // stroke opacity. Do not multiply soft selection a second time at publish.
     let selection = doc.selection.take();
-    let applied = super::paint::fill(doc, p.stroke.layer, 1.0, Some(&coverage), color, cancel);
+    let applied = super::paint::fill(
+        doc,
+        stroke.layer.clone(),
+        1.0,
+        Some(&coverage),
+        color,
+        cancel,
+    );
     doc.selection = selection;
     applied?;
-    Ok(Some(result(unknown.len(), iterations, residual)))
+    Ok(result(unknown.len(), iterations, residual))
 }

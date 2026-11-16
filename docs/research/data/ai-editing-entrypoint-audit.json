@@ -1,28 +1,17 @@
 {
   "scope": "Development audit; not a claim that all Photoshop editing is implemented or AI-verified",
-  "registered_commands": 147,
-  "registered_examples": 218,
-  "catalog_sha256": "8eeb18d0eec69a117b285112d829cb4f2ba96157b51dc2c17b9cec07b1a3a49e",
+  "registered_commands": 148,
+  "registered_examples": 222,
+  "catalog_sha256": "2fe8cce8dbc79b9b32d76c7e42a93470066cef89601f0c25640898c3529a8cea",
   "inventory_rows": 265,
-  "mapped_features": 98,
+  "mapped_features": 102,
   "unmapped_implemented_features": [],
   "partial_entrypoints": [
-    "PS-04-cb66199f15",
-    "PS-04-853e6d30f3",
     "PS-16-8de06204ac",
-    "PS-09-4f3d9835a7",
-    "PS-09-7cc6b0bb65",
-    "PS-09-7d349372b5",
-    "PS-03-5f9716e5d8",
-    "PS-03-ad24731ea8",
-    "PS-11-4490121dad",
-    "PS-11-a524877cb6",
-    "PS-14-de2fd3ca59",
     "PS-14-15d282cc9a",
     "PS-02-b2fd2e2a88"
   ],
   "unfinished_features": [
-    "PS-00-7d7224e709",
     "PS-00-960e444e99",
     "PS-00-4aa7af5b95",
     "PS-01-40267007aa",
@@ -48,9 +37,6 @@
     "PS-02-91854349e1",
     "PS-02-b2fd2e2a88",
     "PS-02-bc773443d0",
-    "PS-03-ad24731ea8",
-    "PS-03-5f9716e5d8",
-    "PS-03-c10dd16a58",
     "PS-03-484489e467",
     "PS-03-67a3559782",
     "PS-03-3e1da0c6ef",
@@ -60,9 +46,7 @@
     "PS-03-e44976409a",
     "PS-03-6e64fa5ccc",
     "PS-03-d47b3363b5",
-    "PS-04-cb66199f15",
     "PS-04-af7f602330",
-    "PS-04-853e6d30f3",
     "PS-04-6084cae48d",
     "PS-04-e65a84f08f",
     "PS-04-288c65e42f",
@@ -112,9 +96,6 @@
     "PS-08-2b199ba19e",
     "PS-08-20a38a31c0",
     "PS-08-8917363943",
-    "PS-09-7cc6b0bb65",
-    "PS-09-4f3d9835a7",
-    "PS-09-7d349372b5",
     "PS-09-64f3d2a3eb",
     "PS-09-073c032f33",
     "PS-09-6891bcf56f",
@@ -142,8 +123,6 @@
     "PS-10-c5d0281f10",
     "PS-10-dca9e3ce4b",
     "PS-10-1e9f8da0f7",
-    "PS-11-4490121dad",
-    "PS-11-a524877cb6",
     "PS-11-c6c65f4de6",
     "PS-11-0a97b13dc8",
     "PS-11-4bfa8a3abe",
@@ -169,7 +148,6 @@
     "PS-13-0529cd2d51",
     "PS-13-4592c9e11f",
     "PS-13-1b8faab964",
-    "PS-14-de2fd3ca59",
     "PS-14-810f37be85",
     "PS-14-15d282cc9a",
     "PS-14-3e68cd79ce",
@@ -184,12 +162,10 @@
     "PS-16-8de06204ac",
     "PS-16-56a0bc682a",
     "PS-16-e269e999cb",
-    "PS-17-86de52d178",
     "PS-17-b487bf0eba",
     "PS-17-01b402a5c6",
     "PS-17-48bd1a145f",
     "PS-17-8368e3ab8e",
-    "PS-18-5d4f709636",
     "PS-18-1d67f7829a",
     "PS-18-c9f7c41baa",
     "PS-18-4f30ead3eb",
@@ -206,7 +182,7 @@
   "unknown_native_command_references": {},
   "native_dispatch_prefixes": {
     "view.guides.": [
-      "apps/macos/Strata/App/MainWindowController.swift:412"
+      "apps/macos/Strata/App/MainWindowController.swift:439"
     ]
   },
   "untyped_command_returns": [],
@@ -476,8 +452,14 @@
       "name": "中英文界面",
       "priority": "P0",
       "source_line": 53,
-      "implementation": "待实现",
-      "entrypoint": null
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "host_managed",
+        "coverage": "complete",
+        "commands": [],
+        "prompts": [],
+        "note": "应用菜单选择界面语言，下次启动生效。模型使用相同的双语命令目录，语言设置属于原生应用显示。"
+      }
     },
     {
       "id": "PS-00-960e444e99",
@@ -1145,10 +1127,10 @@
       "name": "图像大小（多种重采样算法）",
       "priority": "P0",
       "source_line": 106,
-      "implementation": "部分实现",
+      "implementation": "已实现",
       "entrypoint": {
         "scope": "editing",
-        "coverage": "partial",
+        "coverage": "complete",
         "commands": [
           "image.resize"
         ],
@@ -1175,7 +1157,7 @@
             ]
           }
         ],
-        "note": "Pixels, retained-source unstyled text and unstyled groups have real size edits and all three sampling modes, with exact AI replacement approval and one-history turn undo. Editable fill/adjustment/style sizing and other professional resamplers remain open; do not interpret this partial entry as complete image sizing."
+        "note": "最近邻、双线性和面积重采样覆盖图层、链接蒙版和选区。保留文字原文、填充源与裁剪、调整参数与样式。AI 精确批准后提交一次历史。"
       }
     },
     {
@@ -1231,10 +1213,10 @@
       "name": "图像旋转 / 翻转",
       "priority": "P0",
       "source_line": 108,
-      "implementation": "部分实现",
+      "implementation": "已实现",
       "entrypoint": {
         "scope": "editing",
-        "coverage": "partial",
+        "coverage": "complete",
         "commands": [
           "image.orient",
           "image.rotate",
@@ -1293,7 +1275,7 @@
             ]
           }
         ],
-        "note": "All current types support exact orthogonal orientations. Pixel layers, unstyled text and unstyled groups support general angles and numeric/two-point straightening with optional safe inscribed crop. Generated/adjustment/style general geometry remains open; native canvas-dragged reference lines share the same operation/context-bound command; native/AI use identical commands with exact replacement approval and one-step undo. Native pointer input uses an operation-bound owned draft; it does not introduce a separate editing implementation or change AI parameters."
+        "note": "整图五种正交方向、任意角度和拉直共用图层几何。源标签、层次、遮罩及可编辑源随变换保留，AI 精确批准。"
       }
     },
     {
@@ -1445,8 +1427,22 @@
       "name": "RGB 模式",
       "priority": "P0",
       "source_line": 113,
-      "implementation": "待实现",
-      "entrypoint": null
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "document.inspect"
+        ],
+        "prompts": [
+          {
+            "text": "查看当前文档的 RGB 模式、位深和工作色彩配置。",
+            "query": "RGB 模式",
+            "command": "document.inspect"
+          }
+        ],
+        "note": "文档属性和统一查询报告 RGB 模式，位深和工作 ICC 分开表示。"
+      }
     },
     {
       "id": "PS-03-484489e467",
@@ -1598,7 +1594,7 @@
       "name": "新建图层 / 通过拷贝 / 通过剪切 / 背景转图层",
       "priority": "P0",
       "source_line": 129,
-      "implementation": "已实现（M3 集成中）",
+      "implementation": "已实现",
       "entrypoint": {
         "scope": "editing",
         "coverage": "complete",
@@ -1625,7 +1621,7 @@
       "name": "复制 / 删除 / 重命名 / 颜色标签",
       "priority": "P0",
       "source_line": 130,
-      "implementation": "已实现（M3 集成中）",
+      "implementation": "已实现",
       "entrypoint": {
         "scope": "editing",
         "coverage": "complete",
@@ -1652,7 +1648,7 @@
       "name": "图层组（可嵌套）/ 取消编组",
       "priority": "P0",
       "source_line": 131,
-      "implementation": "已实现（M3 集成中）",
+      "implementation": "已实现",
       "entrypoint": {
         "scope": "editing",
         "coverage": "complete",
@@ -1680,7 +1676,7 @@
       "name": "显示隐藏 / 锁定（透明像素、像素、位置、全部）",
       "priority": "P0",
       "source_line": 132,
-      "implementation": "已实现（M3 集成中）",
+      "implementation": "已实现",
       "entrypoint": {
         "scope": "editing",
         "coverage": "complete",
@@ -1705,7 +1701,7 @@
       "name": "不透明度 / 填充不透明度",
       "priority": "P0",
       "source_line": 133,
-      "implementation": "已实现（M3 集成中）",
+      "implementation": "已实现",
       "entrypoint": {
         "scope": "editing",
         "coverage": "complete",
@@ -1730,7 +1726,7 @@
       "name": "混合模式（27 种）",
       "priority": "P0",
       "source_line": 134,
-      "implementation": "已实现（M3 集成中）",
+      "implementation": "已实现",
       "entrypoint": {
         "scope": "editing",
         "coverage": "complete",
@@ -1754,7 +1750,7 @@
       "name": "排列顺序 / 对齐 / 分布",
       "priority": "P0",
       "source_line": 135,
-      "implementation": "已实现（M3 集成中）",
+      "implementation": "已实现",
       "entrypoint": {
         "scope": "editing",
         "coverage": "complete",
@@ -1780,7 +1776,7 @@
       "name": "向下合并 / 合并可见 / 拼合图像 / 盖印",
       "priority": "P0",
       "source_line": 136,
-      "implementation": "已实现（M3 集成中）",
+      "implementation": "已实现",
       "entrypoint": {
         "scope": "editing",
         "coverage": "complete",
@@ -1837,7 +1833,7 @@
       "name": "剪贴蒙版",
       "priority": "P0",
       "source_line": 138,
-      "implementation": "已实现（M3 集成中）",
+      "implementation": "已实现",
       "entrypoint": {
         "scope": "editing",
         "coverage": "complete",
@@ -1861,10 +1857,10 @@
       "name": "调整图层",
       "priority": "P0",
       "source_line": 139,
-      "implementation": "部分实现",
+      "implementation": "已实现",
       "entrypoint": {
         "scope": "editing",
-        "coverage": "partial",
+        "coverage": "complete",
         "commands": [
           "layer.add_adjustment",
           "layer.add_hue_saturation",
@@ -1880,7 +1876,7 @@
             "command": "layer.add_tonal_adjustment"
           }
         ],
-        "note": "当前调整类型已接入，完整后续类型待实现。"
+        "note": "包含 P0 的曝光、色相／饱和度及全部调色和局部阴影／高光类型。每类有可执行的创建与修改参数，调整层、蒙版和原始像素可分别编辑。"
       }
     },
     {
@@ -1890,7 +1886,7 @@
       "name": "填充图层：纯色 / 渐变",
       "priority": "P0",
       "source_line": 140,
-      "implementation": "已实现（M3 集成中）",
+      "implementation": "已实现",
       "entrypoint": {
         "scope": "editing",
         "coverage": "complete",
@@ -1927,10 +1923,10 @@
       "name": "栅格化",
       "priority": "P0",
       "source_line": 142,
-      "implementation": "部分实现",
+      "implementation": "已实现",
       "entrypoint": {
         "scope": "editing",
-        "coverage": "partial",
+        "coverage": "complete",
         "commands": [
           "layer.rasterize"
         ],
@@ -1946,7 +1942,7 @@
             "command": "layer.rasterize"
           }
         ],
-        "note": "当前像素/填充/组/调整与可编辑文字已接入；文字按现有变换和裁剪烘焙显示，撤销恢复原文。智能对象等未来类型仍待实现。"
+        "note": "P0 的像素、填充、组、调整及可编辑文字可显式栅格化。调整层需要明确同意烘焙下方输入，文字按现有变换与裁剪生成显示并可撤销恢复。"
       }
     },
     {
@@ -1956,7 +1952,7 @@
       "name": "图层样式：投影、描边、外发光、颜色叠加、渐变叠加",
       "priority": "P0",
       "source_line": 143,
-      "implementation": "已实现（M3 集成中）",
+      "implementation": "已实现",
       "entrypoint": {
         "scope": "editing",
         "coverage": "complete",
@@ -2995,9 +2991,30 @@
             "text": "自动修复给定笔触内的小污点。",
             "query": "污点修复笔触",
             "command": "retouch.spot_heal"
+          },
+          {
+            "text": "使用创建纹理模式修复这处污点。",
+            "query": "创建纹理",
+            "command": "retouch.spot_heal"
+          },
+          {
+            "text": "用内容识别模式修复穿过细边缘的小斑点。",
+            "query": "污点修复 内容识别",
+            "command": "retouch.spot_heal"
           }
         ],
-        "note": ""
+        "note": "原生工具栏与 AI 共用 proximity_match、create_texture、content_aware 三种真实修复路径。蒙版、笔触外像素及撤销语义统一。",
+        "variants": [
+          {
+            "command": "retouch.spot_heal",
+            "path": "mode",
+            "values": [
+              "proximity_match",
+              "create_texture",
+              "content_aware"
+            ]
+          }
+        ]
       }
     },
     {
@@ -3540,10 +3557,10 @@
       "name": "移动工具（含吸附）",
       "priority": "P0",
       "source_line": 255,
-      "implementation": "部分实现",
+      "implementation": "已实现",
       "entrypoint": {
         "scope": "editing",
-        "coverage": "partial",
+        "coverage": "complete",
         "commands": [
           "layer.select",
           "layer.set_position",
@@ -3568,7 +3585,7 @@
             "command": "layer.snap_position"
           }
         ],
-        "note": "Integer native layer/group moves plus guide/artboard edge/center snapping and shared previews passed automated gates and single-window acceptance, including corrected first-switch routing. Original codes, source text, linked masks and subtree persist; fractional residuals are returned explicitly. Layer-to-layer smart references, selected-pixel V-tool semantics and sustained interaction targets remain open; composite mapping stays partial. Visible layer-to-layer edge/center references and exact candidate smart overlay are now under current incremental local verification; complete scope remains partial."
+        "note": "V 拖动、数值位置和 AI 共用移动及吸附逻辑。支持吸附画板、参考线和可见层边缘／中心，保留精确撤销和整数像素位置。"
       }
     },
     {
@@ -3578,13 +3595,14 @@
       "name": "自由变换：缩放 / 旋转 / 斜切 / 扭曲 / 透视 / 翻转",
       "priority": "P0",
       "source_line": 256,
-      "implementation": "部分实现",
+      "implementation": "已实现",
       "entrypoint": {
         "scope": "editing",
-        "coverage": "partial",
+        "coverage": "complete",
         "commands": [
           "layer.pixel_bounds",
-          "transform.apply"
+          "transform.apply",
+          "transform.apply_layers"
         ],
         "prompts": [
           {
@@ -3651,9 +3669,14 @@
             "text": "将嵌套图层组整体旋转并做透视变换，保留像素、文字源、隐藏子层和链接蒙版。",
             "query": "图层组变换",
             "command": "transform.apply"
+          },
+          {
+            "text": "同时绕画板中心旋转照片与可编辑渐变填充，一次撤销两层。",
+            "query": "多图层自由变换",
+            "command": "transform.apply_layers"
           }
         ],
-        "note": "Pixel/selected-pixel transforms and retained text plus whole nested pixel/text/unstyled-group transforms use the same real executor, native numeric/owned handles and AI. Source/locks/visible-only bounds, immutable sampling, local cancellation, exact confirmation and turn undo have core/AI/native/Metal/Release/examples and single-window evidence. Active-style/generated/adjustment general geometry and continuous warped-pixel feedback remain open; full composite scope stays partial.",
+        "note": "整层、整组、多选和选区内像素共用变换执行器。填充和渐变叠加保留源坐标系，调整图层随选中目标移动其蒙版。源文字、子树和链接蒙版保持可编辑；AI 逐次确认。自由变换画布手柄在拖动时显示变换轮廓。",
         "variants": [
           {
             "command": "transform.apply",
@@ -3683,10 +3706,10 @@
       "name": "裁剪工具（拉直、比例、是否删除裁剪像素）",
       "priority": "P0",
       "source_line": 257,
-      "implementation": "部分实现",
+      "implementation": "已实现",
       "entrypoint": {
         "scope": "editing",
-        "coverage": "partial",
+        "coverage": "complete",
         "commands": [
           "image.crop",
           "image.straighten"
@@ -3728,7 +3751,7 @@
             ]
           }
         ],
-        "note": "Numeric rectangle/aspect, owned canvas drag/handles/move and preserve/delete share real crop commands. Numeric or two-point horizontal/vertical straightening composes rotation and a safe preserving crop in one history step. Canvas-dragged lines stage a guide, bind original document/revision/control/operation, and confirm through the same image.straighten command. Generated/adjustment/style/text arbitrary geometry remains open. Native pointer input uses an operation-bound owned draft; it does not introduce a separate editing implementation or change AI parameters."
+        "note": "数值和画布手柄共用裁剪、比例、保留和删除路径。角度、数值两点和画布拖线共用拉直。填充保留裁剪后的有限可编辑范围。"
       }
     },
     {
@@ -4134,10 +4157,10 @@
       "name": "横排文字（点文字 / 段落文字）",
       "priority": "P0",
       "source_line": 299,
-      "implementation": "部分实现",
+      "implementation": "已实现",
       "entrypoint": {
         "scope": "editing",
-        "coverage": "partial",
+        "coverage": "complete",
         "commands": [
           "type.fonts",
           "type.create",
@@ -4171,7 +4194,7 @@
             ]
           }
         ],
-        "note": "Retained-source point/paragraph layout and fixed CJK glyphs passed the01272c1 local checkpoint. Whole-layer geometry/ordered crop and source re-edit are now connected and under incremental local verification. Inline caret/rich spans/font imports remain open; partial mapping is not a placeholder endpoint."
+        "note": "支持可编辑横排点文字及段落文字，使用内置 Noto 字族、CJK 换行、文字溢出保留、缺字提示及工程重开。保留已应用的变换与裁剪。"
       }
     },
     {
@@ -4181,10 +4204,10 @@
       "name": "字体、字号、颜色、行距、字距、对齐",
       "priority": "P0",
       "source_line": 300,
-      "implementation": "部分实现",
+      "implementation": "已实现",
       "entrypoint": {
         "scope": "editing",
-        "coverage": "partial",
+        "coverage": "complete",
         "commands": [
           "type.fonts",
           "type.create",
@@ -4229,7 +4252,7 @@
             ]
           }
         ],
-        "note": "Three pinned licensed built-in fonts, uniform font/size/straight working RGBA/line-height/tracking/alignment/paragraph box. No host path exposed. System/arbitrary font importing, rich character-span styles and typography beyond this implementation remain open; the01272c1 base passed local acceptance; retained geometry is under the next incremental gate."
+        "note": "可编辑内置字体、字号、颜色、透明度、行距、字距和对齐，并验证修改触发重新排版。系统字体导入和富文本为后续功能。"
       }
     },
     {
@@ -4564,10 +4587,10 @@
       "name": "标尺 / 参考线 / 对齐吸附",
       "priority": "P0",
       "source_line": 346,
-      "implementation": "部分实现",
+      "implementation": "已实现",
       "entrypoint": {
         "scope": "editing",
-        "coverage": "partial",
+        "coverage": "complete",
         "commands": [
           "view.guides.list",
           "view.guides.add",
@@ -4665,7 +4688,7 @@
             ]
           }
         ],
-        "note": "Persistent guides, six ruler units/custom origin, owned corner origin drag/reset and shared integer layer snapping use real shared commands. Local core28/AI49/FFI1/Metal1/native111pass1skip/lint/206examples/Release passed; one27e0c8c Release manually checked fractional origin/outside cancel/reset, V/numeric alignment and source/history/default restoration before normal quit/process0. Held-pointer overlay appearance/latency and sustained large-photo/remaining view scope stay partial."
+        "note": "支持持久参考线、六种标尺单位、拖动原点和重置、显示／锁定及多类吸附。视图设置与保存在工程中的参考线使用各自权限和历史。"
       }
     },
     {
@@ -4940,8 +4963,50 @@
       "name": "属性",
       "priority": "P0",
       "source_line": 379,
-      "implementation": "待实现",
-      "entrypoint": null
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "document.inspect",
+          "layer.list",
+          "layer.rename",
+          "layer.set_position",
+          "layer.set_opacity",
+          "layer.set_fill_opacity",
+          "layer.set_blend_mode",
+          "layer.set_locks",
+          "layer.set_color_label",
+          "layer.set_styles",
+          "layer.set_visibility",
+          "layer.mask.add",
+          "layer.mask.set_enabled",
+          "layer.mask.invert",
+          "layer.mask.apply",
+          "layer.mask.remove",
+          "layer.fill.solid.set",
+          "layer.fill.gradient.set",
+          "adjust.exposure.set",
+          "adjust.hue_saturation.set",
+          "adjust.tonal.set",
+          "type.inspect",
+          "type.update",
+          "paint.stroke"
+        ],
+        "prompts": [
+          {
+            "text": "先读取图层属性，再把当前图层不透明度调为 60%。",
+            "query": "图层不透明度",
+            "command": "layer.set_opacity"
+          },
+          {
+            "text": "为当前图层添加白色蒙版，并用黑色画笔隐藏指定区域。",
+            "query": "添加图层蒙版",
+            "command": "layer.mask.add"
+          }
+        ],
+        "note": "属性面板直接读取编辑器快照。图层属性、文字、调整、蒙版与绘制使用统一命令，工具参数由各工具提交。"
+      }
     },
     {
       "id": "PS-17-b487bf0eba",
@@ -4990,8 +5055,26 @@
       "name": "脚本",
       "priority": "P0",
       "source_line": 389,
-      "implementation": "待实现",
-      "entrypoint": null
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "infrastructure",
+        "coverage": "complete",
+        "commands": [
+          "document.batch"
+        ],
+        "prompts": [
+          {
+            "text": "将重命名和不透明度调整放进一个可撤销批次。",
+            "query": "批量修改",
+            "command": "document.batch"
+          }
+        ],
+        "note": "本机 strata-devtool run 执行 JSON 命令序列。受信宿主声明文件资源，AI 通过共享的调用和原子批次元工具执行同一目录。",
+        "meta_tools": [
+          "invoke_command",
+          "invoke_batch"
+        ]
+      }
     },
     {
       "id": "PS-18-1d67f7829a",

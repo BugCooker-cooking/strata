@@ -2,9 +2,9 @@
 
 当前开发期审计快照。完整编辑功能与最终 AI 审计仍未闭环；不得把注册数量当作全部功能覆盖。
 
-真实注册命令 147；参数示例 218；综合功能 265；已有映射 98。
+真实注册命令 148；参数示例 222；综合功能 265；已有映射 102。
 
-已实现但未映射 0；部分入口 13；原生未知命令引用 0；未类型化返回 0。
+已实现但未映射 0；部分入口 3；原生未知命令引用 0；未类型化返回 0。
 
 配置/密钥及基础设施的宿主管理理由单列；纯 UI 状态不能隐瞒为已具备独立 AI 设置命令。
 
@@ -20,7 +20,7 @@
 | PS-00-81f5847182 | GPU 渲染管线 + 分块存储 | 已实现 | 已映射 · infrastructure |  · 所有编辑调用共享底层，不要求模型管理缓存。 |
 | PS-00-a664122198 | Strata 工程文件格式 | 已实现 | 已映射 | `file.save`、`file.save_as`、`file.open` · 将当前文档另存为 Strata 工程。 |
 | PS-00-6f14bdb57f | 自动保存与崩溃恢复 | 已实现 | 已映射 · host_managed | `file.recover` · 恢复我选择的检查点。 · 自动检查点由宿主调度；恢复通过宿主文件选择授权。 |
-| PS-00-7d7224e709 | 中英文界面 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
+| PS-00-7d7224e709 | 中英文界面 | 已实现 | 已映射 · host_managed |  · 应用菜单选择界面语言，下次启动生效。模型使用相同的双语命令目录，语言设置属于原生应用显示。 |
 | PS-00-960e444e99 | MCP Server | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-00-4aa7af5b95 | 插件系统 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-01-51efedefef | 新建文档（尺寸、分辨率、背景、预设） | 已实现 | 已映射 | `file.new` · 新建 1920×1080 的 16 位 sRGB 文档。 |
@@ -58,14 +58,14 @@
 | PS-02-21ab73cf70 | 功能搜索 | 已实现 | 已映射 · infrastructure | `search_catalog`、`describe_commands` · The Command-F sheet uses the same bounded search_catalog and describe_commands implementations as AI. Native bilingual lookup and a one-window search-to-draft check passed. The draft remains available for user review before sending. |
 | PS-02-b2fd2e2a88 | 清理缓存 | 部分实现 | 部分入口 | `system.memory.get`、`system.memory.trim` · 先读取托管资源占用，再释放全部文档的空闲缓存，保留源像素与历史。 · 实际回收可释放的 CPU/GPU 缓存，并将未固定源/历史块写入校验磁盘后备；固定读取者保留。Photoshop Purge 的剪贴板、历史定向清除尚未提供，条目保留部分状态。 |
 | PS-02-bc773443d0 | 拼写检查、查找替换文本 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
-| PS-03-ad24731ea8 | 图像大小（多种重采样算法） | 部分实现 | 部分入口 | `image.resize` · 将图像大小改为512乘768像素，使用面积缩小并保留独立图层和蒙版。 · Pixels, retained-source unstyled text and unstyled groups have real size edits and all three sampling modes, with exact AI replacement approval and one-history turn undo. Editable fill/adjustment/style sizing and other professional resamplers remain open; do not interpret this partial entry as complete image sizing. |
+| PS-03-ad24731ea8 | 图像大小（多种重采样算法） | 已实现 | 已映射 | `image.resize` · 将图像大小改为512乘768像素，使用面积缩小并保留独立图层和蒙版。 · 最近邻、双线性和面积重采样覆盖图层、链接蒙版和选区。保留文字原文、填充源与裁剪、调整参数与样式。AI 精确批准后提交一次历史。 |
 | PS-03-45c2eea14c | 画布大小 | 已实现 | 已映射 | `image.canvas_size` · 固定画布右下角，把画布扩展到给定宽高，保留所有画板外内容，不缩放图层。 · 画布边界编辑保留结构与原码；生成填充/样式和空间调色冻结参考，选区裁到新边界，扩展覆盖为零。图像缩放与删除裁剪像素属于其他命令。 |
-| PS-03-5f9716e5d8 | 图像旋转 / 翻转 | 部分实现 | 部分入口 | `image.orient`、`image.rotate`、`image.straighten` · 将整幅图像顺时针旋转 90 度，同时保留可编辑图层、链接蒙版和选区。 · All current types support exact orthogonal orientations. Pixel layers, unstyled text and unstyled groups support general angles and numeric/two-point straightening with optional safe inscribed crop. Generated/adjustment/style general geometry remains open; native canvas-dragged reference lines share the same operation/context-bound command; native/AI use identical commands with exact replacement approval and one-step undo. Native pointer input uses an operation-bound owned draft; it does not introduce a separate editing implementation or change AI parameters. |
+| PS-03-5f9716e5d8 | 图像旋转 / 翻转 | 已实现 | 已映射 | `image.orient`、`image.rotate`、`image.straighten` · 将整幅图像顺时针旋转 90 度，同时保留可编辑图层、链接蒙版和选区。 · 整图五种正交方向、任意角度和拉直共用图层几何。源标签、层次、遮罩及可编辑源随变换保留，AI 精确批准。 |
 | PS-03-84941ac6e8 | 显示全部 | 已实现 | 已映射 | `image.reveal_all` · 扩展画板，显示全部可见源图层与样式边界，恢复被画板遮住的内容。 · 以可见源图层/生成填充和自身/祖先样式的保守边界扩展，不移动/缩放内容；隐藏层不参与，蒙版/剪贴/零透明度可能让边界大于最小可见 alpha 范围。 |
 | PS-03-51294954aa | 裁切（去透明边） | 已实现 | 已映射 | `image.trim` · Trim all fully transparent borders while preserving original editable layers. · Visible composite alpha>0 within the current frame, independent side booleans. No display quantization; hidden RGB/layers do not count. Sources remain stored. Tight repeat is a no-op without history; fully transparent input rejects. |
 | PS-03-0f4e217715 | 复制文档 | 已实现 | 已映射 | `image.duplicate` · 复制当前图像，保留所有图层并命名为校样副本。 · The same image.duplicate command creates the new native tab from the menu and AI. Explicit workspace approval pins the source revision, and the AI turn stays in the source document. Core verified both modes and save isolation. AI replay checked decline, stale approval and real creation. Release and one-window tab acceptance passed. |
 | PS-03-691c261ce9 | 自动色调 / 自动对比度 / 自动颜色 | 已实现 | 已映射 | `image.auto` · 给当前像素层做自动色调，每端裁切0.5%，保留选区外像素和透明度。 · All three real methods, explicit visible raw pixel-layer input, exact alpha/selection weighted histograms with symmetric integer tail ranks, direct full-coverage codes and one soft linear blend. Exact approval, actual invokes and AI-turn archive undo verified. Native menu/parameters/shared preview, required real Metal/CPU/undo, arm64 App Release and single-window acceptance now passed after approval login recovered. The initial native preview fixture was already full-range and correctly no-op; a limited-range fixture fixed its incorrect history expectation. Full Photoshop, continuous performance, live-model quality and final per-feature AI closure remain separate and open. |
-| PS-03-c10dd16a58 | RGB 模式 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
+| PS-03-c10dd16a58 | RGB 模式 | 已实现 | 已映射 | `document.inspect` · 查看当前文档的 RGB 模式、位深和工作色彩配置。 · 文档属性和统一查询报告 RGB 模式，位深和工作 ICC 分开表示。 |
 | PS-03-484489e467 | 灰度模式 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-03-67a3559782 | CMYK 模式 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-03-3e1da0c6ef | Lab / 索引色 / 双色调 / 位图 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
@@ -76,21 +76,21 @@
 | PS-03-e44976409a | 计算 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-03-6e64fa5ccc | 分析与测量 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-03-d47b3363b5 | 陷印 | 重新核对 | 待实现/待核对 | 保留最终入口与提示核对任务 |
-| PS-04-430fc8e2db | 新建图层 / 通过拷贝 / 通过剪切 / 背景转图层 | 已实现（M3 集成中） | 已映射 | `layer.create`、`layer.via_copy`、`layer.via_cut`、`layer.background_to_layer` · 把当前选区复制为新图层。 |
-| PS-04-4e8bda1fd0 | 复制 / 删除 / 重命名 / 颜色标签 | 已实现（M3 集成中） | 已映射 | `layer.duplicate`、`layer.delete`、`layer.rename`、`layer.set_color_label` · 复制当前图层。 |
-| PS-04-fe6945c814 | 图层组（可嵌套）/ 取消编组 | 已实现（M3 集成中） | 已映射 | `layer.create_group`、`layer.group`、`layer.ungroup`、`layer.reparent`、`layer.set_pass_through` · 将所选图层编组。 |
-| PS-04-54bcfbb2ac | 显示隐藏 / 锁定（透明像素、像素、位置、全部） | 已实现（M3 集成中） | 已映射 | `layer.set_visibility`、`layer.set_locks` · 隐藏当前图层。 |
-| PS-04-a7fe5679e6 | 不透明度 / 填充不透明度 | 已实现（M3 集成中） | 已映射 | `layer.set_opacity`、`layer.set_fill_opacity` · 把当前图层不透明度设为 50%。 |
-| PS-04-bd9b0e9d03 | 混合模式（27 种） | 已实现（M3 集成中） | 已映射 | `layer.set_blend_mode` · 把当前图层混合模式设为正片叠底。 |
-| PS-04-e5e334c943 | 排列顺序 / 对齐 / 分布 | 已实现（M3 集成中） | 已映射 | `layer.move_order`、`layer.align`、`layer.distribute` · 将所选图层水平居中对齐。 |
-| PS-04-e77c27785e | 向下合并 / 合并可见 / 拼合图像 / 盖印 | 已实现（M3 集成中） | 已映射 | `layer.merge_down`、`layer.merge_visible`、`layer.flatten`、`layer.stamp_visible` · 把可见合成盖印到新图层。 |
+| PS-04-430fc8e2db | 新建图层 / 通过拷贝 / 通过剪切 / 背景转图层 | 已实现 | 已映射 | `layer.create`、`layer.via_copy`、`layer.via_cut`、`layer.background_to_layer` · 把当前选区复制为新图层。 |
+| PS-04-4e8bda1fd0 | 复制 / 删除 / 重命名 / 颜色标签 | 已实现 | 已映射 | `layer.duplicate`、`layer.delete`、`layer.rename`、`layer.set_color_label` · 复制当前图层。 |
+| PS-04-fe6945c814 | 图层组（可嵌套）/ 取消编组 | 已实现 | 已映射 | `layer.create_group`、`layer.group`、`layer.ungroup`、`layer.reparent`、`layer.set_pass_through` · 将所选图层编组。 |
+| PS-04-54bcfbb2ac | 显示隐藏 / 锁定（透明像素、像素、位置、全部） | 已实现 | 已映射 | `layer.set_visibility`、`layer.set_locks` · 隐藏当前图层。 |
+| PS-04-a7fe5679e6 | 不透明度 / 填充不透明度 | 已实现 | 已映射 | `layer.set_opacity`、`layer.set_fill_opacity` · 把当前图层不透明度设为 50%。 |
+| PS-04-bd9b0e9d03 | 混合模式（27 种） | 已实现 | 已映射 | `layer.set_blend_mode` · 把当前图层混合模式设为正片叠底。 |
+| PS-04-e5e334c943 | 排列顺序 / 对齐 / 分布 | 已实现 | 已映射 | `layer.move_order`、`layer.align`、`layer.distribute` · 将所选图层水平居中对齐。 |
+| PS-04-e77c27785e | 向下合并 / 合并可见 / 拼合图像 / 盖印 | 已实现 | 已映射 | `layer.merge_down`、`layer.merge_visible`、`layer.flatten`、`layer.stamp_visible` · 把可见合成盖印到新图层。 |
 | PS-04-d5e9c4039f | 图层蒙版（添加、编辑、停用、应用、反相） | 已实现 | 已映射 | `layer.mask.add`、`paint.stroke`、`paint.erase`、`layer.mask.set_enabled`、`layer.mask.apply`、`layer.mask.invert`、`layer.mask.remove` · 从当前选区添加图层蒙版。 |
-| PS-04-9101e755a1 | 剪贴蒙版 | 已实现（M3 集成中） | 已映射 | `layer.set_clipping` · 把当前图层设为剪贴图层。 |
-| PS-04-cb66199f15 | 调整图层 | 部分实现 | 部分入口 | `layer.add_adjustment`、`layer.add_hue_saturation`、`layer.add_tonal_adjustment`、`adjust.exposure.set`、`adjust.hue_saturation.set`、`adjust.tonal.set` · 添加可编辑的色阶调整图层。 · 当前调整类型已接入，完整后续类型待实现。 |
-| PS-04-755f2b287b | 填充图层：纯色 / 渐变 | 已实现（M3 集成中） | 已映射 | `layer.fill.solid`、`layer.fill.gradient`、`layer.fill.solid.set`、`layer.fill.gradient.set` · 新建蓝色纯色填充图层。 |
+| PS-04-9101e755a1 | 剪贴蒙版 | 已实现 | 已映射 | `layer.set_clipping` · 把当前图层设为剪贴图层。 |
+| PS-04-cb66199f15 | 调整图层 | 已实现 | 已映射 | `layer.add_adjustment`、`layer.add_hue_saturation`、`layer.add_tonal_adjustment`、`adjust.exposure.set`、`adjust.hue_saturation.set`、`adjust.tonal.set` · 添加可编辑的色阶调整图层。 · 包含 P0 的曝光、色相／饱和度及全部调色和局部阴影／高光类型。每类有可执行的创建与修改参数，调整层、蒙版和原始像素可分别编辑。 |
+| PS-04-755f2b287b | 填充图层：纯色 / 渐变 | 已实现 | 已映射 | `layer.fill.solid`、`layer.fill.gradient`、`layer.fill.solid.set`、`layer.fill.gradient.set` · 新建蓝色纯色填充图层。 |
 | PS-04-af7f602330 | 填充图层：图案 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
-| PS-04-853e6d30f3 | 栅格化 | 部分实现 | 部分入口 | `layer.rasterize` · 栅格化当前填充图层。 · 当前像素/填充/组/调整与可编辑文字已接入；文字按现有变换和裁剪烘焙显示，撤销恢复原文。智能对象等未来类型仍待实现。 |
-| PS-04-d6c3930e2f | 图层样式：投影、描边、外发光、颜色叠加、渐变叠加 | 已实现（M3 集成中） | 已映射 | `layer.set_styles` · 给当前图层添加投影和描边。 |
+| PS-04-853e6d30f3 | 栅格化 | 已实现 | 已映射 | `layer.rasterize` · 栅格化当前填充图层。 · P0 的像素、填充、组、调整及可编辑文字可显式栅格化。调整层需要明确同意烘焙下方输入，文字按现有变换与裁剪生成显示并可撤销恢复。 |
+| PS-04-d6c3930e2f | 图层样式：投影、描边、外发光、颜色叠加、渐变叠加 | 已实现 | 已映射 | `layer.set_styles` · 给当前图层添加投影和描边。 |
 | PS-04-6084cae48d | 图层样式：内阴影、内发光、斜面浮雕、光泽、图案叠加；样式预设 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-04-e65a84f08f | 链接图层 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-04-288c65e42f | 混合颜色带（Blend If） | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
@@ -143,7 +143,7 @@
 | PS-06-7b4433741f | 匹配颜色 / 替换颜色 / 色调均化 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-06-ff679aec47 | 调整预设 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-06-77f246179b | HDR 色调 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
-| PS-07-7fd32754e9 | 污点修复画笔 | 已实现 | 已映射 | `retouch.spot_heal` · 自动修复给定笔触内的小污点。 |
+| PS-07-7fd32754e9 | 污点修复画笔 | 已实现 | 已映射 | `retouch.spot_heal` · 自动修复给定笔触内的小污点。 · 原生工具栏与 AI 共用 proximity_match、create_texture、content_aware 三种真实修复路径。蒙版、笔触外像素及撤销语义统一。 |
 | PS-07-2eddb4a1cf | 修复画笔 | 已实现 | 已映射 | `retouch.heal` · 用指定源点的纹理修复目标区域并匹配边界。 |
 | PS-07-ec6361e1f3 | 仿制图章 | 已实现 | 已映射 | `retouch.clone` · 从指定源点对齐仿制纹理。 |
 | PS-07-74865c42fd | 减淡 / 加深 / 海绵 | 已实现 | 已映射 | `retouch.dodge`、`retouch.burn`、`retouch.sponge` · 用软笔刷轻微减淡中间调。 |
@@ -175,9 +175,9 @@
 | PS-08-2b199ba19e | 历史记录画笔 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-08-20a38a31c0 | 混合器画笔 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-08-8917363943 | 历史记录艺术画笔 | 重新核对 | 待实现/待核对 | 保留最终入口与提示核对任务 |
-| PS-09-7cc6b0bb65 | 移动工具（含吸附） | 部分实现 | 部分入口 | `layer.select`、`layer.set_position`、`layer.snap_position`、`view.presentation.get`、`view.presentation.set` · 选择可见目标图层，使用稳定 ID。 · Integer native layer/group moves plus guide/artboard edge/center snapping and shared previews passed automated gates and single-window acceptance, including corrected first-switch routing. Original codes, source text, linked masks and subtree persist; fractional residuals are returned explicitly. Layer-to-layer smart references, selected-pixel V-tool semantics and sustained interaction targets remain open; composite mapping stays partial. Visible layer-to-layer edge/center references and exact candidate smart overlay are now under current incremental local verification; complete scope remains partial. |
-| PS-09-4f3d9835a7 | 自由变换：缩放 / 旋转 / 斜切 / 扭曲 / 透视 / 翻转 | 部分实现 | 部分入口 | `layer.pixel_bounds`、`transform.apply` · 把整个像素图层围绕给定轴心旋转 15 度，保留画板外内容。 · Pixel/selected-pixel transforms and retained text plus whole nested pixel/text/unstyled-group transforms use the same real executor, native numeric/owned handles and AI. Source/locks/visible-only bounds, immutable sampling, local cancellation, exact confirmation and turn undo have core/AI/native/Metal/Release/examples and single-window evidence. Active-style/generated/adjustment general geometry and continuous warped-pixel feedback remain open; full composite scope stays partial. |
-| PS-09-7d349372b5 | 裁剪工具（拉直、比例、是否删除裁剪像素） | 部分实现 | 部分入口 | `image.crop`、`image.straighten` · 用指定画布矩形和 4:3 比例裁剪画板，保留所有裁剪外像素与图层。 · Numeric rectangle/aspect, owned canvas drag/handles/move and preserve/delete share real crop commands. Numeric or two-point horizontal/vertical straightening composes rotation and a safe preserving crop in one history step. Canvas-dragged lines stage a guide, bind original document/revision/control/operation, and confirm through the same image.straighten command. Generated/adjustment/style/text arbitrary geometry remains open. Native pointer input uses an operation-bound owned draft; it does not introduce a separate editing implementation or change AI parameters. |
+| PS-09-7cc6b0bb65 | 移动工具（含吸附） | 已实现 | 已映射 | `layer.select`、`layer.set_position`、`layer.snap_position`、`view.presentation.get`、`view.presentation.set` · 选择可见目标图层，使用稳定 ID。 · V 拖动、数值位置和 AI 共用移动及吸附逻辑。支持吸附画板、参考线和可见层边缘／中心，保留精确撤销和整数像素位置。 |
+| PS-09-4f3d9835a7 | 自由变换：缩放 / 旋转 / 斜切 / 扭曲 / 透视 / 翻转 | 已实现 | 已映射 | `layer.pixel_bounds`、`transform.apply`、`transform.apply_layers` · 把整个像素图层围绕给定轴心旋转 15 度，保留画板外内容。 · 整层、整组、多选和选区内像素共用变换执行器。填充和渐变叠加保留源坐标系，调整图层随选中目标移动其蒙版。源文字、子树和链接蒙版保持可编辑；AI 逐次确认。自由变换画布手柄在拖动时显示变换轮廓。 |
+| PS-09-7d349372b5 | 裁剪工具（拉直、比例、是否删除裁剪像素） | 已实现 | 已映射 | `image.crop`、`image.straighten` · 用指定画布矩形和 4:3 比例裁剪画板，保留所有裁剪外像素与图层。 · 数值和画布手柄共用裁剪、比例、保留和删除路径。角度、数值两点和画布拖线共用拉直。填充保留裁剪后的有限可编辑范围。 |
 | PS-09-64f3d2a3eb | 变形 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-09-073c032f33 | 透视裁剪 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-09-6891bcf56f | 操控变形 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
@@ -209,8 +209,8 @@
 | PS-10-c5d0281f10 | 滤镜库（47 个旧式艺术滤镜） | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-10-dca9e3ce4b | 火焰 / 树 / 图片框 | 重新核对 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-10-1e9f8da0f7 | 防抖 | 重新核对 | 待实现/待核对 | 保留最终入口与提示核对任务 |
-| PS-11-4490121dad | 横排文字（点文字 / 段落文字） | 部分实现 | 部分入口 | `type.fonts`、`type.create`、`type.update`、`type.inspect` · 在指定位置新建可编辑中文点文字，使用内置sans字体，保留原文和一次撤销。 · Retained-source point/paragraph layout and fixed CJK glyphs passed the01272c1 local checkpoint. Whole-layer geometry/ordered crop and source re-edit are now connected and under incremental local verification. Inline caret/rich spans/font imports remain open; partial mapping is not a placeholder endpoint. |
-| PS-11-a524877cb6 | 字体、字号、颜色、行距、字距、对齐 | 部分实现 | 部分入口 | `type.fonts`、`type.create`、`type.update`、`type.inspect` · 列出内置字体及版本，不读取系统字体路径。 · Three pinned licensed built-in fonts, uniform font/size/straight working RGBA/line-height/tracking/alignment/paragraph box. No host path exposed. System/arbitrary font importing, rich character-span styles and typography beyond this implementation remain open; the01272c1 base passed local acceptance; retained geometry is under the next incremental gate. |
+| PS-11-4490121dad | 横排文字（点文字 / 段落文字） | 已实现 | 已映射 | `type.fonts`、`type.create`、`type.update`、`type.inspect` · 在指定位置新建可编辑中文点文字，使用内置sans字体，保留原文和一次撤销。 · 支持可编辑横排点文字及段落文字，使用内置 Noto 字族、CJK 换行、文字溢出保留、缺字提示及工程重开。保留已应用的变换与裁剪。 |
+| PS-11-a524877cb6 | 字体、字号、颜色、行距、字距、对齐 | 已实现 | 已映射 | `type.fonts`、`type.create`、`type.update`、`type.inspect` · 列出内置字体及版本，不读取系统字体路径。 · 可编辑内置字体、字号、颜色、透明度、行距、字距和对齐，并验证修改触发重新排版。系统字体导入和富文本为后续功能。 |
 | PS-11-cf9b897491 | 栅格化文字 | 已实现 | 已映射 | `layer.rasterize`、`type.inspect` · 把当前可编辑文字层显式栅格化，保留显示样式，允许一次撤销恢复原文与排版。 · Real layer.rasterize bakes current text glyphs/ordered geometry and mask/style appearance. Core save/recovery/rasterize/undo and current AI/native/Release gates passed. Current-Mac manual point-type rasterize/undo/re-edit passed, with the clean fixture restored before quit; transformed/cropped 16-bit P3 numeric equivalence and exact geometry restoration are automated evidence. |
 | PS-11-c6c65f4de6 | 直排文字 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-11-0a97b13dc8 | 文字变形 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
@@ -239,7 +239,7 @@
 | PS-13-1b8faab964 | AI 蒙版（主体 / 天空 / 人物）🤖、AI 降噪 🤖、镜头模糊 🤖 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-14-cf2715aeb6 | 缩放 / 抓手 / 适合屏幕 / 100% | 已实现 | 已映射 | `view.pan`、`view.zoom`、`view.fit`、`view.actual_size` · 以实际像素 100% 显示当前画布，保持中心不变。 · 绝对 100% 与相对缩放分开；视图命令不改变文档或历史。 |
 | PS-14-c9a6761937 | 多文档标签页 | 已实现 | 已映射 · host_managed | `image.duplicate` · The native tab host opens, selects and closes independent editors. AI can create a tab with image.duplicate through workspace approval. A turn stays in its authorized document and each tab manages its own control, history and saved state. M1b and current one-window switch/close evidence are linked in the feature tracker. |
-| PS-14-de2fd3ca59 | 标尺 / 参考线 / 对齐吸附 | 部分实现 | 部分入口 | `view.guides.list`、`view.guides.add`、`view.guides.update`、`view.guides.delete`、`view.guides.clear`、`view.presentation.get`、`view.presentation.set`、`layer.snap_position`、`view.rulers.convert` · 在画布X=120.5建立垂直参考线，保留稳定ID并允许撤销。 · Persistent guides, six ruler units/custom origin, owned corner origin drag/reset and shared integer layer snapping use real shared commands. Local core28/AI49/FFI1/Metal1/native111pass1skip/lint/206examples/Release passed; one27e0c8c Release manually checked fractional origin/outside cancel/reset, V/numeric alignment and source/history/default restoration before normal quit/process0. Held-pointer overlay appearance/latency and sustained large-photo/remaining view scope stay partial. |
+| PS-14-de2fd3ca59 | 标尺 / 参考线 / 对齐吸附 | 已实现 | 已映射 | `view.guides.list`、`view.guides.add`、`view.guides.update`、`view.guides.delete`、`view.guides.clear`、`view.presentation.get`、`view.presentation.set`、`layer.snap_position`、`view.rulers.convert` · 在画布X=120.5建立垂直参考线，保留稳定ID并允许撤销。 · 支持持久参考线、六种标尺单位、拖动原点和重置、显示／锁定及多类吸附。视图设置与保存在工程中的参考线使用各自权限和历史。 |
 | PS-14-810f37be85 | 旋转视图 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-14-15d282cc9a | 智能参考线 | 部分实现 | 部分入口 | `layer.snap_position`、`view.presentation.get`、`view.presentation.set` · 使用智能参考线，将当前图层边缘或中心吸附到其他可见图层，并返回实际参考层ID和残差。 · Actual opt-in visible layer/group edges/centers use the shared strict layer.snap_position resolver and typed reference IDs/anchors/residuals. Automated exact-candidate/cache/cancel/scene gates retain their records. One current Release manually confirmed V move atX512/Y0, numeric509->512, one-step Undo and clean fixture/default restoration with artboard snap off/zero guides. No held-pointer appearance or large-photo performance claim; equal spacing and angle/size intelligence remain open. |
 | PS-14-3e68cd79ce | 网格 / 像素网格 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
@@ -257,12 +257,12 @@
 | PS-16-8de06204ac | 指定 / 转换配置文件 | 部分实现 | 部分入口 | `color.assign`、`color.convert` · 指定 Display P3 并保留 RGB 数值，不转换像素。 · 当前指定支持两种内置 RGB 预设；任意 ICC 文件与 CMYK 设置待后续。 |
 | PS-16-56a0bc682a | 软打样 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-16-e269e999cb | 颜色设置（自定义 CMYK 等） | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
-| PS-17-86de52d178 | 属性 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
+| PS-17-86de52d178 | 属性 | 已实现 | 已映射 | `document.inspect`、`layer.list`、`layer.rename`、`layer.set_position`、`layer.set_opacity`、`layer.set_fill_opacity`、`layer.set_blend_mode`、`layer.set_locks`、`layer.set_color_label`、`layer.set_styles`、`layer.set_visibility`、`layer.mask.add`、`layer.mask.set_enabled`、`layer.mask.invert`、`layer.mask.apply`、`layer.mask.remove`、`layer.fill.solid.set`、`layer.fill.gradient.set`、`adjust.exposure.set`、`adjust.hue_saturation.set`、`adjust.tonal.set`、`type.inspect`、`type.update`、`paint.stroke` · 先读取图层属性，再把当前图层不透明度调为 60%。 · 属性面板直接读取编辑器快照。图层属性、文字、调整、蒙版与绘制使用统一命令，工具参数由各工具提交。 |
 | PS-17-b487bf0eba | 信息、直方图 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-17-01b402a5c6 | 动作、样式、图层复合、上下文任务栏 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-17-48bd1a145f | 工具预设、测量记录、注释 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-17-8368e3ab8e | 时间轴、库、评论、版本历史 | 重新核对 | 待实现/待核对 | 保留最终入口与提示核对任务 |
-| PS-18-5d4f709636 | 脚本 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
+| PS-18-5d4f709636 | 脚本 | 已实现 | 已映射 · infrastructure | `document.batch`、`invoke_command`、`invoke_batch` · 将重命名和不透明度调整放进一个可撤销批次。 · 本机 strata-devtool run 执行 JSON 命令序列。受信宿主声明文件资源，AI 通过共享的调用和原子批次元工具执行同一目录。 |
 | PS-18-1d67f7829a | 动作：录制 / 回放 / 编辑 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-18-c9f7c41baa | 批处理 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-18-4f30ead3eb | 插件（类似 Photoshop 的 UXP） | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
@@ -278,8 +278,8 @@
 
 ## 仍需核对
 
-- 部分入口：PS-04-cb66199f15、PS-04-853e6d30f3、PS-16-8de06204ac、PS-09-4f3d9835a7、PS-09-7cc6b0bb65、PS-09-7d349372b5、PS-03-5f9716e5d8、PS-03-ad24731ea8、PS-11-4490121dad、PS-11-a524877cb6、PS-14-de2fd3ca59、PS-14-15d282cc9a、PS-02-b2fd2e2a88
+- 部分入口：PS-16-8de06204ac、PS-14-15d282cc9a、PS-02-b2fd2e2a88
 - 未类型化返回：无
 - 未关联功能条目的命令：
 - 动态拼接及纯宿主回调仍需人工逐项复核；已有提示映射不能代替最终模型端到端验收。
-- `--require-complete` 才是最终严格门槛；开发期检查只保证引用有效及报告同步。
+- `--require-p0` 检查 P0 实现与入口。`--require-complete` 检查完整清单。

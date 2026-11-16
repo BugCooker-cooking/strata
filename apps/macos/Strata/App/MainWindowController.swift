@@ -21,7 +21,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
     private var exposureActive = false
     var recovery: RecoveryMonitor?
     var quickExportError:String{get{QuickExportPreferences.restoreError}set{QuickExportPreferences.restoreError=newValue}}
-    var fileName = "未命名"
+    var fileName = L10n.text("未命名")
     var documentURL: URL?
     var state: EditorSnapshot? { workspace.snapshot }
     var selected: EditorSnapshot.Layer? { workspace.selected }
@@ -39,10 +39,10 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
     func setBenchmarkRunning(_ running: Bool) { busy = running }
     func startRecovery(directory: URL) {
         do { try engine.configureRecovery(directory: directory.path); recovery = RecoveryMonitor(engine: engine, controller: self) }
-        catch { workspace.recoveryStatus = "恢复目录不可用"; workspace.recoveryError = error.localizedDescription }
+        catch { workspace.recoveryStatus = L10n.text("恢复目录不可用"); workspace.recoveryError = error.localizedDescription }
     }
 
-    init(engine: StrataEngine, fileName: String = "未命名") {
+    init(engine: StrataEngine, fileName: String = L10n.text("未命名")) {
         self.fileName = fileName
         self.engine = engine; canvas = CanvasView(engine: engine); assistant = AssistantModel(engine: engine)
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1512, height: 930), styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
@@ -99,7 +99,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         assistant.onDocumentFile = { [weak self] url, command in
             guard let self else { return }
             self.documentURL = ["file.open", "file.revert", "file.save", "file.save_as"].contains(command) ? url : nil
-            self.fileName = self.documentURL?.lastPathComponent ?? "未命名"
+            self.fileName = self.documentURL?.lastPathComponent ?? L10n.text("未命名")
             if let url, ["file.open", "file.save", "file.save_as"].contains(command) { RecentFileStore().record(url); self.syncRecentFiles() }
             self.refresh(); self.canvas.fit()
         }
@@ -143,13 +143,13 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         let item = NSToolbarItem(itemIdentifier: id)
         if id.rawValue == "document" {
             let view = NSHostingView(rootView: DocumentTitleView(model: workspace)); view.frame = NSRect(x: 0, y: 0, width: 230, height: 28)
-            item.view = view; item.label = "当前文档"; return item
+            item.view = view; item.label = L10n.text("当前文档"); return item
         }
         let entries: [String: (String, String, Selector)] = [
-            "newTab": ("新建标签页", "plus", #selector(newTab)), "open": ("打开", "folder", #selector(openImage)),
-            "undo": ("撤销", "arrow.uturn.backward", #selector(undo)), "redo": ("重做", "arrow.uturn.forward", #selector(redo)),
-            "save": ("保存", "square.and.arrow.down", #selector(saveDocument)), "export": ("导出", "square.and.arrow.up", #selector(exportDocument)),
-            "assistant": ("AI 助手 (⌘J)", "sparkles", #selector(toggleAssistant)), "panels": ("显示 / 收起右侧面板", "sidebar.right", #selector(togglePanels))]
+            "newTab": (L10n.text("新建标签页"), "plus", #selector(newTab)), "open": (L10n.text("打开"), "folder", #selector(openImage)),
+            "undo": (L10n.text("撤销"), "arrow.uturn.backward", #selector(undo)), "redo": (L10n.text("重做"), "arrow.uturn.forward", #selector(redo)),
+            "save": (L10n.text("保存"), "square.and.arrow.down", #selector(saveDocument)), "export": (L10n.text("导出"), "square.and.arrow.up", #selector(exportDocument)),
+            "assistant": (L10n.text("AI 助手 (⌘J)"), "sparkles", #selector(toggleAssistant)), "panels": (L10n.text("显示 / 收起右侧面板"), "sidebar.right", #selector(togglePanels))]
         guard let entry = entries[id.rawValue] else { return nil }
         item.label = entry.0; item.toolTip = entry.0; item.image = NSImage(systemSymbolName: entry.1, accessibilityDescription: entry.0)
         item.target = self; item.action = entry.2; return item
@@ -190,7 +190,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         case #selector(convertToEightBit): workspace.permissions.edits && workspace.hasDocument && state?.bitDepth != 8
         case #selector(convertToSixteenBit): workspace.permissions.edits && workspace.hasDocument && state?.bitDepth != 16
         case #selector(autoTone),#selector(autoContrast),#selector(autoColor): workspace.permissions.edits && selected?.kind?.kind=="pixel" && selected?.visible == true && selected?.locks?.all != true && selected?.locks?.pixels != true
-        case #selector(beginCanvasTransform): workspace.permissions.edits && selected?.canTransform(scope:"whole_layer")==true && selected?.visible == true
+        case #selector(beginCanvasTransform): workspace.canTransform(scope: "whole_layer", onCanvas: true)
         case #selector(showGuides): !busy
         case #selector(saveDocument), #selector(saveAs), #selector(exportDocument),#selector(quickExportDocument), #selector(placeImage), #selector(convertToSRGB), #selector(convertToP3),#selector(assignSRGB),#selector(assignP3): workspace.permissions.edits && workspace.hasDocument
         case #selector(configureQuickExport): !busy && (state?.control?.kind ?? "user")=="user"
@@ -211,7 +211,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
             perform("layer.distribute",["layers":Array(workspace.selectedLayers).map{["id":$0]},"mode":mode])
         case .groupSelected:
             let ids=workspace.selectedLayers.isEmpty ? selected.map{[$0.id]} ?? [] : Array(workspace.selectedLayers)
-            perform("layer.group",["layers":ids.map{["id":$0]},"name":"组"])
+            perform("layer.group",["layers":ids.map{["id":$0]},"name":L10n.text("组")])
         case .cancelWork: try? engine.cancelPendingWork()
         case .prepareSubjectModel:
             guard let window else { return }; SubjectModelStore.shared.ensureInstalled(window: window, engine: engine) {}
@@ -253,8 +253,10 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         case .deleteLayer: deleteLayer()
         case .reorder(let delta): reorder(delta)
         case .selectLayer(let id):
-            if NSEvent.modifierFlags.contains(.command){if !workspace.selectedLayers.insert(id).inserted{workspace.selectedLayers.remove(id)}}else{workspace.selectedLayers=[id]}
-            perform("layer.select", ["layer": ["id": id]])
+            let flags = NSApp.currentEvent?.modifierFlags.union(NSEvent.modifierFlags) ?? NSEvent.modifierFlags
+            selectLayer(id, extendSelection: flags.contains(.command))
+        case .toggleLayerSelection(let id):
+            selectLayer(id, extendSelection: true)
         case .rename(let name): layerCommand("layer.rename", ["name": name])
         case .visibility(let id, let visible): perform("layer.set_visibility", ["layer": ["id": id], "visible": visible])
         case .opacity(let value): layerCommand("layer.set_opacity", ["opacity": value])
@@ -274,6 +276,28 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         case .theme(let theme): onTheme?(theme)
         }
     }
+    private func selectLayer(_ id: String, extendSelection: Bool) {
+        guard workspace.permissions.selection, let snapshot = state,
+              snapshot.layers.contains(where: { $0.id == id }) else { return }
+        var selection = workspace.layerSelection
+        if extendSelection {
+            if selection.contains(id), selection.count > 1 {
+                selection.remove(id)
+            } else {
+                selection.insert(id)
+            }
+        } else {
+            selection = [id]
+        }
+        guard let active = selection.contains(id) ? id
+            : snapshot.layers.reversed().first(where: { selection.contains($0.id) })?.id else { return }
+        let selectedIDs = selection
+        perform("layer.select", ["layer": ["id": active]]) { [weak self] committed in
+            guard let self, committed, self.state?.documentId == snapshot.documentId else { return }
+            self.workspace.selectedLayers = selectedIDs
+            self.canvas.configureTransform(self.workspace)
+        }
+    }
     func applyTheme(_ theme: WorkspaceTheme) {
         workspace.theme = theme; window?.appearance = theme.appearance; canvas.markDirty()
     }
@@ -281,14 +305,14 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
     @objc func showCommandSearch() {
         guard let window, window.attachedSheet == nil else { return }
         let alert = NSAlert()
-        alert.messageText = "功能搜索"
-        alert.addButton(withTitle: "关闭").keyEquivalent = "\u{1b}"
+        alert.messageText = L10n.text("功能搜索")
+        alert.addButton(withTitle: L10n.text("关闭")).keyEquivalent = "\u{1b}"
         let search = CommandSearchView(canDraft: workspace.hasDocument) { [weak self, weak alert] match in
             guard let self, let alert, let window = self.window else { return }
             window.endSheet(alert.window)
             if self.assistantItem.isCollapsed { self.toggleAssistant() }
             if !self.assistant.draft.isEmpty { self.assistant.draft += "\n\n" }
-            self.assistant.draft += "请帮我使用「\(match.title)」（\(match.id)）。"
+            self.assistant.draft += L10n.format("请帮我使用「{0}」（{1}）。", String(describing: match.title), String(describing: match.id))
         }
         let accessory = NSHostingView(rootView: search)
         accessory.frame = NSRect(x: 0, y: 0, width: 630, height: 380)
@@ -301,8 +325,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         do {
             let options = try PreferencesOptionsController(engine: engine)
             let alert = NSAlert()
-            alert.messageText = "应用偏好"
-            alert.addButton(withTitle: "关闭").keyEquivalent = "\u{1b}"
+            alert.messageText = L10n.text("应用偏好")
+            alert.addButton(withTitle: L10n.text("关闭")).keyEquivalent = "\u{1b}"
             alert.accessoryView = options.view
             options.onSaved = { [weak window, weak alert] in
                 guard let window, let alert else { return }
@@ -334,7 +358,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         assistant.bind(document: snapshot.documentId, inheritedTurn: snapshot.control?.turnId)
         let oldControl = state?.control?.kind
         if snapshot.documentId != state?.documentId
-            || (snapshot.revision != state?.revision && ["transform.apply","image.orient","image.rotate","image.resize","image.straighten"].contains(snapshot.history.last?.command ?? "")) {workspace.cloneSource=nil}
+            || (snapshot.revision != state?.revision && ["transform.apply","transform.apply_layers","image.orient","image.rotate","image.resize","image.straighten"].contains(snapshot.history.last?.command ?? "")) {workspace.cloneSource=nil}
         workspace.snapshot = snapshot; window?.isDocumentEdited = snapshot.dirty
         if ["text","group"].contains(workspace.selected?.kind?.kind ?? ""){workspace.canvasTransformScope="whole_layer"}
         workspace.tonalPreview?.bind(snapshot)
@@ -346,6 +370,9 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         if let colors=snapshot.paintColors{workspace.installPaintColors(colors)}
         workspace.colorPanel?.bind(snapshot)
         workspace.selectedLayers=workspace.selectedLayers.intersection(Set(snapshot.layers.map(\.id)))
+        if let active = snapshot.activeLayer, !workspace.selectedLayers.contains(active) {
+            workspace.selectedLayers = [active]
+        }
         canvas.documentOrigin = NSPoint(x: CGFloat(snapshot.frame?.x ?? 0), y: CGFloat(snapshot.frame?.y ?? 0))
         canvas.isSelectionEnabled = workspace.permissions.selectionEdits
         canvas.configureBrush(workspace)
@@ -518,7 +545,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
     func windowDidChangeOcclusionState(_ notification: Notification) { canvas.visibilityChanged() }
     func showError(_ error: Error) {
         if let strataError = error as? StrataError, case .Cancelled = strataError { return }
-        guard let window, window.attachedSheet == nil else { return }; let alert = NSAlert(); alert.messageText = "操作未完成"
+        guard let window, window.attachedSheet == nil else { return }; let alert = NSAlert(); alert.messageText = L10n.text("操作未完成")
         alert.informativeText = (error as? StrataError)?.userMessage ?? error.localizedDescription; alert.beginSheetModal(for: window)
     }
 }

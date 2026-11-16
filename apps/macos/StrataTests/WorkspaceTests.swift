@@ -4,6 +4,30 @@ import XCTest
 
 final class WorkspaceTests: XCTestCase {
     @MainActor
+    func testLayerContextMenuExtendsAndShrinksTransformSelection() async throws {
+        let engine = StrataEngine(listener: EngineEvents { _ in })
+        _ = try engine.dispatch(command: "file.new", paramsJson: commandJSON(["width": 8, "height": 8, "bit_depth": 8]))
+        _ = try engine.dispatch(command: "layer.create", paramsJson: commandJSON(["name": "Second"]))
+        let controller = MainWindowController(engine: engine)
+        defer { controller.canvas.shutdown(); controller.window?.orderOut(nil) }
+        controller.refresh()
+        let before = try EditorSnapshot.decode(engine.snapshotJson())
+        let background = try XCTUnwrap(before.layers.first?.id)
+        let second = try XCTUnwrap(before.activeLayer)
+
+        controller.workspace.send(.toggleLayerSelection(background))
+        for _ in 0..<150 where controller.busy { try await Task.sleep(for: .milliseconds(10)) }
+        XCTAssertEqual(controller.workspace.layerSelection, Set([background, second]))
+        XCTAssertEqual(controller.workspace.selected?.id, background)
+
+        controller.workspace.send(.toggleLayerSelection(background))
+        for _ in 0..<150 where controller.busy { try await Task.sleep(for: .milliseconds(10)) }
+        XCTAssertEqual(controller.workspace.layerSelection, Set([second]))
+        XCTAssertEqual(controller.workspace.selected?.id, second)
+        XCTAssertEqual(try EditorSnapshot.decode(engine.snapshotJson()).historyCursor, before.historyCursor)
+    }
+
+    @MainActor
     func testBusyNavigationAndExplicitCancellationKeepTheWorkspaceResponsive() throws {
         let engine=StrataEngine(listener:EngineEvents{_ in})
         let controller=MainWindowController(engine:engine)

@@ -1,5 +1,4 @@
-//! Bounded proximity texture matching followed by sampled Poisson healing.
-//! This deliberately remains separate from content-aware PatchMatch synthesis.
+//! Three bounded guidance modes share the same stroke coverage and healing solver.
 use super::*;
 use crate::{Document, DocumentError};
 use serde_json::json;
@@ -151,9 +150,30 @@ pub(super) fn mutate(
     let (target, coverage) = super::heal::footprint(doc, &p.stroke, cancel)?;
     let Some(bounds) = coverage.content_bounds().map_err(DocumentError::from)? else {
         return Ok(Some(
-            json!({"layer_id":target,"source":null,"candidates":0,"boundary_error":0.0,"healing":null}),
+            json!({"layer_id":target,"mode":p.mode,"source":null,"candidates":0,"boundary_error":0.0,"healing":null}),
         ));
     };
+    let limits = super::heal::SolveLimits {
+        iterations: p.max_iterations,
+        tolerance: p.tolerance,
+    };
+    if !matches!(p.mode, SpotHealMode::ProximityMatch) {
+        let healing = super::heal::apply(
+            doc,
+            &p.stroke,
+            (target, coverage),
+            super::heal::Guide::Synthesized {
+                mode: p.mode,
+                sample: p.sample,
+                radius: p.search_radius,
+            },
+            limits,
+            cancel,
+        )?;
+        return Ok(Some(
+            json!({"layer_id":target,"mode":p.mode,"source":null,"candidates":0,"boundary_error":0.0,"healing":healing}),
+        ));
+    }
     let area = (u64::from(bounds.width) + 2) * (u64::from(bounds.height) + 2);
     if area > 262144 {
         return Err(CommandError::Invalid(
@@ -262,28 +282,21 @@ pub(super) fn mutate(
     };
     let candidates = search.visited.len();
     drop(search);
-    drop(coverage);
     drop(_budget);
     let source = [anchor[0] + dx as f64, anchor[1] + dy as f64];
-    let mut stroke = p.stroke;
-    stroke.clone_source = Some(CloneSource {
-        source,
-        destination: Some(anchor),
-        sample: p.sample,
-    });
-    let healing = super::heal::mutate(
+    let healing = super::heal::apply(
         doc,
-        "retouch.heal",
-        serde_json::to_value(HealStroke {
-            stroke,
-            max_iterations: p.max_iterations,
-            tolerance: p.tolerance,
-        })
-        .map_err(|e| CommandError::Invalid(e.to_string()))?,
+        &p.stroke,
+        (target, coverage),
+        super::heal::Guide::Sampled(CloneSource {
+            source,
+            destination: Some(anchor),
+            sample: p.sample,
+        }),
+        limits,
         cancel,
-    )?
-    .expect("healing command");
+    )?;
     Ok(Some(
-        json!({"layer_id":target,"source":source,"candidates":candidates,"boundary_error":error,"healing":healing}),
+        json!({"layer_id":target,"mode":p.mode,"source":source,"candidates":candidates,"boundary_error":error,"healing":healing}),
     ))
 }

@@ -11,11 +11,11 @@ enum NativeClipboard {
     static func write(_ transfer:ClipboardTransfer,pasteboard:NSPasteboard = .general)throws{
         let metadata=try JSONEncoder().encode(Origin(x:transfer.originX,y:transfer.originY))
         pasteboard.clearContents()
-        guard pasteboard.setData(transfer.data,forType:.tiff),pasteboard.setData(metadata,forType:originType)else{throw AIClientError.message("系统剪贴板写入失败；源像素未剪切。")}
+        guard pasteboard.setData(transfer.data,forType:.tiff),pasteboard.setData(metadata,forType:originType)else{throw AIClientError.message(L10n.text("系统剪贴板写入失败；源像素未剪切。"))}
     }
     static func read(engine:StrataEngine,turn:String?,pasteboard:NSPasteboard = .general)async throws->String{
-        guard let data=pasteboard.data(forType:.tiff) ?? pasteboard.data(forType:.png)else{throw AIClientError.message("系统剪贴板中没有支持的图片。")}
-        guard data.count <= maximumImageBytes else{throw AIClientError.message("剪贴板图片超过大小限制。")}
+        guard let data=pasteboard.data(forType:.tiff) ?? pasteboard.data(forType:.png)else{throw AIClientError.message(L10n.text("系统剪贴板中没有支持的图片。"))}
+        guard data.count <= maximumImageBytes else{throw AIClientError.message(L10n.text("剪贴板图片超过大小限制。"))}
         let originData = pasteboard.data(forType: originType)
         let origin: Origin? = originData.flatMap { bytes in
             try? JSONDecoder().decode(Origin.self, from: bytes)
@@ -44,7 +44,7 @@ extension MainWindowController {
                 let id=merged ? "edit.copy_merged" : "edit.copy"
                 let raw=try await aiEngineWork{try engine.dispatch(command:id,paramsJson:"{}")}
                 let result=try AIJSON.decode(raw)
-                guard let resource=result["clipboard_resource"].string else{throw AIClientError.message("没有生成剪贴板资源。")}
+                guard let resource=result["clipboard_resource"].string else{throw AIClientError.message(L10n.text("没有生成剪贴板资源。"))}
                 let transfer=try await aiEngineWork{try engine.clipboardExport(resource:resource,turnId:nil)}
                 try Task.checkCancellation();try NativeClipboard.write(transfer)
                 try engine.clipboardConfirmWrite(resource:resource,turnId:nil)

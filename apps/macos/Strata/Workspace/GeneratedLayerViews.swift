@@ -13,19 +13,19 @@ struct GeneratedLayerControls:View{
     var body:some View{
         VStack(alignment:.leading,spacing:9){
             if model.selected?.kind?.kind=="hue_saturation"{
-                HStack{Text("色相");TextField("色相",value:$hue,format:.number).textFieldStyle(.roundedBorder);Text("°")}
-                HStack{Text("饱和度");TextField("饱和度",value:$saturation,format:.number).textFieldStyle(.roundedBorder)}
-                HStack{Text("明度");TextField("明度",value:$lightness,format:.number).textFieldStyle(.roundedBorder)}
+                HStack{Text(L10n.text("色相"));TextField(L10n.text("色相"),value:$hue,format:.number).textFieldStyle(.roundedBorder);Text("°")}
+                HStack{Text(L10n.text("饱和度"));TextField(L10n.text("饱和度"),value:$saturation,format:.number).textFieldStyle(.roundedBorder)}
+                HStack{Text(L10n.text("明度"));TextField(L10n.text("明度"),value:$lightness,format:.number).textFieldStyle(.roundedBorder)}
             }else{
-                ColorPicker(model.selected?.kind?.kind=="solid" ? "填充颜色" : "起点颜色",selection:$start,supportsOpacity:true)
+                ColorPicker(model.selected?.kind?.kind=="solid" ? L10n.text("填充颜色") : L10n.text("起点颜色"),selection:$start,supportsOpacity:true)
                 if model.selected?.kind?.kind=="gradient"{
-                    ColorPicker("终点颜色",selection:$end,supportsOpacity:true)
-                    HStack{Text("角度");TextField("角度",value:$angle,format:.number).textFieldStyle(.roundedBorder)}
-                    HStack{Text("缩放");TextField("缩放",value:$scale,format:.number).textFieldStyle(.roundedBorder)}
-                    Toggle("径向渐变",isOn:$radial)
+                    ColorPicker(L10n.text("终点颜色"),selection:$end,supportsOpacity:true)
+                    HStack{Text(L10n.text("角度"));TextField(L10n.text("角度"),value:$angle,format:.number).textFieldStyle(.roundedBorder)}
+                    HStack{Text(L10n.text("缩放"));TextField(L10n.text("缩放"),value:$scale,format:.number).textFieldStyle(.roundedBorder)}
+                    Toggle(L10n.text("径向渐变"),isOn:$radial)
                 }
             }
-            Button("应用参数"){apply()}.buttonStyle(.bordered)
+            Button(L10n.text("应用参数")){apply()}.buttonStyle(.bordered)
         }.disabled(!model.permissions.edits || model.selected?.locks?.all == true)
             .onAppear(perform:sync).onChange(of:model.selected?.id){_,_ in sync()}.onChange(of:model.snapshot?.revision){_,_ in sync()}
     }

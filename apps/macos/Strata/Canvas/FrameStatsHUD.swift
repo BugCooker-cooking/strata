@@ -15,13 +15,13 @@ final class FrameStatsHUD: NSTextField {
         backgroundColor = .windowBackgroundColor
         textColor = .secondaryLabelColor
         font = .monospacedSystemFont(ofSize: 11, weight: .regular)
-        stringValue = "M1a · 分块画布"
+        stringValue = L10n.text("M1a · 分块画布")
         #if DEBUG
         isHidden = false
         #else
         isHidden = !ProcessInfo.processInfo.arguments.contains("--frame-stats")
         #endif
-        setAccessibilityLabel("渲染帧统计")
+        setAccessibilityLabel(L10n.text("渲染帧统计"))
     }
 
     required init?(coder: NSCoder) { nil }

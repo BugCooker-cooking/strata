@@ -171,6 +171,8 @@ pub struct LayerInfo {
     pub generated_size: Option<[u32; 2]>,
     #[serde(default)]
     pub generated_crop: Option<GeneratedCrop>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub generated_geometry: Option<crate::GeneratedGeometry>,
     /// Frozen sampling domain for spatial adjustments after canvas-only edits.
     #[serde(default)]
     pub spatial_bounds: Option<strata_pixels::CoverageRect>,
@@ -222,6 +224,7 @@ impl Layer {
                 clipped: false,
                 generated_size: None,
                 generated_crop: None,
+                generated_geometry: None,
                 spatial_bounds: None,
                 pass_through: false,
                 fill_opacity: 1.0,

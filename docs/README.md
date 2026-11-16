@@ -2,7 +2,7 @@
 
 Strata 是一个开源的、可以完全由 AI 驱动的专业级图像编辑器。第一版是 macOS 原生应用。
 
-当前 M0/M1、工作区与 M1b 的执行范围已闭环，含文件参数/格式、自动恢复、全局预算与当前设备验收，见 [闭环清单](plans/2026-11-03-m1-closure.md)。M2a 已开始：独立 AI 接口、提供方协议、钥匙串与原生聊天面板进入验收，见 [进展](research/2026-11-m2a-ai-progress.md) 和 [剩余开发计划](plans/2026-11-04-v1-remaining.md)。选区/蒙版和真实模型修图仍待 M2b；v0.1 仍以“主体选择 + 蒙版曝光 + 用户修正 + 安全保存”为目标，完整 P0 作为 v1.0 目标。
+当前功能及验收状态见 [P0 核对](research/2026-11-p0-closure.md)、[完整功能跟踪](plans/photoshop-feature-coverage.md)和 [AI 入口核对](plans/ai-editing-entrypoint-coverage.md)。M0/M1 的文件、自动恢复、全局预算和当前设备证据见[早期记录](plans/2026-11-03-m1-closure.md)，主体选择和蒙版曝光见 [M2b 本机实现](research/2026-11-m2b-local-editing-progress.md)。
 
 原生界面框架、独立文档标签、最近文件与图片置入已落地；见 [工作区计划](plans/2026-11-03-workspace-and-m1b.md) 与 [实施记录](research/2026-11-workspace-progress.md)。下图仍是设计稿。
 

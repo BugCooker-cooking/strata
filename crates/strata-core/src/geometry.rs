@@ -212,6 +212,20 @@ impl Homography {
     pub fn unmap(&self, p: Point) -> Result<Point, GeometryError> {
         point(self.inverse, p)
     }
+    pub(crate) fn map_polygon(&self, source: &[Point]) -> Result<Vec<Point>, GeometryError> {
+        let mut sign = 0.0;
+        source
+            .iter()
+            .map(|&p| {
+                let w = self.forward[2][0] * p[0] + self.forward[2][1] * p[1] + self.forward[2][2];
+                if sign != 0.0 && sign * w < 0.0 {
+                    return Err(GeometryError::Horizon);
+                }
+                sign = w;
+                self.map(p)
+            })
+            .collect()
+    }
     pub fn quad(&self, source: Quad) -> Result<Quad, GeometryError> {
         normalized(source)?;
         let mut sign = 0.0;

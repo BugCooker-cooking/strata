@@ -12,13 +12,13 @@ final class ExportOptionsController: NSObject, NSOpenSavePanelDelegate, NSTextFi
     let webpMode = NSPopUpButton()
     let width = NSTextField()
     let height = NSTextField()
-    let lockAspect = NSButton(checkboxWithTitle: "保持原图比例", target: nil, action: nil)
-    let originalSize=NSButton(checkboxWithTitle:"每份文档使用原尺寸",target:nil,action:nil)
+    let lockAspect = NSButton(checkboxWithTitle: L10n.text("保持原图比例"), target: nil, action: nil)
+    let originalSize=NSButton(checkboxWithTitle:L10n.text("每份文档使用原尺寸"),target:nil,action:nil)
     let view=NSStackView()
     private let presetEditing:Bool
     private let sourceWidth: UInt32
     private let sourceHeight: UInt32
-    let quantization = NSButton(checkboxWithTitle: "允许此副本从 16 位量化为 8 位", target: nil, action: nil)
+    let quantization = NSButton(checkboxWithTitle: L10n.text("允许此副本从 16 位量化为 8 位"), target: nil, action: nil)
     private let warning = NSTextField(wrappingLabelWithString: "")
     private let bitDepth: UInt8
     private let kinds = ["png", "tiff", "jpeg", "webp"]
@@ -32,24 +32,25 @@ final class ExportOptionsController: NSObject, NSOpenSavePanelDelegate, NSTextFi
         self.width.stringValue = String(width); self.height.stringValue = String(height)
         self.width.delegate = self; self.height.delegate = self; lockAspect.state = .on
         originalSize.state = .on;originalSize.isHidden = !presetEditing;originalSize.target=self;originalSize.action=#selector(changeOriginalSize)
-        if presetEditing{quantization.title="允许16位文档的导出副本量化为8位"}
-        self.width.setAccessibilityLabel("导出宽度（像素）"); self.height.setAccessibilityLabel("导出高度（像素）")
-        format.addItems(withTitles: ["PNG", "TIFF", "JPEG（有损）", "WebP（无损）"])
-        space.addItems(withTitles: ["保留文档工作色域", "转换为 sRGB", "转换为 Display P3"])
-        background.addItems(withTitles: ["白色", "黑色"])
-        webpMode.addItems(withTitles: ["无损", "有损"]); webpMode.setAccessibilityLabel("WebP 编码模式")
-        quality.setAccessibilityLabel("JPEG 质量（1–100）")
-        format.setAccessibilityLabel("导出格式"); space.setAccessibilityLabel("输出色域")
-        background.setAccessibilityLabel("JPEG 透明区域背景")
+        if presetEditing{quantization.title=L10n.text("允许16位文档的导出副本量化为8位")}
+        self.width.setAccessibilityLabel(L10n.text("导出宽度（像素）")); self.height.setAccessibilityLabel(L10n.text("导出高度（像素）"))
+        format.addItems(withTitles: ["PNG", "TIFF", L10n.text("JPEG（有损）"), L10n.text("WebP（无损）")])
+        space.addItems(withTitles: [L10n.text("保留文档工作色域"), L10n.text("转换为 sRGB"), L10n.text("转换为 Display P3")])
+        background.addItems(withTitles: [L10n.text("白色"), L10n.text("黑色")])
+        webpMode.addItems(withTitles: [L10n.text("无损"), L10n.text("有损")]); webpMode.setAccessibilityLabel(L10n.text("WebP 编码模式"))
+        quality.setAccessibilityLabel(L10n.text("JPEG 质量（1–100）"))
+        format.setAccessibilityLabel(L10n.text("导出格式")); space.setAccessibilityLabel(L10n.text("输出色域"))
+        background.setAccessibilityLabel(L10n.text("JPEG 透明区域背景"))
         func row(_ title: String, _ view: NSView) -> NSView {
-            let label = NSTextField(labelWithString: title); label.widthAnchor.constraint(equalToConstant: 84).isActive = true
+            let label = NSTextField(labelWithString: title)
+            label.widthAnchor.constraint(equalToConstant: L10n.language == .english ? 130 : 84).isActive = true
             let row = NSStackView(views: [label, view]); row.spacing = 8; return row
         }
         warning.font = .systemFont(ofSize: 11); warning.textColor = .secondaryLabelColor
         let size = NSStackView(views: [self.width, NSTextField(labelWithString: "×"), self.height, NSTextField(labelWithString: "px")]); size.spacing = 6
         NSLayoutConstraint.activate([self.width.widthAnchor.constraint(equalToConstant:92),self.height.widthAnchor.constraint(equalToConstant:92)])
         let stack = view
-        for child in [row("格式", format),originalSize,row("输出尺寸", size),lockAspect,row("输出色域", space),row("WebP 编码", webpMode),row("有损质量", quality),row("透明区域", background),quantization,warning]{stack.addArrangedSubview(child)}
+        for child in [row(L10n.text("格式"), format),originalSize,row(L10n.text("输出尺寸"), size),lockAspect,row(L10n.text("输出色域"), space),row(L10n.text("WebP 编码"), webpMode),row(L10n.text("有损质量"), quality),row(L10n.text("透明区域"), background),quantization,warning]{stack.addArrangedSubview(child)}
         stack.orientation = .vertical; stack.alignment = .leading; stack.spacing = 8
         stack.edgeInsets = NSEdgeInsets(top: 12, left: 16, bottom: 12, right: 16)
         stack.frame = NSRect(x: 0, y: 0, width: 380, height: presetEditing ? 350:320)
@@ -81,7 +82,7 @@ final class ExportOptionsController: NSObject, NSOpenSavePanelDelegate, NSTextFi
         panel?.allowedContentTypes = [types[index]]
         if let panel { panel.nameFieldStringValue = (panel.nameFieldStringValue as NSString).deletingPathExtension + "." + extensions[index] }
         quality.isEnabled = index == 2 || index == 3 && webpMode.indexOfSelectedItem == 1
-        quality.setAccessibilityLabel(index == 3 ? "WebP 质量（1–100）" : "JPEG 质量（1–100）")
+        quality.setAccessibilityLabel(index == 3 ? L10n.text("WebP 质量（1–100）") : L10n.text("JPEG 质量（1–100）"))
         background.isEnabled = index == 2; webpMode.isEnabled = index == 3
         quantization.isEnabled = (bitDepth == 16 || presetEditing) && index >= 2
         if !quantization.isEnabled { quantization.state = .off }
@@ -90,26 +91,26 @@ final class ExportOptionsController: NSObject, NSOpenSavePanelDelegate, NSTextFi
     private func updateWarning() {
         let index = format.indexOfSelectedItem
         warning.stringValue = index == 2
-            ? "JPEG 不保留透明度；按所选背景合成，质量越高文件通常越大。文档原件不变。"
-            : index == 3 ? (webpMode.indexOfSelectedItem == 0 ? "WebP 无损编码，保留透明度，仅支持 8 位输出。" : "WebP 有损压缩 RGB，透明度保持无损，仅支持 8 位输出。") + "文档原件不变。"
-            : (presetEditing ? "每份文档按自身位深保留透明度，并嵌入所选ICC。":"输出保持 \(bitDepth) 位和透明度，并嵌入所选 ICC。")+"调整尺寸会重采样，原文档不变。"
+            ? L10n.text("JPEG 不保留透明度；按所选背景合成，质量越高文件通常越大。文档原件不变。")
+            : index == 3 ? (webpMode.indexOfSelectedItem == 0 ? L10n.text("WebP 无损编码，保留透明度，仅支持 8 位输出。") : L10n.text("WebP 有损压缩 RGB，透明度保持无损，仅支持 8 位输出。")) + L10n.text("文档原件不变。")
+            : (presetEditing ? L10n.text("每份文档按自身位深保留透明度，并嵌入所选ICC。"):L10n.format("输出保持 {0} 位和透明度，并嵌入所选 ICC。", String(describing: bitDepth)))+L10n.text("调整尺寸会重采样，原文档不变。")
     }
     func parameters(requireQuantization:Bool=true) throws -> [String: Any] {
         let index = format.indexOfSelectedItem
         if requireQuantization && bitDepth == 16 && index >= 2 && quantization.state != .on {
-            throw ExportOptionsError("此格式只支持 8 位。请勾选允许量化，或使用 PNG/TIFF 保留 16 位。")
+            throw ExportOptionsError(L10n.text("此格式只支持 8 位。请勾选允许量化，或使用 PNG/TIFF 保留 16 位。"))
         }
         var result: [String: Any] = ["format": kinds[index]]
         let useOriginal=presetEditing && originalSize.state == .on
         guard let w = useOriginal ? sourceWidth:UInt32(width.stringValue), let h = useOriginal ? sourceHeight:UInt32(height.stringValue), w > 0, h > 0,
               useOriginal || UInt64(w) * UInt64(h) <= (512 * 1024 * 1024) / UInt64(presetEditing || bitDepth != 16 ? 4 : 8) else {
-            throw ExportOptionsError("宽高须为正整数，输出像素数据不能超过 512 MiB。")
+            throw ExportOptionsError(L10n.text("宽高须为正整数，输出像素数据不能超过 512 MiB。"))
         }
         if presetEditing ? originalSize.state != .on : (w != sourceWidth || h != sourceHeight) { result["width"] = w; result["height"] = h }
-        if index == 3 && (!presetEditing || originalSize.state != .on) && (w > 16383 || h > 16383) { throw ExportOptionsError("WebP 宽高不能超过 16383 像素。") }
+        if index == 3 && (!presetEditing || originalSize.state != .on) && (w > 16383 || h > 16383) { throw ExportOptionsError(L10n.text("WebP 宽高不能超过 16383 像素。")) }
         if space.indexOfSelectedItem > 0 { result["target_space"] = space.indexOfSelectedItem == 1 ? "srgb" : "display_p3" }
         if quality.isEnabled {
-            guard let value = Int(quality.stringValue), (1...100).contains(value) else { throw ExportOptionsError("有损质量须为 1–100 的整数。") }
+            guard let value = Int(quality.stringValue), (1...100).contains(value) else { throw ExportOptionsError(L10n.text("有损质量须为 1–100 的整数。")) }
             result["quality"] = value
         }
         if index == 3 && webpMode.indexOfSelectedItem == 1 { result["webp_lossless"] = false }
@@ -120,22 +121,22 @@ final class ExportOptionsController: NSObject, NSOpenSavePanelDelegate, NSTextFi
         return result
     }
     func loadPreset(_ options:AIJSON)throws{
-        guard let kind=options["format"].string,let index=kinds.firstIndex(of:kind)else{throw ExportOptionsError("预设格式无效。")}
+        guard let kind=options["format"].string,let index=kinds.firstIndex(of:kind)else{throw ExportOptionsError(L10n.text("预设格式无效。"))}
         format.selectItem(at:index);webpMode.selectItem(at:options["webp_lossless"] == .bool(false) ? 1:0)
         space.selectItem(at:options["target_space"].string=="srgb" ? 1:options["target_space"].string=="display_p3" ? 2:0)
         let q=options["quality"].number ?? Double(index==3 ? 80:90)
-        guard let qualityValue=UInt8(exactly:q),(1...100).contains(qualityValue)else{throw ExportOptionsError("预设质量须为1–100的整数。")}
+        guard let qualityValue=UInt8(exactly:q),(1...100).contains(qualityValue)else{throw ExportOptionsError(L10n.text("预设质量须为1–100的整数。"))}
         quality.stringValue=String(qualityValue)
         let matte=options["background"].array.compactMap(\.number)
         // Native presets accept arbitrary RGB matte from AI; retain it unless
         // the user explicitly selects one of the two native matte choices.
-        if !matte.isEmpty{guard matte.count==3,matte.allSatisfy({UInt8(exactly:$0) != nil})else{throw ExportOptionsError("预设背景须为0–255的三个整数。")}}
+        if !matte.isEmpty{guard matte.count==3,matte.allSatisfy({UInt8(exactly:$0) != nil})else{throw ExportOptionsError(L10n.text("预设背景须为0–255的三个整数。"))}}
         presetMatte=matte.count==3 ? matte.map(Int.init):nil
         while background.numberOfItems>2{background.removeItem(at:2)}
         if let presetMatte,presetMatte != [0,0,0],presetMatte != [255,255,255]{background.addItem(withTitle:"RGB \(presetMatte.map(String.init).joined(separator:", "))");background.selectItem(at:2)}else{background.selectItem(at:matte==[0,0,0] ? 1:0)}
         background.target=self;background.action=#selector(changeMatte)
         originalSize.state=options["width"].number==nil ? .on:.off
-        if let w=options["width"].number,let h=options["height"].number{guard let exactW=UInt32(exactly:w),let exactH=UInt32(exactly:h),exactW>0,exactH>0 else{throw ExportOptionsError("预设宽高须为正整数。")};width.stringValue=String(exactW);height.stringValue=String(exactH)}
+        if let w=options["width"].number,let h=options["height"].number{guard let exactW=UInt32(exactly:w),let exactH=UInt32(exactly:h),exactW>0,exactH>0 else{throw ExportOptionsError(L10n.text("预设宽高须为正整数。"))};width.stringValue=String(exactW);height.stringValue=String(exactH)}
         quantization.state=options["allow_quantization"].bool ? .on:.off
         update();changeOriginalSize()
     }

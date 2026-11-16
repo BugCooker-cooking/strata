@@ -771,61 +771,63 @@ fn healing_texture_display_matches_cpu_boundary_solution() {
 }
 
 #[test]
-fn automatic_spot_removes_a_known_color_blemish_in_metal_display() {
+fn all_spot_modes_remove_a_known_color_blemish_in_metal_display() {
     let Some(mut renderer) = renderer() else {
         return;
     };
-    let mut editor = strata_core::Editor::new();
-    for (id, args) in [
-        (
-            "file.new",
-            serde_json::json!({"width":16,"height":16,"bit_depth":16,"working_space":"display_p3","background":[44000,44000,44000,65535]}),
-        ),
-        (
-            "paint.stroke",
-            serde_json::json!({"layer":{"name":"Background"},"points":[{"x":10.5,"y":8.5}],"size":1,"hardness":1,"color":[1,0,0,1]}),
-        ),
-        (
-            "retouch.spot_heal",
-            serde_json::json!({"stroke":{"layer":{"name":"Background"},"points":[{"x":10.5,"y":8.5}],"size":4,"hardness":1},"search_radius":8}),
-        ),
-    ] {
-        editor
-            .execute(editor.request(strata_core::Source::Test), id, args, |_| {
-                Ok(())
+    for mode in ["proximity_match", "create_texture", "content_aware"] {
+        let mut editor = strata_core::Editor::new();
+        for (id, args) in [
+            (
+                "file.new",
+                serde_json::json!({"width":16,"height":16,"bit_depth":16,"working_space":"display_p3","background":[44000,44000,44000,65535]}),
+            ),
+            (
+                "paint.stroke",
+                serde_json::json!({"layer":{"name":"Background"},"points":[{"x":10.5,"y":8.5}],"size":1,"hardness":1,"color":[1,0,0,1]}),
+            ),
+            (
+                "retouch.spot_heal",
+                serde_json::json!({"stroke":{"layer":{"name":"Background"},"points":[{"x":10.5,"y":8.5}],"size":4,"hardness":1},"mode":mode,"search_radius":8}),
+            ),
+        ] {
+            editor
+                .execute(editor.request(strata_core::Source::Test), id, args, |_| {
+                    Ok(())
+                })
+                .unwrap();
+        }
+        let doc = editor.document().unwrap();
+        let PixelBuffer::Rgba16(expected) = doc.export_pixels().unwrap() else {
+            panic!()
+        };
+        for c in 0..3 {
+            assert!(
+                expected[(8 * 16 + 10) * 4 + c].abs_diff(44000) <= 8,
+                "spot fixture retained blemish"
+            );
+        }
+        let scene = renderer.prepare_document(doc, false).unwrap();
+        renderer.commit_document(scene).unwrap();
+        renderer
+            .set_view(ViewTransform {
+                zoom: 3.0,
+                center_x: 8.0,
+                center_y: 8.0,
             })
             .unwrap();
-    }
-    let doc = editor.document().unwrap();
-    let PixelBuffer::Rgba16(expected) = doc.export_pixels().unwrap() else {
-        panic!()
-    };
-    for c in 0..3 {
-        assert!(
-            expected[(8 * 16 + 10) * 4 + c].abs_diff(44000) <= 8,
-            "spot fixture retained blemish"
-        );
-    }
-    let scene = renderer.prepare_document(doc, false).unwrap();
-    renderer.commit_document(scene).unwrap();
-    renderer
-        .set_view(ViewTransform {
-            zoom: 3.0,
-            center_x: 8.0,
-            center_y: 8.0,
-        })
-        .unwrap();
-    renderer.render().unwrap();
-    let actual = renderer.read_offscreen_rgba().unwrap();
-    for (x, y) in [(2usize, 8usize), (9, 8), (10, 8), (12, 8)] {
-        let shown = pixel(&actual, x * 3 + 9, y * 3 + 9);
-        let i = (y * 16 + x) * 4;
-        for c in 0..3 {
-            let target = ((u32::from(expected[i + c]) + 128) / 257) as i32;
-            assert!(
-                (i32::from(shown[c]) - target).abs() <= 4,
-                "spot display {x},{y},{c}: {shown:?} != {target}"
-            );
+        renderer.render().unwrap();
+        let actual = renderer.read_offscreen_rgba().unwrap();
+        for (x, y) in [(2usize, 8usize), (9, 8), (10, 8), (12, 8)] {
+            let shown = pixel(&actual, x * 3 + 9, y * 3 + 9);
+            let i = (y * 16 + x) * 4;
+            for c in 0..3 {
+                let target = ((u32::from(expected[i + c]) + 128) / 257) as i32;
+                assert!(
+                    (i32::from(shown[c]) - target).abs() <= 4,
+                    "spot display {x},{y},{c}: {shown:?} != {target}"
+                );
+            }
         }
     }
 }

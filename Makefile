@@ -38,6 +38,7 @@ lint:
 	cargo clippy --workspace --all-targets --locked -- -D warnings
 	bash scripts/check-portability.sh
 	bash scripts/lint-swift.sh
+	python3 scripts/check-localization.py
 	python3 scripts/feature-coverage.py --check
 
 # Refuses existing fixture outputs; choose a new directory for a separate run.

@@ -4,6 +4,7 @@ mod blending;
 pub mod commands;
 pub mod composite;
 mod document;
+mod fill_geometry;
 pub mod geometry;
 pub mod geometry_masks;
 pub mod geometry_pixels;
@@ -22,6 +23,7 @@ pub use document::{
     Document, DocumentCandidate, DocumentError, Frame, MAX_DOCUMENT_BYTES, MAX_FLAT_IMAGE_BYTES,
     MAX_LAYERS,
 };
+pub use fill_geometry::GeneratedGeometry;
 pub use guides::{Guide, GuideAxis, GuideRef, MAX_GUIDES, Presentation, RulerMetrics, RulerUnit};
 pub use ids::{DocumentId, GuideId, LayerId, StateId};
 pub use layer::{

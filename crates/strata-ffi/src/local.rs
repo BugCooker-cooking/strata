@@ -513,20 +513,24 @@ mod tests {
         engine.begin_spot_heal(id.clone()).unwrap();
         engine.end_brush("{}".into(), true).unwrap();
         assert_eq!(engine.lock().unwrap().editor.snapshot().history.len(), 0);
-        engine.begin_spot_heal(id.clone()).unwrap();
-        engine.end_brush(payload.to_string(), false).unwrap();
-        assert_eq!(
-            engine
-                .lock()
-                .unwrap()
-                .editor
-                .snapshot()
-                .history
-                .last()
-                .unwrap()
-                .command,
-            "retouch.spot_heal"
-        );
+        for mode in ["proximity_match", "create_texture", "content_aware"] {
+            let mut input = payload.clone();
+            input["mode"] = json!(mode);
+            engine.begin_spot_heal(id.clone()).unwrap();
+            engine.end_brush(input.to_string(), false).unwrap();
+            assert_eq!(
+                engine
+                    .lock()
+                    .unwrap()
+                    .editor
+                    .snapshot()
+                    .history
+                    .last()
+                    .unwrap()
+                    .command,
+                "retouch.spot_heal"
+            );
+        }
         let mut bad = payload.clone();
         bad["stroke"]["target"] = json!("mask");
         engine.begin_spot_heal(id.clone()).unwrap();

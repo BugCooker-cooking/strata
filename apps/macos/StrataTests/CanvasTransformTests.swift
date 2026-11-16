@@ -3,6 +3,34 @@ import XCTest
 @testable import Strata
 
 final class CanvasTransformTests:XCTestCase{
+    @MainActor
+    func testHandlesTransformMultipleLayersWithOneUndo() async throws {
+        let (engine, input) = try configured()
+        _ = try engine.dispatch(command: "layer.fill.solid", paramsJson: commandJSON([
+            "name": "Fill", "color": [10001, 30003, 50001, 65535]
+        ]))
+        let before = try EditorSnapshot.decode(engine.snapshotJson())
+        input.bind(before)
+        input.configure(enabled: true, layers: before.layers.map(\.id))
+        input.start()
+        try await idle(input)
+        XCTAssertTrue(input.canConfirm, input.error)
+        XCTAssertTrue(input.nudge(x: 4, y: -2))
+        XCTAssertTrue(input.confirm())
+        try await idle(input)
+        XCTAssertTrue(input.error.isEmpty, input.error)
+        let moved = try EditorSnapshot.decode(engine.snapshotJson())
+        XCTAssertEqual(moved.history.last?.command, "transform.apply_layers")
+        XCTAssertEqual(moved.historyCursor, before.historyCursor + 1)
+        XCTAssertEqual(moved.layers.map(\.x), before.layers.map { $0.x + 4 })
+        XCTAssertEqual(moved.layers.map(\.y), before.layers.map { $0.y - 2 })
+        XCTAssertEqual(moved.colorMode, "rgb")
+        XCTAssertEqual(moved.layers.last?.kind?.kind, "solid")
+        _ = try engine.dispatch(command: "edit.undo", paramsJson: "{}")
+        let restored = try EditorSnapshot.decode(engine.snapshotJson())
+        XCTAssertEqual(restored.layers.map(\.x), before.layers.map(\.x))
+    }
+
     @MainActor func testNestedGroupHandlesKeepEditableChildrenAndOneUndo()async throws{
         let engine=StrataEngine(listener:EngineEvents{_ in});_ = try engine.dispatch(command:"file.new",paramsJson:commandJSON(["width":32,"height":24,"bit_depth":16]));let group=try AIJSON.decode(engine.dispatch(command:"layer.create_group",paramsJson:commandJSON(["name":"G"])))["layer_id"].string
         _ = try engine.dispatch(command:"layer.create",paramsJson:commandJSON(["name":"Pixels","fill":[10001,30003,50001,40001]]));_ = try engine.dispatch(command:"type.create",paramsJson:commandJSON(["name":"Type","spec":["text":"Group","font":"sans","font_size":12,"layout":["type":"point"]],"color":[0.8,0.2,0.4,1],"x":2,"y":14]));_ = try engine.dispatch(command:"layer.select",paramsJson:commandJSON(["layer":["id":try XCTUnwrap(group)]]))

@@ -103,7 +103,7 @@ final class CanvasCropInput:ObservableObject{
     @discardableResult
     func confirm()->Bool{
         guard !running,let token else{return false}
-        guard let draft=valid(draft ?? .zero),let x=Int64(exactly:draft.minX),let y=Int64(exactly:draft.minY),let w=UInt32(exactly:draft.width),let h=UInt32(exactly:draft.height)else{error="请拖出有效的裁剪矩形。";return true}
+        guard let draft=valid(draft ?? .zero),let x=Int64(exactly:draft.minX),let y=Int64(exactly:draft.minY),let w=UInt32(exactly:draft.width),let h=UInt32(exactly:draft.height)else{error=L10n.text("请拖出有效的裁剪矩形。");return true}
         var params:[String:Any]=["rect":["x":x,"y":y,"width":w,"height":h],"pixels":deletesPixels ? "delete":"preserve"];if let ratio{params["aspect_ratio"]=ratio}
         do{
             let encoded=try commandJSON(params),engine=engine;gesture=nil;running=true;onRunning?(true)

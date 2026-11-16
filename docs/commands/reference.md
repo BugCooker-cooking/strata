@@ -4085,7 +4085,7 @@ Permissions: `bound_document`
 
 ## `document.inspect` — 文档信息
 
-Read metadata, revision and saved state for the bound document.
+Read the bound document's metadata, revision and saved state. color_mode is rgb when a document is open and null otherwise. It describes the editable channels independently of bit depth and working ICC profile. Supported imports are decoded to RGB with alpha. Unhandled sample formats return an unsupported-format error. 中文：文档信息、RGB 模式、颜色模式、ICC 配置、位深和保存状态。
 
 Kind: `Query` · Undoable: `false` · Batchable: `true`
 
@@ -4129,6 +4129,16 @@ Permissions: `bound_document`
       "format": "uint8",
       "maximum": 255,
       "minimum": 0
+    },
+    "color_mode": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ColorMode"
+        },
+        {
+          "type": "null"
+        }
+      ]
     },
     "control": {
       "$ref": "#/$defs/Control"
@@ -4321,6 +4331,12 @@ Permissions: `bound_document`
         "gray"
       ]
     },
+    "ColorMode": {
+      "type": "string",
+      "enum": [
+        "rgb"
+      ]
+    },
     "Control": {
       "oneOf": [
         {
@@ -4459,6 +4475,37 @@ Permissions: `bound_document`
         }
       },
       "additionalProperties": false
+    },
+    "GeneratedGeometry": {
+      "type": "object",
+      "properties": {
+        "matrix": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 9,
+          "minItems": 9
+        },
+        "support": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "format": "double"
+            },
+            "maxItems": 2,
+            "minItems": 2
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "matrix",
+        "support"
+      ]
     },
     "Glow": {
       "type": "object",
@@ -4657,6 +4704,16 @@ Permissions: `bound_document`
             }
           ],
           "default": null
+        },
+        "generated_geometry": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GeneratedGeometry"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "generated_size": {
           "type": [
@@ -6523,6 +6580,37 @@ Permissions: `bound_document`
       },
       "additionalProperties": false
     },
+    "GeneratedGeometry": {
+      "type": "object",
+      "properties": {
+        "matrix": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 9,
+          "minItems": 9
+        },
+        "support": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "format": "double"
+            },
+            "maxItems": 2,
+            "minItems": 2
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "matrix",
+        "support"
+      ]
+    },
     "Glow": {
       "type": "object",
       "properties": {
@@ -6662,6 +6750,16 @@ Permissions: `bound_document`
             }
           ],
           "default": null
+        },
+        "generated_geometry": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GeneratedGeometry"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "generated_size": {
           "type": [
@@ -21290,7 +21388,7 @@ Permissions: `bound_document`
 
 ## `retouch.spot_heal` — 污点修复笔触
 
-Automatically match nearby intact texture outside a round brush footprint, then apply retouch.heal Poisson boundary fusion. Nested stroke has a pixel target and no clone_source; brush/selection/locks/pressure/flow/opacity and atomic one-history semantics remain. Sample current_layer (default raw target) or merged visible composite. Search radius 1..512px (default 64), deterministic coarse translation grid with local refinement, at most 2048 offsets and 128 nontransparent boundary/32 interior samples; search decodes at most 1024 source tiles and caches eight. Source and destination footprint bounding rectangles plus boundary never overlap and source stays inside artboard. Score is boundary linear-P3 RGB variance after mean offset plus 5% mean-color error; nearest offset breaks numerical ties. Return chosen canvas source anchor, candidate count, RMS boundary error and healing diagnostics. Footprint plus 1px boundary <=262144 pixels; max_iterations/tolerance follow retouch.heal. Missing usable source, nonconvergence, cancellation or shared memory failure do not edit the document. This is proximity texture matching; content-aware PatchMatch synthesis is tracked separately. 中文：污点修复、自动近邻纹理匹配、边界融合。
+Repair a round brush footprint using mode proximity_match (default), create_texture, or content_aware. Proximity Match searches nearby nonoverlapping intact patches within search_radius 1..512px (default 64), with at most 2048 offsets, 128 boundary/32 interior samples and 1024 source-tile decodes. Create Texture synthesizes deterministic detail from neighboring color differences at the stroke boundary and uses the boundary to reconstruct the tonal base. Content-Aware compares opposing samples along four directions within search_radius and continues the closest color runs through the defect. Generated modes return null source, zero candidates and solver diagnostics. All modes fuse gradients in linear P3 against immutable target boundaries. Nested stroke requires a pixel target and no clone_source. Use current_layer (default raw target) or merged visible composite. Stroke coverage combines selection, pressure, flow and opacity once. Keep pixels outside coverage, existing masks and source samples. Footprint plus 1px boundary is limited to 262144 pixels. Solver max_iterations/tolerance follow retouch.heal. Missing support, nonconvergence, locks, cancellation and memory limits reject atomically. Each stroke is one undoable edit, not batchable. Native options and AI use the same modes. 中文：污点修复画笔、近邻匹配、创建纹理、内容识别、自动修复斑点、边界融合。
 
 Kind: `Mutate` · Undoable: `true` · Batchable: `false`
 
@@ -21313,6 +21411,10 @@ Permissions: `bound_document`
       "format": "uint32",
       "default": 512,
       "minimum": 0
+    },
+    "mode": {
+      "$ref": "#/$defs/SpotHealMode",
+      "default": "proximity_match"
     },
     "sample": {
       "$ref": "#/$defs/SelectionSample",
@@ -21526,6 +21628,14 @@ Permissions: `bound_document`
         "merged",
         "current_layer"
       ]
+    },
+    "SpotHealMode": {
+      "type": "string",
+      "enum": [
+        "proximity_match",
+        "create_texture",
+        "content_aware"
+      ]
     }
   }
 }
@@ -21562,6 +21672,9 @@ Permissions: `bound_document`
       "type": "string",
       "format": "uuid"
     },
+    "mode": {
+      "$ref": "#/$defs/SpotHealMode"
+    },
     "source": {
       "type": [
         "array",
@@ -21575,8 +21688,10 @@ Permissions: `bound_document`
       "minItems": 2
     }
   },
+  "additionalProperties": false,
   "required": [
     "layer_id",
+    "mode",
     "candidates",
     "boundary_error"
   ],
@@ -21613,6 +21728,14 @@ Permissions: `bound_document`
         "residual_rms",
         "method"
       ]
+    },
+    "SpotHealMode": {
+      "type": "string",
+      "enum": [
+        "proximity_match",
+        "create_texture",
+        "content_aware"
+      ]
     }
   }
 }
@@ -21635,6 +21758,46 @@ Permissions: `bound_document`
       }
     ],
     "size": 2
+  }
+}
+```
+
+```json
+{
+  "mode": "create_texture",
+  "search_radius": 8,
+  "stroke": {
+    "hardness": 1,
+    "layer": {
+      "name": "Background"
+    },
+    "points": [
+      {
+        "x": 11.5,
+        "y": 8.5
+      }
+    ],
+    "size": 4
+  }
+}
+```
+
+```json
+{
+  "mode": "content_aware",
+  "search_radius": 8,
+  "stroke": {
+    "hardness": 1,
+    "layer": {
+      "name": "Background"
+    },
+    "points": [
+      {
+        "x": 11.5,
+        "y": 8.5
+      }
+    ],
+    "size": 4
   }
 }
 ```
@@ -23367,7 +23530,7 @@ Permissions: `bound_document`
 
 ## `layer.pixel_bounds` — 像素图层边界
 
-Read finite occupied canvas bounds of an explicit visible pixel/text layer or visible group, including stored transparent hidden RGB. Sparse tiles scan with cancellation; query never changes samples/history. An editable text layer with no stored RGBA codes (for example fully transparent black) uses its retained glyph coverage, geometry and crop to measure ink instead; this bounded source-only fallback reserves the same font/mask memory and supports cancellation without writing a render cache. Whitespace/fully deleted ink still reports null. Group bounds union only effective visible child source, including finite fills, and never disclose hidden descendant extent. Scan at most64M stored child-source visits; masks/effects do not enlarge this raw-content box. Invisible target/ancestor or other unsupported target rejected. Null means no stored content. Use before transform.apply to choose source corners or pivot; coordinates include layer offset. Not batchable. 中文：像素图层边界、文字图层边界、图层组边界、可见子层范围、内容尺寸、变换轴心。
+Read the finite bounds of a visible layer in canvas coordinates. Pixel bounds include stored transparent hidden RGB. Editable fills report their true support envelope; adjustment layers report the bounds of their linked mask, or null when there is no finite mask coverage. Sparse tiles scan with cancellation; query never changes samples/history. An editable text layer with no stored RGBA codes (for example fully transparent black) uses its retained glyph coverage, geometry and crop to measure ink instead; this bounded source-only fallback reserves the same font/mask memory and supports cancellation without writing a render cache. Whitespace/fully deleted ink still reports null. Group bounds union only effective visible child source, including finite fills, and never disclose hidden descendant extent. Scan at most64M stored child-source visits; masks/effects do not enlarge this raw-content box. Invisible targets or ancestors are rejected. Null means no finite extent. Use before transform.apply to choose source corners or pivot; coordinates include layer offset. Not batchable. 中文：像素图层边界、文字图层边界、图层组边界、填充图层范围、调整图层蒙版范围、可见子层范围、内容尺寸、变换轴心。
 
 Kind: `Query` · Undoable: `false` · Batchable: `false`
 
@@ -23500,9 +23663,9 @@ Permissions: `bound_document`
 }
 ```
 
-## `transform.apply` — 像素自由变换
+## `transform.apply` — 图层自由变换
 
-Transform an explicit pixel/text layer or supported group subtree and linked u16 masks from immutable source, preserving canvas-external content, selection and styles. Required scope=whole_layer or selection. whole_layer transforms all stored pixels and linked mask, leaving selection unchanged. selection requires nonempty document coverage: lift nontransparent source once with u16 selection into 16-bit temporary tiles, keep a source-over complement r=(a-s)/(1-s) with s=selected alpha, warp that immutable lift, then composite over remainder in premultiplied linear light. This complement reconstructs identity alpha and differs from simply multiplying original alpha by (1-coverage). Never clip the destination again by old selection. Move current selection through the same geometry/interpolation, clip coverage to the artboard, store old selection for reselect; keep layer position/styles/linked mask unchanged in selection mode. Zero-coverage and original alpha-zero hidden RGB remain exact at source; selected fully opaque coverage carries exact visible codes. Identity transform is exact and returns changed=false with no history/revision/dirty/current-layer change, in both scopes; identical valid source/destination corners normalize to exact identity. Nonidentity operations return changed=true. Pixel destinations outside artboard stay stored even if selection outline clips away. RGB lifting/warp and destination composite remain bounded/cancellable/pooled; no 8-bit intermediate for soft coverage. Editable text supports whole_layer with all geometry variants, including perspective, and retains Unicode/style plus a local geometry pipeline (manifest8). Reshape original source and transform uniform-color glyph coverage; adjacent transforms compose before sampling and crop barriers stay ordered. Exact nearest lattice operations preserve glyph codes; bilinear interpolates u16 coverage without RGB/ICC round trips. Re-edit preserves geometry. Selection scope rejects text: explicitly rasterize first or choose whole_layer. Layer storage position rebases to transformed content. Empty text ink rejects. At most32 retained stages and64M transformed coverage visits per text re-render; glyph/source/shared-memory limits still apply. Groups support whole_layer when every subtree item is pixel, editable text or group with no active styles. One geometry applies to all children including hidden descendants and every linked/disabled layer/group mask, preserving hierarchy/clipping/IDs/source text. Preflight all subtree and ancestor pixel/position/transparency/all locks, types, source64M and aggregate64M destination pixel/mask work. Integer translation changes only subtree positions and retains all tile versions. General operations transform each editable source through the same leaf sampler, never flatten; empty text retains geometry for later typing. Group storage origin becomes transformed visible-content logical origin. Query/handle/result bounds and mask flag use only effective visible subtree; hidden content still transforms without revealing its extent. An entirely invisible/empty group or group selection scope rejects. Generated fill/adjustment/active-style general geometry remains unsupported; never rasterize/drop them implicitly. Native canvas handles now stage the same corners payload with fixed original document/revision/control/layer/scope ownership: eight scale handles, center-based rotation, skew, distort, paired-corner perspective, translation and keyboard nudge. Shift constrains ratio/direction/15-degree rotation, Option scales about center. Pointer motion previews only the quad; Enter applies once and Escape cancels. Continuous warped-image feedback remains separate; the existing numeric panel can still display a pixel preview. geometry.type=components: translation [x,y], scale [sx,sy] (negative flips), rotation_degrees, shear_degrees [x,y], pivot canvas [x,y]; order scale, shear, rotation, translation around pivot. affine values [a,b,c,d,tx,ty]. matrix values row-major [a,c,tx,b,d,ty,p,q,w], projective division. corners maps four cyclic convex source corners to destination corners; canvas coordinates, reversed orientation allowed. Use layer.pixel_bounds for actual source extent. interpolation nearest/bilinear (default): nearest floating edge ties within 1e-9 source pixel choose the positive-side sample; integer centers keep exact codes, fractions premultiplied linear P3 with actual ICC. Empty pixel layers reject. Exact integer translation only changes the layer position and keeps source/mask tile versions; signed axis permutations use integer pixel-center mapping even at large canvas offsets. Other output tiles are rebased to the transformed logical bounds, and the layer position reports that origin. Reject singular/horizon/unbounded or >64M-output visits; independent RGB/mask eight-tile/4096-decode caches, shared reservations/row cancellation. Reject pixel/position/transparency/all and ancestor locks. Linked mask flag preserved, anchors rebound. One atomic history, not batchable. 中文：自由变换、图层组变换、嵌套组旋转、可编辑文字变换、保留文字源旋转、整层像素、选区内像素、移动选中区域、缩放、旋转、斜切、扭曲、透视、水平翻转、垂直翻转、画布手柄、八手柄、旋转圆点、四角草稿、等比缩放、中心缩放、回车应用、Esc取消；画布拖动显示轮廓，应用时用同一命令更新像素，恒等变换不写历史。
+Transform an explicit layer, group subtree or selected pixels and their linked u16 masks from immutable source, preserving canvas-external content and editable definitions. Required scope=whole_layer or selection. whole_layer transforms all stored pixels and linked mask, leaving selection unchanged. selection requires nonempty document coverage: lift nontransparent source once with u16 selection into 16-bit temporary tiles, keep a source-over complement r=(a-s)/(1-s) with s=selected alpha, warp that immutable lift, then composite over remainder in premultiplied linear light. This complement reconstructs identity alpha and differs from simply multiplying original alpha by (1-coverage). Never clip the destination again by old selection. Move current selection through the same geometry/interpolation, clip coverage to the artboard, store old selection for reselect; keep layer position/styles/linked mask unchanged in selection mode. Zero-coverage and original alpha-zero hidden RGB remain exact at source; selected fully opaque coverage carries exact visible codes. Identity transform is exact and returns changed=false with no history/revision/dirty/current-layer change, in both scopes; identical valid source/destination corners normalize to exact identity. Nonidentity operations return changed=true. Pixel destinations outside artboard stay stored even if selection outline clips away. RGB lifting/warp and destination composite remain bounded/cancellable/pooled; no 8-bit intermediate for soft coverage. Editable text supports whole_layer with all geometry variants, including perspective, and retains Unicode/style plus a local geometry pipeline (manifest8). Reshape original source and transform uniform-color glyph coverage; adjacent transforms compose before sampling and crop barriers stay ordered. Exact nearest lattice operations preserve glyph codes; bilinear interpolates u16 coverage without RGB/ICC round trips. Re-edit preserves geometry. Selection scope rejects text: explicitly rasterize first or choose whole_layer. Layer storage position rebases to transformed content. Empty text ink rejects. At most32 retained stages and64M transformed coverage visits per text re-render; glyph/source/shared-memory limits still apply. Whole-layer transforms support pixel, text, fill, masked adjustment and group content, including styled layers. Solid and gradient fills remain procedural; their source gradient plane and finite crop support follow the geometry. A layer-only adjustment transform moves its linked mask over the existing backdrop. Stroke, glow and shadow parameters remain in canvas pixels; gradient fill and gradient-overlay references follow the layer geometry. One geometry applies to all children including hidden descendants and every linked/disabled layer/group mask, preserving hierarchy/clipping/IDs/source text. Preflight all subtree and ancestor pixel/position/transparency/all locks, types, source64M and aggregate64M destination pixel/mask work. Integer translation changes only subtree positions and retains all tile versions. General operations transform each editable source through the same leaf sampler, never flatten; empty text retains geometry for later typing. Group storage origin becomes transformed visible-content logical origin. Query/handle/result bounds and mask flag use only effective visible subtree; hidden content still transforms without revealing its extent. An entirely invisible/empty group or group selection scope rejects. Native canvas handles now stage the same corners payload with fixed original document/revision/control/layer/scope ownership: eight scale handles, center-based rotation, skew, distort, paired-corner perspective, translation and keyboard nudge. Shift constrains ratio/direction/15-degree rotation, Option scales about center. Pointer motion previews only the quad; Enter applies once and Escape cancels. Continuous warped-image feedback remains separate; the existing numeric panel can still display a pixel preview. geometry.type=components: translation [x,y], scale [sx,sy] (negative flips), rotation_degrees, shear_degrees [x,y], pivot canvas [x,y]; order scale, shear, rotation, translation around pivot. affine values [a,b,c,d,tx,ty]. matrix values row-major [a,c,tx,b,d,ty,p,q,w], projective division. corners maps four cyclic convex source corners to destination corners; canvas coordinates, reversed orientation allowed. Use layer.pixel_bounds for actual source extent. interpolation nearest/bilinear (default): nearest floating edge ties within 1e-9 source pixel choose the positive-side sample; integer centers keep exact codes, fractions premultiplied linear P3 with actual ICC. Empty pixel layers reject. Exact integer translation only changes the layer position and keeps source/mask tile versions; signed axis permutations use integer pixel-center mapping even at large canvas offsets. Other output tiles are rebased to the transformed logical bounds, and the layer position reports that origin. Reject singular/horizon/unbounded or >64M-output visits; independent RGB/mask eight-tile/4096-decode caches, shared reservations/row cancellation. Reject pixel/position/transparency/all and ancestor locks. Linked mask flag preserved, anchors rebound. One atomic history, not batchable. 中文：自由变换、图层组变换、嵌套组旋转、填充图层变换、调整图层蒙版变换、可编辑文字变换、保留文字源旋转、整层像素、选区内像素、移动选中区域、缩放、旋转、斜切、扭曲、透视、水平翻转、垂直翻转、画布手柄、八手柄、旋转圆点、四角草稿、等比缩放、中心缩放、回车应用、Esc取消；画布拖动显示轮廓，应用时用同一命令更新像素，恒等变换不写历史。
 
 Kind: `Mutate` · Undoable: `true` · Batchable: `false`
 
@@ -23911,6 +24074,24 @@ Permissions: `bound_document`
 ```json
 {
   "geometry": {
+    "pivot": [
+      8,
+      8
+    ],
+    "rotation_degrees": 13,
+    "type": "components"
+  },
+  "interpolation": "bilinear",
+  "layer": {
+    "name": "Transform fill"
+  },
+  "scope": "whole_layer"
+}
+```
+
+```json
+{
+  "geometry": {
     "translation": [
       4,
       2
@@ -23970,6 +24151,349 @@ Permissions: `bound_document`
     "name": "Background"
   },
   "scope": "whole_layer"
+}
+```
+
+## `transform.apply_layers` — 多图层自由变换
+
+Apply one shared canvas-space scale, rotation, shear, distortion, perspective or flip to 2..64 unique layer references. Use transform.apply for a single layer or selected pixels. A selected parent group carries its descendants once. Preserve IDs, tree, masks, editable fills, text and adjustment settings with the same geometry and interpolation as transform.apply. Leave the document selection in place. The result lists affected roots in stack order and returns the transformed envelope of visible pixel, fill and text content. Includes off-artboard content; bounds do not disclose hidden-layer extents. Reject any affected lock, invalid source or horizon and respect aggregate source/pixel/mask limits. Identity changes no history. One atomic undo and exact AI content-replacement approval. 中文：多图层自由变换、同时变换多个图层、多选缩放、多选旋转、一起透视、保留组和蒙版。
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `false`
+
+Effects: `document.write, pixels.replace`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TransformLayers",
+  "type": "object",
+  "properties": {
+    "geometry": {
+      "$ref": "#/$defs/TransformGeometry"
+    },
+    "interpolation": {
+      "$ref": "#/$defs/TransformInterpolation",
+      "default": "bilinear"
+    },
+    "layers": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/LayerRef"
+      },
+      "maxItems": 64,
+      "minItems": 2
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "layers",
+    "geometry"
+  ],
+  "$defs": {
+    "LayerRef": {
+      "description": "Stable ID preferred. Duplicate names return candidates instead of guessing.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ]
+        }
+      ]
+    },
+    "TransformGeometry": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "matrix"
+            },
+            "values": {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "format": "double"
+              },
+              "maxItems": 9,
+              "minItems": 9
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "values"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "affine"
+            },
+            "values": {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "format": "double"
+              },
+              "maxItems": 6,
+              "minItems": 6
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "values"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "destination": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "number",
+                  "format": "double"
+                },
+                "maxItems": 2,
+                "minItems": 2
+              },
+              "maxItems": 4,
+              "minItems": 4
+            },
+            "source": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "number",
+                  "format": "double"
+                },
+                "maxItems": 2,
+                "minItems": 2
+              },
+              "maxItems": 4,
+              "minItems": 4
+            },
+            "type": {
+              "type": "string",
+              "const": "corners"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "source",
+            "destination"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "pivot": {
+              "type": "array",
+              "default": [
+                0.0,
+                0.0
+              ],
+              "items": {
+                "type": "number",
+                "format": "double"
+              },
+              "maxItems": 2,
+              "minItems": 2
+            },
+            "rotation_degrees": {
+              "type": "number",
+              "format": "double",
+              "default": 0.0
+            },
+            "scale": {
+              "type": "array",
+              "default": [
+                1.0,
+                1.0
+              ],
+              "items": {
+                "type": "number",
+                "format": "double"
+              },
+              "maxItems": 2,
+              "minItems": 2
+            },
+            "shear_degrees": {
+              "type": "array",
+              "default": [
+                0.0,
+                0.0
+              ],
+              "items": {
+                "type": "number",
+                "format": "double"
+              },
+              "maxItems": 2,
+              "minItems": 2
+            },
+            "translation": {
+              "type": "array",
+              "default": [
+                0.0,
+                0.0
+              ],
+              "items": {
+                "type": "number",
+                "format": "double"
+              },
+              "maxItems": 2,
+              "minItems": 2
+            },
+            "type": {
+              "type": "string",
+              "const": "components"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ]
+        }
+      ]
+    },
+    "TransformInterpolation": {
+      "type": "string",
+      "enum": [
+        "nearest",
+        "bilinear"
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TransformLayersResult",
+  "type": "object",
+  "properties": {
+    "changed": {
+      "type": "boolean"
+    },
+    "layer_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uuid"
+      }
+    },
+    "mask_transformed": {
+      "type": "boolean"
+    },
+    "output_bounds": {
+      "$ref": "#/$defs/CoverageRect"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "layer_ids",
+    "output_bounds",
+    "mask_transformed",
+    "changed"
+  ],
+  "$defs": {
+    "CoverageRect": {
+      "type": "object",
+      "properties": {
+        "height": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "width": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "x": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "y": {
+          "type": "integer",
+          "format": "int64"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "x",
+        "y",
+        "width",
+        "height"
+      ]
+    }
+  }
+}
+```
+
+### Examples
+
+```json
+{
+  "geometry": {
+    "pivot": [
+      8,
+      8
+    ],
+    "scale": [
+      0.8,
+      1.2
+    ],
+    "translation": [
+      2,
+      -1
+    ],
+    "type": "components"
+  },
+  "layers": [
+    {
+      "name": "Background"
+    },
+    {
+      "name": "Transform fill"
+    }
+  ]
 }
 ```
 
@@ -24391,7 +24915,7 @@ Permissions: `bound_document`
 
 ## `image.orient` — 图像旋转与翻转
 
-Apply a whole-document exact signed-axis permutation: operation rotate_90_cw, rotate_90_ccw, rotate_180, flip_horizontal or flip_vertical. Keep the artboard top-left fixed; quarter turns swap width/height. Transform all stored source pixels including off-artboard/hidden layers and transparent hidden RGB, all linked/disabled u16 masks and current/previous selections. Preserve hierarchy, clipping, IDs, working ICC/depth and editable pixel/fill/group/adjustment definitions. Rotate/reflect gradient and gradient-overlay axes, swap frozen dimensions, map spatial adjustment domains and shadow offset vectors; radius/scale stay unchanged under these isometries. No rasterization or source artboard clipping. Exact nearest lattice sampling preserves integer codes. Existing procedural dissolve still uses its deterministic destination canvas-coordinate pattern, not a rotated random bitmap. Reject any layer pixel/position/transparency/all lock, unrepresentable/out-of-range geometry, >64M raster/mask/reference bound visits or shared memory/cache limits; atomic cancellation and one-history undo. All current layer kinds supported, including retained-source text: glyph coverage and ordered crop/geometry transform while Unicode/style remain editable. Future smart objects need their own support. Not batchable; AI requires exact content-replacement approval. Arbitrary-angle image rotation/straighten uses its separate partial-type commands. 中文：整幅图像旋转、顺时针90度、逆时针90度、180度、图像水平翻转、图像垂直翻转；同步保留可编辑图层、蒙版、选区与画板外内容。
+Apply a whole-document exact signed-axis permutation: operation rotate_90_cw, rotate_90_ccw, rotate_180, flip_horizontal or flip_vertical. Keep the artboard top-left fixed; quarter turns swap width/height. Transform all stored source pixels including off-artboard/hidden layers and transparent hidden RGB, all linked/disabled u16 masks and current/previous selections. Preserve hierarchy, clipping, IDs, working ICC/depth and editable pixel/fill/group/adjustment definitions. Rotate/reflect gradient and gradient-overlay axes, swap frozen dimensions, map spatial adjustment domains and shadow offset vectors; radius/scale stay unchanged under these isometries. No rasterization or source artboard clipping. Exact nearest lattice sampling preserves integer codes. Existing procedural dissolve still uses its deterministic destination canvas-coordinate pattern, not a rotated random bitmap. Reject any layer pixel/position/transparency/all lock, unrepresentable/out-of-range geometry, >64M raster/mask/reference bound visits or shared memory/cache limits; atomic cancellation and one-history undo. All current layer kinds supported, including retained-source text: glyph coverage and ordered crop/geometry transform while Unicode/style remain editable. Future smart objects need their own support. Not batchable; AI requires exact content-replacement approval. Arbitrary-angle rotation and straightening use their own commands. 中文：整幅图像旋转、顺时针90度、逆时针90度、180度、图像水平翻转、图像垂直翻转；同步保留可编辑图层、蒙版、选区与画板外内容。
 
 Kind: `Mutate` · Undoable: `true` · Batchable: `false`
 
@@ -25445,7 +25969,7 @@ Permissions: `bound_document`
 
 ## `image.rotate` — 整图任意角度旋转
 
-Rotate the layered image clockwise by finite angle_degrees +/-360000 (normalized modulo360); interpolation nearest/bilinear(default). General angles currently support every pixel layer, unstyled editable text and unstyled group, including hidden/off-artboard stored pixels, linked/disabled u16 masks and current/previous selections. Generated fills/adjustments, active styles and frozen style references reject before work; no implicit rasterization. Exact 90/180/270 degrees reuse image.orient and its support for all current types/finite generated crops/styles. Exact multiples of360 are no-ops with no history/revision/dirty/current-layer change. For general angles, rotate around old artboard center and translate its conservative half-source-pixel reconstruction envelope to the old artboard top-left; new canvas dimensions enclose that envelope independent of interpolation, so nearest may show an extra transparent border. Pixel source outside the old artboard is never clipped; it can stay outside the new frame. Integer layer storage origins rebase to transformed source bounds. Document selections transform/rebind to the new artboard, layer/group masks keep transformed finite support and enabled flags. ICC/depth/tree/IDs/clipping remain; fractions use premultiplied linear light, nearest preserves sampled codes and picks the positive-side sample for floating edge ties within 1e-9 source pixel. Reject any layer/ancestor pixel/position/transparency/all lock or existing 64M-output, eight-tile/4096-source-decode, coordinate and shared memory limits. Prepare from immutable source, row cancellation, atomic one-history undo, not batchable, exact AI content-replacement approval. This partial image-rotation capability does not complete general editable fill/style geometry. Text retains source plus the ordered geometry pipeline; re-edit preserves orientation and crop barriers. 中文：整图任意角度旋转、旋转图像、顺时针角度、逆时针角度；扩展画板，保留像素层/组、蒙版、选区和画板外内容。
+Rotate the layered image clockwise by finite angle_degrees +/-360000 (normalized modulo360); interpolation nearest/bilinear(default). General angles transform pixels, editable text, fills, groups, linked and disabled u16 masks, and current and previous selections. Editable fills sample their original gradient plane through the rotation. Adjustment parameters and layer styles remain editable; spatial reference bounds are mapped to an axis-aligned envelope. Stroke, glow and shadow retain their dimensions and settings in canvas pixels for arbitrary angles. Gradient-overlay references follow the geometry. Exact 90/180/270 degrees reuse image.orient and its support for all current types/finite generated crops/styles. Exact multiples of360 are no-ops with no history/revision/dirty/current-layer change. For general angles, rotate around old artboard center and translate its conservative half-source-pixel reconstruction envelope to the old artboard top-left; new canvas dimensions enclose that envelope independent of interpolation, so nearest may show an extra transparent border. Pixel source outside the old artboard is never clipped; it can stay outside the new frame. Integer layer storage origins rebase to transformed source bounds. Document selections transform/rebind to the new artboard, layer/group masks keep transformed finite support and enabled flags. ICC/depth/tree/IDs/clipping remain; fractions use premultiplied linear light, nearest preserves sampled codes and picks the positive-side sample for floating edge ties within 1e-9 source pixel. Reject any layer/ancestor pixel/position/transparency/all lock or existing 64M-output, eight-tile/4096-source-decode, coordinate and shared memory limits. Prepare from immutable source, row cancellation, atomic one-history undo, not batchable, exact AI content-replacement approval. Text retains source plus the ordered geometry pipeline; re-edit preserves orientation and crop barriers. 中文：整图任意角度旋转、旋转图像、顺时针角度、逆时针角度；扩展画板，保留像素层/组、蒙版、选区和画板外内容。
 
 Kind: `Mutate` · Undoable: `true` · Batchable: `false`
 
@@ -25576,7 +26100,7 @@ Permissions: `bound_document`
 
 ## `image.resize` — 图像大小与重采样
 
-Resize the actual image to integer width/height 1..100000 pixels while keeping the old artboard top-left and document DPI. Supports all pixel layers, unstyled editable text and unstyled groups, including hidden/off-artboard source pixels, layer/group masks (enabled flag retained) and current/previous u16 selections. Preserve IDs/tree/clipping/ICC/bit depth; do not flatten or clip to the old/new artboard. Generated fills/adjustments, active styles and frozen style references explicitly reject before resampling; their editable sizing support remains open. Text retains source and ordered sizing/crop operations, replaying the same selected nearest/bilinear/area u16 glyph coverage sampler after source edits. Font size/box remain source-layout values; transformed ink bounds are queried separately. interpolation=nearest copies exact source codes (including transparent hidden RGB); bilinear samples pixel centers in premultiplied linear light with actual ICC; area(default) integrates exact pixel-box overlap on each reducing axis and uses bilinear on equal/enlarging axes. Finite interior/off-artboard source edges filter against transparent zero, with conservative half-source-pixel support for bilinear axes; only source edges exactly coinciding with the old artboard edge extend their sample so a full opaque image keeps opaque borders. Area reduction uses exact pixel-box overlap normalization. Rational canvas coordinates preserve sample phase at large offsets. Source bounds scale with floor/ceil and integer layer storage origins rebase; this can retain a partial edge pixel beyond the new artboard. Selections rebind to the exact new frame, never reapply old selection to image pixels. Equal dimensions are a no-op with no history/revision/dirty/current-layer changes even on unsupported or locked layers. Reject affected layer/ancestor pixel/position/transparency/all locks. At most 64M destination visits and 256M sample taps across layers/masks/selections per command, eight cached source tiles/4096 decoded loads per raster, shared reservations and row/inner-loop cancellation. Prepare from immutable sources, publish one atomic history step with exact undo, not batchable; exact AI pixels.replace approval. Native and AI share this implementation. 中文：图像大小、调整图像尺寸、像素尺寸、重采样、最近邻、双线性、面积缩小、抗混叠；保留图层蒙版与画板外像素。
+Resize the actual image to integer width/height 1..100000 pixels while keeping the old artboard top-left and document DPI. Resample pixel and editable text layers, including hidden or off-artboard source pixels, linked and disabled masks, and current and previous u16 selections. Solid and gradient fills are evaluated in their original coordinate plane with the new scale; fill support and prior destructive crops follow the scale. Styles and adjustments remain editable, with their pixel-size parameters retained. Gradient-overlay and spatial adjustment references scale with the image. IDs, tree, clipping, working ICC, bit depth and off-artboard content are retained. Text retains source and ordered sizing/crop operations, replaying the same selected nearest/bilinear/area u16 glyph coverage sampler after source edits. Font size/box remain source-layout values; transformed ink bounds are queried separately. interpolation=nearest copies exact source codes (including transparent hidden RGB); bilinear samples pixel centers in premultiplied linear light with actual ICC; area(default) integrates exact pixel-box overlap on each reducing axis and uses bilinear on equal/enlarging axes. Finite interior/off-artboard source edges filter against transparent zero, with conservative half-source-pixel support for bilinear axes; only source edges exactly coinciding with the old artboard edge extend their sample so a full opaque image keeps opaque borders. Area reduction uses exact pixel-box overlap normalization. Rational canvas coordinates preserve sample phase at large offsets. Source bounds scale with floor/ceil and integer layer storage origins rebase; this can retain a partial edge pixel beyond the new artboard. Selections rebind to the exact new frame, never reapply old selection to image pixels. Equal dimensions are a no-op with no history/revision/dirty/current-layer changes even when layers are locked. Reject affected layer/ancestor pixel/position/transparency/all locks. At most 64M destination visits and 256M sample taps across layers/masks/selections per command, eight cached source tiles/4096 decoded loads per raster, shared reservations and row/inner-loop cancellation. Prepare from immutable sources, publish one atomic history step with exact undo, not batchable; exact AI pixels.replace approval. Native and AI share this implementation. 中文：图像大小、调整图像尺寸、像素尺寸、重采样、最近邻、双线性、面积缩小、抗混叠；保留图层蒙版与画板外像素。
 
 Kind: `Mutate` · Undoable: `true` · Batchable: `false`
 
@@ -25739,7 +26263,7 @@ Permissions: `bound_document`
 
 ## `image.straighten` — 拉直图像与自动裁剪
 
-Straighten all pixel layers, unstyled editable text and unstyled groups in one atomic history step using reference.type=angle (clockwise angle_degrees +/-45) or line (distinct start/end canvas points, align horizontal/vertical). A reference line computes the shortest unoriented correction toward the requested axis; choose the other axis if correction exceeds45 degrees. Points must be finite inside +/-1e12 and at least1e-6 pixel apart. crop=true(default) uses the rotated original artboard, not visible-content alpha, to compute an analytical largest centered continuous inscribed rectangle, then rounds its edges inward and verifies inverse corners. Bilinear uses an additional half-source-pixel inset so an originally opaque image cannot gain transparent corner interpolation; integer alignment may conservatively remove extra edge pixels. An image too narrow for a nonempty safe integer rectangle rejects before sampling; set crop=false to retain the expanded rotation artboard. No content-aware filling, deletion or implicit rasterization. Same immutable resampler/limits/locks/partial-type restrictions as image.rotate; preserve layer IDs/tree/depth/ICC, hidden/off-artboard sources, enabled flags and layer/group/current/previous masks. Source content outside the cropped frame remains stored; selection binds to final frame. Exactly zero correction is unchanged-state no-op, even with crop=true. Native numeric and canvas-dragged reference lines use the same strict parameters/output as AI, with pixels.replace approval for AI. A native line stages only a guide, binds the original document/revision/control epoch and operation-specific ownership token, and applies on Enter or its button; Escape, tool/document/revision/control changes cancel it without revoking newer AI work. Horizontal/vertical, crop and interpolation remain adjustable before confirmation. One undo restores rotation and crop. Generated fills/adjustments/styles arbitrary geometry remains open; text retains source and ordered geometry/crop stages. 中文：拉直、水平线校正、垂直线校正、按两点参考线拉直、画布拖线拉直、参考线草稿、回车应用、Esc取消、校正地平线、自动裁掉旋转空角、保留像素裁剪。
+Straighten the layered image in one atomic history step using reference.type=angle (clockwise angle_degrees +/-45) or line (distinct start/end canvas points, align horizontal/vertical). A reference line computes the shortest unoriented correction toward the requested axis; choose the other axis if correction exceeds45 degrees. Points must be finite inside +/-1e12 and at least1e-6 pixel apart. crop=true(default) uses the rotated original artboard, not visible-content alpha, to compute an analytical largest centered continuous inscribed rectangle, then rounds its edges inward and verifies inverse corners. Bilinear uses an additional half-source-pixel inset so an originally opaque image cannot gain transparent corner interpolation; integer alignment may conservatively remove extra edge pixels. An image too narrow for a nonempty safe integer rectangle rejects before sampling; set crop=false to retain the expanded rotation artboard. No content-aware filling, deletion or implicit rasterization. Uses the same layer geometry, resampler, limits and locks as image.rotate; preserve layer IDs/tree/depth/ICC, hidden/off-artboard sources, enabled flags and layer/group/current/previous masks. Source content outside the cropped frame remains stored; selection binds to final frame. Exactly zero correction is unchanged-state no-op, even with crop=true. Native numeric and canvas-dragged reference lines use the same strict parameters/output as AI, with pixels.replace approval for AI. A native line stages only a guide, binds the original document/revision/control epoch and operation-specific ownership token, and applies on Enter or its button; Escape, tool/document/revision/control changes cancel it without revoking newer AI work. Horizontal/vertical, crop and interpolation remain adjustable before confirmation. One undo restores rotation and crop. Fills retain their editable definitions and finite support; text retains source and ordered geometry/crop stages. 中文：拉直、水平线校正、垂直线校正、按两点参考线拉直、画布拖线拉直、参考线草稿、回车应用、Esc取消、校正地平线、自动裁掉旋转空角、保留像素裁剪。
 
 Kind: `Mutate` · Undoable: `true` · Batchable: `false`
 

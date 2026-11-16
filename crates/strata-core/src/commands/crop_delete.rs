@@ -133,15 +133,21 @@ pub(super) fn apply(
             info.kind,
             LayerKind::Solid { .. } | LayerKind::Gradient { .. }
         ) {
-            let crop = source
-                .generated_canvas_bounds(old)?
-                .and_then(|b| intersection(b, bounds))
-                .map(|mut b| {
-                    b.x -= info.x;
-                    b.y -= info.y;
-                    b
-                });
-            doc.layers[index].info.generated_crop = Some(GeneratedCrop { bounds: crop });
+            let target = &mut doc.layers[index].info;
+            if let Some(geometry) = &mut target.generated_geometry {
+                geometry.crop(local);
+                geometry.validate([info.x, info.y])?;
+            } else {
+                let crop = source
+                    .generated_canvas_bounds(old)?
+                    .and_then(|b| intersection(b, bounds))
+                    .map(|mut b| {
+                        b.x -= info.x;
+                        b.y -= info.y;
+                        b
+                    });
+                target.generated_crop = Some(GeneratedCrop { bounds: crop });
+            }
         }
         if let LayerKind::Text { text } = &info.kind {
             let mut text = text.clone();

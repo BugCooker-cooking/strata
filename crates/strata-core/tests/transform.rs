@@ -225,7 +225,7 @@ fn four_corners_and_components_produce_the_same_exact_horizontal_flip() {
     }
 }
 #[test]
-fn singular_horizon_generated_and_locked_targets_fail_without_losing_content() {
+fn invalid_geometry_locks_and_nonpixel_selection_targets_fail_atomically() {
     let mut e = fixture();
     let before = e.document().unwrap().to_archive().unwrap();
     let history = e.snapshot().history.len();
@@ -267,7 +267,8 @@ fn singular_horizon_generated_and_locked_targets_fail_without_losing_content() {
         json!({"name":"generated","color":[65535,0,0,65535]}),
     );
     let revision = e.revision();
-    let params = p(&e);
+    let mut params = p(&e);
+    params["scope"] = json!("selection");
     assert!(
         e.execute(e.request(Source::User), "transform.apply", params, |_| Ok(
             ()

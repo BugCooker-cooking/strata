@@ -147,6 +147,52 @@ fn automatic_periodic_texture_matches_frozen_linear_reference_and_is_determinist
     let reopened = Document::from_archive(e.document().unwrap().to_archive().unwrap()).unwrap();
     assert!(reopened.export_pixels().unwrap() == e.document().unwrap().export_pixels().unwrap());
 }
+
+#[test]
+fn all_spot_modes_repair_opaque_defects_deterministically_in_both_depths() {
+    for depth in [8, 16] {
+        for mode in ["proximity_match", "create_texture", "content_aware"] {
+            let mut editor = fixture(depth, false);
+            let mut repeat = editor.clone();
+            let outside = pixel(&editor, 38, 24);
+            let before = editor.document().unwrap().to_archive().unwrap();
+            let mut input = params(&editor);
+            input["mode"] = json!(mode);
+            let result = run(&mut editor, "retouch.spot_heal", input.clone());
+            assert_eq!(result["mode"], mode);
+            assert_eq!(result["source"].is_array(), mode == "proximity_match");
+            assert!(result["healing"]["domain_pixels"].as_u64().unwrap() > 0);
+            assert_eq!(pixel(&editor, 38, 24), outside);
+            assert!(
+                pixel(&editor, 48, 24)[0].abs_diff(outside[0]) <= if depth == 16 { 8 } else { 257 }
+            );
+            run(&mut repeat, "retouch.spot_heal", input);
+            assert_eq!(
+                editor.document().unwrap().export_pixels().unwrap(),
+                repeat.document().unwrap().export_pixels().unwrap()
+            );
+            run(&mut editor, "edit.undo", json!({}));
+            assert_eq!(editor.document().unwrap().to_archive().unwrap(), before);
+        }
+    }
+}
+
+#[test]
+fn content_aware_continues_color_runs_across_the_spot() {
+    let mut editor = fixture(16, true);
+    let mut input = params(&editor);
+    input["mode"] = json!("content_aware");
+    run(&mut editor, "retouch.spot_heal", input);
+    for x in [46, 47, 48, 49, 50] {
+        let actual = pixel(&editor, x, 24);
+        let expected = clean(x as u32, 24, true);
+        assert!(
+            actual[0].abs_diff(expected[0]) < 275,
+            "{x}: {actual:?} vs {expected:?}"
+        );
+        assert_eq!(actual[3], u16::MAX);
+    }
+}
 #[test]
 fn selection_mask_locks_and_no_source_failures_are_atomic() {
     let mut e = fixture(16, true);

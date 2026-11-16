@@ -101,6 +101,9 @@ impl Document {
             return Ok(None);
         }
         let info = layer.info();
+        if let Some(geometry) = &info.generated_geometry {
+            return geometry.bounds([info.x, info.y]);
+        }
         let [width, height] = info
             .generated_size
             .unwrap_or([self.frame.width, self.frame.height]);
@@ -341,6 +344,17 @@ impl Document {
                     || info.y.checked_add(i64::from(height)).is_none())
             {
                 return Err(DocumentError::Invalid("generated layer geometry".into()));
+            }
+            if let Some(geometry) = &info.generated_geometry {
+                if info.kind.is_adjustment()
+                    || info.generated_size.is_none()
+                    || info.generated_crop.is_some()
+                {
+                    return Err(DocumentError::Invalid(
+                        "projective generated geometry requires a frozen reference".into(),
+                    ));
+                }
+                geometry.validate([info.x, info.y])?;
             }
             if let Some(bounds) = info.spatial_bounds {
                 bounds.validate()?;

@@ -34,7 +34,7 @@ final class CanvasGuideInput:ObservableObject{
         guard canEdit,let token,let draft else{return false}
         let parameters:[String:Any]
         if let target{parameters=["guide":["id":target],"position":draft.position]}
-        else{parameters=["name":draft.axis=="vertical" ? "垂直参考线":"水平参考线","axis":draft.axis,"position":draft.position]}
+        else{parameters=["name":draft.axis=="vertical" ? L10n.text("垂直参考线"):L10n.text("水平参考线"),"axis":draft.axis,"position":draft.position]}
         do{
             let json=try commandJSON(parameters),engine=engine,current=generation;running=true;onRunning?(true)
             Task{[weak self]in
