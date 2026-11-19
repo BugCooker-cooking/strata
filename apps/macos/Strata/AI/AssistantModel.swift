@@ -312,13 +312,25 @@ final class AssistantModel: ObservableObject {
             selectedResourceURL = url
             return try engine.aiGrantRead(turnId: turn, path: url.path)
         }
-        let format:String
-        if command=="file.quick_export"{
-            let preset=try QuickExportPreferences().preset(engine)
-            guard let value=operation["params"]["preset_version"].number,UInt64(exactly:value)==preset.version else{throw AIClientError.message(L10n.text("快速导出预设已改变，请重新读取预设并发起导出。"))}
-            format=try QuickExportPreferences().format(preset)
-        }else{format = command == "file.export" ? operation["params"]["format"].string ?? "png" : "strata"}
-        guard ["png", "jpeg", "jpg", "webp", "tiff", "strata"].contains(format) else { throw AIClientError.message(L10n.text("请先选择支持的导出格式。")) }
+        let format: String
+        switch command {
+        case "file.quick_export":
+            let preset = try QuickExportPreferences().preset(engine)
+            guard let value = operation["params"]["preset_version"].number,
+                  UInt64(exactly: value) == preset.version else {
+                throw AIClientError.message(L10n.text("快速导出预设已改变，请重新读取预设并发起导出。"))
+            }
+            format = try QuickExportPreferences().format(preset)
+        case "file.export":
+            format = operation["params"]["format"].string ?? "png"
+            guard ["png", "jpeg", "jpg", "webp", "tiff"].contains(format) else {
+                throw AIClientError.message(L10n.text("请先选择支持的导出格式。"))
+            }
+        case "file.export_psd":
+            format = "psd"
+        default:
+            format = "strata"
+        }
         let picker = NSSavePanel(); picker.allowedContentTypes = [UTType(filenameExtension: format) ?? .data]
         picker.nameFieldStringValue = "Strata.\(format)"; picker.message = L10n.text("授权 AI 的这一次文件写入；目标文件不受文档撤销保护。"); panel = picker
         let choice = await withCheckedContinuation { continuation in picker.beginSheetModal(for: window) { continuation.resume(returning: $0) } }

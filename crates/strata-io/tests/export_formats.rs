@@ -190,3 +190,20 @@ fn invalid_depth_alpha_and_quality_never_replace_target() {
         assert_eq!(std::fs::read_dir(dir.path()).unwrap().count(), 1);
     }
 }
+
+#[test]
+fn psd_destination_is_rechecked_after_the_temporary_file_is_verified() {
+    let dir = tempfile::tempdir().unwrap();
+    let dst = dir.path().join("destination.psd");
+    std::fs::write(&dst, b"original").unwrap();
+    let bytes = include_bytes!("../../strata-core/tests/fixtures/psd/group-mask.psd");
+    let result = strata_io::export::publish_psd(&dst, bytes, true, || {
+        std::fs::write(&dst, b"external update")?;
+        Err(strata_io::project::StorageError::Invalid(
+            "destination changed".into(),
+        ))
+    });
+    assert!(result.is_err());
+    assert_eq!(std::fs::read(&dst).unwrap(), b"external update");
+    assert_eq!(std::fs::read_dir(dir.path()).unwrap().count(), 1);
+}

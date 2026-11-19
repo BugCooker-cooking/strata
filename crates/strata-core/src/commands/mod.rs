@@ -840,6 +840,7 @@ pub struct HistoryResult {
     pub history_cursor: usize,
 }
 #[derive(Serialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
 pub struct ExternalResult {
     pub status: String,
     pub command: String,

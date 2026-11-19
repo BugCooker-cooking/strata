@@ -307,6 +307,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             (L10n.text("另存为…"), #selector(MainWindowController.saveAs), "S"),
             (L10n.text("恢复到上次保存…"),#selector(MainWindowController.revertDocument),""),
             (L10n.text("导出…"), #selector(MainWindowController.exportDocument), "e"),
+            (L10n.text("导出分层 PSD…"), #selector(MainWindowController.exportLayeredPSD), ""),
             (L10n.text("快速导出…"), #selector(MainWindowController.quickExportDocument), "E"),
             (L10n.text("快速导出预设…"), #selector(MainWindowController.configureQuickExport), "")
         ] { let item = file.addItem(withTitle: title, action: action, keyEquivalent: key); item.target = controller }

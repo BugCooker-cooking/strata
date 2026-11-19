@@ -1,3 +1,4 @@
+pub(crate) mod export;
 use crate::geometry_pixels::union;
 use crate::{
     BlendMode, ColorLabel, Document, DocumentCandidate, DocumentError, Layer, LayerKind,
@@ -152,7 +153,6 @@ fn area(rect: CoverageRect) -> u64 {
     u64::from(rect.width) * u64::from(rect.height)
 }
 fn configure(layer: &mut Layer, src: &LayerRecord<'_>) -> Result<(), PsdError> {
-    use BlendMode::*;
     let info = &mut layer.info;
     info.kind = match src.kind {
         LayerType::Pixel => LayerKind::Pixel,
@@ -167,44 +167,19 @@ fn configure(layer: &mut Layer, src: &LayerRecord<'_>) -> Result<(), PsdError> {
         info.x = src.bounds.x;
         info.y = src.bounds.y;
     }
-    info.blend_mode = match &src.blend {
-        b"pass" if src.kind == LayerType::Folder => {
-            info.pass_through = true;
-            Normal
-        }
-        b"norm" => Normal,
-        b"diss" => Dissolve,
-        b"dark" => Darken,
-        b"mul " => Multiply,
-        b"idiv" => ColorBurn,
-        b"lbrn" => LinearBurn,
-        b"dkCl" => DarkerColor,
-        b"lite" => Lighten,
-        b"scrn" => Screen,
-        b"div " => ColorDodge,
-        b"lddg" => LinearDodge,
-        b"lgCl" => LighterColor,
-        b"over" => Overlay,
-        b"sLit" => SoftLight,
-        b"hLit" => HardLight,
-        b"vLit" => VividLight,
-        b"lLit" => LinearLight,
-        b"pLit" => PinLight,
-        b"hMix" => HardMix,
-        b"diff" => Difference,
-        b"smud" => Exclusion,
-        b"fsub" => Subtract,
-        b"fdiv" => Divide,
-        b"hue " => Hue,
-        b"sat " => Saturation,
-        b"colr" => Color,
-        b"lum " => Luminosity,
-        key => {
-            return Err(PsdError::Unsupported(format!(
-                "blend mode {}",
-                String::from_utf8_lossy(key)
-            )));
-        }
+    info.pass_through = src.kind == LayerType::Folder && &src.blend == b"pass";
+    info.blend_mode = if info.pass_through {
+        BlendMode::Normal
+    } else {
+        BlendMode::ALL
+            .into_iter()
+            .find(|&mode| blend_key(mode) == &src.blend)
+            .ok_or_else(|| {
+                PsdError::Unsupported(format!(
+                    "blend mode {}",
+                    String::from_utf8_lossy(&src.blend)
+                ))
+            })?
     };
     info.visible = src.visible;
     info.clipped = src.clipped;
@@ -281,4 +256,36 @@ fn raster_mask(
         }
     }
     Ok(mask)
+}
+
+pub(super) fn blend_key(mode: BlendMode) -> &'static [u8; 4] {
+    match mode {
+        BlendMode::Normal => b"norm",
+        BlendMode::Dissolve => b"diss",
+        BlendMode::Darken => b"dark",
+        BlendMode::Multiply => b"mul ",
+        BlendMode::ColorBurn => b"idiv",
+        BlendMode::LinearBurn => b"lbrn",
+        BlendMode::DarkerColor => b"dkCl",
+        BlendMode::Lighten => b"lite",
+        BlendMode::Screen => b"scrn",
+        BlendMode::ColorDodge => b"div ",
+        BlendMode::LinearDodge => b"lddg",
+        BlendMode::LighterColor => b"lgCl",
+        BlendMode::Overlay => b"over",
+        BlendMode::SoftLight => b"sLit",
+        BlendMode::HardLight => b"hLit",
+        BlendMode::VividLight => b"vLit",
+        BlendMode::LinearLight => b"lLit",
+        BlendMode::PinLight => b"pLit",
+        BlendMode::HardMix => b"hMix",
+        BlendMode::Difference => b"diff",
+        BlendMode::Exclusion => b"smud",
+        BlendMode::Subtract => b"fsub",
+        BlendMode::Divide => b"fdiv",
+        BlendMode::Hue => b"hue ",
+        BlendMode::Saturation => b"sat ",
+        BlendMode::Color => b"colr",
+        BlendMode::Luminosity => b"lum ",
+    }
 }

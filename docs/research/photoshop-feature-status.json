@@ -1324,5 +1324,15 @@
         "path": "../research/2026-11-p1-psd-import.md"
       }
     ]
+  },
+  "PS-01-261e177d1e": {
+    "implementation": "部分实现",
+    "acceptance": "支持范围内的 8/16 位分层 PSD 可通过原生菜单及 AI 命令导出并重新编辑；文字、矢量、智能对象和其他调整类型继续扩展。",
+    "evidence": [
+      {
+        "label": "分层 PSD 导出与互操作验证",
+        "path": "../research/2026-11-p1-psd-export.md"
+      }
+    ]
   }
 }

@@ -617,6 +617,15 @@ fn build_catalog() -> Vec<CommandSpec> {
         json!({"resource":"fixture-export","format":"png"})
     );
     command!(
+        "file.export_psd",
+        SaveFile,
+        External,
+        "导出分层 PSD 副本",
+        "Export layered Photoshop PSD",
+        "Export an editable RGB PSD v1 copy of the current artboard at its original 8/16-bit depth, DPI and working ICC. Retain pixel layers (including hidden RGB and off-artboard samples), groups, clipping, raster masks, invert and exposure. Layer coordinates are relative to the artboard. PSD stores opacity in 8 bits and exposure in a float. The embedded preview uses Strata's composite; other editors may reblend in a different space. Unsupported editable content fails before publication. An 8-bit PSD needs mask samples exactly representable in 8 bits. The Strata project retains selections and guides. The PSD is a fixed snapshot taken at export preparation. Requires a host-authorized write destination; export does not mark the project saved or enter undo history. 中文：导出分层 PSD 副本、保存为 Photoshop 文件。保留图层、图层组、蒙版、位深、ICC 和分辨率。宿主授权写入，导出记录独立于撤销。工程中保留选区和参考线。",
+        json!({"resource":"fixture-psd-output"})
+    );
+    command!(
         "file.export_preset.get",
         Empty,
         Query,
@@ -1441,7 +1450,9 @@ fn build_catalog() -> Vec<CommandSpec> {
             "file.new" | "file.open" | "file.recover" | "file.revert" => {
                 schemars::schema_for!(NewResult)
             }
-            "file.save" | "file.save_as" | "file.export" => schemars::schema_for!(ExternalResult),
+            "file.save" | "file.save_as" | "file.export" | "file.export_psd" => {
+                schemars::schema_for!(ExternalResult)
+            }
             "edit.undo" | "edit.redo" | "edit.undo_turn" => schemars::schema_for!(HistoryResult),
             "view.pan" | "view.zoom" | "view.fit" | "view.actual_size" | "layer.select" => {
                 schemars::schema_for!(ViewResult)

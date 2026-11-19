@@ -55,6 +55,7 @@ pub(super) struct WriteCandidate {
     data: WriteData,
 }
 enum WriteData {
+    LayeredPsd(crate::psd::export::EncodedPsd),
     Project {
         document: Box<Document>,
         incremental: bool,
@@ -406,16 +407,17 @@ impl Editor {
         params: Value,
     ) -> Result<WriteCandidate, CommandError> {
         let doc = self.document.as_ref().ok_or(CommandError::NoDocument)?;
-        let (resource_id, export) = if id == "file.export" {
-            let p: ExportFile = parse(params)?;
-            let plan = export::ExportPlan::new(doc, &p)?;
-            (p.resource, Some(plan))
+        let (resource_id, options) = if id == "file.export" {
+            let options: ExportFile = parse(params)?;
+            (options.resource.clone(), Some(options))
         } else {
-            let p: SaveFile = parse(params)?;
-            (p.resource, None)
+            (parse::<SaveFile>(params)?.resource, None)
         };
         let resource = self.resource(&resource_id, request, true)?;
-        let data = if let Some(export) = export {
+        let data = if id == "file.export_psd" {
+            WriteData::LayeredPsd(crate::psd::export::encode(doc, &|| request.expired())?)
+        } else if let Some(options) = options {
+            let export = export::ExportPlan::new(doc, &options)?;
             WriteData::Image {
                 pixels: export.pixels(doc, &|| request.expired())?,
                 width: export.width,
@@ -460,6 +462,18 @@ impl Editor {
         }
         let project = matches!(write.data, WriteData::Project { .. });
         let result = match write.data {
+            WriteData::LayeredPsd(psd) => {
+                strata_io::export::publish_psd(&write.path, &psd.bytes, write.overwrite, || {
+                    if request.expired() {
+                        return Err(StorageError::Invalid(
+                            "PSD export cancelled before publication".into(),
+                        ));
+                    }
+                    self.resource(&write.resource, request, true)
+                        .map(|_| ())
+                        .map_err(|e| StorageError::Invalid(e.to_string()))
+                })
+            }
             WriteData::Project {
                 document,
                 incremental,

@@ -4365,3 +4365,102 @@ fn smart_layer_references_are_discoverable_return_visible_ids_and_undo_one_real_
     );
     assert!(host.snapshot().unwrap().presentation.snap_layers);
 }
+
+#[test]
+fn layered_psd_export_in_direct_mode_waits_for_the_host_then_writes_an_editable_copy() {
+    let host = Host::new();
+    host.user(
+        "layer.create",
+        json!({"name":"Keep layer","fill":[10001,20002,30003,32769]}),
+    );
+    let mut session = host.session_with_prompt(
+        ExecutionMode::Direct,
+        "导出分层 PSD 副本，保留图层供对方重编辑。",
+    );
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("handoff.psd");
+    for approved in [false, true] {
+        let call = if approved {
+            "approved-export"
+        } else {
+            "cancelled-export"
+        };
+        reply(
+            &mut session,
+            &host,
+            vec![invoke(call, "file.export_psd", json!({}))],
+        );
+        let Step::Paused {
+            question_id,
+            reason,
+            operation,
+            ..
+        } = session.poll(&host).unwrap()
+        else {
+            panic!("export must request a destination")
+        };
+        assert_eq!(reason, "file_resource");
+        assert_eq!(operation.unwrap()["command"], "file.export_psd");
+        assert!(!path.exists());
+        let resource = approved.then(|| {
+            host.editor
+                .lock()
+                .unwrap()
+                .grant_write(
+                    &path,
+                    false,
+                    Source::Ai {
+                        turn_id: session.turn_id(),
+                    },
+                )
+                .unwrap()
+        });
+        let response = result(
+            session
+                .respond(
+                    &host,
+                    HostAnswer {
+                        question_id,
+                        answer: String::new(),
+                        approved,
+                        resource,
+                    },
+                )
+                .unwrap(),
+        );
+        if approved {
+            assert_eq!(response["result"]["status"], "completed");
+        } else {
+            assert_eq!(response["status"], "denied");
+        }
+    }
+    let mut reopened = Editor::new();
+    let r = reopened.grant_read(&path, Source::Test).unwrap();
+    reopened
+        .execute(
+            reopened.request(Source::Test),
+            "file.open",
+            json!({"resource":r}),
+            |_| Ok(()),
+        )
+        .unwrap();
+    assert_eq!(
+        reopened
+            .document()
+            .unwrap()
+            .layers()
+            .last()
+            .unwrap()
+            .info()
+            .name,
+        "Keep layer"
+    );
+    session.abort(&host, "done").unwrap();
+    assert!(matches!(
+        session.poll(&host).unwrap(),
+        Step::Finished {
+            external_writes: 1,
+            ..
+        }
+    ));
+}

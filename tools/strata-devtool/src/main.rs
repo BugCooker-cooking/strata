@@ -461,6 +461,23 @@ fn examples() -> Result<(), Box<dyn Error>> {
                     args["resource"] =
                         json!(editor.grant_read(&store.path(&info.session_id)?, Source::Test)?);
                 }
+                "file.export_psd" => {
+                    let input = dir.path().join("editable.psd");
+                    std::fs::write(
+                        &input,
+                        include_bytes!(
+                            "../../../crates/strata-core/tests/fixtures/psd/group-mask.psd"
+                        ),
+                    )?;
+                    let grant = editor.grant_read(&input, Source::Test)?;
+                    run(
+                        &mut editor,
+                        "file.open",
+                        json!({"resource":grant,"discard_changes":true}),
+                    )?;
+                    let output = dir.path().join("edited.psd");
+                    args["resource"] = json!(editor.grant_write(&output, false, Source::Test)?);
+                }
                 "file.save" | "file.save_as" | "file.export" | "file.quick_export" => {
                     let grant = editor.grant_write(
                         &dir.path().join(
@@ -514,6 +531,13 @@ fn examples() -> Result<(), Box<dyn Error>> {
                     || doc.layers()[1].mask().is_none()
                 {
                     return Err("PSD example did not preserve editable masked layers".into());
+                }
+            }
+            if spec.id == "file.export_psd" {
+                let bytes = std::fs::read(dir.path().join("edited.psd"))?;
+                let output = strata_io::psd::Psd::parse(&bytes, strata_core::MAX_LAYERS)?;
+                if output.layers.len() != 6 || output.format.bit_depth() != 16 {
+                    return Err("layered PSD example lost its editable directory or depth".into());
                 }
             }
             if spec.id == "file.revert"

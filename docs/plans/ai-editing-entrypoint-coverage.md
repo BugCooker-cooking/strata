@@ -2,9 +2,9 @@
 
 当前开发期审计快照。完整编辑功能与最终 AI 审计仍未闭环；不得把注册数量当作全部功能覆盖。
 
-真实注册命令 148；参数示例 223；综合功能 265；已有映射 103。
+真实注册命令 149；参数示例 224；综合功能 265；已有映射 104。
 
-已实现但未映射 0；部分入口 4；原生未知命令引用 0；未类型化返回 0。
+已实现但未映射 0；部分入口 5；原生未知命令引用 0；未类型化返回 0。
 
 配置/密钥及基础设施的宿主管理理由单列；纯 UI 状态不能隐瞒为已具备独立 AI 设置命令。
 
@@ -31,7 +31,7 @@
 | PS-01-e7337088bf | 置入图片为图层 | 已实现 | 已映射 | `file.place` · 把我选择的图片置入为新图层。 |
 | PS-01-265b9a61ab | 恢复到上次保存 | 已实现 | 已映射 | `file.revert_status`、`file.revert` · 读取当前文档是否能恢复到上次保存，以及来源文件名；不要读取文件或泄露完整路径。 · Actual current-source lifecycle reload through file.open decoder/project/render preparation. Strict schemas, bilingual search/describe, discard_changes=true, optional expected_revision, fresh matching host-selected read resource and a source pin at commit. Metadata exposes only the current source basename/kind/dirty. Core/archive/decode/path/cancel/stale/display-failure, AI decline/fresh grant/real reload/context rebind and actual native/Metal/Release gates passed. One-window menu cancel/apply and last-window exit preserved source/default settings. Revert clears undo/redo; it is not an undoable edit or a source-file write. This closes the revert row, not remaining Photoshop/file capabilities. |
 | PS-01-40267007aa | PSD 导入 | 部分实现 | 部分入口 | `file.open` · 打开我选择的分层 PSD，保留可编辑的图层组、像素层和栅格蒙版。 · 使用宿主文件选择器，支持范围和部分兼容项见 PSD 导入记录。文字、矢量、智能对象和其余调整图层仍待接入。 |
-| PS-01-261e177d1e | PSD 导出 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
+| PS-01-261e177d1e | PSD 导出 | 部分实现 | 部分入口 | `file.export_psd` · 导出一个分层 PSD 副本，让对方继续编辑图层和蒙版。 · 原尺寸 8/16 位 RGB，保留支持的像素层、组、基本蒙版与反相/曝光。宿主授权发布固定快照，文件写入不进入文档撤销历史。其余可编辑图层类型继续跟踪。 |
 | PS-01-ab934d783e | 打开 RAW | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-01-b49b476915 | 置入链接文件 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-01-a69a5778e5 | 图层 / 画板导出为文件 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
@@ -278,7 +278,7 @@
 
 ## 仍需核对
 
-- 部分入口：PS-16-8de06204ac、PS-14-15d282cc9a、PS-02-b2fd2e2a88、PS-01-40267007aa
+- 部分入口：PS-16-8de06204ac、PS-14-15d282cc9a、PS-02-b2fd2e2a88、PS-01-40267007aa、PS-01-261e177d1e
 - 未类型化返回：无
 - 未关联功能条目的命令：
 - 动态拼接及纯宿主回调仍需人工逐项复核；已有提示映射不能代替最终模型端到端验收。

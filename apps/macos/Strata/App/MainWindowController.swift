@@ -192,7 +192,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         case #selector(autoTone),#selector(autoContrast),#selector(autoColor): workspace.permissions.edits && selected?.kind?.kind=="pixel" && selected?.visible == true && selected?.locks?.all != true && selected?.locks?.pixels != true
         case #selector(beginCanvasTransform): workspace.canTransform(scope: "whole_layer", onCanvas: true)
         case #selector(showGuides): !busy
-        case #selector(saveDocument), #selector(saveAs), #selector(exportDocument),#selector(quickExportDocument), #selector(placeImage), #selector(convertToSRGB), #selector(convertToP3),#selector(assignSRGB),#selector(assignP3): workspace.permissions.edits && workspace.hasDocument
+        case #selector(saveDocument), #selector(saveAs), #selector(exportDocument), #selector(exportLayeredPSD),#selector(quickExportDocument), #selector(placeImage), #selector(convertToSRGB), #selector(convertToP3),#selector(assignSRGB),#selector(assignP3): workspace.permissions.edits && workspace.hasDocument
         case #selector(configureQuickExport): !busy && (state?.control?.kind ?? "user")=="user"
         case #selector(revertDocument):workspace.permissions.edits && workspace.hasDocument && engine.revertSourcePath() != nil
         case #selector(duplicateDocument): workspace.permissions.edits && workspace.hasDocument && onDocumentDuplicated != nil

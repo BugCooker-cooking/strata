@@ -34,6 +34,12 @@ extension StrataError {
         case .UnsavedChanges:
             return L10n.text("当前文档有未保存修改，请先保存或确认放弃修改。")
         case .Command(let message):
+            if let marker = message.range(of: "PSD export cannot represent this layer: ") {
+                return L10n.format("图层“{0}”含有当前 PSD 导出无法保留的内容。请在副本中将它栅格化后重试。", String(message[marker.upperBound...]))
+            }
+            if message.contains("PSD export needs a 16-bit document") {
+                return L10n.text("蒙版包含高于 8 位精度的样本。请将文档副本转为 16 位，再导出分层 PSD。")
+            }
             if message.contains("glyphs are not present in the bundled fonts") {
                 return L10n.text("内置字体缺少此文本中的部分字符。请使用受支持的字符，或在文字面板中选用其他字体。")
             }

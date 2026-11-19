@@ -136,6 +136,26 @@ extension MainWindowController {
             } catch { self.showError(error) }
         }
     }
+    @objc func exportLayeredPSD() {
+        guard workspace.permissions.edits, workspace.hasDocument, let window else { return }
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [UTType(filenameExtension: "psd") ?? .data]
+        panel.nameFieldStringValue = URL(fileURLWithPath: fileName).deletingPathExtension().lastPathComponent + ".psd"
+        panel.message = L10n.text("导出可编辑的 RGB 图层、组和蒙版。选区和参考线保存在 Strata 工程中。")
+        panel.beginSheetModal(for: window) { [weak self] response in
+            guard let self, response == .OK, let url = panel.url else { return }
+            self.writeLayeredPSD(to: url)
+        }
+    }
+    func writeLayeredPSD(to url: URL, completion: (@MainActor @Sendable (Bool) -> Void)? = nil) {
+        do {
+            let output = try engine.grantWrite(path: url.path, overwrite: FileManager.default.fileExists(atPath: url.path))
+            perform("file.export_psd", ["resource": output], completion: completion)
+        } catch {
+            showError(error)
+            completion?(false)
+        }
+    }
     @objc func configureQuickExport(){
         guard !busy,(state?.control?.kind ?? "user")=="user",let window else{return}
         do{

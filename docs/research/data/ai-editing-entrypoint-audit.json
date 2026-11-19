@@ -1,16 +1,17 @@
 {
   "scope": "Development audit; not a claim that all Photoshop editing is implemented or AI-verified",
-  "registered_commands": 148,
-  "registered_examples": 223,
-  "catalog_sha256": "1ba980920121ea8ea702d8770af8ab3ad8662e93abc40c6463576e9eda472994",
+  "registered_commands": 149,
+  "registered_examples": 224,
+  "catalog_sha256": "2bb3ce44cf0192fb0cd8cccba04cec95b973a64bbd5ec1f7fcee899b3d221291",
   "inventory_rows": 265,
-  "mapped_features": 103,
+  "mapped_features": 104,
   "unmapped_implemented_features": [],
   "partial_entrypoints": [
     "PS-16-8de06204ac",
     "PS-14-15d282cc9a",
     "PS-02-b2fd2e2a88",
-    "PS-01-40267007aa"
+    "PS-01-40267007aa",
+    "PS-01-261e177d1e"
   ],
   "unfinished_features": [
     "PS-00-960e444e99",
@@ -723,8 +724,27 @@
       "name": "PSD 导出",
       "priority": "P1",
       "source_line": 69,
-      "implementation": "待实现",
-      "entrypoint": null
+      "implementation": "部分实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "partial",
+        "commands": [
+          "file.export_psd"
+        ],
+        "prompts": [
+          {
+            "text": "导出一个分层 PSD 副本，让对方继续编辑图层和蒙版。",
+            "query": "导出分层 PSD",
+            "command": "file.export_psd"
+          },
+          {
+            "text": "Export a layered Photoshop PSD and preserve the editable masks.",
+            "query": "Export layered Photoshop PSD",
+            "command": "file.export_psd"
+          }
+        ],
+        "note": "原尺寸 8/16 位 RGB，保留支持的像素层、组、基本蒙版与反相/曝光。宿主授权发布固定快照，文件写入不进入文档撤销历史。其余可编辑图层类型继续跟踪。"
+      }
     },
     {
       "id": "PS-01-ab934d783e",

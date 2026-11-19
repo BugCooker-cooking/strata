@@ -11824,6 +11824,7 @@ Permissions: `bound_document, write_resource`
       "type": "string"
     }
   },
+  "additionalProperties": false,
   "required": [
     "status",
     "command"
@@ -11885,6 +11886,7 @@ Permissions: `bound_document, write_resource`
       "type": "string"
     }
   },
+  "additionalProperties": false,
   "required": [
     "status",
     "command"
@@ -12011,6 +12013,7 @@ Permissions: `bound_document, write_resource`
       "type": "string"
     }
   },
+  "additionalProperties": false,
   "required": [
     "status",
     "command"
@@ -12074,6 +12077,68 @@ Permissions: `bound_document, write_resource`
   "allow_quantization": true,
   "format": "webp",
   "resource": "fixture-export"
+}
+```
+
+## `file.export_psd` — 导出分层 PSD 副本
+
+Export an editable RGB PSD v1 copy of the current artboard at its original 8/16-bit depth, DPI and working ICC. Retain pixel layers (including hidden RGB and off-artboard samples), groups, clipping, raster masks, invert and exposure. Layer coordinates are relative to the artboard. PSD stores opacity in 8 bits and exposure in a float. The embedded preview uses Strata's composite; other editors may reblend in a different space. Unsupported editable content fails before publication. An 8-bit PSD needs mask samples exactly representable in 8 bits. The Strata project retains selections and guides. The PSD is a fixed snapshot taken at export preparation. Requires a host-authorized write destination; export does not mark the project saved or enter undo history. 中文：导出分层 PSD 副本、保存为 Photoshop 文件。保留图层、图层组、蒙版、位深、ICC 和分辨率。宿主授权写入，导出记录独立于撤销。工程中保留选区和参考线。
+
+Kind: `External` · Undoable: `false` · Batchable: `false`
+
+Effects: `document.read, file.write`
+
+Permissions: `bound_document, write_resource`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SaveFile",
+  "type": "object",
+  "properties": {
+    "resource": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "resource"
+  ]
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ExternalResult",
+  "type": "object",
+  "properties": {
+    "command": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "status",
+    "command"
+  ]
+}
+```
+
+### Examples
+
+```json
+{
+  "resource": "fixture-psd-output"
 }
 ```
 

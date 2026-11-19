@@ -27,7 +27,7 @@
 | PS-01-e7337088bf | 文件 | 置入图片为图层 | P0 | 已实现 | 当前设备已有证据；持续回归 · [当前实现与验证](2026-11-03-m1-closure.md) |
 | PS-01-265b9a61ab | 文件 | 恢复到上次保存 | P1 | 已实现 | Source-bound file.revert/status implemented using real image/project reload, fresh matching read capability, explicit discard/history reset and optional confirmation expected_revision. Related22core,52AI,required Metal1,142commands/211examples, lint, final native15 and arm64 Release passed. Initial native failures were a canonical-path assertion and sheet-fixture-triggered XCTest host exit; identity assertion and XCTest-only termination guard fixed, same15 reran passed. One Release window manually verified cancel keeps2layers/dirty/Undo, apply restores original1layer/0,0/clean/Undo+Redo disabled; closing last window exited normally. SourceSHA and quick-preset absence unchanged, process0. No manual every-format/16-bit/corruption or sustained performance claim. · [Bound-source revert implementation and local progress](../research/2026-11-m8-revert-progress.md) |
 | PS-01-40267007aa | 文件 | PSD 导入 | P1 | 部分实现 | RGB 8/16 位平面与分层 PSD；像素层、图层组、基本栅格蒙版、反相与受限曝光可编辑。 · [PSD 导入与本机验证](../research/2026-11-p1-psd-import.md) |
-| PS-01-261e177d1e | 文件 | PSD 导出 | P1 | 待实现 | 待验收 |
+| PS-01-261e177d1e | 文件 | PSD 导出 | P1 | 部分实现 | 支持范围内的 8/16 位分层 PSD 可通过原生菜单及 AI 命令导出并重新编辑；文字、矢量、智能对象和其他调整类型继续扩展。 · [分层 PSD 导出与互操作验证](../research/2026-11-p1-psd-export.md) |
 | PS-01-ab934d783e | 文件 | 打开 RAW | P2 | 待实现 | 待验收 |
 | PS-01-b49b476915 | 文件 | 置入链接文件 | P2 | 待实现 | 待验收 |
 | PS-01-a69a5778e5 | 文件 | 图层 / 画板导出为文件 | P2 | 待实现 | 待验收 |
@@ -272,6 +272,6 @@
 | PS-19-d9de9483c3 | Adobe 的 AI 功能 | 移除干扰物（行人、电线）/ 反射去除 🤖 | P3 | 待实现 | 待验收 |
 | PS-19-ef0365d914 | Adobe 的 AI 功能 | Neural Filters：皮肤平滑、智能肖像、上色、超级缩放、JPEG 伪影去除、照片修复、风格转换、妆容迁移、景观混合器、深度模糊、色彩转移 🤖 | P3 | 待实现 | 待验收 |
 
-综合功能条目：265。实现状态：已实现 99；待实现 153；部分实现 4；重新核对 9。
+综合功能条目：265。实现状态：已实现 99；待实现 152；部分实现 5；重新核对 9。
 
 源清单行号可由 --json 查询。该数量是综合条目数，不能当作独立子功能总数或完成百分比。
