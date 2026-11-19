@@ -18,7 +18,9 @@ P0 已完成逐项核对，目前在开发 P1。已有的编辑能力包括选�
 
 “文件 → 导出分层 PSD…”可把支持的像素层、组、蒙版、反相与曝光调整写回可编辑的 8/16 位 RGB 副本。AI 使用同一写入命令。[PSD 导出范围和互操作验证](docs/research/2026-11-p1-psd-export.md)
 
-接下来的实施顺序见[整个应用的开发计划](docs/plans/2026-11-19-app-roadmap.md)。矢量路径和形状、智能对象、其余 PSD 兼容能力、RAW、富文本及其他 P1–P3 编辑能力继续按[完整清单](docs/plans/photoshop-feature-coverage.md)追踪。真实模型质量、持续性能、其他设备和正式发布各有独立门槛。上图为 v1 界面设计稿。2026-11-05 起验证只在本机执行，以下 CI 链接为历史证据。
+钢笔工具（P）已可创建、重编辑和保存闭合贝塞尔工作路径，可将轮廓载入选区或用前景色填充到新图层。原生与 AI 共用路径命令。[钢笔与工作路径](docs/research/2026-11-p1-work-paths.md)
+
+接下来的实施顺序见[整个应用的开发计划](docs/plans/2026-11-19-app-roadmap.md)。复合路径、形状图层、智能对象、其余 PSD 兼容能力、RAW、富文本及其他 P1–P3 编辑能力继续按[完整清单](docs/plans/photoshop-feature-coverage.md)追踪。真实模型质量、持续性能、其他设备和正式发布各有独立门槛。上图为 v1 界面设计稿。2026-11-05 起验证只在本机执行，以下 CI 链接为历史证据。
 
 最近新增了保留原文的文字几何、嵌套图层组变换，以及持久参考线、标尺开关和移动吸附；核心、AI调用、原生测试、真实Metal、Release及单窗口增量验收已通过，示例已恢复并关闭。见[文字几何](docs/research/2026-11-m7-text-geometry-progress.md)和[参考线/吸附](docs/research/2026-11-m7-guides-snap-progress.md)；当前没有遗留测试实例。新增[图层智能参考线](docs/research/2026-11-m7-smart-guides-progress.md)与[标尺角标原点拖动/重置](docs/research/2026-11-m7-ruler-origin-drag-progress.md)通过本机自动化与Release，原生112项中111通过/1联网测试按配置跳过。用户解锁后，同一个Release窗口验证了V/数值实际吸附、小数原点/画布外取消/双击重置，恢复干净示例并退出，进程0；[单窗口范围记录](docs/research/data/2026-11-09-m7-smart-origin-native-closure.json)明确未观察的拖动中辅助线外观/延迟与持续大图门槛。
 

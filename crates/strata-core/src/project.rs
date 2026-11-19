@@ -10,6 +10,8 @@ use strata_pixels::{MaskLayout, PixelBuffer, PixelFormat, TileCoord, TiledMask, 
 #[serde(deny_unknown_fields)]
 struct Manifest {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    paths: Vec<std::sync::Arc<crate::WorkPath>>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     guides: Vec<crate::Guide>,
     #[serde(default)]
     selection: Option<MaskLayout>,
@@ -35,12 +37,13 @@ impl Document {
     pub(crate) fn manifest(&self) -> Result<serde_json::Value, DocumentError> {
         self.validate()?;
         let metadata = serde_json::to_value(Manifest {
+            paths:self.paths.clone(),
             guides: self.guides.clone(),
             selection: self.selection.as_ref().map(TiledMask::layout),
             previous_selection: self.previous_selection.as_ref().map(TiledMask::layout),
             resolution_dpi: self.resolution_dpi,
             preset: self.preset.clone(),
-            version: if self.layers.iter().any(|l| l.info.generated_geometry.is_some()) {
+            version: if !self.paths.is_empty(){11} else if self.layers.iter().any(|l| l.info.generated_geometry.is_some()) {
                 10
             } else if !self.guides.is_empty() {
                 9
@@ -106,7 +109,7 @@ impl Document {
     ) -> Result<Self, DocumentError> {
         let meta: Manifest =
             serde_json::from_value(metadata).map_err(|e| DocumentError::Invalid(e.to_string()))?;
-        if !matches!(meta.version, 0..=10)
+        if !matches!(meta.version, 0..=11)
             || meta.layers.len() > crate::MAX_LAYERS
             || meta.guides.len() > crate::MAX_GUIDES
             || meta.working_icc.len() > 4 * 1024 * 1024
@@ -118,6 +121,11 @@ impl Document {
         {
             return Err(DocumentError::Invalid(
                 "project version or metadata size".into(),
+            ));
+        }
+        if meta.version < 11 && !meta.paths.is_empty() {
+            return Err(DocumentError::Invalid(
+                "work paths require manifest version 11".into(),
             ));
         }
         if meta.version < 10 && meta.layers.iter().any(|l| l.generated_geometry.is_some()) {
@@ -239,6 +247,7 @@ impl Document {
             })
             .collect::<Result<Vec<_>, DocumentError>>()?;
         let doc = Self {
+            paths: meta.paths,
             guides: meta.guides,
             previous_selection: meta
                 .previous_selection

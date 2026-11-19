@@ -71,6 +71,7 @@ macro_rules! params {
         pub struct $name { $( $(#[$attr])* pub $field: $ty ),* }
     };
 }
+mod paths;
 params!(Empty {});
 params!(DuplicateDocument {
     #[schemars(length(min = 1, max = 256))]

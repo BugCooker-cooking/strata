@@ -12,6 +12,8 @@ mod geometry_resize;
 mod guides;
 mod ids;
 mod layer;
+mod paths;
+pub use paths::{PathAnchor, WorkPath};
 mod project;
 mod psd;
 mod recovery;
@@ -26,7 +28,7 @@ pub use document::{
 };
 pub use fill_geometry::GeneratedGeometry;
 pub use guides::{Guide, GuideAxis, GuideRef, MAX_GUIDES, Presentation, RulerMetrics, RulerUnit};
-pub use ids::{DocumentId, GuideId, LayerId, StateId};
+pub use ids::{DocumentId, GuideId, LayerId, PathId, StateId};
 pub use layer::{
     BlendMode, ColorLabel, GeneratedCrop, Layer, LayerInfo, LayerKind, LayerLocks, LayerMaskInfo,
     LayerRef,

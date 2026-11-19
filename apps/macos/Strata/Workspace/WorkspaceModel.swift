@@ -38,7 +38,7 @@ enum EditorTool: String, CaseIterable, Identifiable {
     var title: String { Self.info[self]!.0 }
     var symbol: String { Self.info[self]!.1 }
     var key: String { Self.info[self]!.2 }
-    var available: Bool { [.move, .freeTransform, .text, .marquee, .lasso, .selection, .subject, .crop, .brush, .eraser, .clone, .heal, .dodge, .bucket, .gradient, .eyedropper, .hand, .zoom].contains(self) }
+    var available: Bool { [.pen, .move, .freeTransform, .text, .marquee, .lasso, .selection, .subject, .crop, .brush, .eraser, .clone, .heal, .dodge, .bucket, .gradient, .eyedropper, .hand, .zoom].contains(self) }
     var isPaint: Bool { isBrush || [.bucket,.gradient].contains(self) }
     var isBrush: Bool { [.brush,.eraser,.clone,.heal,.dodge].contains(self) }
     var isSelection: Bool { [.marquee, .lasso, .selection].contains(self) }
@@ -164,6 +164,7 @@ final class WorkspaceModel: ObservableObject {
     @Published var workingColorSpace=NSColorSpace.sRGB
     @Published var collapsedGroups:Set<String>=[]
     @Published var selectedLayers:Set<String>=[]
+    let pathInput = CanvasPathInput()
     @Published var inspector = InspectorTab.properties
     @Published var assistantVisible = true
     @Published var inspectorVisible = true
@@ -216,7 +217,7 @@ final class WorkspaceModel: ObservableObject {
     var canRedo: Bool { permissions.history && (snapshot?.historyCursor ?? 0) < (snapshot?.history.count ?? 0) }
     func send(_ action: WorkspaceAction) { self.action?(action) }
     func selectTool(_ tool: EditorTool) {
-        guard !busy, tool.available, ![EditorTool.move,.freeTransform,.crop,.text].contains(tool) || permissions.edits, !tool.isPaint || permissions.edits, !tool.isSelection || permissions.selectionEdits else { return }
+        guard !busy, tool.available, ![EditorTool.move,.freeTransform,.crop,.text,.pen].contains(tool) || permissions.edits, !tool.isPaint || permissions.edits, !tool.isSelection || permissions.selectionEdits else { return }
         if tool == .subject { if permissions.edits { send(.selectSubject) }; return }
         self.tool = tool; send(.tool(tool))
     }
@@ -267,6 +268,8 @@ private let commandTitles: [String: String] = [
      "type.create":L10n.text("新建可编辑文字"),"type.update":L10n.text("编辑文字"),
      "filter.gaussian_blur":L10n.text("高斯模糊"), "filter.unsharp_mask":L10n.text("USM 锐化"), "filter.high_pass":L10n.text("高反差保留"), "filter.add_noise":L10n.text("添加杂色"), "image.auto":L10n.text("自动色调 / 对比度 / 颜色"), "transform.apply":L10n.text("图层自由变换"), "transform.apply_layers":L10n.text("多图层自由变换"), "image.canvas_size":L10n.text("画布大小"), "image.crop":L10n.text("矩形裁剪"), "image.reveal_all":L10n.text("显示全部可见图层内容"), "image.orient":L10n.text("图像旋转与翻转"), "image.trim":L10n.text("裁去透明边"), "image.rotate":L10n.text("整图任意角度旋转"), "image.resize":L10n.text("图像大小与重采样"), "image.straighten":L10n.text("拉直图像与自动裁剪"), "image.convert_bit_depth":L10n.text("转换文档位深"),
      "layer.create": L10n.text("新建图层"), "layer.duplicate": L10n.text("复制图层"), "layer.delete": L10n.text("删除图层"), "layer.rename": L10n.text("重命名图层"),
+     "path.create": L10n.text("创建工作路径"), "path.update": L10n.text("编辑路径锚点"), "path.split": L10n.text("平分曲线段"), "path.delete": L10n.text("删除路径"),
+     "select.from_path": L10n.text("路径转选区"), "layer.fill.path": L10n.text("路径填充"),
      "layer.set_position": L10n.text("移动图层"), "layer.snap_position":L10n.text("吸附移动图层"), "view.guides.add":L10n.text("新建参考线"), "view.guides.update":L10n.text("修改参考线"), "view.guides.delete":L10n.text("删除参考线"), "view.guides.clear":L10n.text("清除参考线"), "layer.set_visibility": L10n.text("图层显隐"), "layer.set_opacity": L10n.text("调整不透明度"),
      "layer.set_blend_mode": L10n.text("混合模式"), "layer.move_order": L10n.text("调整顺序"), "color.convert": L10n.text("转换色彩空间"), "color.assign":L10n.text("指定色彩配置"),
      "batch": L10n.text("批量编辑"), "document.batch": L10n.text("批量编辑"), "file.save": L10n.text("保存工程"), "file.save_as": L10n.text("另存工程"), "file.revert":L10n.text("恢复到上次保存"), "file.revert_status":L10n.text("读取恢复原文件状态"), "file.export": L10n.text("导出图片"), "file.quick_export":L10n.text("快速导出"), "file.export_preset.get":L10n.text("读取快速导出预设"), "file.export_preset.set":L10n.text("设置快速导出预设"),

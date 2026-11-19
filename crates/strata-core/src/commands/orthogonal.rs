@@ -280,6 +280,7 @@ pub(super) fn mutate(
         doc.frame.width = before.height;
         doc.frame.height = before.width;
     }
+    crate::paths::transform_paths(&mut doc.paths, &transform)?;
     Ok(Some(
         serde_json::json!({"operation":p.operation,"previous_frame":before,"frame":doc.frame,"all_stored_content_transformed":true,"preserved_layer_structure":true}),
     ))

@@ -86,6 +86,79 @@ fn build_catalog() -> Vec<CommandSpec> {
         json!({})
     );
     command!(
+        "layer.fill.path",
+        paths::FillPath,
+        Mutate,
+        "按路径填充新图层",
+        "Fill path on a new layer",
+        "Create an editable solid-color layer with a raster mask sampled from a closed work path over the current artboard. RGBA samples are in document working RGB: 0..255 or 0..65535 at 8 or 16 bits. name is the new layer name. The saved path and active selection are preserved. Later path edits do not update this mask. One undo removes the fill layer. 中文：按闭合路径填充新图层、从轮廓创建带蒙版的纯色图层，保留原路径和当前选区，一次撤销。",
+        json!({"path":{"name":"Outline"},"name":"Path fill","color":[32768,0,65535,65535]})
+    );
+    command!(
+        "path.split",
+        paths::SplitPath,
+        Mutate,
+        "在曲线上插入锚点",
+        "Split Bézier segment",
+        "Insert an anchor without changing the cubic contour. segment is the zero-based starting anchor of the segment, including the closing segment, and 0<t<1 is its parameter. Both neighboring handles and the inserted handles are computed by de Casteljau subdivision. One undo; optional expected_revision rejects a stale edit. 在曲线上插入锚点、平分贝塞尔段，保留原曲线，一次撤销。",
+        json!({"path":{"name":"Outline"},"segment":1,"t":0.5})
+    );
+    let triangle = json!([{"position":[2,2]},{"position":[13,2],"outgoing":[0,3]},{"position":[2,13],"incoming":[3,0]}]);
+    command!(
+        "path.create",
+        paths::CreatePath,
+        Mutate,
+        "创建闭合贝塞尔路径",
+        "Create closed Bézier path",
+        "Create a named closed work path with 3..128 ordered anchors, up to 64 paths per document. position is absolute [x,y] in canvas pixels. Optional incoming/outgoing handle vectors are relative to that anchor and default to [0,0] for corners. Cubic segments join outgoing to the next incoming, including the closing edge. Finite points and handle endpoints within ±1e12; name 1..256 UTF-8 bytes. Optional expected_revision binds a staged native draft. Changes document metadata in one undo step. 保存可编辑闭合路径、钢笔锚点和相对方向手柄，一次撤销；工程保留曲线，普通图像导出只写像素。",
+        json!({"name":"Outline","anchors":triangle})
+    );
+    command!(
+        "path.update",
+        paths::UpdatePath,
+        Mutate,
+        "编辑路径锚点",
+        "Edit Bézier path anchors",
+        "Use a stable path ID or unique name. Replace the ordered anchors (3..128) to move, add, delete or convert anchors, and/or rename the path. Positions are absolute canvas pixels, handles incoming/outgoing are relative offsets. One atomic undoable edit, identical values are a no-op. Use document.inspect for the current revision and path.get for the geometry. Pass expected_revision when editing a draft. 调整锚点、增删锚点、曲线手柄、转角点或平滑点、重命名路径。",
+        json!({"path":{"name":"Outline"},"anchors":[{"position":[3,3]},{"position":[12,2],"outgoing":[0,4]},{"position":[2,12]}]})
+    );
+    command!(
+        "path.delete",
+        paths::DeletePath,
+        Mutate,
+        "删除工作路径",
+        "Delete work path",
+        "Delete a named work path by ID or unique name. Undo restores the same ID and curve. Optional expected_revision checks the current revision. 删除闭合路径，不修改图层或选区，支持撤销。",
+        json!({"path":{"name":"Outline"}})
+    );
+    command!(
+        "path.list",
+        Empty,
+        Query,
+        "列出工作路径",
+        "List work paths",
+        "List document path IDs, names and anchor counts. Use path.get to read geometry for a selected ID. 列出已保存路径、名称和锚点数，只读。",
+        json!({})
+    );
+    command!(
+        "path.get",
+        paths::PathTarget,
+        Query,
+        "读取路径锚点",
+        "Inspect path anchors",
+        "Read the ID, name and full ordered cubic anchors for one work path by stable ID or unique name. 读取路径锚点和相对控制手柄；使用 path.update 重编辑。",
+        json!({"path":{"name":"Outline"}})
+    );
+    command!(
+        "select.from_path",
+        paths::PathSelection,
+        Mutate,
+        "路径转为选区",
+        "Load path as selection",
+        "Rasterize a closed work path into the selection clipped to the artboard, even-odd fill, 4x4 coverage, with cubic subdivision to 1/8 canvas pixel and at most 4096 segments. Modes replace(default), add, subtract, intersect. One undoable selection edit; the path stays editable. Use the resulting selection with the existing fill and mask commands. 闭合路径转选区、从路径载入选区、保留可编辑路径，一次撤销。",
+        json!({"path":{"name":"Outline"},"mode":"replace"})
+    );
+    command!(
         "view.guides.list",
         ListGuides,
         Query,
@@ -1376,6 +1449,12 @@ fn build_catalog() -> Vec<CommandSpec> {
     );
     for item in &mut list {
         item.returns = match item.id {
+            "path.create" | "path.update" | "path.split" | "path.delete" => {
+                schemars::schema_for!(paths::PathChange)
+            }
+            "path.get" => schemars::schema_for!(crate::WorkPath),
+            "path.list" => schemars::schema_for!(paths::PathList),
+            "select.from_path" => schemars::schema_for!(SelectionResult),
             "system.preferences.get" | "system.preferences.set" => {
                 schemars::schema_for!(AppPreferences)
             }
@@ -1611,6 +1690,12 @@ fn build_catalog() -> Vec<CommandSpec> {
         if item.id == "type.fonts" {
             item.effects = vec!["font.catalog.read"];
             item.permissions = vec!["bound_editor"];
+        }
+        if item.id.starts_with("path.") || matches!(item.id, "select.from_path" | "layer.fill.path")
+        {
+            item.batchable = false;
+            item.returns
+                .insert("additionalProperties".into(), json!(false));
         }
         if item.id.starts_with("view.guides.") || item.id == "layer.snap_position" {
             item.batchable = false;

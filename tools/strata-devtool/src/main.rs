@@ -98,6 +98,14 @@ fn examples() -> Result<(), Box<dyn Error>> {
                         json!({"ruler_unit":"millimeters","ruler_origin":[100,200]}),
                     )?;
                 }
+                "path.split" | "layer.fill.path" | "path.get" | "path.list" | "path.update"
+                | "path.delete" | "select.from_path" => {
+                    run(
+                        &mut editor,
+                        "path.create",
+                        json!({"name":"Outline","anchors":[{"position":[2,2]},{"position":[13,2],"outgoing":[0,3]},{"position":[2,13]}]}),
+                    )?;
+                }
                 "view.guides.update" | "view.guides.delete" | "view.guides.clear" => {
                     run(
                         &mut editor,

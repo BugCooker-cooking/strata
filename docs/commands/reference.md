@@ -740,6 +740,1092 @@ Permissions: `app_settings_approval`
 {}
 ```
 
+## `layer.fill.path` — 按路径填充新图层
+
+Create an editable solid-color layer with a raster mask sampled from a closed work path over the current artboard. RGBA samples are in document working RGB: 0..255 or 0..65535 at 8 or 16 bits. name is the new layer name. The saved path and active selection are preserved. Later path edits do not update this mask. One undo removes the fill layer. 中文：按闭合路径填充新图层、从轮廓创建带蒙版的纯色图层，保留原路径和当前选区，一次撤销。
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `false`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "FillPath",
+  "type": "object",
+  "properties": {
+    "color": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "format": "uint16",
+        "maximum": 65535,
+        "minimum": 0
+      },
+      "maxItems": 4,
+      "minItems": 4
+    },
+    "name": {
+      "type": "string",
+      "maxLength": 256,
+      "minLength": 1
+    },
+    "path": {
+      "$ref": "#/$defs/PathRef"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "path",
+    "name",
+    "color"
+  ],
+  "$defs": {
+    "PathRef": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LayerResult",
+  "type": "object",
+  "properties": {
+    "layer_id": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "layer_id"
+  ]
+}
+```
+
+### Examples
+
+```json
+{
+  "color": [
+    32768,
+    0,
+    65535,
+    65535
+  ],
+  "name": "Path fill",
+  "path": {
+    "name": "Outline"
+  }
+}
+```
+
+## `path.split` — 在曲线上插入锚点
+
+Insert an anchor without changing the cubic contour. segment is the zero-based starting anchor of the segment, including the closing segment, and 0<t<1 is its parameter. Both neighboring handles and the inserted handles are computed by de Casteljau subdivision. One undo; optional expected_revision rejects a stale edit. 在曲线上插入锚点、平分贝塞尔段，保留原曲线，一次撤销。
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `false`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SplitPath",
+  "type": "object",
+  "properties": {
+    "expected_revision": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "uint64",
+      "default": null,
+      "minimum": 0
+    },
+    "path": {
+      "$ref": "#/$defs/PathRef"
+    },
+    "segment": {
+      "type": "integer",
+      "format": "uint",
+      "maximum": 127,
+      "minimum": 0
+    },
+    "t": {
+      "type": "number",
+      "exclusiveMaximum": 1,
+      "exclusiveMinimum": 0
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "path",
+    "segment",
+    "t"
+  ],
+  "$defs": {
+    "PathRef": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PathChange",
+  "type": "object",
+  "properties": {
+    "changed": {
+      "type": "boolean"
+    },
+    "path_id": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "path_id",
+    "changed"
+  ]
+}
+```
+
+### Examples
+
+```json
+{
+  "path": {
+    "name": "Outline"
+  },
+  "segment": 1,
+  "t": 0.5
+}
+```
+
+## `path.create` — 创建闭合贝塞尔路径
+
+Create a named closed work path with 3..128 ordered anchors, up to 64 paths per document. position is absolute [x,y] in canvas pixels. Optional incoming/outgoing handle vectors are relative to that anchor and default to [0,0] for corners. Cubic segments join outgoing to the next incoming, including the closing edge. Finite points and handle endpoints within ±1e12; name 1..256 UTF-8 bytes. Optional expected_revision binds a staged native draft. Changes document metadata in one undo step. 保存可编辑闭合路径、钢笔锚点和相对方向手柄，一次撤销；工程保留曲线，普通图像导出只写像素。
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `false`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CreatePath",
+  "type": "object",
+  "properties": {
+    "anchors": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/PathAnchor"
+      },
+      "maxItems": 128,
+      "minItems": 3
+    },
+    "expected_revision": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "uint64",
+      "default": null,
+      "minimum": 0
+    },
+    "name": {
+      "type": "string",
+      "maxLength": 256,
+      "minLength": 1
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "name",
+    "anchors"
+  ],
+  "$defs": {
+    "PathAnchor": {
+      "type": "object",
+      "properties": {
+        "incoming": {
+          "type": "array",
+          "default": [
+            0.0,
+            0.0
+          ],
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 2,
+          "minItems": 2
+        },
+        "outgoing": {
+          "type": "array",
+          "default": [
+            0.0,
+            0.0
+          ],
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 2,
+          "minItems": 2
+        },
+        "position": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 2,
+          "minItems": 2
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "position"
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PathChange",
+  "type": "object",
+  "properties": {
+    "changed": {
+      "type": "boolean"
+    },
+    "path_id": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "path_id",
+    "changed"
+  ]
+}
+```
+
+### Examples
+
+```json
+{
+  "anchors": [
+    {
+      "position": [
+        2,
+        2
+      ]
+    },
+    {
+      "outgoing": [
+        0,
+        3
+      ],
+      "position": [
+        13,
+        2
+      ]
+    },
+    {
+      "incoming": [
+        3,
+        0
+      ],
+      "position": [
+        2,
+        13
+      ]
+    }
+  ],
+  "name": "Outline"
+}
+```
+
+## `path.update` — 编辑路径锚点
+
+Use a stable path ID or unique name. Replace the ordered anchors (3..128) to move, add, delete or convert anchors, and/or rename the path. Positions are absolute canvas pixels, handles incoming/outgoing are relative offsets. One atomic undoable edit, identical values are a no-op. Use document.inspect for the current revision and path.get for the geometry. Pass expected_revision when editing a draft. 调整锚点、增删锚点、曲线手柄、转角点或平滑点、重命名路径。
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `false`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "UpdatePath",
+  "type": "object",
+  "properties": {
+    "anchors": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "default": null,
+      "items": {
+        "$ref": "#/$defs/PathAnchor"
+      },
+      "maxItems": 128,
+      "minItems": 3
+    },
+    "expected_revision": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "uint64",
+      "default": null,
+      "minimum": 0
+    },
+    "name": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "default": null,
+      "maxLength": 256,
+      "minLength": 1
+    },
+    "path": {
+      "$ref": "#/$defs/PathRef"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "path"
+  ],
+  "$defs": {
+    "PathAnchor": {
+      "type": "object",
+      "properties": {
+        "incoming": {
+          "type": "array",
+          "default": [
+            0.0,
+            0.0
+          ],
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 2,
+          "minItems": 2
+        },
+        "outgoing": {
+          "type": "array",
+          "default": [
+            0.0,
+            0.0
+          ],
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 2,
+          "minItems": 2
+        },
+        "position": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 2,
+          "minItems": 2
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "position"
+      ]
+    },
+    "PathRef": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PathChange",
+  "type": "object",
+  "properties": {
+    "changed": {
+      "type": "boolean"
+    },
+    "path_id": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "path_id",
+    "changed"
+  ]
+}
+```
+
+### Examples
+
+```json
+{
+  "anchors": [
+    {
+      "position": [
+        3,
+        3
+      ]
+    },
+    {
+      "outgoing": [
+        0,
+        4
+      ],
+      "position": [
+        12,
+        2
+      ]
+    },
+    {
+      "position": [
+        2,
+        12
+      ]
+    }
+  ],
+  "path": {
+    "name": "Outline"
+  }
+}
+```
+
+## `path.delete` — 删除工作路径
+
+Delete a named work path by ID or unique name. Undo restores the same ID and curve. Optional expected_revision checks the current revision. 删除闭合路径，不修改图层或选区，支持撤销。
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `false`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DeletePath",
+  "type": "object",
+  "properties": {
+    "expected_revision": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "uint64",
+      "default": null,
+      "minimum": 0
+    },
+    "path": {
+      "$ref": "#/$defs/PathRef"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "path"
+  ],
+  "$defs": {
+    "PathRef": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PathChange",
+  "type": "object",
+  "properties": {
+    "changed": {
+      "type": "boolean"
+    },
+    "path_id": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "path_id",
+    "changed"
+  ]
+}
+```
+
+### Examples
+
+```json
+{
+  "path": {
+    "name": "Outline"
+  }
+}
+```
+
+## `path.list` — 列出工作路径
+
+List document path IDs, names and anchor counts. Use path.get to read geometry for a selected ID. 列出已保存路径、名称和锚点数，只读。
+
+Kind: `Query` · Undoable: `false` · Batchable: `false`
+
+Effects: `document.read`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Empty",
+  "type": "object",
+  "additionalProperties": false
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PathList",
+  "type": "object",
+  "properties": {
+    "paths": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/PathSummary"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "paths"
+  ],
+  "$defs": {
+    "PathSummary": {
+      "type": "object",
+      "properties": {
+        "anchor_count": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "anchor_count"
+      ]
+    }
+  }
+}
+```
+
+### Examples
+
+```json
+{}
+```
+
+## `path.get` — 读取路径锚点
+
+Read the ID, name and full ordered cubic anchors for one work path by stable ID or unique name. 读取路径锚点和相对控制手柄；使用 path.update 重编辑。
+
+Kind: `Query` · Undoable: `false` · Batchable: `false`
+
+Effects: `document.read`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PathTarget",
+  "type": "object",
+  "properties": {
+    "path": {
+      "$ref": "#/$defs/PathRef"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "path"
+  ],
+  "$defs": {
+    "PathRef": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "WorkPath",
+  "type": "object",
+  "properties": {
+    "anchors": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/PathAnchor"
+      },
+      "maxItems": 128,
+      "minItems": 3
+    },
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "maxLength": 256,
+      "minLength": 1
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "name",
+    "anchors"
+  ],
+  "$defs": {
+    "PathAnchor": {
+      "type": "object",
+      "properties": {
+        "incoming": {
+          "type": "array",
+          "default": [
+            0.0,
+            0.0
+          ],
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 2,
+          "minItems": 2
+        },
+        "outgoing": {
+          "type": "array",
+          "default": [
+            0.0,
+            0.0
+          ],
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 2,
+          "minItems": 2
+        },
+        "position": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 2,
+          "minItems": 2
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "position"
+      ]
+    }
+  }
+}
+```
+
+### Examples
+
+```json
+{
+  "path": {
+    "name": "Outline"
+  }
+}
+```
+
+## `select.from_path` — 路径转为选区
+
+Rasterize a closed work path into the selection clipped to the artboard, even-odd fill, 4x4 coverage, with cubic subdivision to 1/8 canvas pixel and at most 4096 segments. Modes replace(default), add, subtract, intersect. One undoable selection edit; the path stays editable. Use the resulting selection with the existing fill and mask commands. 闭合路径转选区、从路径载入选区、保留可编辑路径，一次撤销。
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `false`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PathSelection",
+  "type": "object",
+  "properties": {
+    "mode": {
+      "$ref": "#/$defs/SelectionMode",
+      "default": "replace"
+    },
+    "path": {
+      "$ref": "#/$defs/PathRef"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "path"
+  ],
+  "$defs": {
+    "PathRef": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ]
+        }
+      ]
+    },
+    "SelectionMode": {
+      "type": "string",
+      "enum": [
+        "replace",
+        "add",
+        "subtract",
+        "intersect"
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SelectionResult",
+  "type": "object",
+  "properties": {
+    "selection": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/MaskLayout"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "CoverageRect": {
+      "type": "object",
+      "properties": {
+        "height": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "width": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "x": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "y": {
+          "type": "integer",
+          "format": "int64"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "x",
+        "y",
+        "width",
+        "height"
+      ]
+    },
+    "MaskLayout": {
+      "type": "object",
+      "properties": {
+        "bounds": {
+          "$ref": "#/$defs/CoverageRect"
+        },
+        "default_coverage": {
+          "type": "integer",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0
+        },
+        "inverted": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "bounds",
+        "default_coverage",
+        "inverted"
+      ]
+    }
+  }
+}
+```
+
+### Examples
+
+```json
+{
+  "mode": "replace",
+  "path": {
+    "name": "Outline"
+  }
+}
+```
+
 ## `view.guides.list` — 读取参考线
 
 Read a bounded page of document reference lines. offset0..1024(default0), limit1..64(default32), total and next_offset support pagination. Each line has a stable id, name up to256 UTF8 bytes without controls, horizontal(y) or vertical(x) axis and finite absolute canvas position +/-1e12. Prefer ids; duplicate names are never guessed. Guide visibility/locking is editor presentation state, not privacy or source deletion. A document is required; no pixel/history/revision/selection effect. Not batchable. 中文：标尺参考线、读取参考线、水平线、垂直线、参考线坐标、分页。
@@ -4197,6 +5283,12 @@ Permissions: `bound_document`
     "paint_colors": {
       "$ref": "#/$defs/PaintColors"
     },
+    "paths": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/WorkPath"
+      }
+    },
     "presentation": {
       "$ref": "#/$defs/Presentation"
     },
@@ -4271,6 +5363,7 @@ Permissions: `bound_document`
   },
   "required": [
     "presentation",
+    "paths",
     "guides",
     "paint_colors",
     "selection_extent_conservative",
@@ -5234,6 +6327,50 @@ Permissions: `bound_document`
         "foreground",
         "background",
         "version"
+      ]
+    },
+    "PathAnchor": {
+      "type": "object",
+      "properties": {
+        "incoming": {
+          "type": "array",
+          "default": [
+            0.0,
+            0.0
+          ],
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 2,
+          "minItems": 2
+        },
+        "outgoing": {
+          "type": "array",
+          "default": [
+            0.0,
+            0.0
+          ],
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 2,
+          "minItems": 2
+        },
+        "position": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 2,
+          "minItems": 2
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "position"
       ]
     },
     "Presentation": {
@@ -6340,6 +7477,34 @@ Permissions: `bound_document`
       "enum": [
         "nearest",
         "bilinear"
+      ]
+    },
+    "WorkPath": {
+      "type": "object",
+      "properties": {
+        "anchors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PathAnchor"
+          },
+          "maxItems": 128,
+          "minItems": 3
+        },
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 256,
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "anchors"
       ]
     }
   }

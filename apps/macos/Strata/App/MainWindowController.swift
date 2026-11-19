@@ -119,6 +119,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
             self.canvas.configurePaint(self.workspace)
         }
         canvas.onCloneSource = {[weak self] point in guard let self else{return};self.workspace.cloneSource=[Double(point.x),Double(point.y)];self.canvas.configureBrush(self.workspace)}
+        workspace.pathInput.onCommand = { [weak self] id, args in self?.perform(id, args) }
         canvas.onTextPlacement={[weak self]point,rect in guard let self else{return};self.workspace.textEditing?.newText(at:point,rect:rect);self.workspace.inspector = .properties}
         canvas.onToolKey = { [weak self] key in
             if key == "X", let self { self.workspace.swapPaintColors(); return true }
@@ -265,7 +266,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
             if let presentation=state?.presentation,presentation.snapEnabled{layerCommand("layer.snap_position",["x":x,"y":y,"tolerance":min(1e6,presentation.snapTolerance*Double(window?.backingScaleFactor ?? 1)/Double(max(0.000001,engine.canvasZoom()))),"artboard":presentation.snapArtboard,"layers":presentation.snapLayers ?? false])}
             else{layerCommand("layer.set_position",["x":x,"y":y])}
         case .tool(let tool):
-            workspace.tonalPreview?.cancel();canvas.movesLayer=tool == .move;canvas.zoomTool=tool == .zoom;canvas.configureSelection(workspace);canvas.configureBrush(workspace);canvas.configurePaint(workspace);canvas.configureCrop(workspace);canvas.configureTransform(workspace);canvas.configureText(workspace);canvas.configureGuides(workspace)
+            workspace.tonalPreview?.cancel();canvas.movesLayer=tool == .move;canvas.zoomTool=tool == .zoom;canvas.configureSelection(workspace);canvas.configureBrush(workspace);canvas.configurePaint(workspace);canvas.configureCrop(workspace);canvas.configureTransform(workspace);canvas.configureText(workspace);canvas.configureGuides(workspace);canvas.configurePaths(workspace)
+            if tool == .pen {workspace.inspector = .properties}
             if tool == .freeTransform{workspace.inspector = .transform;if !canvas.transformInput.hasDraft && !canvas.transformInput.running{canvas.transformInput.start()}}
             if tool == .text{workspace.inspector = .properties;if workspace.textEditing?.creating==true{workspace.textEditing?.newText()}}
             window?.makeFirstResponder(canvas)
@@ -379,7 +381,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         canvas.configurePaint(workspace)
         canvas.configureCrop(workspace)
         canvas.configureTransform(workspace)
-        canvas.configureGuides(workspace)
+        canvas.configureGuides(workspace);canvas.configurePaths(workspace)
         canvas.configureText(workspace)
         recovery?.observe(snapshot)
         if let path = engine.projectPath() { documentURL = URL(fileURLWithPath: path); fileName = documentURL!.lastPathComponent }

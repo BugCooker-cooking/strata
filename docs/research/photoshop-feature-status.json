@@ -1334,5 +1334,35 @@
         "path": "../research/2026-11-p1-psd-export.md"
       }
     ]
+  },
+  "PS-12-a132c853ab": {
+    "implementation": "部分实现",
+    "acceptance": "常规钢笔支持闭合轮廓。弯度钢笔、自由钢笔及开放子路径仍待补齐。",
+    "evidence": [
+      {
+        "label": "闭合路径与钢笔验证",
+        "path": "../research/2026-11-p1-work-paths.md"
+      }
+    ]
+  },
+  "PS-12-595e7321ce": {
+    "implementation": "已实现",
+    "acceptance": "闭合工作路径支持列表选择、整体平移、单点与多锚点直接选择和移动、增删锚点、精确曲线分割及角点/手柄转换。",
+    "evidence": [
+      {
+        "label": "闭合路径与钢笔验证",
+        "path": "../research/2026-11-p1-work-paths.md"
+      }
+    ]
+  },
+  "PS-12-cfd8ae8285": {
+    "implementation": "部分实现",
+    "acceptance": "可列出、编辑和删除路径，转换为抗锯齿选区或创建带栅格蒙版的纯色层。选区转路径和复合轮廓仍待补齐。",
+    "evidence": [
+      {
+        "label": "闭合路径与钢笔验证",
+        "path": "../research/2026-11-p1-work-paths.md"
+      }
+    ]
   }
 }

@@ -41,3 +41,4 @@ id!(DocumentId);
 id!(LayerId);
 id!(StateId);
 id!(GuideId);
+id!(PathId);

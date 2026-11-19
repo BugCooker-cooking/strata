@@ -187,7 +187,7 @@ fn ellipse(
     }
     Ok(out)
 }
-fn polygon(
+pub(super) fn polygon(
     doc: &Document,
     p: &PolygonSelection,
     cancel: &dyn Fn() -> bool,
@@ -642,6 +642,10 @@ pub(super) fn mutate_cancellable(
         "select.ellipse" => {
             let p: Marquee = parse(params)?;
             (ellipse(doc, &p, cancel)?, p.mode)
+        }
+        "select.from_path" => {
+            let p: super::paths::PathSelection = parse(params)?;
+            (super::paths::coverage(doc, &p.path, cancel)?, p.mode)
         }
         "select.polygon" | "select.lasso" => {
             let p: PolygonSelection = parse(params)?;

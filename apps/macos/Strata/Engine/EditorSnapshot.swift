@@ -14,6 +14,7 @@ struct EditorSnapshot: Decodable, Sendable {
         func rulerPoint(_ canvas:NSPoint)->NSPoint?{guard valid else{return nil};return NSPoint(x:(Double(canvas.x)-origin[0])/pixelsPerUnit[0],y:(Double(canvas.y)-origin[1])/pixelsPerUnit[1])}
     }
     let rulerMetrics:RulerMetrics?
+    let paths: [WorkPath]?
     let guides:[Guide]?
     let presentation:Presentation?
     struct PaintColors:Decodable,Sendable{let foreground:[Double];let background:[Double];let version:UInt64}

@@ -4464,3 +4464,102 @@ fn layered_psd_export_in_direct_mode_waits_for_the_host_then_writes_an_editable_
         }
     ));
 }
+
+#[test]
+fn closed_paths_are_discovered_edited_filled_and_undone_in_one_ai_turn() {
+    let host = Host::new();
+    let before = host
+        .editor
+        .lock()
+        .unwrap()
+        .document()
+        .unwrap()
+        .to_archive()
+        .unwrap();
+    let mut session = host.session_with_prompt(
+        ExecutionMode::Direct,
+        "创建闭合贝塞尔路径，移动锚点并填充新图层。",
+    );
+    let anchors =
+        json!([{"position":[1,1]},{"position":[12,1],"incoming":[-2,-1]},{"position":[3,12]}]);
+    reply(
+        &mut session,
+        &host,
+        vec![
+            call(
+                "find-path",
+                "search_catalog",
+                json!({"query":"闭合贝塞尔路径"}),
+            ),
+            invoke(
+                "create-path",
+                "path.create",
+                json!({"name":"Outline","anchors":anchors}),
+            ),
+        ],
+    );
+    assert!(
+        result(session.poll(&host).unwrap())
+            .to_string()
+            .contains("path.create")
+    );
+    let id = result(session.poll(&host).unwrap())["result"]["path_id"].clone();
+    assert!(id.is_string());
+    let target = json!({"id":id});
+    reply(
+        &mut session,
+        &host,
+        vec![
+            invoke(
+                "update-path",
+                "path.update",
+                json!({"path":target,"anchors":[{"position":[2,3]},{"position":[12,1],"incoming":[-2,-1]},{"position":[3,12]}]}),
+            ),
+            invoke("read-path", "path.get", json!({"path":target})),
+            invoke("select-path", "select.from_path", json!({"path":target})),
+            invoke(
+                "fill-path",
+                "layer.fill.path",
+                json!({"path":target,"name":"Path fill","color":[12345,23456,34567,65535]}),
+            ),
+        ],
+    );
+    assert_eq!(
+        result(session.poll(&host).unwrap())["result"]["changed"],
+        true
+    );
+    assert_eq!(
+        result(session.poll(&host).unwrap())["result"]["anchors"][0]["position"],
+        json!([2.0, 3.0])
+    );
+    assert!(result(session.poll(&host).unwrap())["result"]["selection"].is_object());
+    assert!(result(session.poll(&host).unwrap())["result"]["layer_id"].is_string());
+    assert!(
+        host.editor
+            .lock()
+            .unwrap()
+            .document()
+            .unwrap()
+            .layers()
+            .last()
+            .unwrap()
+            .mask()
+            .unwrap()
+            .sample(5, 5)
+            .unwrap()
+            > 0
+    );
+    host.stop(session.turn_id()).unwrap();
+    host.user("edit.undo_turn", json!({"turn_id":session.turn_id()}));
+    assert!(
+        before
+            == host
+                .editor
+                .lock()
+                .unwrap()
+                .document()
+                .unwrap()
+                .to_archive()
+                .unwrap()
+    );
+}

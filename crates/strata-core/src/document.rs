@@ -48,6 +48,7 @@ pub struct Frame {
 /// ```
 #[derive(Clone, Debug)]
 pub struct Document {
+    pub(crate) paths: Vec<std::sync::Arc<crate::WorkPath>>,
     pub(crate) guides: Vec<crate::Guide>,
     pub(crate) selection: Option<TiledMask>,
     pub(crate) previous_selection: Option<TiledMask>,
@@ -66,6 +67,9 @@ pub struct Document {
     pub(crate) profile_fallback: bool,
 }
 impl Document {
+    pub fn paths(&self) -> &[std::sync::Arc<crate::WorkPath>] {
+        &self.paths
+    }
     pub fn guides(&self) -> &[crate::Guide] {
         &self.guides
     }
@@ -281,6 +285,16 @@ impl Document {
         }
     }
     pub(crate) fn validate(&self) -> Result<(), DocumentError> {
+        if self.paths.len() > crate::paths::MAX_PATHS {
+            return Err(DocumentError::ResourceLimit);
+        }
+        let mut path_ids = std::collections::HashSet::new();
+        for path in &self.paths {
+            path.validate()?;
+            if !path_ids.insert(path.id) {
+                return Err(DocumentError::Invalid("duplicate path id".into()));
+            }
+        }
         if self.guides.len() > crate::MAX_GUIDES {
             return Err(DocumentError::ResourceLimit);
         }
@@ -662,6 +676,7 @@ impl DocumentCandidate {
         let profile = strata_color::resolve_profile(icc.as_deref())?;
         let active = layers.last().map(Layer::id);
         let doc = Document {
+            paths: Vec::new(),
             guides: Vec::new(),
             selection: None,
             previous_selection: None,

@@ -207,6 +207,7 @@ struct HistoryEntry {
 pub struct Snapshot {
     pub ruler_metrics: Option<crate::RulerMetrics>,
     pub presentation: crate::Presentation,
+    pub paths: Vec<Arc<crate::WorkPath>>,
     pub guides: Vec<crate::Guide>,
     pub paint_colors: super::PaintColors,
     pub selection: Option<strata_pixels::MaskLayout>,
@@ -1126,6 +1127,11 @@ impl Editor {
                 .as_ref()
                 .map(|doc| self.presentation.ruler_metrics(doc)),
             presentation: self.presentation.clone(),
+            paths: self
+                .document
+                .as_ref()
+                .map(|d| d.paths.clone())
+                .unwrap_or_default(),
             guides: self
                 .document
                 .as_ref()
@@ -1364,6 +1370,7 @@ impl Editor {
                     }
                 } else if id != "paint.sample_color"
                     && id != "layer.pixel_bounds"
+                    && id != "path.get"
                     && id != "type.inspect"
                     && id != "view.guides.list"
                     && id != "view.rulers.convert"
@@ -1393,6 +1400,12 @@ impl Editor {
                             self.document().ok_or(CommandError::NoDocument)?,
                             params.clone(),
                         )?
+                    } else if id == "path.list" {
+                        super::paths::list(self.document().ok_or(CommandError::NoDocument)?)
+                    } else if id == "path.get" {
+                        let p: super::paths::PathTarget = parse(params.clone())?;
+                        let doc = self.document().ok_or(CommandError::NoDocument)?;
+                        json!(doc.paths[super::paths::resolve(doc, &p.path)?])
                     } else if id == "type.fonts" {
                         super::typography::fonts()
                     } else if id == "type.inspect" {
@@ -1532,6 +1545,22 @@ impl Editor {
                         request.snap_context.as_ref(),
                         &|| request.expired(),
                     )?;
+                    (
+                        if result["changed"] == false {
+                            Action::Query
+                        } else {
+                            Action::Edit
+                        },
+                        result,
+                    )
+                } else if id == "layer.fill.path" {
+                    (
+                        Action::Edit,
+                        super::paths::fill(doc, params.clone(), &|| request.expired())?,
+                    )
+                } else if id.starts_with("path.") {
+                    annotations_only = true;
+                    let result = super::paths::mutate(doc, id, params.clone(), self.revision)?;
                     (
                         if result["changed"] == false {
                             Action::Query
@@ -1743,7 +1772,10 @@ impl Editor {
                 });
                 annotations_only = self.history[next.min(self.cursor)..next.max(self.cursor)]
                     .iter()
-                    .all(|e| e.info.command.starts_with("view.guides."));
+                    .all(|e| {
+                        e.info.command.starts_with("view.guides.")
+                            || e.info.command.starts_with("path.")
+                    });
                 selected = candidate.as_ref().and_then(Document::active_layer);
                 (Action::History(next), json!({"history_cursor":next}))
             }

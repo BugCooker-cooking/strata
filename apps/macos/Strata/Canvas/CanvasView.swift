@@ -22,6 +22,9 @@ final class CanvasView: NSView {
     private lazy var brushInput = CanvasBrushInput(engine: engine)
     private lazy var paintInput = CanvasPaintInput(engine:engine)
     private var paintTool = false
+    private weak var pathInput: CanvasPathInput?
+    private var penActive = false
+    private let pathOutline = CAShapeLayer(), pathNodes = CAShapeLayer(), pathHandles = CAShapeLayer()
     private let paintGuide = CAShapeLayer()
     private var brushTool = false
     private var brushPreviewColor = NSColor.black
@@ -130,6 +133,13 @@ final class CanvasView: NSView {
         transformInput.onRunning={[weak self]running in self?.onBrushRunning?(running)}
         transformInput.onCommitted={[weak self]in self?.markDirty();self?.onCommitted?()}
         transformInput.onError={[weak self]error in self?.onError?(error)}
+        for overlay in [pathOutline, pathNodes, pathHandles] {
+            overlay.fillColor = nil
+            overlay.strokeColor = NSColor.systemBlue.cgColor
+            overlay.lineWidth = 1.5
+            layer?.addSublayer(overlay)
+        }
+        pathNodes.fillColor = NSColor.white.cgColor
         textGuide.fillColor=nil;textGuide.strokeColor=NSColor.systemBlue.cgColor;textGuide.lineWidth=1;textGuide.lineDashPattern=[4,3];layer?.addSublayer(textGuide)
         guideLines.fillColor=nil;guideLines.strokeColor=NSColor.cyan.withAlphaComponent(0.75).cgColor;guideLines.lineWidth=0.75;layer?.addSublayer(guideLines)
         guideDraft.fillColor=nil;guideDraft.strokeColor=NSColor.systemYellow.cgColor;guideDraft.lineWidth=1;guideDraft.lineDashPattern=[4,3];layer?.addSublayer(guideDraft)
@@ -306,6 +316,7 @@ final class CanvasView: NSView {
     private func updateArtboardOverlay() {
         CATransaction.begin(); CATransaction.setDisableActions(true)
         defer { CATransaction.commit() }
+        if penActive { drawWorkPath() }
         let overlay = engine.artboardOverlay()
         onViewChanged?(overlay, Double(engine.canvasZoom()), scale)
         guard let frame = overlay else {
@@ -353,6 +364,29 @@ final class CanvasView: NSView {
         guard zoom > 0 else { return nil }
         return NSPoint(x: documentOrigin.x + (point.x * scale - CGFloat(frame.x)) / zoom,
                        y: documentOrigin.y + (point.y * scale - CGFloat(frame.y)) / zoom)
+    }
+    private func drawWorkPath() {
+        guard penActive, let input = pathInput, let frame = engine.artboardOverlay() else {
+            pathOutline.path = nil; pathNodes.path = nil; pathHandles.path = nil
+            return
+        }
+        let zoom = CGFloat(engine.canvasZoom()) / scale
+        guard zoom > 0 else { return }
+        var affine = CGAffineTransform(a: zoom, b: 0, c: 0, d: zoom,
+            tx: CGFloat(frame.x)/scale-documentOrigin.x*zoom, ty: CGFloat(frame.y)/scale-documentOrigin.y*zoom)
+        let (curve, nodes, handles) = input.outlines(radius: 3.5/zoom)
+        CATransaction.begin(); CATransaction.setDisableActions(true)
+        pathOutline.path = curve.copy(using: &affine)
+        pathNodes.path = nodes.copy(using: &affine)
+        pathHandles.path = handles.copy(using: &affine)
+        CATransaction.commit()
+    }
+    func configurePaths(_ model: WorkspaceModel) {
+        penActive = model.tool == .pen
+        pathInput = model.pathInput
+        model.pathInput.onChanged = { [weak self] in self?.drawWorkPath() }
+        model.pathInput.bind(model.snapshot, enabled: penActive && model.snapshot?.control?.kind == "user" && model.hasDocument)
+        drawWorkPath()
     }
     func configureGuides(_ model:WorkspaceModel){
         if guideTool != model.tool,!guideInput.running{guideInput.cancel();rulerOriginInput.cancel()};guideTool=model.tool
@@ -559,6 +593,12 @@ final class CanvasView: NSView {
         guard !isWorkBusy else { return }
         benchmark?.cancel(BenchmarkFailure("User input interrupted benchmark"))
         window?.makeFirstResponder(self)
+        if penActive {
+            if let p = documentPoint(convert(event.locationInWindow, from: nil)) {
+                pathInput?.down(p, tolerance: 7/max(0.0001,CGFloat(engine.canvasZoom())/scale), modifiers: event.modifierFlags, clicks: event.clickCount)
+            }
+            return
+        }
         if guideMoveTool,let point=documentPoint(convert(event.locationInWindow,from:nil)),let guide=hitGuide(point){guideInput.begin(axis:guide.axis,position:guide.position,guide:guide.id);return}
         if textTool{if let point=documentPoint(convert(event.locationInWindow,from:nil)){beginTextPlacement(point)};return}
         if transformTool{guard isEditingEnabled,let point=documentPoint(convert(event.locationInWindow,from:nil))else{return};let zoom=CGFloat(engine.canvasZoom())/scale;transformInput.down(point,hitTolerance:8/max(zoom,0.0001),modifiers:event.modifierFlags);return}
@@ -589,6 +629,10 @@ final class CanvasView: NSView {
     }
 
     override func mouseDragged(with event: NSEvent) {
+        if penActive {
+            if let p = documentPoint(convert(event.locationInWindow, from: nil)) { pathInput?.move(p) }
+            return
+        }
         let point = convert(event.locationInWindow, from: nil)
         if let draft=guideInput.draft,let document=documentPoint(point){guideInput.move(position:Double(draft.axis=="vertical" ? document.x:document.y));return}
         if snapInput.active{if let document=documentPoint(point){snapInput.move(to:document)};return}
@@ -617,6 +661,7 @@ final class CanvasView: NSView {
     }
 
     override func mouseUp(with event: NSEvent) {
+        if penActive { pathInput?.endDrag(); return }
         if guideInput.draft != nil{_ = guideInput.finish();return}
         if snapInput.active{if let document=documentPoint(convert(event.locationInWindow,from:nil)){snapInput.finish(at:document)}else{snapInput.cancel()};return}
         if textTool{if let end=documentPoint(convert(event.locationInWindow,from:nil)){endTextPlacement(end)}else{textStart=nil;textRectangle=nil;drawTextGuide()};return}
@@ -635,6 +680,14 @@ final class CanvasView: NSView {
         catch { onError?(error) }
     }
     override func keyDown(with event: NSEvent) {
+        if penActive, let input = pathInput {
+            switch event.keyCode {
+            case 53: input.select(input.selectedID); return
+            case 36, 76: input.apply(); return
+            case 51, 117: input.removeAnchor(); return
+            default: break
+            }
+        }
         if event.keyCode == 53 { guideInput.cancel();snapInput.cancel();rulerOriginInput.cancel();cancelLayerDrag(); cancelMarquee(); brushInput.cancel();paintInput.cancel();cropInput.cancel();straightenInput.cancel();transformInput.cancel();textStart=nil;textRectangle=nil;drawTextGuide() }
         else if event.keyCode == 36,transformInput.confirm(){return}
         else if event.keyCode == 36,straightenInput.confirm(){return}

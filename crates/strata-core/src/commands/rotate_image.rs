@@ -251,5 +251,6 @@ pub(super) fn mutate(
     doc.selection = selection;
     doc.previous_selection = previous;
     doc.frame = frame;
+    crate::paths::transform_paths(&mut doc.paths, &transform)?;
     Ok(Some(result(&doc.frame, true)))
 }

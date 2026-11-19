@@ -1,17 +1,19 @@
 {
   "scope": "Development audit; not a claim that all Photoshop editing is implemented or AI-verified",
-  "registered_commands": 149,
-  "registered_examples": 224,
-  "catalog_sha256": "2bb3ce44cf0192fb0cd8cccba04cec95b973a64bbd5ec1f7fcee899b3d221291",
+  "registered_commands": 157,
+  "registered_examples": 232,
+  "catalog_sha256": "861be025f0764f71cd50f2c8a309b96710ec8fdab000b523684c6335c75caa52",
   "inventory_rows": 265,
-  "mapped_features": 104,
+  "mapped_features": 107,
   "unmapped_implemented_features": [],
   "partial_entrypoints": [
     "PS-16-8de06204ac",
     "PS-14-15d282cc9a",
     "PS-02-b2fd2e2a88",
     "PS-01-40267007aa",
-    "PS-01-261e177d1e"
+    "PS-01-261e177d1e",
+    "PS-12-a132c853ab",
+    "PS-12-cfd8ae8285"
   ],
   "unfinished_features": [
     "PS-00-960e444e99",
@@ -136,7 +138,6 @@
     "PS-11-0907b4762e",
     "PS-12-417500cf30",
     "PS-12-a132c853ab",
-    "PS-12-595e7321ce",
     "PS-12-cfd8ae8285",
     "PS-12-2e23400f5e",
     "PS-12-9bae2bd626",
@@ -184,7 +185,7 @@
   "unknown_native_command_references": {},
   "native_dispatch_prefixes": {
     "view.guides.": [
-      "apps/macos/Strata/App/MainWindowController.swift:439"
+      "apps/macos/Strata/App/MainWindowController.swift:441"
     ]
   },
   "untyped_command_returns": [],
@@ -4432,8 +4433,28 @@
       "name": "钢笔 / 弯度钢笔 / 自由钢笔",
       "priority": "P1",
       "source_line": 317,
-      "implementation": "待实现",
-      "entrypoint": null
+      "implementation": "部分实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "partial",
+        "commands": [
+          "path.create",
+          "path.update"
+        ],
+        "prompts": [
+          {
+            "text": "用钢笔创建闭合贝塞尔路径，保留可编辑手柄。",
+            "query": "闭合贝塞尔路径",
+            "command": "path.create"
+          },
+          {
+            "text": "Create a closed Bézier work path.",
+            "query": "closed Bézier",
+            "command": "path.create"
+          }
+        ],
+        "note": "常规钢笔支持闭合轮廓。弯度钢笔、自由钢笔及开放子路径仍待补齐。"
+      }
     },
     {
       "id": "PS-12-595e7321ce",
@@ -4442,8 +4463,35 @@
       "name": "添加 / 删除 / 转换锚点；路径选择 / 直接选择",
       "priority": "P1",
       "source_line": 318,
-      "implementation": "待实现",
-      "entrypoint": null
+      "implementation": "已实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "complete",
+        "commands": [
+          "path.list",
+          "path.get",
+          "path.update",
+          "path.split"
+        ],
+        "prompts": [
+          {
+            "text": "读取路径锚点，再移动第二个锚点并保留控制手柄。",
+            "query": "读取路径锚点",
+            "command": "path.get"
+          },
+          {
+            "text": "Add, remove or convert anchors on the selected path.",
+            "query": "Edit Bézier path anchors",
+            "command": "path.update"
+          },
+          {
+            "text": "在闭合曲线的第二段正中插入锚点，保持轮廓不变。",
+            "query": "在曲线上插入锚点",
+            "command": "path.split"
+          }
+        ],
+        "note": "闭合工作路径支持列表选择、整体平移、单点与多锚点直接选择和移动、增删锚点、精确曲线分割及角点/手柄转换。"
+      }
     },
     {
       "id": "PS-12-cfd8ae8285",
@@ -4452,8 +4500,33 @@
       "name": "路径面板、路径与选区互转",
       "priority": "P1",
       "source_line": 319,
-      "implementation": "待实现",
-      "entrypoint": null
+      "implementation": "部分实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "partial",
+        "commands": [
+          "path.list",
+          "path.get",
+          "path.create",
+          "path.update",
+          "path.delete",
+          "select.from_path",
+          "layer.fill.path"
+        ],
+        "prompts": [
+          {
+            "text": "将闭合路径转为选区。",
+            "query": "路径转为选区",
+            "command": "select.from_path"
+          },
+          {
+            "text": "按路径填充新图层并保留原路径。",
+            "query": "按路径填充新图层",
+            "command": "layer.fill.path"
+          }
+        ],
+        "note": "可列出、编辑和删除路径，转换为抗锯齿选区或创建带栅格蒙版的纯色层。选区转路径和复合轮廓仍待补齐。"
+      }
     },
     {
       "id": "PS-12-2e23400f5e",

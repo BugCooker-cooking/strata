@@ -2495,6 +2495,81 @@
         }
       ],
       "note": "原尺寸 8/16 位 RGB，保留支持的像素层、组、基本蒙版与反相/曝光。宿主授权发布固定快照，文件写入不进入文档撤销历史。其余可编辑图层类型继续跟踪。"
+    },
+    "PS-12-a132c853ab": {
+      "scope": "editing",
+      "coverage": "partial",
+      "commands": [
+        "path.create",
+        "path.update"
+      ],
+      "prompts": [
+        {
+          "text": "用钢笔创建闭合贝塞尔路径，保留可编辑手柄。",
+          "query": "闭合贝塞尔路径",
+          "command": "path.create"
+        },
+        {
+          "text": "Create a closed Bézier work path.",
+          "query": "closed Bézier",
+          "command": "path.create"
+        }
+      ],
+      "note": "常规钢笔支持闭合轮廓。弯度钢笔、自由钢笔及开放子路径仍待补齐。"
+    },
+    "PS-12-595e7321ce": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "path.list",
+        "path.get",
+        "path.update",
+        "path.split"
+      ],
+      "prompts": [
+        {
+          "text": "读取路径锚点，再移动第二个锚点并保留控制手柄。",
+          "query": "读取路径锚点",
+          "command": "path.get"
+        },
+        {
+          "text": "Add, remove or convert anchors on the selected path.",
+          "query": "Edit Bézier path anchors",
+          "command": "path.update"
+        },
+        {
+          "text": "在闭合曲线的第二段正中插入锚点，保持轮廓不变。",
+          "query": "在曲线上插入锚点",
+          "command": "path.split"
+        }
+      ],
+      "note": "闭合工作路径支持列表选择、整体平移、单点与多锚点直接选择和移动、增删锚点、精确曲线分割及角点/手柄转换。"
+    },
+    "PS-12-cfd8ae8285": {
+      "scope": "editing",
+      "coverage": "partial",
+      "commands": [
+        "path.list",
+        "path.get",
+        "path.create",
+        "path.update",
+        "path.delete",
+        "select.from_path",
+        "layer.fill.path"
+      ],
+      "prompts": [
+        {
+          "text": "将闭合路径转为选区。",
+          "query": "路径转为选区",
+          "command": "select.from_path"
+        },
+        {
+          "text": "按路径填充新图层并保留原路径。",
+          "query": "按路径填充新图层",
+          "command": "layer.fill.path"
+        }
+      ],
+      "note": "可列出、编辑和删除路径，转换为抗锯齿选区或创建带栅格蒙版的纯色层。选区转路径和复合轮廓仍待补齐。"
     }
   }
 }
