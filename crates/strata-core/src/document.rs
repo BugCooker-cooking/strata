@@ -629,7 +629,6 @@ impl DocumentCandidate {
         {
             return Err(DocumentError::ResourceLimit);
         }
-        let profile = strata_color::resolve_profile(icc.as_deref())?;
         let format = pixels.format();
         let layer = Layer::new(
             name,
@@ -641,12 +640,32 @@ impl DocumentCandidate {
                 pool.clone(),
             )?,
         );
-        let active = Some(layer.id());
+        Self::from_layers(
+            width,
+            height,
+            format,
+            icc,
+            vec![layer],
+            default_resolution_dpi(),
+            pool,
+        )
+    }
+    pub(crate) fn from_layers(
+        width: u32,
+        height: u32,
+        format: PixelFormat,
+        icc: Option<Vec<u8>>,
+        layers: Vec<Layer>,
+        resolution_dpi: u32,
+        pool: strata_pixels::memory::MemoryPool,
+    ) -> Result<Self, DocumentError> {
+        let profile = strata_color::resolve_profile(icc.as_deref())?;
+        let active = layers.last().map(Layer::id);
         let doc = Document {
             guides: Vec::new(),
             selection: None,
             previous_selection: None,
-            resolution_dpi: default_resolution_dpi(),
+            resolution_dpi,
             preset: None,
             pool,
             id: DocumentId::fresh(),
@@ -658,7 +677,7 @@ impl DocumentCandidate {
                 width,
                 height,
             },
-            layers: vec![layer],
+            layers,
             active,
             format,
             working_icc: profile.icc,

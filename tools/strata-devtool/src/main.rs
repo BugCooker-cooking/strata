@@ -429,6 +429,16 @@ fn examples() -> Result<(), Box<dyn Error>> {
                     )?;
                     args["resource"] = json!(editor.grant_read(&path, Source::Test)?);
                 }
+                "file.open" if example["resource"] == "fixture-psd" => {
+                    let path = dir.path().join("editable.psd");
+                    std::fs::write(
+                        &path,
+                        include_bytes!(
+                            "../../../crates/strata-core/tests/fixtures/psd/group-mask.psd"
+                        ),
+                    )?;
+                    args["resource"] = json!(editor.grant_read(&path, Source::Test)?);
+                }
                 "file.open" | "file.revert" => {
                     let path = dir.path().join("input.strata");
                     let grant = editor.grant_write(&path, false, Source::Test)?;
@@ -496,6 +506,15 @@ fn examples() -> Result<(), Box<dyn Error>> {
             };
             if !result.is_object() {
                 return Err(format!("{} returned non-object", spec.id).into());
+            }
+            if spec.id == "file.open" && example["resource"] == "fixture-psd" {
+                let doc = editor.document().ok_or("PSD example did not open")?;
+                if doc.bit_depth() != 16
+                    || doc.layers().len() != 5
+                    || doc.layers()[1].mask().is_none()
+                {
+                    return Err("PSD example did not preserve editable masked layers".into());
+                }
             }
             if spec.id == "file.revert"
                 && (!editor.snapshot().history.is_empty()

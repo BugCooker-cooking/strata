@@ -3,6 +3,7 @@
 pub mod export;
 mod metadata;
 pub mod project;
+pub mod psd;
 pub mod recovery;
 mod webp_lossy;
 

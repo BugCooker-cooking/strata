@@ -1,6 +1,12 @@
 import AppKit
 import UniformTypeIdentifiers
 
+enum WorkspaceFileTypes {
+    static let images: [UTType] = [.png, .jpeg, .webP, .tiff, .heic, .heif, .gif, .bmp]
+    static let project = UTType(filenameExtension: "strata") ?? .data
+    static let documents = images + [project] + [UTType(filenameExtension: "psd")].compactMap { $0 }
+}
+
 extension MainWindowController {
     func syncRecentFiles() { do { try engine.setRecentFiles(paths: RecentFileStore().urls.map(\.path)) } catch { showError(error) } }
     func open(_ url: URL, recordRecent: Bool = true, completion: ((Result<ImageInfo, Error>) -> Void)? = nil) {
@@ -32,7 +38,8 @@ extension MainWindowController {
     }
     @objc func openImage() {
         guard !busy, let window else { return }; let panel = NSOpenPanel(); panel.allowsMultipleSelection = false
-        panel.allowedContentTypes = ["strata", "png", "jpg", "jpeg", "webp", "tiff", "tif", "heic", "heif", "gif", "bmp"].compactMap { UTType(filenameExtension: $0) }; panel.allowsOtherFileTypes = true
+        panel.allowedContentTypes = WorkspaceFileTypes.documents
+        panel.allowsOtherFileTypes = true
         panel.beginSheetModal(for: window) { [weak self] response in if response == .OK, let url = panel.url { self?.openInTab(url) } }
     }
     private func openInTab(_ url: URL) { if let onOpenURL { onOpenURL(url) } else { open(url) } }
@@ -41,7 +48,7 @@ extension MainWindowController {
         guard workspace.permissions.edits, workspace.hasDocument, let window else { return }
         let panel = NSOpenPanel(); panel.allowsMultipleSelection = false
         panel.title = L10n.text("置入图片"); panel.prompt = L10n.text("置入")
-        panel.allowedContentTypes = [.png, .jpeg, .tiff, .gif, .bmp, .webP, .heic, .heif]
+        panel.allowedContentTypes = WorkspaceFileTypes.images
         panel.beginSheetModal(for: window) { [weak self] response in
             guard let self, response == .OK, let url = panel.url else { return }
             do { let resource = try self.engine.grantRead(path: url.path)

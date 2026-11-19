@@ -13,6 +13,7 @@ mod guides;
 mod ids;
 mod layer;
 mod project;
+mod psd;
 mod recovery;
 pub mod styles;
 mod subject;

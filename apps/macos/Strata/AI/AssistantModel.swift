@@ -292,8 +292,21 @@ final class AssistantModel: ObservableObject {
         guard let window = window?() else { return nil }
         let operation = pending["operation"]; let command = operation["command"].string ?? ""
         if ["file.place", "file.open", "file.recover","file.revert"].contains(command) {
-            let picker = NSOpenPanel(); picker.allowedContentTypes = [.png, .jpeg, .tiff, .webP, .heic, .gif, .bmp, UTType(filenameExtension: "strata") ?? .data]; picker.allowsMultipleSelection = false
-            picker.message = command=="file.revert" ? L10n.text("请选择当前文档的原文件或上次保存的工程；恢复会放弃当前修改与历史。"):L10n.text("授权本轮 AI 读取并置入所选图片");picker.allowsOtherFileTypes=true; panel = picker
+            let picker = NSOpenPanel()
+            switch command {
+            case "file.open", "file.revert":
+                picker.allowedContentTypes = WorkspaceFileTypes.documents
+                picker.message = command == "file.open" ? L10n.text("选择要由本轮 AI 打开的文件。") : L10n.text("请选择当前文档的原文件或上次保存的工程；恢复会放弃当前修改与历史。")
+            case "file.recover":
+                picker.allowedContentTypes = [WorkspaceFileTypes.project]
+                picker.message = L10n.text("选择要由本轮 AI 恢复的工程。")
+            default:
+                picker.allowedContentTypes = WorkspaceFileTypes.images
+                picker.message = L10n.text("授权本轮 AI 读取并置入所选图片")
+            }
+            picker.allowsMultipleSelection = false
+            picker.allowsOtherFileTypes = true
+            panel = picker
             let choice = await withCheckedContinuation { continuation in picker.beginSheetModal(for: window) { continuation.resume(returning: $0) } }
             panel = nil; guard choice == .OK, let url = picker.url, self.turn == turn else { return nil }
             selectedResourceURL = url

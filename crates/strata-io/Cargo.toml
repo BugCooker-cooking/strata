@@ -15,6 +15,7 @@ strata-pixels.workspace = true
 image.workspace = true
 tiff.workspace = true
 png.workspace = true
+flate2 = "1"
 webp.workspace = true
 thiserror.workspace = true
 

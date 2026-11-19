@@ -1,15 +1,16 @@
 {
   "scope": "Development audit; not a claim that all Photoshop editing is implemented or AI-verified",
   "registered_commands": 148,
-  "registered_examples": 222,
-  "catalog_sha256": "2fe8cce8dbc79b9b32d76c7e42a93470066cef89601f0c25640898c3529a8cea",
+  "registered_examples": 223,
+  "catalog_sha256": "1ba980920121ea8ea702d8770af8ab3ad8662e93abc40c6463576e9eda472994",
   "inventory_rows": 265,
-  "mapped_features": 102,
+  "mapped_features": 103,
   "unmapped_implemented_features": [],
   "partial_entrypoints": [
     "PS-16-8de06204ac",
     "PS-14-15d282cc9a",
-    "PS-02-b2fd2e2a88"
+    "PS-02-b2fd2e2a88",
+    "PS-01-40267007aa"
   ],
   "unfinished_features": [
     "PS-00-960e444e99",
@@ -693,8 +694,27 @@
       "name": "PSD 导入",
       "priority": "P1",
       "source_line": 68,
-      "implementation": "待实现",
-      "entrypoint": null
+      "implementation": "部分实现",
+      "entrypoint": {
+        "scope": "editing",
+        "coverage": "partial",
+        "commands": [
+          "file.open"
+        ],
+        "prompts": [
+          {
+            "text": "打开我选择的分层 PSD，保留可编辑的图层组、像素层和栅格蒙版。",
+            "query": "导入分层 PSD",
+            "command": "file.open"
+          },
+          {
+            "text": "Open my layered Photoshop PSD and preserve its editable layers.",
+            "query": "PSD",
+            "command": "file.open"
+          }
+        ],
+        "note": "使用宿主文件选择器，支持范围和部分兼容项见 PSD 导入记录。文字、矢量、智能对象和其余调整图层仍待接入。"
+      }
     },
     {
       "id": "PS-01-261e177d1e",

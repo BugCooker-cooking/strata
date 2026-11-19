@@ -288,6 +288,11 @@ impl Editor {
             self.resource(&p.resource, request, false)?;
             return Ok((doc, Some(resource.path.clone())));
         }
+        if signature[..count].starts_with(b"8BPS") {
+            let doc = crate::psd::open(&resource.path, file, &self.pool, &|| request.expired())?;
+            self.resource(&p.resource, request, false)?;
+            return Ok((doc, None));
+        }
         let (image, _decode_allocation) = self.decode_image(&resource.path)?;
         let mut doc = DocumentCandidate::from_image_with_pool(
             image.width,

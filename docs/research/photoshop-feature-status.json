@@ -1314,5 +1314,15 @@
         "path": "../research/2026-11-p0-closure.md"
       }
     ]
+  },
+  "PS-01-40267007aa": {
+    "implementation": "部分实现",
+    "acceptance": "RGB 8/16 位平面与分层 PSD；像素层、图层组、基本栅格蒙版、反相与受限曝光可编辑。",
+    "evidence": [
+      {
+        "label": "PSD 导入与本机验证",
+        "path": "../research/2026-11-p1-psd-import.md"
+      }
+    ]
   }
 }

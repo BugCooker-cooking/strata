@@ -2455,6 +2455,26 @@
         "invoke_command",
         "invoke_batch"
       ]
+    },
+    "PS-01-40267007aa": {
+      "scope": "editing",
+      "coverage": "partial",
+      "commands": [
+        "file.open"
+      ],
+      "prompts": [
+        {
+          "text": "打开我选择的分层 PSD，保留可编辑的图层组、像素层和栅格蒙版。",
+          "query": "导入分层 PSD",
+          "command": "file.open"
+        },
+        {
+          "text": "Open my layered Photoshop PSD and preserve its editable layers.",
+          "query": "PSD",
+          "command": "file.open"
+        }
+      ],
+      "note": "使用宿主文件选择器，支持范围和部分兼容项见 PSD 导入记录。文字、矢量、智能对象和其余调整图层仍待接入。"
     }
   }
 }

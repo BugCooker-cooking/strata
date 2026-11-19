@@ -6,6 +6,19 @@ extension StrataError {
         case .NotFound:
             return L10n.text("找不到这张图片。它可能已被移动或删除，请重新选择文件。")
         case .UnsupportedFormat(let message):
+            switch message {
+            case "unsupported PSD feature: layer block TySh", "unsupported PSD feature: layer block tySh":
+                return L10n.text("此 PSD 含有可编辑文字层。请在副本中将文字栅格化后再打开。")
+            case "unsupported PSD feature: layer block SoCo", "unsupported PSD feature: layer block vmsk", "unsupported PSD feature: layer block vsms":
+                return L10n.text("此 PSD 含有填充图层或矢量蒙版。请在副本中将相应图层栅格化后再打开。")
+            case "unsupported PSD feature: layer block SoLd", "unsupported PSD feature: layer block SoLE", "unsupported PSD feature: layer block PlLd":
+                return L10n.text("此 PSD 含有智能对象。请在副本中将智能对象栅格化后再打开。")
+            default:
+                break
+            }
+            if let detail = message.split(separator: ":", maxSplits: 1).last, message.hasPrefix("unsupported PSD feature:") {
+                return L10n.format("此 PSD 含有暂不支持的内容（{0}）。请在副本中转换该内容后再打开。", String(detail).trimmingCharacters(in: .whitespaces))
+            }
             if message.contains("unsupported pixel format") {
                 return L10n.text("此图片使用不支持的颜色模式或样本格式。请将副本转换为每通道 8 位或 16 位的 RGB，再重新打开。")
             }

@@ -541,7 +541,7 @@ fn build_catalog() -> Vec<CommandSpec> {
         Lifecycle,
         "打开文件",
         "Open file",
-        "Open an authorized image or Strata project after validation. Dirty replacement requires discard_changes.",
+        "Open an authorized image, Strata project or 8/16-bit RGB PSD. Import PSD pixel layers, nested groups, basic raster masks, invert and exposure (zero offset, gamma 1) as editable layers. Unsupported layer features such as type, vector masks and smart objects fail before replacing the document. Strata recomposites in linear light, so translucent overlaps can differ from the embedded Photoshop preview. Opening starts a fresh history and requires discard_changes for a dirty document. Save edits to a Strata project. 中文：打开文件、导入分层 PSD、打开 Photoshop 文档。由宿主授权读取，保留像素层、组、基本栅格蒙版、反相和基本曝光。半透明区域按线性光重新合成。打开后开始新的历史，替换有未保存修改的文档须明确允许放弃修改。",
         json!({"resource":"fixture-read"})
     );
     command!(
@@ -1455,6 +1455,10 @@ fn build_catalog() -> Vec<CommandSpec> {
         ) {
             item.effects.push("file.read");
             item.permissions.push("read_resource");
+        }
+        if item.id == "file.open" {
+            item.examples
+                .push(json!({"resource":"fixture-psd","discard_changes":true}));
         }
         if item.id == "image.duplicate" {
             item.effects = vec!["document.read", "workspace.document.create"];

@@ -1,4 +1,10 @@
 {
+  "选择要由本轮 AI 恢复的工程。": "Choose the project for the AI to recover in this turn.",
+  "此 PSD 含有可编辑文字层。请在副本中将文字栅格化后再打开。": "This PSD contains editable type. Rasterize the type in a copy, then open the copy.",
+  "此 PSD 含有填充图层或矢量蒙版。请在副本中将相应图层栅格化后再打开。": "This PSD contains a fill layer or vector mask. Rasterize those layers in a copy, then open the copy.",
+  "此 PSD 含有智能对象。请在副本中将智能对象栅格化后再打开。": "This PSD contains a smart object. Rasterize the object in a copy, then open the copy.",
+  "选择要由本轮 AI 打开的文件。": "Choose the file for the AI to open in this turn.",
+  "此 PSD 含有暂不支持的内容（{0}）。请在副本中转换该内容后再打开。": "This PSD contains an unsupported feature ({0}). Convert it in a copy, then open the copy.",
   "\n此连接使用明文 HTTP，密钥与上下文不会加密。": "\nThis connection uses HTTP. Your API key and context are sent without encryption.",
   " · 蒙版": " · Mask",
   " 副本": " Copy",

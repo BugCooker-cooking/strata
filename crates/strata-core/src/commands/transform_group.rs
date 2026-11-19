@@ -3,24 +3,11 @@ use super::*;
 use crate::{
     Document, DocumentError, GeneratedGeometry, LayerId, LayerKind,
     geometry::Homography,
-    geometry_pixels::{self, Sampling},
+    geometry_pixels::{self, Sampling, union},
 };
 use strata_pixels::CoverageRect;
 fn invalid(message: &str) -> CommandError {
     CommandError::Invalid(message.into())
-}
-fn union(a: CoverageRect, b: CoverageRect) -> Result<CoverageRect, DocumentError> {
-    let x = a.x.min(b.x);
-    let y = a.y.min(b.y);
-    let right = (i128::from(a.x) + i128::from(a.width)).max(i128::from(b.x) + i128::from(b.width));
-    let bottom =
-        (i128::from(a.y) + i128::from(a.height)).max(i128::from(b.y) + i128::from(b.height));
-    Ok(CoverageRect {
-        x,
-        y,
-        width: u32::try_from(right - i128::from(x)).map_err(|_| DocumentError::ResourceLimit)?,
-        height: u32::try_from(bottom - i128::from(y)).map_err(|_| DocumentError::ResourceLimit)?,
-    })
 }
 fn extend(
     current: &mut Option<CoverageRect>,
