@@ -1,4 +1,6 @@
 {
+  "解除手柄联动": "Unlink handles",
+  "开放轮廓": "Open contour",
   "选区路径 {0}": "Selection path {0}",
   "子轮廓": "Contour",
   "添加子轮廓": "Add contour",
@@ -10,7 +12,7 @@
   "创建工作路径": "Create work path",
   "编辑路径锚点": "Edit path anchors",
   "路径填充": "Fill path",
-  "单击加点 · 拖动弯曲 · 回车闭合": "Click to add · Drag to curve · Return to close",
+  "单击加点 · 拖动弯曲 · 回车应用": "Click to add · Drag to curve · Return to apply",
   "用前景色填充到新图层": "Fill on New Layer with Foreground",
   "工作路径": "Work path",
   "路径 {0}": "Path {0}",

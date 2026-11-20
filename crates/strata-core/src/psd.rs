@@ -138,7 +138,7 @@ pub(crate) fn open(
         }
         layers.reverse();
     }
-    Ok(DocumentCandidate::from_layers(
+    let mut doc = DocumentCandidate::from_layers(
         psd.width,
         psd.height,
         format,
@@ -147,7 +147,48 @@ pub(crate) fn open(
         psd.resolution_dpi,
         pool.clone(),
     )?
-    .into_document())
+    .into_document();
+    for resource in psd.paths {
+        let mut contours = Vec::new();
+        let mut open_contours = std::collections::BTreeSet::new();
+        let canvas = |p: [f64; 2]| [p[0] * f64::from(psd.width), p[1] * f64::from(psd.height)];
+        for (i, contour) in resource.contours.into_iter().enumerate() {
+            if contour.open {
+                open_contours.insert(i);
+            }
+            contours.push(
+                contour
+                    .knots
+                    .into_iter()
+                    .map(|knot| {
+                        let [before, at, after] = knot.points;
+                        let position = canvas(at);
+                        let before = canvas(before);
+                        let after = canvas(after);
+                        crate::PathAnchor {
+                            linked: knot.linked,
+                            position,
+                            incoming: std::array::from_fn(|k| before[k] - position[k]),
+                            outgoing: std::array::from_fn(|k| after[k] - position[k]),
+                        }
+                    })
+                    .collect(),
+            );
+        }
+        let mut parts = contours.into_iter();
+        let path = crate::WorkPath {
+            id: crate::PathId::fresh(),
+            name: resource.name,
+            anchors: parts
+                .next()
+                .ok_or_else(|| map(PsdError::Invalid("empty path resource")))?,
+            subpaths: parts.collect(),
+            open_contours,
+        };
+        doc.paths.push(std::sync::Arc::new(path));
+    }
+    doc.validate()?;
+    Ok(doc)
 }
 fn area(rect: CoverageRect) -> u64 {
     u64::from(rect.width) * u64::from(rect.height)

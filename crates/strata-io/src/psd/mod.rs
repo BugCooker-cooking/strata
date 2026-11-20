@@ -2,6 +2,7 @@
 //! the encoded file so the caller can expand and tile one layer at a time.
 mod channels;
 mod layers;
+pub mod paths;
 
 pub use layers::{LayerRecord, LayerType, Mask};
 use strata_pixels::{CoverageRect, PixelBuffer, PixelFormat};
@@ -88,6 +89,7 @@ pub struct Psd<'a> {
     pub format: PixelFormat,
     pub icc: Option<&'a [u8]>,
     pub resolution_dpi: u32,
+    pub paths: Vec<paths::SavedPath>,
     /// PSD records are in bottom-to-top order, including section dividers.
     pub layers: Vec<LayerRecord<'a>>,
     composite: &'a [u8],
@@ -125,15 +127,26 @@ impl<'a> Psd<'a> {
         }
         let mut resources = src.section()?;
         let mut icc = None;
+        let mut saved = std::collections::BTreeMap::new();
+        let mut knots = 0;
         let mut resolution_dpi = 72;
         let mut has_composite = true;
         while !resources.0.is_empty() {
             resources.signature(b"8BIM")?;
             let id = resources.short()?;
-            resources.pascal(2)?;
+            let name = resources.pascal(2)?;
             let mut block = resources.section()?;
             resources.take(block.0.len() % 2)?;
             match id {
+                1025 | 2000..=2997 => {
+                    if saved.len() >= 64 {
+                        return Err(Limit);
+                    }
+                    let path = paths::SavedPath::read(name, block.0, &mut knots)?;
+                    if saved.insert(id, path).is_some() {
+                        return Err(Invalid("duplicate saved path resource"));
+                    }
+                }
                 1057 => {
                     if block.word()? != 1 {
                         return Err(Unsupported("version information".into()));
@@ -166,7 +179,32 @@ impl<'a> Psd<'a> {
                 _ => {}
             }
         }
-        let (layers, merged_alpha) = layers::read(src.section()?, format, layer_limit)?;
+        let mut names = None;
+        let (layers, merged_alpha) = layers::read(src.section()?, format, layer_limit, &mut names)?;
+        if let Some(names) = names {
+            let first_id = if names.len() == saved.len() {
+                1025
+            } else {
+                2000
+            };
+            if saved.range(first_id..=2997).count() != names.len() {
+                return Err(Unsupported("Unicode path name count".into()));
+            }
+            for ((_, path), name) in saved.range_mut(first_id..=2997).zip(names) {
+                if !name.is_empty() {
+                    path.name = name;
+                }
+            }
+        }
+        for (id, p) in &mut saved {
+            if p.name.trim().is_empty() {
+                p.name = if *id == 1025 {
+                    "Work Path".into()
+                } else {
+                    format!("Path {}", *id - 1999)
+                };
+            }
+        }
         if layers.is_empty() && !has_composite {
             return Err(Invalid("no layers or usable composite"));
         }
@@ -180,6 +218,7 @@ impl<'a> Psd<'a> {
             icc,
             resolution_dpi,
             layers,
+            paths: saved.into_values().collect(),
             composite: src.0,
         })
     }

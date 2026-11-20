@@ -1,4 +1,4 @@
-//! A named, closed cubic contour in document coordinates. Handle vectors
+//! A named cubic work path in document coordinates. Handle vectors
 //! are relative to their anchor, so moving an anchor also moves its handles.
 use crate::{
     DocumentError, PathId,
@@ -16,6 +16,8 @@ pub const MAX_PATH_ANCHORS: usize = 2048;
 #[serde(deny_unknown_fields)]
 pub struct PathAnchor {
     pub position: Point,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub linked: bool,
     #[serde(default)]
     pub incoming: Point,
     #[serde(default)]
@@ -28,18 +30,22 @@ pub struct WorkPath {
     pub id: PathId,
     #[schemars(length(min = 1, max = 256))]
     pub name: String,
-    #[schemars(length(min = 3, max = 1024))]
+    #[schemars(length(min = 2, max = 1024))]
     pub anchors: Vec<PathAnchor>,
     /// Additional closed contours share the even-odd fill rule with anchors.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     #[schemars(schema_with = "additional_contours_schema")]
     pub subpaths: Vec<Vec<PathAnchor>>,
+    /// Indices of contours with distinct start and end points.
+    #[serde(default, skip_serializing_if = "std::collections::BTreeSet::is_empty")]
+    #[schemars(length(max = 64))]
+    pub open_contours: std::collections::BTreeSet<usize>,
 }
 pub(crate) fn additional_contours_schema(
     generator: &mut schemars::SchemaGenerator,
 ) -> schemars::Schema {
     let anchor = generator.subschema_for::<PathAnchor>();
-    schemars::json_schema!({"type":"array","maxItems":63,"items":{"type":"array","minItems":3,"maxItems":1024,"items":anchor}})
+    schemars::json_schema!({"type":"array","maxItems":63,"items":{"type":"array","minItems":2,"maxItems":1024,"items":anchor}})
 }
 fn plus(a: Point, b: Point) -> Point {
     [a[0] + b[0], a[1] + b[1]]
@@ -57,6 +63,12 @@ impl WorkPath {
     fn contours_mut(&mut self) -> impl Iterator<Item = &mut Vec<PathAnchor>> {
         std::iter::once(&mut self.anchors).chain(&mut self.subpaths)
     }
+    pub(crate) fn requires_v13(&self) -> bool {
+        !self.open_contours.is_empty()
+            || self
+                .contours()
+                .any(|c| c.len() == 2 || c.iter().any(|a| a.linked))
+    }
     pub(crate) fn anchor_count(&self) -> usize {
         self.contours().map(Vec::len).sum()
     }
@@ -70,15 +82,20 @@ impl WorkPath {
                 "path requires a valid ID and a name within 256 UTF-8 bytes".into(),
             ));
         }
+        if self.open_contours.iter().any(|&i| i > self.subpaths.len()) {
+            return Err(DocumentError::Invalid(
+                "open contour index does not exist".into(),
+            ));
+        }
         if self.subpaths.len() >= MAX_CONTOURS || self.anchor_count() > MAX_PATH_ANCHORS {
             return Err(DocumentError::ResourceLimit);
         }
         if self
             .contours()
-            .any(|c| !(3..=MAX_ANCHORS).contains(&c.len()))
+            .any(|c| !(2..=MAX_ANCHORS).contains(&c.len()))
         {
             return Err(DocumentError::Invalid(
-                "closed contour needs 3..1024 anchors".into(),
+                "contour needs 2..1024 anchors".into(),
             ));
         }
         for a in self.contours().flatten() {
@@ -109,11 +126,15 @@ impl WorkPath {
         if self.anchor_count() >= MAX_PATH_ANCHORS {
             return Err(DocumentError::ResourceLimit);
         }
+        let open = self.open_contours.contains(&contour);
         let anchors = self
             .contours_mut()
             .nth(contour)
             .ok_or_else(|| DocumentError::Invalid("contour index does not exist".into()))?;
-        if anchors.len() >= MAX_ANCHORS || segment >= anchors.len() || !(0.0 < t && t < 1.0) {
+        if anchors.len() >= MAX_ANCHORS
+            || segment >= anchors.len() - usize::from(open)
+            || !(0.0 < t && t < 1.0)
+        {
             return Err(DocumentError::Invalid(
                 "split requires an existing segment, capacity for one anchor, and 0 < t < 1".into(),
             ));
@@ -134,6 +155,7 @@ impl WorkPath {
         anchors.insert(
             segment + 1,
             PathAnchor {
+                linked: true,
                 position,
                 incoming: minus(left, position),
                 outgoing: minus(right, position),
@@ -144,9 +166,14 @@ impl WorkPath {
     pub(crate) fn polygons(&self) -> Result<Vec<Vec<Point>>, DocumentError> {
         let mut contours = Vec::new();
         let mut total = 0;
-        for anchors in self.contours() {
+        for (index, anchors) in self.contours().enumerate() {
+            let open = self.open_contours.contains(&index);
             let mut points = vec![anchors[0].position];
-            for (a, b) in anchors.iter().zip(anchors.iter().cycle().skip(1)) {
+            for (a, b) in anchors
+                .iter()
+                .zip(anchors.iter().cycle().skip(1))
+                .take(anchors.len() - usize::from(open))
+            {
                 flatten(
                     [
                         a.position,
@@ -158,7 +185,9 @@ impl WorkPath {
                     &mut points,
                 )?;
             }
-            points.pop();
+            if !open {
+                points.pop();
+            }
             total += points.len();
             if total > 4096 {
                 return Err(DocumentError::ResourceLimit);

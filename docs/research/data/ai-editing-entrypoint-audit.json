@@ -1,8 +1,8 @@
 {
   "scope": "Development audit; not a claim that all Photoshop editing is implemented or AI-verified",
   "registered_commands": 158,
-  "registered_examples": 233,
-  "catalog_sha256": "21342447125d5ec05b08444ba8b7b2843c5642cb63fc3b0cea4f1685142a0aa1",
+  "registered_examples": 234,
+  "catalog_sha256": "b25616e659d2da4614f484de466a198ac115c65977084e0691cae4f86b9c5843",
   "inventory_rows": 265,
   "mapped_features": 107,
   "unmapped_implemented_features": [],
@@ -711,9 +711,14 @@
             "text": "Open my layered Photoshop PSD and preserve its editable layers.",
             "query": "PSD",
             "command": "file.open"
+          },
+          {
+            "text": "打开我选的 PSD，保留工作路径及开放和闭合轮廓。",
+            "query": "PSD 路径资源",
+            "command": "file.open"
           }
         ],
-        "note": "使用宿主文件选择器，支持范围和部分兼容项见 PSD 导入记录。文字、矢量、智能对象和其余调整图层仍待接入。"
+        "note": "使用宿主文件选择器，支持范围和部分兼容项见 PSD 导入记录。文字、矢量、智能对象和其余调整图层仍待接入。 支持 PSD 的保存路径资源和 Unicode 路径名称。"
       }
     },
     {
@@ -740,9 +745,14 @@
             "text": "Export a layered Photoshop PSD and preserve the editable masks.",
             "query": "Export layered Photoshop PSD",
             "command": "file.export_psd"
+          },
+          {
+            "text": "把开放曲线、闭合轮廓及其名称一起导出为分层 PSD。",
+            "query": "工作路径 PSD",
+            "command": "file.export_psd"
           }
         ],
-        "note": "原尺寸 8/16 位 RGB，保留支持的像素层、组、基本蒙版与反相/曝光。宿主授权发布固定快照，文件写入不进入文档撤销历史。其余可编辑图层类型继续跟踪。"
+        "note": "原尺寸 8/16 位 RGB，保留支持的像素层、组、基本蒙版与反相/曝光。宿主授权发布固定快照，文件写入不进入文档撤销历史。其余可编辑图层类型继续跟踪。 支持 PSD 的保存路径资源和 Unicode 路径名称。"
       }
     },
     {
@@ -4449,9 +4459,14 @@
             "text": "Create a closed Bézier work path.",
             "query": "closed Bézier",
             "command": "path.create"
+          },
+          {
+            "text": "创建有两个锚点的开放路径，并联动切线手柄。",
+            "query": "开放路径",
+            "command": "path.create"
           }
         ],
-        "note": "常规钢笔支持闭合轮廓。弯度钢笔、自由钢笔及开放子路径仍待补齐。"
+        "note": "常规钢笔支持开放与闭合的多轮廓路径、联动和独立手柄。弯度钢笔及自由钢笔仍待补齐。"
       }
     },
     {

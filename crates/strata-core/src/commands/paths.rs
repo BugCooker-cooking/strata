@@ -1,7 +1,7 @@
 use super::*;
 use crate::{Document, DocumentError, PathAnchor, PathId, WorkPath};
 use serde_json::json;
-use std::sync::Arc;
+use std::{collections::BTreeSet, sync::Arc};
 
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema)]
 #[serde(rename_all = "snake_case", deny_unknown_fields)]
@@ -11,17 +11,36 @@ pub enum PathRef {
 }
 params!(CreatePath{
     #[schemars(length(min=1,max=256))] name:String,
-    #[schemars(length(min=3,max=1024))] anchors:Vec<PathAnchor>,
+    #[schemars(length(min=2,max=1024))] anchors:Vec<PathAnchor>,
     #[serde(default)] #[schemars(schema_with="crate::paths::additional_contours_schema")] subpaths:Vec<Vec<PathAnchor>>,
+    #[serde(default)] #[schemars(schema_with="open_indices_schema")] open_contours:Vec<usize>,
     #[serde(default)] expected_revision:Option<u64>
 });
 params!(UpdatePath{
     path:PathRef,
     #[serde(default)] #[schemars(length(min=1,max=256))] name:Option<String>,
-    #[serde(default)] #[schemars(length(min=3,max=1024))] anchors:Option<Vec<PathAnchor>>,
+    #[serde(default)] #[schemars(length(min=2,max=1024))] anchors:Option<Vec<PathAnchor>>,
     #[serde(default)] #[schemars(schema_with="optional_subpaths_schema")] subpaths:Option<Vec<Vec<PathAnchor>>>,
+    #[serde(default)] #[schemars(schema_with="optional_indices_schema")] open_contours:Option<Vec<usize>>,
     #[serde(default)] expected_revision:Option<u64>
 });
+fn open_indices_schema(_: &mut schemars::SchemaGenerator) -> schemars::Schema {
+    schemars::json_schema!({"type":"array","maxItems":64,"uniqueItems":true,"items":{"type":"integer","minimum":0,"maximum":63}})
+}
+fn optional_indices_schema(g: &mut schemars::SchemaGenerator) -> schemars::Schema {
+    schemars::json_schema!({"anyOf":[{"type":"null"},open_indices_schema(g)]})
+}
+fn open_indices(indices: Vec<usize>) -> Result<BTreeSet<usize>, CommandError> {
+    let n = indices.len();
+    if n > crate::paths::MAX_CONTOURS {
+        return Err(DocumentError::ResourceLimit.into());
+    }
+    let set: BTreeSet<_> = indices.into_iter().collect();
+    if set.len() != n {
+        return Err(CommandError::Invalid("duplicate open contour index".into()));
+    }
+    Ok(set)
+}
 fn optional_subpaths_schema(g: &mut schemars::SchemaGenerator) -> schemars::Schema {
     schemars::json_schema!({"anyOf":[{"type":"null"},crate::paths::additional_contours_schema(g)]})
 }
@@ -105,10 +124,15 @@ pub(super) fn mutate(
             if doc.paths.len() >= crate::paths::MAX_PATHS {
                 return Err(DocumentError::ResourceLimit.into());
             }
-            let (name, anchors, subpaths) = if id == "path.create" {
+            let (name, anchors, subpaths, open_contours) = if id == "path.create" {
                 let p: CreatePath = parse(params)?;
                 matches_revision(p.expected_revision)?;
-                (p.name, p.anchors, p.subpaths)
+                (
+                    p.name,
+                    p.anchors,
+                    p.subpaths,
+                    open_indices(p.open_contours)?,
+                )
             } else {
                 let p: TracePath = parse(params)?;
                 matches_revision(p.expected_revision)?;
@@ -120,6 +144,7 @@ pub(super) fn mutate(
                         CommandError::Invalid("no selection pixels meet the threshold".into())
                     })?,
                     contours.collect(),
+                    Default::default(),
                 )
             };
             let path = WorkPath {
@@ -127,6 +152,7 @@ pub(super) fn mutate(
                 name,
                 anchors,
                 subpaths,
+                open_contours,
             };
             path.validate()?;
             let id = path.id;
@@ -136,7 +162,11 @@ pub(super) fn mutate(
         "path.update" => {
             let p: UpdatePath = parse(params)?;
             matches_revision(p.expected_revision)?;
-            if p.name.is_none() && p.anchors.is_none() && p.subpaths.is_none() {
+            if p.name.is_none()
+                && p.anchors.is_none()
+                && p.subpaths.is_none()
+                && p.open_contours.is_none()
+            {
                 return Err(CommandError::Invalid(
                     "supply a path name or anchors".into(),
                 ));
@@ -148,6 +178,11 @@ pub(super) fn mutate(
                 name: p.name.unwrap_or_else(|| old.name.clone()),
                 anchors: p.anchors.unwrap_or_else(|| old.anchors.clone()),
                 subpaths: p.subpaths.unwrap_or_else(|| old.subpaths.clone()),
+                open_contours: p
+                    .open_contours
+                    .map(open_indices)
+                    .transpose()?
+                    .unwrap_or_else(|| old.open_contours.clone()),
             };
             path.validate()?;
             let changed = path != **old;

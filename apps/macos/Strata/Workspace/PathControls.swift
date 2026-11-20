@@ -23,15 +23,18 @@ struct PathControls: View {
                     Button { input.removeContour() } label: { Image(systemName: "minus") }
                         .accessibilityLabel(L10n.text("删除子轮廓")).disabled(input.contours.count == 1)
                 }
+                Toggle(L10n.text("开放轮廓"), isOn: Binding(get: { input.openContours.contains(input.contour) }, set: { input.setOpen($0) }))
                 Text(L10n.text("单击加点，拖出曲线。Shift 点选多个锚点，⌘ 拖动整条路径，Option 拖动锚点生成对称手柄。回车应用，Esc 取消。"))
                     .font(.caption).foregroundStyle(.secondary)
                 HStack {
                     Button(L10n.text("平分曲线段")) { input.splitNext() }
-                        .disabled(!input.hasSavedGeometry || input.index == nil || input.anchors.count >= 1024)
+                        .disabled(!input.hasSavedGeometry || input.index == nil || input.anchors.count >= 1024 || (input.openContours.contains(input.contour) && input.index == input.anchors.count - 1))
                     Button(L10n.text("转为角点")) { input.corner() }.disabled(input.index == nil)
                     Button(L10n.text("删除锚点")) { input.removeAnchor() }
                         .disabled(!input.canRemoveAnchors)
                 }
+                Button(L10n.text("解除手柄联动")) { input.unlinkHandles() }
+                    .disabled(!input.selectedAnchors.contains { input.anchors.indices.contains($0) && input.anchors[$0].linked == true })
                 Button(L10n.text("用前景色填充到新图层")) {
                     guard let id = input.selectedID, let rgba = model.snapshot?.paintColors?.foreground else { return }
                     let maxCode = model.snapshot?.bitDepth == 16 ? 65535.0 : 255.0

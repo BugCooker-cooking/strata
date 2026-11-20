@@ -447,3 +447,62 @@ fn tracing_an_inverted_selection_respects_the_implicit_background_and_artboard_e
     assert_eq!(geometry["anchors"].as_array().unwrap().len(), 4);
     assert_eq!(geometry["anchors"][2]["position"], json!([20.0, 20.0]));
 }
+
+#[test]
+fn open_curves_preserve_endpoint_handles_and_close_with_a_chord_only_for_fill() {
+    let mut e = new();
+    let anchors = json!([{"position":[2,10],"incoming":[0,9],"outgoing":[0,-8],"linked":true},{"position":[16,10],"incoming":[0,-8],"outgoing":[0,9]}]);
+    let id = run(
+        &mut e,
+        "path.create",
+        json!({"name":"Open","anchors":anchors,"open_contours":[0]}),
+    )["path_id"]
+        .clone();
+    let target = json!({"id":id});
+    let open = run(&mut e, "path.get", json!({"path":target}));
+    assert_eq!(open["open_contours"], json!([0]));
+    let old = e.revision();
+    assert!(
+        e.execute(
+            e.request(Source::User),
+            "path.split",
+            json!({"path":target,"segment":1,"t":0.5}),
+            |_| Ok(())
+        )
+        .is_err()
+    );
+    assert_eq!(e.revision(), old);
+    run(&mut e, "select.from_path", json!({"path":target}));
+    let mask = e.document().unwrap().selection().unwrap();
+    assert_eq!(mask.sample(8, 8).unwrap(), 65535);
+    assert_eq!(mask.sample(8, 12).unwrap(), 0);
+    run(
+        &mut e,
+        "path.update",
+        json!({"path":target,"open_contours":[]}),
+    );
+    run(&mut e, "select.from_path", json!({"path":target}));
+    assert_eq!(
+        e.document()
+            .unwrap()
+            .selection()
+            .unwrap()
+            .sample(8, 12)
+            .unwrap(),
+        65535
+    );
+    run(&mut e, "edit.undo", json!({}));
+    run(&mut e, "edit.undo", json!({}));
+    let mut archive = e.document().unwrap().to_archive().unwrap();
+    assert_eq!(archive.metadata["version"], 13);
+    archive.metadata["version"] = json!(12);
+    assert!(Document::from_archive(archive).is_err());
+    run(
+        &mut e,
+        "path.split",
+        json!({"path":target,"segment":0,"t":0.5}),
+    );
+    let split = run(&mut e, "path.get", json!({"path":target}));
+    assert_eq!(split["anchors"].as_array().unwrap().len(), 3);
+    assert_eq!(split["open_contours"], json!([0]));
+}

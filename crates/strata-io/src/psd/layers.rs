@@ -53,11 +53,12 @@ impl LayerRecord<'_> {
     }
 }
 
-pub(super) fn read(
-    mut section: Reader<'_>,
+pub(super) fn read<'a>(
+    mut section: Reader<'a>,
     format: PixelFormat,
     limit: usize,
-) -> Result<(Vec<LayerRecord<'_>>, bool)> {
+    names: &mut Option<Vec<String>>,
+) -> Result<(Vec<LayerRecord<'a>>, bool)> {
     if section.0.is_empty() {
         return Ok((Vec::new(), false));
     }
@@ -74,6 +75,12 @@ pub(super) fn read(
         let block = section.section()?;
         section.take(block.0.len().next_multiple_of(4) - block.0.len())?;
         match &tag {
+            b"pths" => {
+                if names.is_some() {
+                    return Err(Invalid("duplicate Unicode path names"));
+                }
+                *names = Some(super::paths::read_names(block)?);
+            }
             b"Lr16" if format == PixelFormat::Rgba16 && info.0.is_empty() => info = block,
             b"Layr" if format == PixelFormat::Rgba8 && info.0.is_empty() => info = block,
             b"Lr16" | b"Layr" | b"Lr32" => {

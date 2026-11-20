@@ -66,7 +66,7 @@ struct ToolOptionsBar: View {
             case .freeTransform:
                 Text(L10n.text("拖动手柄调整轮廓 · 回车应用 · Esc 取消")).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))
             case .pen:
-                Text(L10n.text("单击加点 · 拖动弯曲 · 回车闭合")).foregroundStyle(Color(nsColor: WorkspaceColors.secondary))
+                Text(L10n.text("单击加点 · 拖动弯曲 · 回车应用")).foregroundStyle(Color(nsColor: WorkspaceColors.secondary))
             case .text:
                 Text(L10n.text("单击放置基线；段落模式拖出文字框。编辑后应用，一次撤销。")).foregroundStyle(Color(nsColor:WorkspaceColors.secondary))
             case .move:

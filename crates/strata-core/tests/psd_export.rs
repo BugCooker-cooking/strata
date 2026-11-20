@@ -235,3 +235,128 @@ fn eight_bit_export_preserves_existing_file_when_mask_needs_sixteen_bits() {
         10001
     );
 }
+
+#[test]
+fn psd_tools_path_fixture_keeps_unicode_open_segments_and_linked_handles_at_both_depths() {
+    let temp = tempfile::tempdir().unwrap();
+    let source = temp.path().join("independent.psd");
+    std::fs::write(&source, include_bytes!("fixtures/psd/saved-path.psd")).unwrap();
+    for depth in [8, 16] {
+        let mut editor = Editor::new();
+        open(&mut editor, &source);
+        if depth == 16 {
+            run(
+                &mut editor,
+                "image.convert_bit_depth",
+                json!({"bit_depth":16}),
+            );
+        }
+        let by_name = json!({"path":{"name":"輪廓 Café"}});
+        let original = run(&mut editor, "path.get", by_name.clone());
+        assert_eq!(original["open_contours"], json!([1]));
+        let knots = original["subpaths"][0].as_array().unwrap();
+        assert_eq!(knots.len(), 2);
+        assert_eq!(knots[0]["position"], json!([0., 1.]));
+        assert_eq!(knots[0]["incoming"], json!([-2., -1.]));
+        assert_eq!(knots[0]["outgoing"], json!([2., 1.]));
+        assert_eq!(knots[0]["linked"], true);
+        run(
+            &mut editor,
+            "path.update",
+            json!({"path":{"id":original["id"]},"name":"🌱 轮廓"}),
+        );
+        let output = temp.path().join(format!("roundtrip-{depth}.psd"));
+        let before = editor.revision();
+        export(&mut editor, &output);
+        assert_eq!(before, editor.revision());
+        let mut copy = Editor::new();
+        open(&mut copy, &output);
+        let reopened = run(&mut copy, "path.get", json!({"path":{"name":"🌱 轮廓"}}));
+        assert_eq!(reopened["subpaths"], original["subpaths"]);
+        assert_eq!(reopened["anchors"], original["anchors"]);
+        assert_eq!(reopened["open_contours"], original["open_contours"]);
+        assert_ne!(reopened["id"], original["id"]); // The PSD starts a fresh document.
+    }
+}
+
+#[test]
+fn unrepresentable_saved_path_fails_before_overwriting_the_target() {
+    let mut e = Editor::new();
+    run(
+        &mut e,
+        "file.new",
+        json!({"width":4,"height":4,"bit_depth":8}),
+    );
+    run(
+        &mut e,
+        "path.create",
+        json!({"name":"Outside","anchors":[{"position":[64,0]},{"position":[0,2]}],"open_contours":[0]}),
+    );
+    let dir = tempfile::tempdir().unwrap();
+    let dest = dir.path().join("old.psd");
+    std::fs::write(&dest, b"previous").unwrap();
+    let token = e.grant_write(&dest, true, Source::User).unwrap();
+    let before = e.revision();
+    assert!(
+        e.execute(
+            e.request(Source::User),
+            "file.export_psd",
+            json!({"resource":token}),
+            |_| Ok(())
+        )
+        .is_err()
+    );
+    assert_eq!(std::fs::read(dest).unwrap(), b"previous");
+    assert_eq!(e.revision(), before);
+}
+
+#[test]
+fn path_coordinates_follow_the_exported_artboard_origin_and_fixed_point_precision() {
+    let mut editor = Editor::new();
+    run(
+        &mut editor,
+        "file.new",
+        json!({"width":40,"height":35,"bit_depth":8}),
+    );
+    run(
+        &mut editor,
+        "path.create",
+        json!({"name":"Offset","open_contours":[0],"anchors":[
+        {"position":[2.123456,7.345678],"outgoing":[1.23456,-2.34567]},
+        {"position":[23.765432,25.123456],"incoming":[-4.12345,2.34567]}]}),
+    );
+    run(
+        &mut editor,
+        "image.crop",
+        json!({"rect":{"x":5,"y":3,"width":27,"height":17},"pixels":"preserve"}),
+    );
+    let source = run(&mut editor, "path.get", json!({"path":{"name":"Offset"}}));
+    let dir = tempfile::tempdir().unwrap();
+    let dest = dir.path().join("crop.psd");
+    export(&mut editor, &dest);
+    let mut restored = Editor::new();
+    open(&mut restored, &dest);
+    let target = run(&mut restored, "path.get", json!({"path":{"name":"Offset"}}));
+    for (a, b) in source["anchors"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .zip(target["anchors"].as_array().unwrap())
+    {
+        for k in 0..2 {
+            let origin = [5.0, 3.0][k];
+            let half_unit = [27.0, 17.0][k] / 33554432.;
+            for control in ["position", "incoming", "outgoing"] {
+                let absolute = |node: &Value| {
+                    node["position"][k].as_f64().unwrap()
+                        + if control == "position" {
+                            0.0
+                        } else {
+                            node[control][k].as_f64().unwrap()
+                        }
+                };
+                assert!((absolute(b) - (absolute(a) - origin)).abs() <= half_unit + 1e-13);
+            }
+        }
+    }
+}

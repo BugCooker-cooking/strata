@@ -105,6 +105,7 @@ pub(super) fn trace(
 }
 fn anchor(position: Point) -> PathAnchor {
     PathAnchor {
+        linked: false,
         position,
         incoming: [0.; 2],
         outgoing: [0.; 2],

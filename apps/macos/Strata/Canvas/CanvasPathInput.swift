@@ -2,18 +2,22 @@ import AppKit
 
 struct PathAnchor: Decodable, Equatable {
     var position: CGPoint
+    var linked: Bool?
     var incoming = CGPoint.zero
     var outgoing = CGPoint.zero
 
-    var parameters: [String: [Double]] {
-        ["position": [position.x, position.y], "incoming": [incoming.x, incoming.y],
-         "outgoing": [outgoing.x, outgoing.y]]
+    var parameters: [String: Any] {
+        var result: [String: Any] = ["position": [position.x, position.y], "incoming": [incoming.x, incoming.y],
+                                     "outgoing": [outgoing.x, outgoing.y]]
+        if linked == true { result["linked"] = true }
+        return result
     }
 }
 struct WorkPath: Decodable, Identifiable, Equatable {
     let id: String
     let name: String
     let anchors: [PathAnchor]
+    let openContours: Set<Int>?
     let subpaths: [[PathAnchor]]?
     var contours: [[PathAnchor]] { [anchors] + (subpaths ?? []) }
 }
@@ -22,6 +26,7 @@ struct WorkPath: Decodable, Identifiable, Equatable {
 final class CanvasPathInput: ObservableObject {
     @Published private(set) var selectedID: String?
     @Published private(set) var contours: [[PathAnchor]] = [[]]
+    @Published private(set) var openContours: Set<Int> = []
     @Published private(set) var contour = 0
     private var anchorCount: Int { contours.reduce(0) { $0 + $1.count } }
     var anchors: [PathAnchor] {
@@ -53,7 +58,7 @@ final class CanvasPathInput: ObservableObject {
         guard changed || paths != newPaths else { return }
         let created = !switched ? newPaths.first(where: { candidate in
             !paths.contains(where: { $0.id == candidate.id }) &&
-                ((pendingCreation && candidate.name == name && candidate.contours == contours) ||
+                ((pendingCreation && candidate.name == name && candidate.contours == contours && (candidate.openContours ?? []) == openContours) ||
                  (pendingTraceName == candidate.name))
         })?.id : nil
         paths = newPaths
@@ -67,6 +72,7 @@ final class CanvasPathInput: ObservableObject {
         let nextContour = selectedID == id ? contour : 0
         selectedID = selected?.id
         contours = selected?.contours ?? [[]]
+        openContours = selected?.openContours ?? []
         contour = min(nextContour, contours.count - 1)
         name = selected?.name ?? L10n.format("路径 {0}", String(paths.count + 1))
         index = nil
@@ -84,6 +90,11 @@ final class CanvasPathInput: ObservableObject {
         drag = nil
         onChanged?()
     }
+    func setOpen(_ value: Bool) {
+        guard enabled else { return }
+        if value { openContours.insert(contour) } else { openContours.remove(contour) }
+        onChanged?()
+    }
     func addContour() {
         guard canAddContour else { return }
         contours.append([])
@@ -92,6 +103,7 @@ final class CanvasPathInput: ObservableObject {
     func removeContour() {
         guard enabled, contours.count > 1 else { return }
         let next = min(contour, contours.count - 2)
+        openContours = Set(openContours.compactMap { i in i == contour ? nil : (i > contour ? i-1 : i) })
         contours.remove(at: contour)
         chooseContour(next)
     }
@@ -106,18 +118,18 @@ final class CanvasPathInput: ObservableObject {
         return contours.contains { !$0.isEmpty }
     }
     var canAddContour: Bool {
-        enabled && contours.count < 64 && anchorCount <= 2045 && contours.allSatisfy { $0.count >= 3 }
+        enabled && contours.count < 64 && anchorCount <= 2045 && contours.allSatisfy { $0.count >= 2 }
     }
     var hasSavedGeometry: Bool {
         guard let p = paths.first(where: { $0.id == selectedID }) else { return false }
-        return p.contours == contours && p.name == name
+        return p.contours == contours && (p.openContours ?? []) == openContours && p.name == name
     }
     var canApply: Bool {
-        guard enabled, contours.allSatisfy({ (3...1024).contains($0.count) }), anchorCount <= 2048, !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+        guard enabled, contours.allSatisfy({ (2...1024).contains($0.count) }), anchorCount <= 2048, !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
               name.utf8.count <= 256, !name.unicodeScalars.contains(where: CharacterSet.controlCharacters.contains)
         else { return false }
         guard let old = paths.first(where: { $0.id == selectedID }) else { return true }
-        return contours != old.contours || name != old.name
+        return contours != old.contours || (old.openContours ?? []) != openContours || name != old.name
     }
     func down(_ point: CGPoint, tolerance: CGFloat, modifiers: NSEvent.ModifierFlags, clicks: Int) {
         guard enabled else { return }
@@ -130,7 +142,7 @@ final class CanvasPathInput: ObservableObject {
             onChanged?()
             return
         }
-        if selectedID == nil, !modifiers.contains(.shift), anchors.count >= 3, clicks > 1 || near(anchors[0].position) {
+        if selectedID == nil, !modifiers.contains(.shift), anchors.count >= 2, clicks > 1 || (!openContours.contains(contour) && anchors.count >= 3 && near(anchors[0].position)) {
             apply()
             return
         }
@@ -180,9 +192,18 @@ final class CanvasPathInput: ObservableObject {
         let offset = CGPoint(x: point.x - anchors[index].position.x, y: point.y - anchors[index].position.y)
         switch drag {
         case .position, .translate: return
-        case .incoming: anchors[index].incoming = offset
-        case .outgoing: anchors[index].outgoing = offset
+        case .incoming, .outgoing:
+            let incoming = drag == .incoming
+            let oldOpposite = incoming ? anchors[index].outgoing : anchors[index].incoming
+            if incoming { anchors[index].incoming = offset } else { anchors[index].outgoing = offset }
+            let length = hypot(offset.x, offset.y)
+            if anchors[index].linked == true, length > 0 {
+                let scale = -hypot(oldOpposite.x, oldOpposite.y) / length
+                let opposite = CGPoint(x: offset.x * scale, y: offset.y * scale)
+                if incoming { anchors[index].outgoing = opposite } else { anchors[index].incoming = opposite }
+            }
         case .symmetric:
+            anchors[index].linked = offset == .zero ? nil : true
             anchors[index].outgoing = offset
             anchors[index].incoming = CGPoint(x: -offset.x, y: -offset.y)
         }
@@ -191,14 +212,19 @@ final class CanvasPathInput: ObservableObject {
     func endDrag() { drag = nil }
     func corner() {
         guard enabled else { return }
-        for i in selectedAnchors { anchors[i].incoming = .zero; anchors[i].outgoing = .zero }
+        for i in selectedAnchors { anchors[i].incoming = .zero; anchors[i].outgoing = .zero; anchors[i].linked = nil }
+        onChanged?()
+    }
+    func unlinkHandles() {
+        guard enabled else { return }
+        for i in selectedAnchors { anchors[i].linked = nil }
         onChanged?()
     }
     var canRemoveAnchors: Bool {
-        !selectedAnchors.isEmpty && (selectedID == nil || anchors.count - selectedAnchors.count >= 3)
+        !selectedAnchors.isEmpty && (selectedID == nil || anchors.count - selectedAnchors.count >= 2)
     }
     func splitNext() {
-        guard enabled, hasSavedGeometry, let selectedID, let index, anchors.count < 1024, anchorCount < 2048 else { return }
+        guard enabled, hasSavedGeometry, let selectedID, let index, anchors.count < 1024, anchorCount < 2048, !openContours.contains(contour) || index < anchors.count-1 else { return }
         onCommand?("path.split", ["path": ["id": selectedID], "contour": contour, "segment": index, "t": 0.5, "expected_revision": revision])
     }
     func removeAnchor() {
@@ -212,7 +238,7 @@ final class CanvasPathInput: ObservableObject {
     func apply() {
         guard canApply else { return }
         var params: [String: Any] = ["name": name, "anchors": contours[0].map(\.parameters),
-            "subpaths": contours.dropFirst().map { $0.map(\.parameters) }, "expected_revision": revision]
+            "open_contours": openContours.sorted(), "subpaths": contours.dropFirst().map { $0.map(\.parameters) }, "expected_revision": revision]
         if let selectedID {
             params["path"] = ["id": selectedID]
             onCommand?("path.update", params)
@@ -238,7 +264,7 @@ final class CanvasPathInput: ObservableObject {
             for i in part.indices {
                 let a = part[i]
                 let next = (i + 1) % part.count
-                if next != 0 || part.count >= 3 {
+                if next != 0 || (!openContours.contains(c) && part.count >= 2) {
                     let b = part[next]
                     curve.addCurve(to: b.position, control1: a.position.offset(a.outgoing), control2: b.position.offset(b.incoming))
                 }

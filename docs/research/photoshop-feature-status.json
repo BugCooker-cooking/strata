@@ -1322,6 +1322,10 @@
       {
         "label": "PSD 导入与本机验证",
         "path": "../research/2026-11-p1-psd-import.md"
+      },
+      {
+        "label": "开放轮廓与 PSD 工作路径",
+        "path": "../research/2026-11-p1-psd-work-paths.md"
       }
     ]
   },
@@ -1332,16 +1336,24 @@
       {
         "label": "分层 PSD 导出与互操作验证",
         "path": "../research/2026-11-p1-psd-export.md"
+      },
+      {
+        "label": "开放轮廓与 PSD 工作路径",
+        "path": "../research/2026-11-p1-psd-work-paths.md"
       }
     ]
   },
   "PS-12-a132c853ab": {
     "implementation": "部分实现",
-    "acceptance": "常规钢笔支持闭合轮廓。弯度钢笔、自由钢笔及开放子路径仍待补齐。",
+    "acceptance": "常规钢笔可创建、编辑开放与闭合轮廓，保留联动和独立手柄。弯度钢笔与自由钢笔仍待补齐。",
     "evidence": [
       {
         "label": "闭合路径与钢笔验证",
         "path": "../research/2026-11-p1-work-paths.md"
+      },
+      {
+        "label": "开放轮廓与 PSD 工作路径",
+        "path": "../research/2026-11-p1-psd-work-paths.md"
       }
     ]
   },

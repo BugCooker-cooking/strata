@@ -4651,3 +4651,76 @@ fn assistant_traces_a_selection_with_a_hole_and_reloads_the_compound_path() {
                 .unwrap()
     );
 }
+
+#[test]
+fn assistant_creates_inspects_and_closes_an_open_two_anchor_curve() {
+    let host = Host::new();
+    let before = host
+        .editor
+        .lock()
+        .unwrap()
+        .document()
+        .unwrap()
+        .to_archive()
+        .unwrap();
+    let mut s = host.session_with_prompt(
+        ExecutionMode::Direct,
+        "创建两个锚点的开放路径，保留联动手柄，然后闭合。",
+    );
+    reply(
+        &mut s,
+        &host,
+        vec![
+            call(
+                "discover-open",
+                "search_catalog",
+                json!({"query":"开放路径"}),
+            ),
+            invoke(
+                "create-open",
+                "path.create",
+                json!({"name":"弧线","open_contours":[0],"anchors":[{"position":[1,1],"incoming":[-2,0],"outgoing":[4,0],"linked":true},{"position":[8,8],"incoming":[0,-2]}]}),
+            ),
+        ],
+    );
+    assert!(
+        result(s.poll(&host).unwrap())
+            .to_string()
+            .contains("path.create")
+    );
+    let target = json!({"id":result(s.poll(&host).unwrap())["result"]["path_id"]});
+    reply(
+        &mut s,
+        &host,
+        vec![
+            invoke("get-open", "path.get", json!({"path":target})),
+            invoke(
+                "close",
+                "path.update",
+                json!({"path":target,"open_contours":[]}),
+            ),
+        ],
+    );
+    let shape = result(s.poll(&host).unwrap());
+    assert_eq!(shape["result"]["open_contours"], json!([0]));
+    assert_eq!(shape["result"]["anchors"][0]["linked"], true);
+    assert_eq!(result(s.poll(&host).unwrap())["result"]["changed"], true);
+    assert!(
+        host.editor.lock().unwrap().document().unwrap().paths()[0]
+            .open_contours
+            .is_empty()
+    );
+    host.stop(s.turn_id()).unwrap();
+    host.user("edit.undo_turn", json!({"turn_id":s.turn_id()}));
+    assert!(
+        before
+            == host
+                .editor
+                .lock()
+                .unwrap()
+                .document()
+                .unwrap()
+                .to_archive()
+                .unwrap()
+    );
+}

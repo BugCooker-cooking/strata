@@ -96,6 +96,48 @@ final class WorkPathTests: XCTestCase {
         XCTAssertEqual(input.contours.map(\.count), [4,5])
     }
 
+    func testOpenContourAndLinkedTangentAreEditableAfterPSDInterchange() throws {
+        let source = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent()
+            .deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("crates/strata-core/tests/fixtures/psd/saved-path.psd")
+        let engine = StrataEngine(listener: EngineEvents { _ in })
+        _ = try engine.openImage(path: source.path)
+        let input = CanvasPathInput()
+        input.onCommand = { id, params in
+            do { _ = try engine.dispatch(command: id, paramsJson: commandJSON(params)) }
+            catch { XCTFail("Path edit failed: \(error)") }
+        }
+        func refresh() throws { input.bind(try EditorSnapshot.decode(engine.snapshotJson()), enabled: true) }
+        try refresh()
+        let path = try XCTUnwrap(input.paths.first)
+        XCTAssertEqual(path.name, "輪廓 Café")
+        input.select(path.id)
+        input.chooseContour(1)
+        XCTAssertTrue(input.openContours.contains(1))
+        XCTAssertEqual(input.anchors.count, 2)
+        let at = input.anchors[0].position
+        input.down(at, tolerance: 0.01, modifiers: [], clicks: 1)
+        input.endDrag()
+        input.down(CGPoint(x: at.x+2, y: at.y+1), tolerance: 0.01, modifiers: [], clicks: 1)
+        input.move(CGPoint(x: at.x, y: at.y+2))
+        input.endDrag()
+        XCTAssertEqual(input.anchors[0].incoming.x, 0, accuracy: 0.0001)
+        XCTAssertEqual(input.anchors[0].incoming.y, -sqrt(5), accuracy: 0.0001)
+        input.apply()
+        try refresh()
+        let output = FileManager.default.temporaryDirectory.appendingPathComponent("strata-open-\(UUID()).psd")
+        defer { try? FileManager.default.removeItem(at: output) }
+        let grant = try engine.grantWrite(path: output.path, overwrite: false)
+        _ = try engine.dispatch(command: "file.export_psd", paramsJson: commandJSON(["resource": grant]))
+        let copy = StrataEngine(listener: EngineEvents { _ in })
+        _ = try copy.openImage(path: output.path)
+        let saved = try XCTUnwrap(try EditorSnapshot.decode(copy.snapshotJson()).paths?.first)
+        XCTAssertEqual(saved.openContours, [1])
+        XCTAssertEqual(saved.subpaths?[0][0].linked, true)
+        XCTAssertEqual(try XCTUnwrap(saved.subpaths?[0][0].outgoing.y), 2, accuracy: 0.00001)
+    }
+
     func testPenDraftEditsThroughTheEngineAndCancelsOnRevisionChange() throws {
         let engine = StrataEngine(listener: EngineEvents { _ in })
         func command(_ id: String, _ params: [String: Any]) throws {

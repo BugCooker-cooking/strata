@@ -62,10 +62,14 @@ fn tag(out: &mut Vec<u8>, key: &[u8; 4], bytes: &[u8]) {
         out.push(0);
     }
 }
-fn resource(out: &mut Vec<u8>, id: u16, bytes: &[u8]) {
+fn resource(out: &mut Vec<u8>, id: u16, name: &[u8], bytes: &[u8]) {
     out.extend(b"8BIM");
     out.extend(id.to_be_bytes());
-    out.extend([0, 0]);
+    out.push(name.len() as u8);
+    out.extend(name);
+    if name.len().is_multiple_of(2) {
+        out.push(0);
+    }
     block(out, bytes);
     if !bytes.len().is_multiple_of(2) {
         out.push(0);
@@ -397,8 +401,63 @@ pub(crate) fn encode(
         dpi.extend((doc.resolution_dpi() << 16).to_be_bytes());
         dpi.extend([0, 1, 0, 1]);
     }
-    resource(&mut resources, 1005, &dpi);
-    resource(&mut resources, 1039, doc.working_icc());
+    resource(&mut resources, 1005, &[], &dpi);
+    resource(&mut resources, 1039, &[], doc.working_icc());
+    let mut unicode_names = Vec::new();
+    if !doc.paths().is_empty() {
+        use strata_io::psd::paths::{
+            SavedContour, SavedKnot, SavedPath, encode_names, legacy_name,
+        };
+        let normalize = |p: [f64; 2]| {
+            [
+                (p[0] - f.x as f64) / f64::from(f.width),
+                (p[1] - f.y as f64) / f64::from(f.height),
+            ]
+        };
+        for (i, path) in doc.paths().iter().enumerate() {
+            check(cancel)?;
+            let contours = path
+                .contours()
+                .enumerate()
+                .map(|(part, anchors)| {
+                    let knots = anchors
+                        .iter()
+                        .map(|a| {
+                            let abs = |v: [f64; 2]| {
+                                normalize([a.position[0] + v[0], a.position[1] + v[1]])
+                            };
+                            SavedKnot {
+                                linked: a.linked,
+                                points: [abs(a.incoming), normalize(a.position), abs(a.outgoing)],
+                            }
+                        })
+                        .collect();
+                    SavedContour {
+                        open: path.open_contours.contains(&part),
+                        knots,
+                    }
+                })
+                .collect();
+            let saved = SavedPath {
+                name: path.name.clone(),
+                contours,
+            };
+            let encoded = saved
+                .encode()
+                .map_err(|e| invalid(format!("PSD path {}: {e}", saved.name)))?;
+            resource(
+                &mut resources,
+                2000 + i as u16,
+                &legacy_name(&saved.name),
+                &encoded,
+            );
+        }
+        tag(
+            &mut unicode_names,
+            b"pths",
+            &encode_names(doc.paths().iter().map(|p| p.name.as_str())),
+        );
+    }
     let info_size = (2 + directory.len() as u64 + payload_size).next_multiple_of(2);
     // Photoshop stores 16-bit records in the Lr16 additional-information block.
     let wide = format == PixelFormat::Rgba16;
@@ -409,6 +468,7 @@ pub(crate) fn encode(
     };
     let merged_size = f.width as u64 * f.height as u64 * 4 * format.bytes_per_sample() as u64;
     // Reserve the larger RGBA header. Opaque composites only need three planes.
+    let layer_size = layer_size + unicode_names.len() as u64;
     let max_size = 26 + 4 + 4 + resources.len() as u64 + 4 + layer_size + 12 + 2 + merged_size;
     if max_size > strata_io::DEFAULT_DECODE_LIMIT {
         return Err(DocumentError::ResourceLimit);
@@ -465,6 +525,7 @@ pub(crate) fn encode(
     if !wide {
         out.extend([0; 4]);
     }
+    out.extend(unicode_names);
     if transparent {
         tag(&mut out, if wide { b"Mt16" } else { b"Mtrn" }, &[]);
     }

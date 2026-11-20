@@ -1074,9 +1074,9 @@ Permissions: `bound_document`
 }
 ```
 
-## `path.create` — 创建闭合贝塞尔路径
+## `path.create` — 创建贝塞尔工作路径
 
-Create a named closed work path with 3..1024 ordered anchors, up to 64 paths per document. Optional subpaths are additional closed contours with the same anchor format. Even-odd fill supports holes and islands. At most 64 contours and 2048 total anchors per path; the document supports 8192 anchors. position is absolute [x,y] in canvas pixels. Optional incoming/outgoing handle vectors are relative to that anchor and default to [0,0] for corners. Cubic segments join outgoing to the next incoming, including the closing edge. Finite points and handle endpoints within ±1e12; name 1..256 UTF-8 bytes. Optional expected_revision binds a staged native draft. Changes document metadata in one undo step. 保存可编辑闭合路径、钢笔锚点和相对方向手柄，一次撤销；工程保留曲线，普通图像导出只写像素。
+Create an open or closed Bézier work path (创建闭合贝塞尔路径或开放路径) with 2..1024 ordered anchors, up to 64 paths per document. Optional subpaths are additional closed contours with the same anchor format. Even-odd fill supports holes and islands. At most 64 contours and 2048 total anchors per path; the document supports 8192 anchors. position is absolute [x,y] in canvas pixels. Optional incoming/outgoing handle vectors are relative to that anchor and default to [0,0] for corners. Cubic segments join outgoing to the next incoming. All contours are closed by default; open_contours lists zero-based indices to leave open. linked=true couples tangent directions in the native editor, preserving the other handle length. 开放路径、闭合路径及复合轮廓。 Finite points and handle endpoints within ±1e12; name 1..256 UTF-8 bytes. Optional expected_revision binds a staged native draft. Changes document metadata in one undo step. 保存可编辑闭合路径、钢笔锚点和相对方向手柄，一次撤销；工程保留曲线，普通图像导出只写像素。
 
 Kind: `Mutate` · Undoable: `true` · Batchable: `false`
 
@@ -1100,7 +1100,7 @@ Permissions: `bound_document`
         "$ref": "#/$defs/PathAnchor"
       },
       "maxItems": 1024,
-      "minItems": 3
+      "minItems": 2
     },
     "expected_revision": {
       "type": [
@@ -1116,6 +1116,17 @@ Permissions: `bound_document`
       "maxLength": 256,
       "minLength": 1
     },
+    "open_contours": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "integer",
+        "maximum": 63,
+        "minimum": 0
+      },
+      "maxItems": 64,
+      "uniqueItems": true
+    },
     "subpaths": {
       "type": "array",
       "default": [],
@@ -1125,7 +1136,7 @@ Permissions: `bound_document`
           "$ref": "#/$defs/PathAnchor"
         },
         "maxItems": 1024,
-        "minItems": 3
+        "minItems": 2
       },
       "maxItems": 63
     }
@@ -1151,6 +1162,9 @@ Permissions: `bound_document`
           },
           "maxItems": 2,
           "minItems": 2
+        },
+        "linked": {
+          "type": "boolean"
         },
         "outgoing": {
           "type": "array",
@@ -1244,9 +1258,45 @@ Permissions: `bound_document`
 }
 ```
 
+```json
+{
+  "anchors": [
+    {
+      "incoming": [
+        -1,
+        0
+      ],
+      "linked": true,
+      "outgoing": [
+        2,
+        0
+      ],
+      "position": [
+        2,
+        4
+      ]
+    },
+    {
+      "incoming": [
+        -3,
+        2
+      ],
+      "position": [
+        12,
+        9
+      ]
+    }
+  ],
+  "name": "Open curve",
+  "open_contours": [
+    0
+  ]
+}
+```
+
 ## `path.update` — 编辑路径锚点
 
-Use a stable path ID or unique name. Replace the ordered anchors (3..1024) to move, add, delete or convert anchors, and/or rename the path. Optional subpaths replaces all additional contours, [] removes them; omission keeps them. Positions are absolute canvas pixels, handles incoming/outgoing are relative offsets. One atomic undoable edit, identical values are a no-op. Use document.inspect for the current revision and path.get for the geometry. Pass expected_revision when editing a draft. 调整锚点、增删锚点、曲线手柄、转角点或平滑点、重命名路径。
+Use a stable path ID or unique name. Replace the ordered anchors (2..1024) to move, add, delete or convert anchors, and/or rename the path. Optional subpaths replaces all additional contours, [] removes them; omission keeps them. Optional open_contours replaces the indices of open contours; [] closes them all. Positions are absolute canvas pixels, handles incoming/outgoing are relative offsets. One atomic undoable edit, identical values are a no-op. Use document.inspect for the current revision and path.get for geometry including open contours and linked/unlinked handles. Pass expected_revision when editing a draft. 调整锚点、增删锚点、曲线手柄、转角点或平滑点、重命名路径。
 
 Kind: `Mutate` · Undoable: `true` · Batchable: `false`
 
@@ -1274,7 +1324,7 @@ Permissions: `bound_document`
         "$ref": "#/$defs/PathAnchor"
       },
       "maxItems": 1024,
-      "minItems": 3
+      "minItems": 2
     },
     "expected_revision": {
       "type": [
@@ -1294,6 +1344,24 @@ Permissions: `bound_document`
       "maxLength": 256,
       "minLength": 1
     },
+    "open_contours": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "maximum": 63,
+            "minimum": 0
+          },
+          "maxItems": 64,
+          "uniqueItems": true
+        }
+      ],
+      "default": null
+    },
     "path": {
       "$ref": "#/$defs/PathRef"
     },
@@ -1310,7 +1378,7 @@ Permissions: `bound_document`
               "$ref": "#/$defs/PathAnchor"
             },
             "maxItems": 1024,
-            "minItems": 3
+            "minItems": 2
           },
           "maxItems": 63
         }
@@ -1338,6 +1406,9 @@ Permissions: `bound_document`
           },
           "maxItems": 2,
           "minItems": 2
+        },
+        "linked": {
+          "type": "boolean"
         },
         "outgoing": {
           "type": "array",
@@ -1721,7 +1792,7 @@ Permissions: `bound_document`
         "$ref": "#/$defs/PathAnchor"
       },
       "maxItems": 1024,
-      "minItems": 3
+      "minItems": 2
     },
     "id": {
       "type": "string",
@@ -1732,6 +1803,17 @@ Permissions: `bound_document`
       "maxLength": 256,
       "minLength": 1
     },
+    "open_contours": {
+      "description": "Indices of contours with distinct start and end points.",
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "format": "uint",
+        "minimum": 0
+      },
+      "maxItems": 64,
+      "uniqueItems": true
+    },
     "subpaths": {
       "description": "Additional closed contours share the even-odd fill rule with anchors.",
       "type": "array",
@@ -1741,7 +1823,7 @@ Permissions: `bound_document`
           "$ref": "#/$defs/PathAnchor"
         },
         "maxItems": 1024,
-        "minItems": 3
+        "minItems": 2
       },
       "maxItems": 63
     }
@@ -1768,6 +1850,9 @@ Permissions: `bound_document`
           },
           "maxItems": 2,
           "minItems": 2
+        },
+        "linked": {
+          "type": "boolean"
         },
         "outgoing": {
           "type": "array",
@@ -1813,7 +1898,7 @@ Permissions: `bound_document`
 
 ## `select.from_path` — 路径转为选区
 
-Rasterize a closed work path into the selection clipped to the artboard, even-odd fill, 4x4 coverage, with cubic subdivision to 1/8 canvas pixel and at most 4096 segments. Modes replace(default), add, subtract, intersect. One undoable selection edit; the path stays editable. Use the resulting selection with the existing fill and mask commands. 闭合路径转选区、从路径载入选区、保留可编辑路径，一次撤销。
+Rasterize a closed work path into the selection clipped to the artboard, even-odd fill, 4x4 coverage, with cubic subdivision to 1/8 canvas pixel and at most 4096 segments. Modes replace(default), add, subtract, intersect. Open contours are closed by a straight line for filling and selection, without modifying their geometry. One undoable selection edit; the path stays editable. Use the resulting selection with the existing fill and mask commands. 闭合路径转选区、从路径载入选区、保留可编辑路径，一次撤销。
 
 Kind: `Mutate` · Undoable: `true` · Batchable: `false`
 
@@ -6494,6 +6579,9 @@ Permissions: `bound_document`
           "maxItems": 2,
           "minItems": 2
         },
+        "linked": {
+          "type": "boolean"
+        },
         "outgoing": {
           "type": "array",
           "default": [
@@ -7637,7 +7725,7 @@ Permissions: `bound_document`
             "$ref": "#/$defs/PathAnchor"
           },
           "maxItems": 1024,
-          "minItems": 3
+          "minItems": 2
         },
         "id": {
           "type": "string",
@@ -7648,6 +7736,17 @@ Permissions: `bound_document`
           "maxLength": 256,
           "minLength": 1
         },
+        "open_contours": {
+          "description": "Indices of contours with distinct start and end points.",
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "uint",
+            "minimum": 0
+          },
+          "maxItems": 64,
+          "uniqueItems": true
+        },
         "subpaths": {
           "description": "Additional closed contours share the even-odd fill rule with anchors.",
           "type": "array",
@@ -7657,7 +7756,7 @@ Permissions: `bound_document`
               "$ref": "#/$defs/PathAnchor"
             },
             "maxItems": 1024,
-            "minItems": 3
+            "minItems": 2
           },
           "maxItems": 63
         }
@@ -12641,7 +12740,7 @@ Permissions: `bound_document`
 
 ## `file.open` — 打开文件
 
-Open an authorized image, Strata project or 8/16-bit RGB PSD. Import PSD pixel layers, nested groups, basic raster masks, invert and exposure (zero offset, gamma 1) as editable layers. Unsupported layer features such as type, vector masks and smart objects fail before replacing the document. Strata recomposites in linear light, so translucent overlaps can differ from the embedded Photoshop preview. Opening starts a fresh history and requires discard_changes for a dirty document. Save edits to a Strata project. 中文：打开文件、导入分层 PSD、打开 Photoshop 文档。由宿主授权读取，保留像素层、组、基本栅格蒙版、反相和基本曝光。半透明区域按线性光重新合成。打开后开始新的历史，替换有未保存修改的文档须明确允许放弃修改。
+Open an authorized image, Strata project or 8/16-bit RGB PSD. Import PSD pixel layers, nested groups, basic raster masks, invert and exposure (zero offset, gamma 1) as editable layers. Unsupported layer features such as type, vector masks and smart objects fail before replacing the document. Strata recomposites in linear light, so translucent overlaps can differ from the embedded Photoshop preview. Opening starts a fresh history and requires discard_changes for a dirty document. Saved PSD path resources retain open and closed cubic knots and Unicode names. Save edits to a Strata project. 中文：打开文件、导入分层 PSD、打开 Photoshop 文档、读取 PSD 路径资源。由宿主授权读取，保留像素层、组、基本栅格蒙版、反相和基本曝光。半透明区域按线性光重新合成。打开后开始新的历史，替换有未保存修改的文档须明确允许放弃修改。
 
 Kind: `Lifecycle` · Undoable: `false` · Batchable: `false`
 
@@ -13409,7 +13508,7 @@ Permissions: `bound_document, write_resource`
 
 ## `file.export_psd` — 导出分层 PSD 副本
 
-Export an editable RGB PSD v1 copy of the current artboard at its original 8/16-bit depth, DPI and working ICC. Retain pixel layers (including hidden RGB and off-artboard samples), groups, clipping, raster masks, invert and exposure. Layer coordinates are relative to the artboard. PSD stores opacity in 8 bits and exposure in a float. The embedded preview uses Strata's composite; other editors may reblend in a different space. Unsupported editable content fails before publication. An 8-bit PSD needs mask samples exactly representable in 8 bits. The Strata project retains selections and guides. The PSD is a fixed snapshot taken at export preparation. Requires a host-authorized write destination; export does not mark the project saved or enter undo history. 中文：导出分层 PSD 副本、保存为 Photoshop 文件。保留图层、图层组、蒙版、位深、ICC 和分辨率。宿主授权写入，导出记录独立于撤销。工程中保留选区和参考线。
+Export an editable RGB PSD v1 copy of the current artboard at its original 8/16-bit depth, DPI and working ICC. Retain pixel layers (including hidden RGB and off-artboard samples), groups, clipping, raster masks, invert and exposure. Layer coordinates are relative to the artboard. PSD stores opacity in 8 bits and exposure in a float. The embedded preview uses Strata's composite; other editors may reblend in a different space. Unsupported editable content fails before publication. An 8-bit PSD needs mask samples exactly representable in 8 bits. Saved work paths and their Unicode names are included as PSD path resources. Path knots are rounded to signed normalized 8.24 fixed point. The Strata project retains selections and guides. The PSD is a fixed snapshot taken at export preparation. Requires a host-authorized write destination; export does not mark the project saved or enter undo history. 中文：导出分层 PSD 副本、保存为 Photoshop 文件。保留图层、图层组、蒙版、工作路径、位深、ICC 和分辨率。宿主授权写入，导出记录独立于撤销。工程中保留选区和参考线。
 
 Kind: `External` · Undoable: `false` · Batchable: `false`
 

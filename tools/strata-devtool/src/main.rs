@@ -495,6 +495,11 @@ fn examples() -> Result<(), Box<dyn Error>> {
                         "file.open",
                         json!({"resource":grant,"discard_changes":true}),
                     )?;
+                    run(
+                        &mut editor,
+                        "path.create",
+                        json!({"name":"交接路径","open_contours":[0],"anchors":[{"position":[0,0],"outgoing":[1,1]},{"position":[2,1],"incoming":[-1,1]}]}),
+                    )?;
                     let output = dir.path().join("edited.psd");
                     args["resource"] = json!(editor.grant_write(&output, false, Source::Test)?);
                 }
@@ -556,7 +561,12 @@ fn examples() -> Result<(), Box<dyn Error>> {
             if spec.id == "file.export_psd" {
                 let bytes = std::fs::read(dir.path().join("edited.psd"))?;
                 let output = strata_io::psd::Psd::parse(&bytes, strata_core::MAX_LAYERS)?;
-                if output.layers.len() != 6 || output.format.bit_depth() != 16 {
+                if output.layers.len() != 6
+                    || output.format.bit_depth() != 16
+                    || output.paths.len() != 1
+                    || output.paths[0].name != "交接路径"
+                    || !output.paths[0].contours[0].open
+                {
                     return Err("layered PSD example lost its editable directory or depth".into());
                 }
             }
