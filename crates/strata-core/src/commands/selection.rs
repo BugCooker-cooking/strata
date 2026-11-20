@@ -202,29 +202,29 @@ pub(super) fn polygon(
             "polygon needs 3..4096 finite points within ±1e12 canvas pixels".into(),
         ));
     }
+    compound_polygon(doc, std::slice::from_ref(&p.points), cancel)
+}
+pub(super) fn compound_polygon(
+    doc: &Document,
+    contours: &[Vec<[f64; 2]>],
+    cancel: &dyn Fn() -> bool,
+) -> Result<TiledMask, CommandError> {
     let mut out = DenseMask::empty(doc, 2)?;
-    let min_y = p
-        .points
-        .iter()
-        .map(|p| p[1])
-        .fold(f64::INFINITY, f64::min)
-        .floor()
-        .max(out.bounds.y as f64) as i64;
-    let max_y = p
-        .points
-        .iter()
-        .map(|p| p[1])
-        .fold(f64::NEG_INFINITY, f64::max)
-        .ceil()
-        .min(out.bounds.y as f64 + f64::from(out.height)) as i64;
-    let edges = p
-        .points
-        .iter()
-        .copied()
-        .zip(p.points.iter().copied().cycle().skip(1))
-        .take(p.points.len())
-        .collect::<Vec<_>>();
-    let mut crossings = Vec::with_capacity(p.points.len());
+    let mut low = f64::INFINITY;
+    let mut high = f64::NEG_INFINITY;
+    let mut edges = Vec::new();
+    for contour in contours {
+        for (&a, &b) in contour.iter().zip(contour.iter().cycle().skip(1)) {
+            low = low.min(a[1]);
+            high = high.max(a[1]);
+            if a[1] != b[1] {
+                edges.push((a, b));
+            }
+        }
+    }
+    let min_y = (low.floor() as i64).max(out.bounds.y);
+    let max_y = (high.ceil() as i64).min(out.bounds.y + i64::from(out.height));
+    let mut crossings = Vec::with_capacity(edges.len());
     for y in min_y..max_y {
         if cancel() {
             return Err(CommandError::Expired);

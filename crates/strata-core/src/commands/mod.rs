@@ -19,6 +19,7 @@ mod local;
 mod new;
 mod orthogonal;
 mod paint;
+mod path_trace;
 mod pixel_transform;
 mod preferences;
 mod profiles;

@@ -11,19 +11,33 @@ pub enum PathRef {
 }
 params!(CreatePath{
     #[schemars(length(min=1,max=256))] name:String,
-    #[schemars(length(min=3,max=128))] anchors:Vec<PathAnchor>,
+    #[schemars(length(min=3,max=1024))] anchors:Vec<PathAnchor>,
+    #[serde(default)] #[schemars(schema_with="crate::paths::additional_contours_schema")] subpaths:Vec<Vec<PathAnchor>>,
     #[serde(default)] expected_revision:Option<u64>
 });
 params!(UpdatePath{
     path:PathRef,
     #[serde(default)] #[schemars(length(min=1,max=256))] name:Option<String>,
-    #[serde(default)] #[schemars(length(min=3,max=128))] anchors:Option<Vec<PathAnchor>>,
+    #[serde(default)] #[schemars(length(min=3,max=1024))] anchors:Option<Vec<PathAnchor>>,
+    #[serde(default)] #[schemars(schema_with="optional_subpaths_schema")] subpaths:Option<Vec<Vec<PathAnchor>>>,
+    #[serde(default)] expected_revision:Option<u64>
+});
+fn optional_subpaths_schema(g: &mut schemars::SchemaGenerator) -> schemars::Schema {
+    schemars::json_schema!({"anyOf":[{"type":"null"},crate::paths::additional_contours_schema(g)]})
+}
+fn default_threshold() -> u16 {
+    32768
+}
+params!(TracePath{
+    #[schemars(length(min=1,max=256))] name:String,
+    #[serde(default="default_threshold")] #[schemars(range(min=1,max=65535))] threshold:u16,
+    #[serde(default)] #[schemars(range(min=0.0,max=10.0))] tolerance:f64,
     #[serde(default)] expected_revision:Option<u64>
 });
 fn split_parameter(_: &mut schemars::SchemaGenerator) -> schemars::Schema {
     schemars::json_schema!({"type":"number","exclusiveMinimum":0,"exclusiveMaximum":1})
 }
-params!(SplitPath{path:PathRef,#[schemars(range(max=127))] segment:usize,#[schemars(schema_with="split_parameter")] t:f64,#[serde(default)] expected_revision:Option<u64>});
+params!(SplitPath{path:PathRef,#[serde(default)] #[schemars(range(max=63))] contour:usize,#[schemars(range(max=1023))] segment:usize,#[schemars(schema_with="split_parameter")] t:f64,#[serde(default)] expected_revision:Option<u64>});
 params!(PathTarget { path: PathRef });
 params!(DeletePath{path:PathRef,#[serde(default)] expected_revision:Option<u64>});
 params!(PathSelection {
@@ -34,6 +48,7 @@ params!(PathSelection {
 params!(PathSummary {
     id: PathId,
     name: String,
+    contour_count: usize,
     anchor_count: usize
 });
 params!(PathList{paths:Vec<PathSummary>});
@@ -65,7 +80,8 @@ pub(super) fn list(doc: &Document) -> Value {
             .map(|p| PathSummary {
                 id: p.id,
                 name: p.name.clone(),
-                anchor_count: p.anchors.len()
+                anchor_count: p.anchor_count(),
+                contour_count: 1 + p.subpaths.len()
             })
             .collect()
     })
@@ -75,6 +91,7 @@ pub(super) fn mutate(
     id: &str,
     params: Value,
     revision: u64,
+    cancel: &dyn Fn() -> bool,
 ) -> Result<Value, CommandError> {
     let matches_revision = |expected: Option<u64>| {
         if expected.is_some_and(|v| v != revision) {
@@ -84,16 +101,32 @@ pub(super) fn mutate(
         }
     };
     let (path_id, changed) = match id {
-        "path.create" => {
-            let p: CreatePath = parse(params)?;
-            matches_revision(p.expected_revision)?;
+        "path.create" | "path.from_selection" => {
             if doc.paths.len() >= crate::paths::MAX_PATHS {
                 return Err(DocumentError::ResourceLimit.into());
             }
+            let (name, anchors, subpaths) = if id == "path.create" {
+                let p: CreatePath = parse(params)?;
+                matches_revision(p.expected_revision)?;
+                (p.name, p.anchors, p.subpaths)
+            } else {
+                let p: TracePath = parse(params)?;
+                matches_revision(p.expected_revision)?;
+                let contours = super::path_trace::trace(doc, p.threshold, p.tolerance, cancel)?;
+                let mut contours = contours.into_iter();
+                (
+                    p.name,
+                    contours.next().ok_or_else(|| {
+                        CommandError::Invalid("no selection pixels meet the threshold".into())
+                    })?,
+                    contours.collect(),
+                )
+            };
             let path = WorkPath {
                 id: PathId::fresh(),
-                name: p.name,
-                anchors: p.anchors,
+                name,
+                anchors,
+                subpaths,
             };
             path.validate()?;
             let id = path.id;
@@ -103,7 +136,7 @@ pub(super) fn mutate(
         "path.update" => {
             let p: UpdatePath = parse(params)?;
             matches_revision(p.expected_revision)?;
-            if p.name.is_none() && p.anchors.is_none() {
+            if p.name.is_none() && p.anchors.is_none() && p.subpaths.is_none() {
                 return Err(CommandError::Invalid(
                     "supply a path name or anchors".into(),
                 ));
@@ -114,6 +147,7 @@ pub(super) fn mutate(
                 id: old.id,
                 name: p.name.unwrap_or_else(|| old.name.clone()),
                 anchors: p.anchors.unwrap_or_else(|| old.anchors.clone()),
+                subpaths: p.subpaths.unwrap_or_else(|| old.subpaths.clone()),
             };
             path.validate()?;
             let changed = path != **old;
@@ -128,7 +162,7 @@ pub(super) fn mutate(
             matches_revision(p.expected_revision)?;
             let index = resolve(doc, &p.path)?;
             let path = Arc::make_mut(&mut doc.paths[index]);
-            path.split(p.segment, p.t)?;
+            path.split(p.contour, p.segment, p.t)?;
             (path.id, true)
         }
         "path.delete" => {
@@ -153,15 +187,8 @@ pub(super) fn coverage(
     target: &PathRef,
     cancel: &dyn Fn() -> bool,
 ) -> Result<strata_pixels::TiledMask, CommandError> {
-    let points = doc.paths[resolve(doc, target)?].polygon()?;
-    super::selection::polygon(
-        doc,
-        &PolygonSelection {
-            points,
-            mode: SelectionMode::Replace,
-        },
-        cancel,
-    )
+    let contours = doc.paths[resolve(doc, target)?].polygons()?;
+    super::selection::compound_polygon(doc, &contours, cancel)
 }
 pub(super) fn fill(
     doc: &mut Document,

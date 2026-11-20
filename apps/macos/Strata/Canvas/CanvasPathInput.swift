@@ -14,12 +14,20 @@ struct WorkPath: Decodable, Identifiable, Equatable {
     let id: String
     let name: String
     let anchors: [PathAnchor]
+    let subpaths: [[PathAnchor]]?
+    var contours: [[PathAnchor]] { [anchors] + (subpaths ?? []) }
 }
 
 @MainActor
 final class CanvasPathInput: ObservableObject {
     @Published private(set) var selectedID: String?
-    @Published private(set) var anchors: [PathAnchor] = []
+    @Published private(set) var contours: [[PathAnchor]] = [[]]
+    @Published private(set) var contour = 0
+    private var anchorCount: Int { contours.reduce(0) { $0 + $1.count } }
+    var anchors: [PathAnchor] {
+        get { contours[contour] }
+        set { contours[contour] = newValue }
+    }
     @Published private(set) var index: Int?
     @Published private(set) var selectedAnchors: Set<Int> = []
     @Published var name = ""
@@ -29,6 +37,7 @@ final class CanvasPathInput: ObservableObject {
     private var revision: UInt64 = 0
     private var control = ""
     private var pendingCreation = false
+    private var pendingTraceName: String?
     private enum Drag { case position, incoming, outgoing, symmetric, translate }
     private var drag: Drag?
     private var lastPoint = CGPoint.zero
@@ -42,8 +51,10 @@ final class CanvasPathInput: ObservableObject {
         let changed = switched || revision != snapshot?.revision || control != newControl || self.enabled != enabled
         self.enabled = enabled
         guard changed || paths != newPaths else { return }
-        let created = pendingCreation && !switched ? newPaths.first(where: { candidate in
-            !paths.contains(where: { $0.id == candidate.id }) && candidate.name == name && candidate.anchors == anchors
+        let created = !switched ? newPaths.first(where: { candidate in
+            !paths.contains(where: { $0.id == candidate.id }) &&
+                ((pendingCreation && candidate.name == name && candidate.contours == contours) ||
+                 (pendingTraceName == candidate.name))
         })?.id : nil
         paths = newPaths
         documentID = snapshot?.documentId
@@ -53,25 +64,60 @@ final class CanvasPathInput: ObservableObject {
     }
     func select(_ id: String?) {
         let selected = paths.first { $0.id == id }
+        let nextContour = selectedID == id ? contour : 0
         selectedID = selected?.id
-        anchors = selected?.anchors ?? []
+        contours = selected?.contours ?? [[]]
+        contour = min(nextContour, contours.count - 1)
         name = selected?.name ?? L10n.format("路径 {0}", String(paths.count + 1))
         index = nil
         selectedAnchors.removeAll()
         pendingCreation = false
+        pendingTraceName = nil
         drag = nil
         onChanged?()
     }
+    func chooseContour(_ i: Int) {
+        guard contours.indices.contains(i) else { return }
+        contour = i
+        index = nil
+        selectedAnchors.removeAll()
+        drag = nil
+        onChanged?()
+    }
+    func addContour() {
+        guard canAddContour else { return }
+        contours.append([])
+        chooseContour(contours.count - 1)
+    }
+    func removeContour() {
+        guard enabled, contours.count > 1 else { return }
+        let next = min(contour, contours.count - 2)
+        contours.remove(at: contour)
+        chooseContour(next)
+    }
+    func trace(threshold: Int, tolerance: Double) {
+        guard enabled, !hasDraftChanges, (1...65535).contains(threshold), (0...10).contains(tolerance) else { return }
+        let newName = L10n.format("选区路径 {0}", String(paths.count + 1))
+        pendingTraceName = newName
+        onCommand?("path.from_selection", ["name": newName, "threshold": threshold, "tolerance": tolerance, "expected_revision": revision])
+    }
+    var hasDraftChanges: Bool {
+        if selectedID != nil { return !hasSavedGeometry }
+        return contours.contains { !$0.isEmpty }
+    }
+    var canAddContour: Bool {
+        enabled && contours.count < 64 && anchorCount <= 2045 && contours.allSatisfy { $0.count >= 3 }
+    }
     var hasSavedGeometry: Bool {
         guard let p = paths.first(where: { $0.id == selectedID }) else { return false }
-        return p.anchors == anchors && p.name == name
+        return p.contours == contours && p.name == name
     }
     var canApply: Bool {
-        guard enabled, anchors.count >= 3, !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+        guard enabled, contours.allSatisfy({ (3...1024).contains($0.count) }), anchorCount <= 2048, !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
               name.utf8.count <= 256, !name.unicodeScalars.contains(where: CharacterSet.controlCharacters.contains)
         else { return false }
         guard let old = paths.first(where: { $0.id == selectedID }) else { return true }
-        return anchors != old.anchors || name != old.name
+        return contours != old.contours || name != old.name
     }
     func down(_ point: CGPoint, tolerance: CGFloat, modifiers: NSEvent.ModifierFlags, clicks: Int) {
         guard enabled else { return }
@@ -106,7 +152,7 @@ final class CanvasPathInput: ObservableObject {
                 index = hit
                 drag = modifiers.contains(.option) ? .symmetric : .position
             }
-        } else if anchors.count < 128 {
+        } else if anchors.count < 1024 && anchorCount < 2048 {
             let insertion = (index ?? (anchors.count - 1)) + 1
             anchors.insert(PathAnchor(position: point), at: insertion)
             index = insertion
@@ -119,7 +165,13 @@ final class CanvasPathInput: ObservableObject {
         guard enabled, let drag else { return }
         if drag == .translate || drag == .position {
             let delta = CGPoint(x: point.x-lastPoint.x, y: point.y-lastPoint.y)
-            for i in selectedAnchors { anchors[i].position = anchors[i].position.offset(delta) }
+            if drag == .translate {
+                for c in contours.indices {
+                    for i in contours[c].indices { contours[c][i].position = contours[c][i].position.offset(delta) }
+                }
+            } else {
+                for i in selectedAnchors { anchors[i].position = anchors[i].position.offset(delta) }
+            }
             lastPoint = point
             onChanged?()
             return
@@ -146,8 +198,8 @@ final class CanvasPathInput: ObservableObject {
         !selectedAnchors.isEmpty && (selectedID == nil || anchors.count - selectedAnchors.count >= 3)
     }
     func splitNext() {
-        guard enabled, hasSavedGeometry, let selectedID, let index, anchors.count < 128 else { return }
-        onCommand?("path.split", ["path": ["id": selectedID], "segment": index, "t": 0.5, "expected_revision": revision])
+        guard enabled, hasSavedGeometry, let selectedID, let index, anchors.count < 1024, anchorCount < 2048 else { return }
+        onCommand?("path.split", ["path": ["id": selectedID], "contour": contour, "segment": index, "t": 0.5, "expected_revision": revision])
     }
     func removeAnchor() {
         guard enabled, canRemoveAnchors else { return }
@@ -159,7 +211,8 @@ final class CanvasPathInput: ObservableObject {
     }
     func apply() {
         guard canApply else { return }
-        var params: [String: Any] = ["name": name, "anchors": anchors.map(\.parameters), "expected_revision": revision]
+        var params: [String: Any] = ["name": name, "anchors": contours[0].map(\.parameters),
+            "subpaths": contours.dropFirst().map { $0.map(\.parameters) }, "expected_revision": revision]
         if let selectedID {
             params["path"] = ["id": selectedID]
             onCommand?("path.update", params)
@@ -178,17 +231,22 @@ final class CanvasPathInput: ObservableObject {
     }
     func outlines(radius: CGFloat) -> (CGPath, CGPath, CGPath) {
         let curve = CGMutablePath(), nodes = CGMutablePath(), handles = CGMutablePath()
-        guard enabled, let first = anchors.first else { return (curve, nodes, handles) }
-        curve.move(to: first.position)
-        for i in anchors.indices {
-            let a = anchors[i]
-            let next = (i + 1) % anchors.count
-            if next != 0 || anchors.count >= 3 {
-                let b = anchors[next]
-                curve.addCurve(to: b.position, control1: a.position.offset(a.outgoing), control2: b.position.offset(b.incoming))
+        guard enabled else { return (curve, nodes, handles) }
+        for (c, part) in contours.enumerated() {
+            guard let first = part.first else { continue }
+            curve.move(to: first.position)
+            for i in part.indices {
+                let a = part[i]
+                let next = (i + 1) % part.count
+                if next != 0 || part.count >= 3 {
+                    let b = part[next]
+                    curve.addCurve(to: b.position, control1: a.position.offset(a.outgoing), control2: b.position.offset(b.incoming))
+                }
+                if c == contour {
+                    let r = selectedAnchors.contains(i) ? radius * 1.35 : radius
+                    nodes.addRect(CGRect(x: a.position.x-r, y: a.position.y-r, width: 2*r, height: 2*r))
+                }
             }
-            let r = selectedAnchors.contains(i) ? radius * 1.35 : radius
-            nodes.addRect(CGRect(x: a.position.x-r, y: a.position.y-r, width: 2*r, height: 2*r))
         }
         if let index {
             let a = anchors[index]

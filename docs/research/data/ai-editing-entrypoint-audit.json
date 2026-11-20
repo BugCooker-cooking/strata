@@ -1,8 +1,8 @@
 {
   "scope": "Development audit; not a claim that all Photoshop editing is implemented or AI-verified",
-  "registered_commands": 157,
-  "registered_examples": 232,
-  "catalog_sha256": "861be025f0764f71cd50f2c8a309b96710ec8fdab000b523684c6335c75caa52",
+  "registered_commands": 158,
+  "registered_examples": 233,
+  "catalog_sha256": "21342447125d5ec05b08444ba8b7b2843c5642cb63fc3b0cea4f1685142a0aa1",
   "inventory_rows": 265,
   "mapped_features": 107,
   "unmapped_implemented_features": [],
@@ -12,8 +12,7 @@
     "PS-02-b2fd2e2a88",
     "PS-01-40267007aa",
     "PS-01-261e177d1e",
-    "PS-12-a132c853ab",
-    "PS-12-cfd8ae8285"
+    "PS-12-a132c853ab"
   ],
   "unfinished_features": [
     "PS-00-960e444e99",
@@ -138,7 +137,6 @@
     "PS-11-0907b4762e",
     "PS-12-417500cf30",
     "PS-12-a132c853ab",
-    "PS-12-cfd8ae8285",
     "PS-12-2e23400f5e",
     "PS-12-9bae2bd626",
     "PS-12-afd1a689fb",
@@ -4500,10 +4498,10 @@
       "name": "路径面板、路径与选区互转",
       "priority": "P1",
       "source_line": 319,
-      "implementation": "部分实现",
+      "implementation": "已实现",
       "entrypoint": {
         "scope": "editing",
-        "coverage": "partial",
+        "coverage": "complete",
         "commands": [
           "path.list",
           "path.get",
@@ -4511,9 +4509,20 @@
           "path.update",
           "path.delete",
           "select.from_path",
-          "layer.fill.path"
+          "layer.fill.path",
+          "path.from_selection"
         ],
         "prompts": [
+          {
+            "text": "从当前选区建立路径，保留孔洞和分离区域，再转回选区。",
+            "query": "选区转工作路径",
+            "command": "path.from_selection"
+          },
+          {
+            "text": "Make an editable work path from the thresholded selection.",
+            "query": "Make work path from selection",
+            "command": "path.from_selection"
+          },
           {
             "text": "将闭合路径转为选区。",
             "query": "路径转为选区",
@@ -4525,7 +4534,7 @@
             "command": "layer.fill.path"
           }
         ],
-        "note": "可列出、编辑和删除路径，转换为抗锯齿选区或创建带栅格蒙版的纯色层。选区转路径和复合轮廓仍待补齐。"
+        "note": "路径面板与命令支持双向转换。覆盖阈值可选，容差为零时精确沿像素边界追踪。偶奇规则保留独立轮廓、孔洞和嵌套岛。"
       }
     },
     {

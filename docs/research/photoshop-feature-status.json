@@ -1356,12 +1356,16 @@
     ]
   },
   "PS-12-cfd8ae8285": {
-    "implementation": "部分实现",
-    "acceptance": "可列出、编辑和删除路径，转换为抗锯齿选区或创建带栅格蒙版的纯色层。选区转路径和复合轮廓仍待补齐。",
+    "implementation": "已实现",
+    "acceptance": "可编辑复合路径、逐轮廓选择及带阈值和容差的双向转换；孔洞、分离区域、保存重开和撤销按实际轮廓验证。",
     "evidence": [
       {
         "label": "闭合路径与钢笔验证",
         "path": "../research/2026-11-p1-work-paths.md"
+      },
+      {
+        "label": "复合路径与选区追踪",
+        "path": "../research/2026-11-p1-compound-paths.md"
       }
     ]
   }

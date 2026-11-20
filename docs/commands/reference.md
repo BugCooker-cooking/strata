@@ -859,7 +859,7 @@ Permissions: `bound_document`
 
 ## `path.split` — 在曲线上插入锚点
 
-Insert an anchor without changing the cubic contour. segment is the zero-based starting anchor of the segment, including the closing segment, and 0<t<1 is its parameter. Both neighboring handles and the inserted handles are computed by de Casteljau subdivision. One undo; optional expected_revision rejects a stale edit. 在曲线上插入锚点、平分贝塞尔段，保留原曲线，一次撤销。
+Insert an anchor without changing the cubic contour. segment is the zero-based starting anchor of the segment in contour (0=primary, 1..63=additional; default 0), including the closing segment, and 0<t<1 is its parameter. Both neighboring handles and the inserted handles are computed by de Casteljau subdivision. One undo; optional expected_revision rejects a stale edit. 在曲线上插入锚点、平分贝塞尔段，保留原曲线，一次撤销。
 
 Kind: `Mutate` · Undoable: `true` · Batchable: `false`
 
@@ -877,6 +877,13 @@ Permissions: `bound_document`
   "title": "SplitPath",
   "type": "object",
   "properties": {
+    "contour": {
+      "type": "integer",
+      "format": "uint",
+      "default": 0,
+      "maximum": 63,
+      "minimum": 0
+    },
     "expected_revision": {
       "type": [
         "integer",
@@ -892,7 +899,7 @@ Permissions: `bound_document`
     "segment": {
       "type": "integer",
       "format": "uint",
-      "maximum": 127,
+      "maximum": 1023,
       "minimum": 0
     },
     "t": {
@@ -977,9 +984,99 @@ Permissions: `bound_document`
 }
 ```
 
+## `path.from_selection` — 选区转工作路径
+
+Trace the current selection into one editable compound work path. Preserve disconnected islands and holes using even-odd contours. Mask codes >= threshold (1..65535, default 32768) are inside. tolerance (0..10 canvas pixels, default 0) controls polygon simplification. At zero the traced pixel boundary exactly reproduces the thresholded selection. Curve segments initially have corner anchors. Reject empty or over-complex results atomically; 64 contours, 1024 anchors per contour and 2048 per path. Returns stable path_id and changed. One undo restores the previous path list; leaves selection and image samples intact. 中文：选区转工作路径、从选区建立路径、保留孔洞与分离区域。阈值和简化容差可调，支持整回合撤销。
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `false`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TracePath",
+  "type": "object",
+  "properties": {
+    "expected_revision": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "uint64",
+      "default": null,
+      "minimum": 0
+    },
+    "name": {
+      "type": "string",
+      "maxLength": 256,
+      "minLength": 1
+    },
+    "threshold": {
+      "type": "integer",
+      "format": "uint16",
+      "default": 32768,
+      "maximum": 65535,
+      "minimum": 1
+    },
+    "tolerance": {
+      "type": "number",
+      "format": "double",
+      "default": 0.0,
+      "maximum": 10.0,
+      "minimum": 0.0
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "name"
+  ]
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PathChange",
+  "type": "object",
+  "properties": {
+    "changed": {
+      "type": "boolean"
+    },
+    "path_id": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "path_id",
+    "changed"
+  ]
+}
+```
+
+### Examples
+
+```json
+{
+  "name": "Selection outline",
+  "threshold": 32768,
+  "tolerance": 0
+}
+```
+
 ## `path.create` — 创建闭合贝塞尔路径
 
-Create a named closed work path with 3..128 ordered anchors, up to 64 paths per document. position is absolute [x,y] in canvas pixels. Optional incoming/outgoing handle vectors are relative to that anchor and default to [0,0] for corners. Cubic segments join outgoing to the next incoming, including the closing edge. Finite points and handle endpoints within ±1e12; name 1..256 UTF-8 bytes. Optional expected_revision binds a staged native draft. Changes document metadata in one undo step. 保存可编辑闭合路径、钢笔锚点和相对方向手柄，一次撤销；工程保留曲线，普通图像导出只写像素。
+Create a named closed work path with 3..1024 ordered anchors, up to 64 paths per document. Optional subpaths are additional closed contours with the same anchor format. Even-odd fill supports holes and islands. At most 64 contours and 2048 total anchors per path; the document supports 8192 anchors. position is absolute [x,y] in canvas pixels. Optional incoming/outgoing handle vectors are relative to that anchor and default to [0,0] for corners. Cubic segments join outgoing to the next incoming, including the closing edge. Finite points and handle endpoints within ±1e12; name 1..256 UTF-8 bytes. Optional expected_revision binds a staged native draft. Changes document metadata in one undo step. 保存可编辑闭合路径、钢笔锚点和相对方向手柄，一次撤销；工程保留曲线，普通图像导出只写像素。
 
 Kind: `Mutate` · Undoable: `true` · Batchable: `false`
 
@@ -1002,7 +1099,7 @@ Permissions: `bound_document`
       "items": {
         "$ref": "#/$defs/PathAnchor"
       },
-      "maxItems": 128,
+      "maxItems": 1024,
       "minItems": 3
     },
     "expected_revision": {
@@ -1018,6 +1115,19 @@ Permissions: `bound_document`
       "type": "string",
       "maxLength": 256,
       "minLength": 1
+    },
+    "subpaths": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "array",
+        "items": {
+          "$ref": "#/$defs/PathAnchor"
+        },
+        "maxItems": 1024,
+        "minItems": 3
+      },
+      "maxItems": 63
     }
   },
   "additionalProperties": false,
@@ -1136,7 +1246,7 @@ Permissions: `bound_document`
 
 ## `path.update` — 编辑路径锚点
 
-Use a stable path ID or unique name. Replace the ordered anchors (3..128) to move, add, delete or convert anchors, and/or rename the path. Positions are absolute canvas pixels, handles incoming/outgoing are relative offsets. One atomic undoable edit, identical values are a no-op. Use document.inspect for the current revision and path.get for the geometry. Pass expected_revision when editing a draft. 调整锚点、增删锚点、曲线手柄、转角点或平滑点、重命名路径。
+Use a stable path ID or unique name. Replace the ordered anchors (3..1024) to move, add, delete or convert anchors, and/or rename the path. Optional subpaths replaces all additional contours, [] removes them; omission keeps them. Positions are absolute canvas pixels, handles incoming/outgoing are relative offsets. One atomic undoable edit, identical values are a no-op. Use document.inspect for the current revision and path.get for the geometry. Pass expected_revision when editing a draft. 调整锚点、增删锚点、曲线手柄、转角点或平滑点、重命名路径。
 
 Kind: `Mutate` · Undoable: `true` · Batchable: `false`
 
@@ -1163,7 +1273,7 @@ Permissions: `bound_document`
       "items": {
         "$ref": "#/$defs/PathAnchor"
       },
-      "maxItems": 128,
+      "maxItems": 1024,
       "minItems": 3
     },
     "expected_revision": {
@@ -1186,6 +1296,26 @@ Permissions: `bound_document`
     },
     "path": {
       "$ref": "#/$defs/PathRef"
+    },
+    "subpaths": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/PathAnchor"
+            },
+            "maxItems": 1024,
+            "minItems": 3
+          },
+          "maxItems": 63
+        }
+      ],
+      "default": null
     }
   },
   "additionalProperties": false,
@@ -1435,7 +1565,7 @@ Permissions: `bound_document`
 
 ## `path.list` — 列出工作路径
 
-List document path IDs, names and anchor counts. Use path.get to read geometry for a selected ID. 列出已保存路径、名称和锚点数，只读。
+List document path IDs, names, contour counts and total anchor counts. Use path.get to read geometry for a selected ID. 列出已保存路径、名称和锚点数，只读。
 
 Kind: `Query` · Undoable: `false` · Batchable: `false`
 
@@ -1484,6 +1614,11 @@ Permissions: `bound_document`
           "format": "uint",
           "minimum": 0
         },
+        "contour_count": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        },
         "id": {
           "type": "string",
           "format": "uuid"
@@ -1496,6 +1631,7 @@ Permissions: `bound_document`
       "required": [
         "id",
         "name",
+        "contour_count",
         "anchor_count"
       ]
     }
@@ -1511,7 +1647,7 @@ Permissions: `bound_document`
 
 ## `path.get` — 读取路径锚点
 
-Read the ID, name and full ordered cubic anchors for one work path by stable ID or unique name. 读取路径锚点和相对控制手柄；使用 path.update 重编辑。
+Read the ID, name and full ordered cubic anchors for the primary contour and additional subpaths of one work path by stable ID or unique name. 读取路径锚点和相对控制手柄；使用 path.update 重编辑。
 
 Kind: `Query` · Undoable: `false` · Batchable: `false`
 
@@ -1584,7 +1720,7 @@ Permissions: `bound_document`
       "items": {
         "$ref": "#/$defs/PathAnchor"
       },
-      "maxItems": 128,
+      "maxItems": 1024,
       "minItems": 3
     },
     "id": {
@@ -1595,6 +1731,19 @@ Permissions: `bound_document`
       "type": "string",
       "maxLength": 256,
       "minLength": 1
+    },
+    "subpaths": {
+      "description": "Additional closed contours share the even-odd fill rule with anchors.",
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": {
+          "$ref": "#/$defs/PathAnchor"
+        },
+        "maxItems": 1024,
+        "minItems": 3
+      },
+      "maxItems": 63
     }
   },
   "additionalProperties": false,
@@ -7487,7 +7636,7 @@ Permissions: `bound_document`
           "items": {
             "$ref": "#/$defs/PathAnchor"
           },
-          "maxItems": 128,
+          "maxItems": 1024,
           "minItems": 3
         },
         "id": {
@@ -7498,6 +7647,19 @@ Permissions: `bound_document`
           "type": "string",
           "maxLength": 256,
           "minLength": 1
+        },
+        "subpaths": {
+          "description": "Additional closed contours share the even-odd fill rule with anchors.",
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/PathAnchor"
+            },
+            "maxItems": 1024,
+            "minItems": 3
+          },
+          "maxItems": 63
         }
       },
       "additionalProperties": false,

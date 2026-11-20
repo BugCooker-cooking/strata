@@ -50,6 +50,52 @@ final class WorkPathTests: XCTestCase {
         XCTAssertEqual(controller.state?.historyCursor, history+1)
     }
 
+    func testTracePanelEditsHoleIndependentlyAndTranslatesAllContours() async throws {
+        let engine = StrataEngine(listener: EngineEvents { _ in })
+        func command(_ id: String, _ params: [String: Any]) throws {
+            _ = try engine.dispatch(command: id, paramsJson: commandJSON(params))
+        }
+        let controller = MainWindowController(engine: engine)
+        defer { controller.canvas.shutdown() }
+        let input = controller.workspace.pathInput
+        func settle() async throws {
+            for _ in 0..<200 where controller.busy { try await Task.sleep(for: .milliseconds(10)) }
+            XCTAssertFalse(controller.busy)
+            controller.refresh()
+        }
+        try command("file.new", ["width": 50, "height": 40, "bit_depth": 8])
+        try command("select.marquee", ["x": 5, "y": 4, "width": 30, "height": 26])
+        try command("select.marquee", ["x": 12, "y": 10, "width": 10, "height": 8, "mode": "subtract"])
+        controller.refresh()
+        controller.workspace.selectTool(.pen)
+        input.trace(threshold: 32768, tolerance: 0)
+        try await settle()
+        XCTAssertNotNil(input.selectedID)
+        XCTAssertEqual(input.contours.map(\.count), [4,4])
+        let outer = input.contours[0]
+        input.chooseContour(1)
+        input.down(input.anchors[0].position, tolerance: 1, modifiers: [], clicks: 1)
+        input.endDrag()
+        input.splitNext()
+        try await settle()
+        XCTAssertEqual(input.contour, 1)
+        XCTAssertEqual(input.contours[0], outer)
+        XCTAssertEqual(input.anchors.count, 5)
+        input.down(.zero, tolerance: 1, modifiers: [.command], clicks: 1)
+        input.move(CGPoint(x: 2, y: 3))
+        input.endDrag()
+        input.apply()
+        try await settle()
+        XCTAssertEqual(input.contours[0][0].position.x, outer[0].position.x + 2)
+        input.removeContour()
+        input.apply()
+        try await settle()
+        XCTAssertEqual(input.contours.count, 1)
+        try command("edit.undo", [:])
+        try await settle()
+        XCTAssertEqual(input.contours.map(\.count), [4,5])
+    }
+
     func testPenDraftEditsThroughTheEngineAndCancelsOnRevisionChange() throws {
         let engine = StrataEngine(listener: EngineEvents { _ in })
         func command(_ id: String, _ params: [String: Any]) throws {

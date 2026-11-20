@@ -288,6 +288,9 @@ impl Document {
         if self.paths.len() > crate::paths::MAX_PATHS {
             return Err(DocumentError::ResourceLimit);
         }
+        if self.paths.iter().map(|p| p.anchor_count()).sum::<usize>() > 8192 {
+            return Err(DocumentError::ResourceLimit);
+        }
         let mut path_ids = std::collections::HashSet::new();
         for path in &self.paths {
             path.validate()?;

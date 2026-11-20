@@ -1560,7 +1560,10 @@ impl Editor {
                     )
                 } else if id.starts_with("path.") {
                     annotations_only = true;
-                    let result = super::paths::mutate(doc, id, params.clone(), self.revision)?;
+                    let result =
+                        super::paths::mutate(doc, id, params.clone(), self.revision, &|| {
+                            request.expired()
+                        })?;
                     (
                         if result["changed"] == false {
                             Action::Query

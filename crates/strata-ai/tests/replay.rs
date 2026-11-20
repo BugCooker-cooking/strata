@@ -4563,3 +4563,91 @@ fn closed_paths_are_discovered_edited_filled_and_undone_in_one_ai_turn() {
                 .unwrap()
     );
 }
+
+#[test]
+fn assistant_traces_a_selection_with_a_hole_and_reloads_the_compound_path() {
+    let host = Host::new();
+    host.user(
+        "select.marquee",
+        json!({"x":0,"y":0,"width":12,"height":12}),
+    );
+    host.user(
+        "select.marquee",
+        json!({"x":4,"y":4,"width":3,"height":3,"mode":"subtract"}),
+    );
+    let before = host
+        .editor
+        .lock()
+        .unwrap()
+        .document()
+        .unwrap()
+        .to_archive()
+        .unwrap();
+    let mut session = host.session_with_prompt(
+        ExecutionMode::Direct,
+        "从选区建立带孔洞的工作路径，再载入该路径。",
+    );
+    reply(
+        &mut session,
+        &host,
+        vec![
+            call(
+                "find-trace",
+                "search_catalog",
+                json!({"query":"选区转工作路径"}),
+            ),
+            invoke(
+                "trace",
+                "path.from_selection",
+                json!({"name":"Silhouette","threshold":32768,"tolerance":0}),
+            ),
+        ],
+    );
+    assert!(
+        result(session.poll(&host).unwrap())
+            .to_string()
+            .contains("path.from_selection")
+    );
+    let id = result(session.poll(&host).unwrap())["result"]["path_id"].clone();
+    assert!(id.is_string());
+    let target = json!({"id":id});
+    reply(
+        &mut session,
+        &host,
+        vec![
+            invoke("get-compound", "path.get", json!({"path":target})),
+            invoke(
+                "reload-compound",
+                "select.from_path",
+                json!({"path":target}),
+            ),
+        ],
+    );
+    assert_eq!(
+        result(session.poll(&host).unwrap())["result"]["subpaths"]
+            .as_array()
+            .unwrap()
+            .len(),
+        1
+    );
+    assert!(result(session.poll(&host).unwrap())["result"]["selection"].is_object());
+    {
+        let editor = host.editor.lock().unwrap();
+        let mask = editor.document().unwrap().selection().unwrap();
+        assert_eq!(mask.sample(5, 5).unwrap(), 0);
+        assert_eq!(mask.sample(3, 5).unwrap(), 65535);
+    }
+    host.stop(session.turn_id()).unwrap();
+    host.user("edit.undo_turn", json!({"turn_id":session.turn_id()}));
+    assert!(
+        before
+            == host
+                .editor
+                .lock()
+                .unwrap()
+                .document()
+                .unwrap()
+                .to_archive()
+                .unwrap()
+    );
+}

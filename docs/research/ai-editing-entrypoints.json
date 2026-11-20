@@ -2547,7 +2547,7 @@
     },
     "PS-12-cfd8ae8285": {
       "scope": "editing",
-      "coverage": "partial",
+      "coverage": "complete",
       "commands": [
         "path.list",
         "path.get",
@@ -2555,9 +2555,20 @@
         "path.update",
         "path.delete",
         "select.from_path",
-        "layer.fill.path"
+        "layer.fill.path",
+        "path.from_selection"
       ],
       "prompts": [
+        {
+          "text": "从当前选区建立路径，保留孔洞和分离区域，再转回选区。",
+          "query": "选区转工作路径",
+          "command": "path.from_selection"
+        },
+        {
+          "text": "Make an editable work path from the thresholded selection.",
+          "query": "Make work path from selection",
+          "command": "path.from_selection"
+        },
         {
           "text": "将闭合路径转为选区。",
           "query": "路径转为选区",
@@ -2569,7 +2580,7 @@
           "command": "layer.fill.path"
         }
       ],
-      "note": "可列出、编辑和删除路径，转换为抗锯齿选区或创建带栅格蒙版的纯色层。选区转路径和复合轮廓仍待补齐。"
+      "note": "路径面板与命令支持双向转换。覆盖阈值可选，容差为零时精确沿像素边界追踪。偶奇规则保留独立轮廓、孔洞和嵌套岛。"
     }
   }
 }

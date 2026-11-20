@@ -100,8 +100,17 @@ fn build_catalog() -> Vec<CommandSpec> {
         Mutate,
         "在曲线上插入锚点",
         "Split Bézier segment",
-        "Insert an anchor without changing the cubic contour. segment is the zero-based starting anchor of the segment, including the closing segment, and 0<t<1 is its parameter. Both neighboring handles and the inserted handles are computed by de Casteljau subdivision. One undo; optional expected_revision rejects a stale edit. 在曲线上插入锚点、平分贝塞尔段，保留原曲线，一次撤销。",
+        "Insert an anchor without changing the cubic contour. segment is the zero-based starting anchor of the segment in contour (0=primary, 1..63=additional; default 0), including the closing segment, and 0<t<1 is its parameter. Both neighboring handles and the inserted handles are computed by de Casteljau subdivision. One undo; optional expected_revision rejects a stale edit. 在曲线上插入锚点、平分贝塞尔段，保留原曲线，一次撤销。",
         json!({"path":{"name":"Outline"},"segment":1,"t":0.5})
+    );
+    command!(
+        "path.from_selection",
+        paths::TracePath,
+        Mutate,
+        "选区转工作路径",
+        "Make work path from selection",
+        "Trace the current selection into one editable compound work path. Preserve disconnected islands and holes using even-odd contours. Mask codes >= threshold (1..65535, default 32768) are inside. tolerance (0..10 canvas pixels, default 0) controls polygon simplification. At zero the traced pixel boundary exactly reproduces the thresholded selection. Curve segments initially have corner anchors. Reject empty or over-complex results atomically; 64 contours, 1024 anchors per contour and 2048 per path. Returns stable path_id and changed. One undo restores the previous path list; leaves selection and image samples intact. 中文：选区转工作路径、从选区建立路径、保留孔洞与分离区域。阈值和简化容差可调，支持整回合撤销。",
+        json!({"name":"Selection outline","threshold":32768,"tolerance":0})
     );
     let triangle = json!([{"position":[2,2]},{"position":[13,2],"outgoing":[0,3]},{"position":[2,13],"incoming":[3,0]}]);
     command!(
@@ -110,7 +119,7 @@ fn build_catalog() -> Vec<CommandSpec> {
         Mutate,
         "创建闭合贝塞尔路径",
         "Create closed Bézier path",
-        "Create a named closed work path with 3..128 ordered anchors, up to 64 paths per document. position is absolute [x,y] in canvas pixels. Optional incoming/outgoing handle vectors are relative to that anchor and default to [0,0] for corners. Cubic segments join outgoing to the next incoming, including the closing edge. Finite points and handle endpoints within ±1e12; name 1..256 UTF-8 bytes. Optional expected_revision binds a staged native draft. Changes document metadata in one undo step. 保存可编辑闭合路径、钢笔锚点和相对方向手柄，一次撤销；工程保留曲线，普通图像导出只写像素。",
+        "Create a named closed work path with 3..1024 ordered anchors, up to 64 paths per document. Optional subpaths are additional closed contours with the same anchor format. Even-odd fill supports holes and islands. At most 64 contours and 2048 total anchors per path; the document supports 8192 anchors. position is absolute [x,y] in canvas pixels. Optional incoming/outgoing handle vectors are relative to that anchor and default to [0,0] for corners. Cubic segments join outgoing to the next incoming, including the closing edge. Finite points and handle endpoints within ±1e12; name 1..256 UTF-8 bytes. Optional expected_revision binds a staged native draft. Changes document metadata in one undo step. 保存可编辑闭合路径、钢笔锚点和相对方向手柄，一次撤销；工程保留曲线，普通图像导出只写像素。",
         json!({"name":"Outline","anchors":triangle})
     );
     command!(
@@ -119,7 +128,7 @@ fn build_catalog() -> Vec<CommandSpec> {
         Mutate,
         "编辑路径锚点",
         "Edit Bézier path anchors",
-        "Use a stable path ID or unique name. Replace the ordered anchors (3..128) to move, add, delete or convert anchors, and/or rename the path. Positions are absolute canvas pixels, handles incoming/outgoing are relative offsets. One atomic undoable edit, identical values are a no-op. Use document.inspect for the current revision and path.get for the geometry. Pass expected_revision when editing a draft. 调整锚点、增删锚点、曲线手柄、转角点或平滑点、重命名路径。",
+        "Use a stable path ID or unique name. Replace the ordered anchors (3..1024) to move, add, delete or convert anchors, and/or rename the path. Optional subpaths replaces all additional contours, [] removes them; omission keeps them. Positions are absolute canvas pixels, handles incoming/outgoing are relative offsets. One atomic undoable edit, identical values are a no-op. Use document.inspect for the current revision and path.get for the geometry. Pass expected_revision when editing a draft. 调整锚点、增删锚点、曲线手柄、转角点或平滑点、重命名路径。",
         json!({"path":{"name":"Outline"},"anchors":[{"position":[3,3]},{"position":[12,2],"outgoing":[0,4]},{"position":[2,12]}]})
     );
     command!(
@@ -137,7 +146,7 @@ fn build_catalog() -> Vec<CommandSpec> {
         Query,
         "列出工作路径",
         "List work paths",
-        "List document path IDs, names and anchor counts. Use path.get to read geometry for a selected ID. 列出已保存路径、名称和锚点数，只读。",
+        "List document path IDs, names, contour counts and total anchor counts. Use path.get to read geometry for a selected ID. 列出已保存路径、名称和锚点数，只读。",
         json!({})
     );
     command!(
@@ -146,7 +155,7 @@ fn build_catalog() -> Vec<CommandSpec> {
         Query,
         "读取路径锚点",
         "Inspect path anchors",
-        "Read the ID, name and full ordered cubic anchors for one work path by stable ID or unique name. 读取路径锚点和相对控制手柄；使用 path.update 重编辑。",
+        "Read the ID, name and full ordered cubic anchors for the primary contour and additional subpaths of one work path by stable ID or unique name. 读取路径锚点和相对控制手柄；使用 path.update 重编辑。",
         json!({"path":{"name":"Outline"}})
     );
     command!(
@@ -1449,7 +1458,11 @@ fn build_catalog() -> Vec<CommandSpec> {
     );
     for item in &mut list {
         item.returns = match item.id {
-            "path.create" | "path.update" | "path.split" | "path.delete" => {
+            "path.create"
+            | "path.from_selection"
+            | "path.update"
+            | "path.split"
+            | "path.delete" => {
                 schemars::schema_for!(paths::PathChange)
             }
             "path.get" => schemars::schema_for!(crate::WorkPath),

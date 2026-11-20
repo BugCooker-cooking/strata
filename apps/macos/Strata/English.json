@@ -1,4 +1,12 @@
 {
+  "选区路径 {0}": "Selection path {0}",
+  "子轮廓": "Contour",
+  "添加子轮廓": "Add contour",
+  "删除子轮廓": "Remove contour",
+  "从选区建立路径": "Make path from selection",
+  "选区转工作路径": "Make Work Path",
+  "覆盖阈值": "Coverage threshold",
+  "简化容差（像素）": "Tolerance (pixels)",
   "创建工作路径": "Create work path",
   "编辑路径锚点": "Edit path anchors",
   "路径填充": "Fill path",

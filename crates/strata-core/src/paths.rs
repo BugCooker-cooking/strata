@@ -9,7 +9,9 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 pub const MAX_PATHS: usize = 64;
-pub const MAX_ANCHORS: usize = 128;
+pub const MAX_ANCHORS: usize = 1024;
+pub const MAX_CONTOURS: usize = 64;
+pub const MAX_PATH_ANCHORS: usize = 2048;
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct PathAnchor {
@@ -26,8 +28,18 @@ pub struct WorkPath {
     pub id: PathId,
     #[schemars(length(min = 1, max = 256))]
     pub name: String,
-    #[schemars(length(min = 3, max = 128))]
+    #[schemars(length(min = 3, max = 1024))]
     pub anchors: Vec<PathAnchor>,
+    /// Additional closed contours share the even-odd fill rule with anchors.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[schemars(schema_with = "additional_contours_schema")]
+    pub subpaths: Vec<Vec<PathAnchor>>,
+}
+pub(crate) fn additional_contours_schema(
+    generator: &mut schemars::SchemaGenerator,
+) -> schemars::Schema {
+    let anchor = generator.subschema_for::<PathAnchor>();
+    schemars::json_schema!({"type":"array","maxItems":63,"items":{"type":"array","minItems":3,"maxItems":1024,"items":anchor}})
 }
 fn plus(a: Point, b: Point) -> Point {
     [a[0] + b[0], a[1] + b[1]]
@@ -39,6 +51,15 @@ fn mid(a: Point, b: Point) -> Point {
     [(a[0] + b[0]) * 0.5, (a[1] + b[1]) * 0.5]
 }
 impl WorkPath {
+    pub(crate) fn contours(&self) -> impl Iterator<Item = &Vec<PathAnchor>> {
+        std::iter::once(&self.anchors).chain(&self.subpaths)
+    }
+    fn contours_mut(&mut self) -> impl Iterator<Item = &mut Vec<PathAnchor>> {
+        std::iter::once(&mut self.anchors).chain(&mut self.subpaths)
+    }
+    pub(crate) fn anchor_count(&self) -> usize {
+        self.contours().map(Vec::len).sum()
+    }
     pub(crate) fn validate(&self) -> Result<(), DocumentError> {
         if !self.id.is_valid()
             || self.name.trim().is_empty()
@@ -49,12 +70,18 @@ impl WorkPath {
                 "path requires a valid ID and a name within 256 UTF-8 bytes".into(),
             ));
         }
-        if !(3..=MAX_ANCHORS).contains(&self.anchors.len()) {
+        if self.subpaths.len() >= MAX_CONTOURS || self.anchor_count() > MAX_PATH_ANCHORS {
+            return Err(DocumentError::ResourceLimit);
+        }
+        if self
+            .contours()
+            .any(|c| !(3..=MAX_ANCHORS).contains(&c.len()))
+        {
             return Err(DocumentError::Invalid(
-                "closed path needs 3..128 anchors".into(),
+                "closed contour needs 3..1024 anchors".into(),
             ));
         }
-        for a in &self.anchors {
+        for a in self.contours().flatten() {
             if [
                 a.position,
                 plus(a.position, a.incoming),
@@ -73,18 +100,27 @@ impl WorkPath {
     }
     /// Split one cubic with de Casteljau. Both resulting cubics trace exactly
     /// the old contour, including the last segment wrapping back to anchor 0.
-    pub(crate) fn split(&mut self, segment: usize, t: f64) -> Result<(), DocumentError> {
-        if self.anchors.len() >= MAX_ANCHORS
-            || segment >= self.anchors.len()
-            || !(0.0 < t && t < 1.0)
-        {
+    pub(crate) fn split(
+        &mut self,
+        contour: usize,
+        segment: usize,
+        t: f64,
+    ) -> Result<(), DocumentError> {
+        if self.anchor_count() >= MAX_PATH_ANCHORS {
+            return Err(DocumentError::ResourceLimit);
+        }
+        let anchors = self
+            .contours_mut()
+            .nth(contour)
+            .ok_or_else(|| DocumentError::Invalid("contour index does not exist".into()))?;
+        if anchors.len() >= MAX_ANCHORS || segment >= anchors.len() || !(0.0 < t && t < 1.0) {
             return Err(DocumentError::Invalid(
                 "split requires an existing segment, capacity for one anchor, and 0 < t < 1".into(),
             ));
         }
-        let next = (segment + 1) % self.anchors.len();
-        let a = &self.anchors[segment];
-        let b = &self.anchors[next];
+        let next = (segment + 1) % anchors.len();
+        let a = &anchors[segment];
+        let b = &anchors[next];
         let lerp = |a: Point, b: Point| [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
         let p = a.position;
         let q = plus(p, a.outgoing);
@@ -93,9 +129,9 @@ impl WorkPath {
         let (pq, qr, rs) = (lerp(p, q), lerp(q, r), lerp(r, s));
         let (left, right) = (lerp(pq, qr), lerp(qr, rs));
         let position = lerp(left, right);
-        self.anchors[segment].outgoing = minus(pq, p);
-        self.anchors[next].incoming = minus(rs, s);
-        self.anchors.insert(
+        anchors[segment].outgoing = minus(pq, p);
+        anchors[next].incoming = minus(rs, s);
+        anchors.insert(
             segment + 1,
             PathAnchor {
                 position,
@@ -105,22 +141,31 @@ impl WorkPath {
         );
         self.validate()
     }
-    pub(crate) fn polygon(&self) -> Result<Vec<Point>, DocumentError> {
-        let mut points = vec![self.anchors[0].position];
-        for (a, b) in self.anchors.iter().zip(self.anchors.iter().cycle().skip(1)) {
-            flatten(
-                [
-                    a.position,
-                    plus(a.position, a.outgoing),
-                    plus(b.position, b.incoming),
-                    b.position,
-                ],
-                0,
-                &mut points,
-            )?;
+    pub(crate) fn polygons(&self) -> Result<Vec<Vec<Point>>, DocumentError> {
+        let mut contours = Vec::new();
+        let mut total = 0;
+        for anchors in self.contours() {
+            let mut points = vec![anchors[0].position];
+            for (a, b) in anchors.iter().zip(anchors.iter().cycle().skip(1)) {
+                flatten(
+                    [
+                        a.position,
+                        plus(a.position, a.outgoing),
+                        plus(b.position, b.incoming),
+                        b.position,
+                    ],
+                    0,
+                    &mut points,
+                )?;
+            }
+            points.pop();
+            total += points.len();
+            if total > 4096 {
+                return Err(DocumentError::ResourceLimit);
+            }
+            contours.push(points);
         }
-        points.pop(); // The polygon rasterizer closes the final edge itself.
-        Ok(points)
+        Ok(contours)
     }
 }
 /// Bounded de Casteljau subdivision. Distance to the finite chord also handles
@@ -168,7 +213,7 @@ pub(crate) fn transform_paths(
     };
     for path in paths {
         let path = Arc::make_mut(path);
-        for a in &mut path.anchors {
+        for a in path.contours_mut().flatten() {
             let position = map(a.position)?;
             a.incoming = minus(map(plus(a.position, a.incoming))?, position);
             a.outgoing = minus(map(plus(a.position, a.outgoing))?, position);

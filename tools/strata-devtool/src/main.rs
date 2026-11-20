@@ -98,6 +98,18 @@ fn examples() -> Result<(), Box<dyn Error>> {
                         json!({"ruler_unit":"millimeters","ruler_origin":[100,200]}),
                     )?;
                 }
+                "path.from_selection" => {
+                    run(
+                        &mut editor,
+                        "select.marquee",
+                        json!({"x":1,"y":1,"width":12,"height":12}),
+                    )?;
+                    run(
+                        &mut editor,
+                        "select.marquee",
+                        json!({"x":4,"y":4,"width":4,"height":4,"mode":"subtract"}),
+                    )?;
+                }
                 "path.split" | "layer.fill.path" | "path.get" | "path.list" | "path.update"
                 | "path.delete" | "select.from_path" => {
                     run(
@@ -547,6 +559,15 @@ fn examples() -> Result<(), Box<dyn Error>> {
                 if output.layers.len() != 6 || output.format.bit_depth() != 16 {
                     return Err("layered PSD example lost its editable directory or depth".into());
                 }
+            }
+            if spec.id == "path.from_selection"
+                && editor.document().is_none_or(|doc| {
+                    doc.paths()
+                        .last()
+                        .is_none_or(|path| path.subpaths.len() != 1)
+                })
+            {
+                return Err("selection tracing example did not preserve its hole".into());
             }
             if spec.id == "file.revert"
                 && (!editor.snapshot().history.is_empty()
