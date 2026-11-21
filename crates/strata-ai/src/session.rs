@@ -1112,6 +1112,7 @@ fn sanitize_result(id: &str, params: &Value, mut result: Value) -> Value {
             layers.retain(|l| l["id"].as_str().is_some_and(|id| visible.contains(id)));
         }
         if let Some(map) = result.as_object_mut() {
+            map.remove("paths"); // Fetch individual geometry with path.get.
             map.remove("session_id");
             map.remove("executions");
             map.remove("control_events");

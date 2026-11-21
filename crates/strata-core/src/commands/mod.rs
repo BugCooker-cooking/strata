@@ -19,6 +19,7 @@ mod local;
 mod new;
 mod orthogonal;
 mod paint;
+mod path_trace;
 mod pixel_transform;
 mod preferences;
 mod profiles;
@@ -71,6 +72,9 @@ macro_rules! params {
         pub struct $name { $( $(#[$attr])* pub $field: $ty ),* }
     };
 }
+mod paths;
+mod shapes;
+mod vector_masks;
 params!(Empty {});
 params!(DuplicateDocument {
     #[schemars(length(min = 1, max = 256))]
@@ -840,6 +844,7 @@ pub struct HistoryResult {
     pub history_cursor: usize,
 }
 #[derive(Serialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
 pub struct ExternalResult {
     pub status: String,
     pub command: String,

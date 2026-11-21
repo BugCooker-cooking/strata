@@ -1967,6 +1967,7 @@ dependencies = [
 name = "strata-io"
 version = "0.0.1"
 dependencies = [
+ "flate2",
  "image",
  "png",
  "rusqlite",

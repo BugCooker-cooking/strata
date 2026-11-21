@@ -292,20 +292,45 @@ final class AssistantModel: ObservableObject {
         guard let window = window?() else { return nil }
         let operation = pending["operation"]; let command = operation["command"].string ?? ""
         if ["file.place", "file.open", "file.recover","file.revert"].contains(command) {
-            let picker = NSOpenPanel(); picker.allowedContentTypes = [.png, .jpeg, .tiff, .webP, .heic, .gif, .bmp, UTType(filenameExtension: "strata") ?? .data]; picker.allowsMultipleSelection = false
-            picker.message = command=="file.revert" ? L10n.text("请选择当前文档的原文件或上次保存的工程；恢复会放弃当前修改与历史。"):L10n.text("授权本轮 AI 读取并置入所选图片");picker.allowsOtherFileTypes=true; panel = picker
+            let picker = NSOpenPanel()
+            switch command {
+            case "file.open", "file.revert":
+                picker.allowedContentTypes = WorkspaceFileTypes.documents
+                picker.message = command == "file.open" ? L10n.text("选择要由本轮 AI 打开的文件。") : L10n.text("请选择当前文档的原文件或上次保存的工程；恢复会放弃当前修改与历史。")
+            case "file.recover":
+                picker.allowedContentTypes = [WorkspaceFileTypes.project]
+                picker.message = L10n.text("选择要由本轮 AI 恢复的工程。")
+            default:
+                picker.allowedContentTypes = WorkspaceFileTypes.images
+                picker.message = L10n.text("授权本轮 AI 读取并置入所选图片")
+            }
+            picker.allowsMultipleSelection = false
+            picker.allowsOtherFileTypes = true
+            panel = picker
             let choice = await withCheckedContinuation { continuation in picker.beginSheetModal(for: window) { continuation.resume(returning: $0) } }
             panel = nil; guard choice == .OK, let url = picker.url, self.turn == turn else { return nil }
             selectedResourceURL = url
             return try engine.aiGrantRead(turnId: turn, path: url.path)
         }
-        let format:String
-        if command=="file.quick_export"{
-            let preset=try QuickExportPreferences().preset(engine)
-            guard let value=operation["params"]["preset_version"].number,UInt64(exactly:value)==preset.version else{throw AIClientError.message(L10n.text("快速导出预设已改变，请重新读取预设并发起导出。"))}
-            format=try QuickExportPreferences().format(preset)
-        }else{format = command == "file.export" ? operation["params"]["format"].string ?? "png" : "strata"}
-        guard ["png", "jpeg", "jpg", "webp", "tiff", "strata"].contains(format) else { throw AIClientError.message(L10n.text("请先选择支持的导出格式。")) }
+        let format: String
+        switch command {
+        case "file.quick_export":
+            let preset = try QuickExportPreferences().preset(engine)
+            guard let value = operation["params"]["preset_version"].number,
+                  UInt64(exactly: value) == preset.version else {
+                throw AIClientError.message(L10n.text("快速导出预设已改变，请重新读取预设并发起导出。"))
+            }
+            format = try QuickExportPreferences().format(preset)
+        case "file.export":
+            format = operation["params"]["format"].string ?? "png"
+            guard ["png", "jpeg", "jpg", "webp", "tiff"].contains(format) else {
+                throw AIClientError.message(L10n.text("请先选择支持的导出格式。"))
+            }
+        case "file.export_psd":
+            format = "psd"
+        default:
+            format = "strata"
+        }
         let picker = NSSavePanel(); picker.allowedContentTypes = [UTType(filenameExtension: format) ?? .data]
         picker.nameFieldStringValue = "Strata.\(format)"; picker.message = L10n.text("授权 AI 的这一次文件写入；目标文件不受文档撤销保护。"); panel = picker
         let choice = await withCheckedContinuation { continuation in picker.beginSheetModal(for: window) { continuation.resume(returning: $0) } }

@@ -4365,3 +4365,505 @@ fn smart_layer_references_are_discoverable_return_visible_ids_and_undo_one_real_
     );
     assert!(host.snapshot().unwrap().presentation.snap_layers);
 }
+
+#[test]
+fn layered_psd_export_in_direct_mode_waits_for_the_host_then_writes_an_editable_copy() {
+    let host = Host::new();
+    host.user(
+        "layer.create",
+        json!({"name":"Keep layer","fill":[10001,20002,30003,32769]}),
+    );
+    let mut session = host.session_with_prompt(
+        ExecutionMode::Direct,
+        "导出分层 PSD 副本，保留图层供对方重编辑。",
+    );
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("handoff.psd");
+    for approved in [false, true] {
+        let call = if approved {
+            "approved-export"
+        } else {
+            "cancelled-export"
+        };
+        reply(
+            &mut session,
+            &host,
+            vec![invoke(call, "file.export_psd", json!({}))],
+        );
+        let Step::Paused {
+            question_id,
+            reason,
+            operation,
+            ..
+        } = session.poll(&host).unwrap()
+        else {
+            panic!("export must request a destination")
+        };
+        assert_eq!(reason, "file_resource");
+        assert_eq!(operation.unwrap()["command"], "file.export_psd");
+        assert!(!path.exists());
+        let resource = approved.then(|| {
+            host.editor
+                .lock()
+                .unwrap()
+                .grant_write(
+                    &path,
+                    false,
+                    Source::Ai {
+                        turn_id: session.turn_id(),
+                    },
+                )
+                .unwrap()
+        });
+        let response = result(
+            session
+                .respond(
+                    &host,
+                    HostAnswer {
+                        question_id,
+                        answer: String::new(),
+                        approved,
+                        resource,
+                    },
+                )
+                .unwrap(),
+        );
+        if approved {
+            assert_eq!(response["result"]["status"], "completed");
+        } else {
+            assert_eq!(response["status"], "denied");
+        }
+    }
+    let mut reopened = Editor::new();
+    let r = reopened.grant_read(&path, Source::Test).unwrap();
+    reopened
+        .execute(
+            reopened.request(Source::Test),
+            "file.open",
+            json!({"resource":r}),
+            |_| Ok(()),
+        )
+        .unwrap();
+    assert_eq!(
+        reopened
+            .document()
+            .unwrap()
+            .layers()
+            .last()
+            .unwrap()
+            .info()
+            .name,
+        "Keep layer"
+    );
+    session.abort(&host, "done").unwrap();
+    assert!(matches!(
+        session.poll(&host).unwrap(),
+        Step::Finished {
+            external_writes: 1,
+            ..
+        }
+    ));
+}
+
+#[test]
+fn closed_paths_are_discovered_edited_filled_and_undone_in_one_ai_turn() {
+    let host = Host::new();
+    let before = host
+        .editor
+        .lock()
+        .unwrap()
+        .document()
+        .unwrap()
+        .to_archive()
+        .unwrap();
+    let mut session = host.session_with_prompt(
+        ExecutionMode::Direct,
+        "创建闭合贝塞尔路径，移动锚点并填充新图层。",
+    );
+    let anchors =
+        json!([{"position":[1,1]},{"position":[12,1],"incoming":[-2,-1]},{"position":[3,12]}]);
+    reply(
+        &mut session,
+        &host,
+        vec![
+            call(
+                "find-path",
+                "search_catalog",
+                json!({"query":"闭合贝塞尔路径"}),
+            ),
+            invoke(
+                "create-path",
+                "path.create",
+                json!({"name":"Outline","anchors":anchors}),
+            ),
+        ],
+    );
+    assert!(
+        result(session.poll(&host).unwrap())
+            .to_string()
+            .contains("path.create")
+    );
+    let id = result(session.poll(&host).unwrap())["result"]["path_id"].clone();
+    assert!(id.is_string());
+    let target = json!({"id":id});
+    reply(
+        &mut session,
+        &host,
+        vec![
+            invoke(
+                "update-path",
+                "path.update",
+                json!({"path":target,"anchors":[{"position":[2,3]},{"position":[12,1],"incoming":[-2,-1]},{"position":[3,12]}]}),
+            ),
+            invoke("read-path", "path.get", json!({"path":target})),
+            invoke("select-path", "select.from_path", json!({"path":target})),
+            invoke(
+                "fill-path",
+                "layer.fill.path",
+                json!({"path":target,"name":"Path fill","color":[12345,23456,34567,65535]}),
+            ),
+        ],
+    );
+    assert_eq!(
+        result(session.poll(&host).unwrap())["result"]["changed"],
+        true
+    );
+    assert_eq!(
+        result(session.poll(&host).unwrap())["result"]["anchors"][0]["position"],
+        json!([2.0, 3.0])
+    );
+    assert!(result(session.poll(&host).unwrap())["result"]["selection"].is_object());
+    assert!(result(session.poll(&host).unwrap())["result"]["layer_id"].is_string());
+    assert!(
+        host.editor
+            .lock()
+            .unwrap()
+            .document()
+            .unwrap()
+            .layers()
+            .last()
+            .unwrap()
+            .mask()
+            .unwrap()
+            .sample(5, 5)
+            .unwrap()
+            > 0
+    );
+    host.stop(session.turn_id()).unwrap();
+    host.user("edit.undo_turn", json!({"turn_id":session.turn_id()}));
+    assert!(
+        before
+            == host
+                .editor
+                .lock()
+                .unwrap()
+                .document()
+                .unwrap()
+                .to_archive()
+                .unwrap()
+    );
+}
+
+#[test]
+fn assistant_traces_a_selection_with_a_hole_and_reloads_the_compound_path() {
+    let host = Host::new();
+    host.user(
+        "select.marquee",
+        json!({"x":0,"y":0,"width":12,"height":12}),
+    );
+    host.user(
+        "select.marquee",
+        json!({"x":4,"y":4,"width":3,"height":3,"mode":"subtract"}),
+    );
+    let before = host
+        .editor
+        .lock()
+        .unwrap()
+        .document()
+        .unwrap()
+        .to_archive()
+        .unwrap();
+    let mut session = host.session_with_prompt(
+        ExecutionMode::Direct,
+        "从选区建立带孔洞的工作路径，再载入该路径。",
+    );
+    reply(
+        &mut session,
+        &host,
+        vec![
+            call(
+                "find-trace",
+                "search_catalog",
+                json!({"query":"选区转工作路径"}),
+            ),
+            invoke(
+                "trace",
+                "path.from_selection",
+                json!({"name":"Silhouette","threshold":32768,"tolerance":0}),
+            ),
+        ],
+    );
+    assert!(
+        result(session.poll(&host).unwrap())
+            .to_string()
+            .contains("path.from_selection")
+    );
+    let id = result(session.poll(&host).unwrap())["result"]["path_id"].clone();
+    assert!(id.is_string());
+    let target = json!({"id":id});
+    reply(
+        &mut session,
+        &host,
+        vec![
+            invoke("get-compound", "path.get", json!({"path":target})),
+            invoke(
+                "reload-compound",
+                "select.from_path",
+                json!({"path":target}),
+            ),
+        ],
+    );
+    assert_eq!(
+        result(session.poll(&host).unwrap())["result"]["subpaths"]
+            .as_array()
+            .unwrap()
+            .len(),
+        1
+    );
+    assert!(result(session.poll(&host).unwrap())["result"]["selection"].is_object());
+    {
+        let editor = host.editor.lock().unwrap();
+        let mask = editor.document().unwrap().selection().unwrap();
+        assert_eq!(mask.sample(5, 5).unwrap(), 0);
+        assert_eq!(mask.sample(3, 5).unwrap(), 65535);
+    }
+    host.stop(session.turn_id()).unwrap();
+    host.user("edit.undo_turn", json!({"turn_id":session.turn_id()}));
+    assert!(
+        before
+            == host
+                .editor
+                .lock()
+                .unwrap()
+                .document()
+                .unwrap()
+                .to_archive()
+                .unwrap()
+    );
+}
+
+#[test]
+fn assistant_creates_inspects_and_closes_an_open_two_anchor_curve() {
+    let host = Host::new();
+    let before = host
+        .editor
+        .lock()
+        .unwrap()
+        .document()
+        .unwrap()
+        .to_archive()
+        .unwrap();
+    let mut s = host.session_with_prompt(
+        ExecutionMode::Direct,
+        "创建两个锚点的开放路径，保留联动手柄，然后闭合。",
+    );
+    reply(
+        &mut s,
+        &host,
+        vec![
+            call(
+                "discover-open",
+                "search_catalog",
+                json!({"query":"开放路径"}),
+            ),
+            invoke(
+                "create-open",
+                "path.create",
+                json!({"name":"弧线","open_contours":[0],"anchors":[{"position":[1,1],"incoming":[-2,0],"outgoing":[4,0],"linked":true},{"position":[8,8],"incoming":[0,-2]}]}),
+            ),
+        ],
+    );
+    assert!(
+        result(s.poll(&host).unwrap())
+            .to_string()
+            .contains("path.create")
+    );
+    let target = json!({"id":result(s.poll(&host).unwrap())["result"]["path_id"]});
+    reply(
+        &mut s,
+        &host,
+        vec![
+            invoke("get-open", "path.get", json!({"path":target})),
+            invoke(
+                "close",
+                "path.update",
+                json!({"path":target,"open_contours":[]}),
+            ),
+        ],
+    );
+    let shape = result(s.poll(&host).unwrap());
+    assert_eq!(shape["result"]["open_contours"], json!([0]));
+    assert_eq!(shape["result"]["anchors"][0]["linked"], true);
+    assert_eq!(result(s.poll(&host).unwrap())["result"]["changed"], true);
+    assert!(
+        host.editor.lock().unwrap().document().unwrap().paths()[0]
+            .open_contours
+            .is_empty()
+    );
+    host.stop(s.turn_id()).unwrap();
+    host.user("edit.undo_turn", json!({"turn_id":s.turn_id()}));
+    assert!(
+        before
+            == host
+                .editor
+                .lock()
+                .unwrap()
+                .document()
+                .unwrap()
+                .to_archive()
+                .unwrap()
+    );
+}
+
+#[test]
+fn assistant_binds_inverts_and_undoes_a_vector_mask_without_rasterizing_the_layer() {
+    let host = Host::new();
+    host.user("path.create",json!({"name":"Outline","anchors":[{"position":[0,0]},{"position":[12,0]},{"position":[12,10]},{"position":[0,10]}]}));
+    let before = host
+        .editor
+        .lock()
+        .unwrap()
+        .document()
+        .unwrap()
+        .to_archive()
+        .unwrap();
+    let mut s = host.session_with_prompt(
+        ExecutionMode::Direct,
+        "将路径绑定到图层作为矢量蒙版，然后反相。",
+    );
+    reply(
+        &mut s,
+        &host,
+        vec![
+            call(
+                "search-vector-mask",
+                "search_catalog",
+                json!({"query":"添加矢量蒙版"}),
+            ),
+            invoke(
+                "bind",
+                "layer.vector_mask.set",
+                json!({"layer":{"name":"Background"},"path":{"name":"Outline"}}),
+            ),
+            invoke(
+                "invert",
+                "layer.vector_mask.set",
+                json!({"layer":{"name":"Background"},"inverted":true}),
+            ),
+        ],
+    );
+    assert!(
+        result(s.poll(&host).unwrap())
+            .to_string()
+            .contains("layer.vector_mask.set")
+    );
+    let binding = result(s.poll(&host).unwrap());
+    assert!(binding["result"]["vector_mask"]["path"].is_string());
+    assert_eq!(
+        result(s.poll(&host).unwrap())["result"]["vector_mask"]["inverted"],
+        true
+    );
+    host.stop(s.turn_id()).unwrap();
+    host.user("edit.undo_turn", json!({"turn_id":s.turn_id()}));
+    assert!(
+        before
+            == host
+                .editor
+                .lock()
+                .unwrap()
+                .document()
+                .unwrap()
+                .to_archive()
+                .unwrap()
+    );
+}
+
+#[test]
+fn shape_tools_discover_preview_create_and_reedit_before_whole_turn_undo() {
+    let host = Host::new();
+    let before = host
+        .editor
+        .lock()
+        .unwrap()
+        .document()
+        .unwrap()
+        .to_archive()
+        .unwrap();
+    let mut s = host.session_with_prompt(
+        ExecutionMode::Direct,
+        "画一个圆角矩形，再把圆角半径改为 4 像素。",
+    );
+    let geom = |r| json!({"start":[2,2],"end":[14,12],"primitive":{"kind":"rectangle","radius":r}});
+    reply(
+        &mut s,
+        &host,
+        vec![
+            call(
+                "discover-shape",
+                "search_catalog",
+                json!({"query":"圆角矩形"}),
+            ),
+            invoke("draft-shape", "shape.outline", json!({"geometry":geom(2)})),
+            invoke(
+                "create-shape",
+                "shape.create",
+                json!({"name":"Badge","geometry":geom(2),"color":[50000,1500,30000,65535]}),
+            ),
+        ],
+    );
+    assert!(
+        result(s.poll(&host).unwrap())
+            .to_string()
+            .contains("shape.create")
+    );
+    assert_eq!(
+        result(s.poll(&host).unwrap())["result"]["anchors"]
+            .as_array()
+            .unwrap()
+            .len(),
+        8
+    );
+    let create = result(s.poll(&host).unwrap());
+    let id = create["result"]["layer_id"].clone();
+    let path = create["result"]["path_id"].clone();
+    reply(
+        &mut s,
+        &host,
+        vec![
+            invoke(
+                "update-radius",
+                "shape.update",
+                json!({"layer":{"id":id},"geometry":geom(4)}),
+            ),
+            invoke("read-shape", "path.get", json!({"path":{"id":path}})),
+        ],
+    );
+    assert_eq!(result(s.poll(&host).unwrap())["result"]["changed"], true);
+    assert_eq!(
+        result(s.poll(&host).unwrap())["result"]["shape"]["geometry"]["primitive"]["radius"],
+        4.
+    );
+    host.stop(s.turn_id()).unwrap();
+    host.user("edit.undo_turn", json!({"turn_id":s.turn_id()}));
+    assert!(
+        before
+            == host
+                .editor
+                .lock()
+                .unwrap()
+                .document()
+                .unwrap()
+                .to_archive()
+                .unwrap()
+    );
+}

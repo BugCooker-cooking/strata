@@ -119,6 +119,14 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
             self.canvas.configurePaint(self.workspace)
         }
         canvas.onCloneSource = {[weak self] point in guard let self else{return};self.workspace.cloneSource=[Double(point.x),Double(point.y)];self.canvas.configureBrush(self.workspace)}
+        workspace.pathInput.onMaskPreview = { [weak preview] args in
+            guard let preview, let json = try? commandJSON(args) else { return }
+            preview.configureFilter("path.update")
+            if preview.enabled { preview.update(json) } else { preview.setEnabled(true, settings: json) }
+        }
+        workspace.pathInput.onCancelMaskPreview = { [weak preview] in preview?.cancel() }
+        workspace.shapeInput.onCommand = { [weak self] id, args in self?.perform(id, args) }
+        workspace.pathInput.onCommand = { [weak self] id, args in self?.perform(id, args) }
         canvas.onTextPlacement={[weak self]point,rect in guard let self else{return};self.workspace.textEditing?.newText(at:point,rect:rect);self.workspace.inspector = .properties}
         canvas.onToolKey = { [weak self] key in
             if key == "X", let self { self.workspace.swapPaintColors(); return true }
@@ -192,7 +200,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         case #selector(autoTone),#selector(autoContrast),#selector(autoColor): workspace.permissions.edits && selected?.kind?.kind=="pixel" && selected?.visible == true && selected?.locks?.all != true && selected?.locks?.pixels != true
         case #selector(beginCanvasTransform): workspace.canTransform(scope: "whole_layer", onCanvas: true)
         case #selector(showGuides): !busy
-        case #selector(saveDocument), #selector(saveAs), #selector(exportDocument),#selector(quickExportDocument), #selector(placeImage), #selector(convertToSRGB), #selector(convertToP3),#selector(assignSRGB),#selector(assignP3): workspace.permissions.edits && workspace.hasDocument
+        case #selector(saveDocument), #selector(saveAs), #selector(exportDocument), #selector(exportLayeredPSD),#selector(quickExportDocument), #selector(placeImage), #selector(convertToSRGB), #selector(convertToP3),#selector(assignSRGB),#selector(assignP3): workspace.permissions.edits && workspace.hasDocument
         case #selector(configureQuickExport): !busy && (state?.control?.kind ?? "user")=="user"
         case #selector(revertDocument):workspace.permissions.edits && workspace.hasDocument && engine.revertSourcePath() != nil
         case #selector(duplicateDocument): workspace.permissions.edits && workspace.hasDocument && onDocumentDuplicated != nil
@@ -265,7 +273,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
             if let presentation=state?.presentation,presentation.snapEnabled{layerCommand("layer.snap_position",["x":x,"y":y,"tolerance":min(1e6,presentation.snapTolerance*Double(window?.backingScaleFactor ?? 1)/Double(max(0.000001,engine.canvasZoom()))),"artboard":presentation.snapArtboard,"layers":presentation.snapLayers ?? false])}
             else{layerCommand("layer.set_position",["x":x,"y":y])}
         case .tool(let tool):
-            workspace.tonalPreview?.cancel();canvas.movesLayer=tool == .move;canvas.zoomTool=tool == .zoom;canvas.configureSelection(workspace);canvas.configureBrush(workspace);canvas.configurePaint(workspace);canvas.configureCrop(workspace);canvas.configureTransform(workspace);canvas.configureText(workspace);canvas.configureGuides(workspace)
+            workspace.tonalPreview?.cancel();canvas.movesLayer=tool == .move;canvas.zoomTool=tool == .zoom;canvas.configureSelection(workspace);canvas.configureBrush(workspace);canvas.configurePaint(workspace);canvas.configureCrop(workspace);canvas.configureTransform(workspace);canvas.configureText(workspace);canvas.configureGuides(workspace);canvas.configurePaths(workspace);canvas.configureShape(workspace)
+            if tool == .pen || tool == .shape {workspace.inspector = .properties}
             if tool == .freeTransform{workspace.inspector = .transform;if !canvas.transformInput.hasDraft && !canvas.transformInput.running{canvas.transformInput.start()}}
             if tool == .text{workspace.inspector = .properties;if workspace.textEditing?.creating==true{workspace.textEditing?.newText()}}
             window?.makeFirstResponder(canvas)
@@ -379,7 +388,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         canvas.configurePaint(workspace)
         canvas.configureCrop(workspace)
         canvas.configureTransform(workspace)
-        canvas.configureGuides(workspace)
+        canvas.configureGuides(workspace);canvas.configurePaths(workspace);canvas.configureShape(workspace)
         canvas.configureText(workspace)
         recovery?.observe(snapshot)
         if let path = engine.projectPath() { documentURL = URL(fileURLWithPath: path); fileName = documentURL!.lastPathComponent }

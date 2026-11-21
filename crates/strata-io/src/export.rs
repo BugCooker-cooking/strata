@@ -260,6 +260,46 @@ pub fn export_with_options(
             options.resolution_dpi
         )));
     }
+    publish(temp, path, overwrite)
+}
+
+/// Verify the editable directory and the staged file before atomically publishing.
+pub fn publish_psd(
+    path: &Path,
+    bytes: &[u8],
+    overwrite: bool,
+    validate_target: impl FnOnce() -> Result<(), StorageError>,
+) -> Result<(), StorageError> {
+    use std::io::{Read, Seek, Write};
+    crate::psd::Psd::parse(bytes, i16::MAX as usize)
+        .map_err(|e| StorageError::Invalid(e.to_string()))?;
+    let parent = path
+        .parent()
+        .filter(|p| !p.as_os_str().is_empty())
+        .unwrap_or(Path::new("."));
+    let mut temp = tempfile::NamedTempFile::new_in(parent)?;
+    temp.write_all(bytes)?;
+    temp.as_file().sync_all()?;
+    temp.rewind()?;
+    let mut scratch = vec![0; 64 * 1024];
+    for expected in bytes.chunks(scratch.len()) {
+        let actual = &mut scratch[..expected.len()];
+        temp.read_exact(actual)?;
+        if actual != expected {
+            return Err(StorageError::Invalid(
+                "PSD temporary file verification failed".into(),
+            ));
+        }
+    }
+    validate_target()?;
+    publish(temp, path, overwrite)
+}
+
+fn publish(
+    temp: tempfile::NamedTempFile,
+    path: &Path,
+    overwrite: bool,
+) -> Result<(), StorageError> {
     if overwrite {
         temp.persist(path).map_err(|e| e.error)?;
     } else {

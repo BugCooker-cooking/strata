@@ -26,8 +26,8 @@
 | PS-01-894622b1ce | 文件 | 快速导出 / 导出为（格式、尺寸、质量） | P0 | 已实现 | Explicit export and real shared/versioned quick presets use the same PNG/TIFF/JPEG/WebP encoder with dimensions, ICC/DPI, precision/alpha and source protection. Full local core354+doc1/AI51, native116(115passed/1live-service opt-in skip), required Metal1, lint and140commands/209examples passed. Manual found size-field compression and sheet Cmd+A routing; both fixed, related11native tests and corrected arm64 Release passed. Sequential one-window manual saved/read JPEG83/sRGB/white256×384, wrote actualJPEG and original-sizePNG, verified metadata, defaults and clean source/history. Final process0/sourceSHA unchanged; only the test-created preference key removed to restore its original absence. Large-photo continuous performance/live-model quality and broader Photoshop remain separate. · [当前实现与验证](2026-11-03-m1-closure.md) · [Quick export preset implementation and local gates](../research/2026-11-m8-quick-export-progress.md) |
 | PS-01-e7337088bf | 文件 | 置入图片为图层 | P0 | 已实现 | 当前设备已有证据；持续回归 · [当前实现与验证](2026-11-03-m1-closure.md) |
 | PS-01-265b9a61ab | 文件 | 恢复到上次保存 | P1 | 已实现 | Source-bound file.revert/status implemented using real image/project reload, fresh matching read capability, explicit discard/history reset and optional confirmation expected_revision. Related22core,52AI,required Metal1,142commands/211examples, lint, final native15 and arm64 Release passed. Initial native failures were a canonical-path assertion and sheet-fixture-triggered XCTest host exit; identity assertion and XCTest-only termination guard fixed, same15 reran passed. One Release window manually verified cancel keeps2layers/dirty/Undo, apply restores original1layer/0,0/clean/Undo+Redo disabled; closing last window exited normally. SourceSHA and quick-preset absence unchanged, process0. No manual every-format/16-bit/corruption or sustained performance claim. · [Bound-source revert implementation and local progress](../research/2026-11-m8-revert-progress.md) |
-| PS-01-40267007aa | 文件 | PSD 导入 | P1 | 待实现 | 待验收 |
-| PS-01-261e177d1e | 文件 | PSD 导出 | P1 | 待实现 | 待验收 |
+| PS-01-40267007aa | 文件 | PSD 导入 | P1 | 部分实现 | RGB 8/16 位平面与分层 PSD；像素层、图层组、基本栅格蒙版、反相与受限曝光可编辑。 · [PSD 导入与本机验证](../research/2026-11-p1-psd-import.md) · [开放轮廓与 PSD 工作路径](../research/2026-11-p1-psd-work-paths.md) · [标准 PSD 矢量蒙版及纯色层](../research/2026-11-p1-vector-masks.md) |
+| PS-01-261e177d1e | 文件 | PSD 导出 | P1 | 部分实现 | 支持范围内的 8/16 位分层 PSD 可通过原生菜单及 AI 命令导出并重新编辑；文字、矢量、智能对象和其他调整类型继续扩展。 · [分层 PSD 导出与互操作验证](../research/2026-11-p1-psd-export.md) · [开放轮廓与 PSD 工作路径](../research/2026-11-p1-psd-work-paths.md) · [标准 PSD 矢量蒙版及纯色层](../research/2026-11-p1-vector-masks.md) |
 | PS-01-ab934d783e | 文件 | 打开 RAW | P2 | 待实现 | 待验收 |
 | PS-01-b49b476915 | 文件 | 置入链接文件 | P2 | 待实现 | 待验收 |
 | PS-01-a69a5778e5 | 文件 | 图层 / 画板导出为文件 | P2 | 待实现 | 待验收 |
@@ -93,7 +93,7 @@
 | PS-04-ef23225e49 | 图层 | 挖空 | P3 | 待实现 | 待验收 |
 | PS-04-c9a10eae37 | 图层 | 智能对象：转换、编辑内容、替换内容、栅格化 | P1 | 待实现 | 待验收 |
 | PS-04-9b3a04c666 | 图层 | 智能滤镜 | P1 | 待实现 | 待验收 |
-| PS-04-9383ee3abd | 图层 | 矢量蒙版 | P1 | 待实现 | 待验收 |
+| PS-04-9383ee3abd | 图层 | 矢量蒙版 | P1 | 已实现 | 路径驱动图层矢量蒙版，支持绑定、替换、启停、反相、链接、撤销、工程重开和原生编辑预览。 · [图层矢量蒙版与 PSD 交接](../research/2026-11-p1-vector-masks.md) |
 | PS-04-dd95b3b697 | 图层 | 图层筛选与查找 | P1 | 待实现 | 待验收 |
 | PS-04-53f23afed6 | 图层 | 画板 | P1 | 待实现 | 待验收 |
 | PS-04-f22dbf0e07 | 图层 | 图层复合 | P2 | 待实现 | 待验收 |
@@ -217,10 +217,10 @@
 | PS-11-d0e9236cfa | 文字 | 文字蒙版工具 | P2 | 待实现 | 待验收 |
 | PS-11-b2feb2a72d | 文字 | 字形面板 | P3 | 待实现 | 待验收 |
 | PS-11-0907b4762e | 文字 | 匹配字体 🤖 | P3 | 待实现 | 待验收 |
-| PS-12-417500cf30 | 矢量与路径 | 形状：矩形（含圆角）/ 椭圆 / 直线 / 多边形 / 三角形 | P1 | 待实现 | 待验收 |
-| PS-12-a132c853ab | 矢量与路径 | 钢笔 / 弯度钢笔 / 自由钢笔 | P1 | 待实现 | 待验收 |
-| PS-12-595e7321ce | 矢量与路径 | 添加 / 删除 / 转换锚点；路径选择 / 直接选择 | P1 | 待实现 | 待验收 |
-| PS-12-cfd8ae8285 | 矢量与路径 | 路径面板、路径与选区互转 | P1 | 待实现 | 待验收 |
+| PS-12-417500cf30 | 矢量与路径 | 形状：矩形（含圆角）/ 椭圆 / 直线 / 多边形 / 三角形 | P1 | 已实现 | 支持六种画布形状、参数重编辑和锚点编辑、独立复制、透明度与原色域、单步撤销及工程重开。 · [参数化形状与本机验收](../research/2026-11-p1-shape-tools.md) |
+| PS-12-a132c853ab | 矢量与路径 | 钢笔 / 弯度钢笔 / 自由钢笔 | P1 | 部分实现 | 常规钢笔可创建、编辑开放与闭合轮廓，保留联动和独立手柄。弯度钢笔与自由钢笔仍待补齐。 · [闭合路径与钢笔验证](../research/2026-11-p1-work-paths.md) · [开放轮廓与 PSD 工作路径](../research/2026-11-p1-psd-work-paths.md) |
+| PS-12-595e7321ce | 矢量与路径 | 添加 / 删除 / 转换锚点；路径选择 / 直接选择 | P1 | 已实现 | 闭合工作路径支持列表选择、整体平移、单点与多锚点直接选择和移动、增删锚点、精确曲线分割及角点/手柄转换。 · [闭合路径与钢笔验证](../research/2026-11-p1-work-paths.md) |
+| PS-12-cfd8ae8285 | 矢量与路径 | 路径面板、路径与选区互转 | P1 | 已实现 | 可编辑复合路径、逐轮廓选择及带阈值和容差的双向转换；孔洞、分离区域、保存重开和撤销按实际轮廓验证。 · [闭合路径与钢笔验证](../research/2026-11-p1-work-paths.md) · [复合路径与选区追踪](../research/2026-11-p1-compound-paths.md) |
 | PS-12-2e23400f5e | 矢量与路径 | 形状组合（合并 / 减去 / 相交） | P2 | 待实现 | 待验收 |
 | PS-12-9bae2bd626 | 矢量与路径 | 自定形状 | P2 | 待实现 | 待验收 |
 | PS-12-afd1a689fb | 矢量与路径 | SVG 导入导出 | P2 | 待实现 | 待验收 |
@@ -272,6 +272,6 @@
 | PS-19-d9de9483c3 | Adobe 的 AI 功能 | 移除干扰物（行人、电线）/ 反射去除 🤖 | P3 | 待实现 | 待验收 |
 | PS-19-ef0365d914 | Adobe 的 AI 功能 | Neural Filters：皮肤平滑、智能肖像、上色、超级缩放、JPEG 伪影去除、照片修复、风格转换、妆容迁移、景观混合器、深度模糊、色彩转移 🤖 | P3 | 待实现 | 待验收 |
 
-综合功能条目：265。实现状态：已实现 99；待实现 154；部分实现 3；重新核对 9。
+综合功能条目：265。实现状态：已实现 103；待实现 147；部分实现 6；重新核对 9。
 
 源清单行号可由 --json 查询。该数量是综合条目数，不能当作独立子功能总数或完成百分比。

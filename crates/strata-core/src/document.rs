@@ -48,6 +48,7 @@ pub struct Frame {
 /// ```
 #[derive(Clone, Debug)]
 pub struct Document {
+    pub(crate) paths: Vec<std::sync::Arc<crate::WorkPath>>,
     pub(crate) guides: Vec<crate::Guide>,
     pub(crate) selection: Option<TiledMask>,
     pub(crate) previous_selection: Option<TiledMask>,
@@ -66,6 +67,9 @@ pub struct Document {
     pub(crate) profile_fallback: bool,
 }
 impl Document {
+    pub fn paths(&self) -> &[std::sync::Arc<crate::WorkPath>] {
+        &self.paths
+    }
     pub fn guides(&self) -> &[crate::Guide] {
         &self.guides
     }
@@ -101,6 +105,9 @@ impl Document {
             return Ok(None);
         }
         let info = layer.info();
+        if let Some(shape) = &info.shape_paint {
+            return shape.bounds(self, info);
+        }
         if let Some(geometry) = &info.generated_geometry {
             return geometry.bounds([info.x, info.y]);
         }
@@ -281,6 +288,19 @@ impl Document {
         }
     }
     pub(crate) fn validate(&self) -> Result<(), DocumentError> {
+        if self.paths.len() > crate::paths::MAX_PATHS {
+            return Err(DocumentError::ResourceLimit);
+        }
+        if self.paths.iter().map(|p| p.anchor_count()).sum::<usize>() > 8192 {
+            return Err(DocumentError::ResourceLimit);
+        }
+        let mut path_ids = std::collections::HashSet::new();
+        for path in &self.paths {
+            path.validate()?;
+            if !path_ids.insert(path.id) {
+                return Err(DocumentError::Invalid("duplicate path id".into()));
+            }
+        }
         if self.guides.len() > crate::MAX_GUIDES {
             return Err(DocumentError::ResourceLimit);
         }
@@ -331,6 +351,27 @@ impl Document {
         let mut bytes = 0u64;
         for layer in &self.layers {
             let info = &layer.info;
+            if let Some(shape) = &info.shape_paint {
+                if shape
+                    .owned_path
+                    .is_some_and(|id| info.vector_mask.as_ref().is_none_or(|m| m.path != id))
+                {
+                    return Err(DocumentError::Invalid(
+                        "shape-owned path must match the vector mask binding".into(),
+                    ));
+                }
+                if !matches!(info.kind, crate::LayerKind::Solid { .. }) {
+                    return Err(DocumentError::Invalid(
+                        "shape paint requires a solid layer".into(),
+                    ));
+                }
+                if let Some(clip) = &shape.clip {
+                    clip.validate([info.x, info.y])?;
+                }
+            }
+            if let Some(m) = &info.vector_mask {
+                m.contours(self, info)?;
+            }
             info.styles.validate(self.bit_depth())?;
             if !info.styles.is_empty() && info.kind.is_adjustment() {
                 return Err(DocumentError::Invalid(
@@ -629,7 +670,6 @@ impl DocumentCandidate {
         {
             return Err(DocumentError::ResourceLimit);
         }
-        let profile = strata_color::resolve_profile(icc.as_deref())?;
         let format = pixels.format();
         let layer = Layer::new(
             name,
@@ -641,12 +681,55 @@ impl DocumentCandidate {
                 pool.clone(),
             )?,
         );
-        let active = Some(layer.id());
+        Self::from_layers(
+            width,
+            height,
+            format,
+            icc,
+            vec![layer],
+            default_resolution_dpi(),
+            pool,
+        )
+    }
+    pub(crate) fn from_layers(
+        width: u32,
+        height: u32,
+        format: PixelFormat,
+        icc: Option<Vec<u8>>,
+        layers: Vec<Layer>,
+        resolution_dpi: u32,
+        pool: strata_pixels::memory::MemoryPool,
+    ) -> Result<Self, DocumentError> {
+        Self::from_layers_with_paths(
+            width,
+            height,
+            format,
+            icc,
+            layers,
+            resolution_dpi,
+            pool,
+            Vec::new(),
+        )
+    }
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn from_layers_with_paths(
+        width: u32,
+        height: u32,
+        format: PixelFormat,
+        icc: Option<Vec<u8>>,
+        layers: Vec<Layer>,
+        resolution_dpi: u32,
+        pool: strata_pixels::memory::MemoryPool,
+        paths: Vec<std::sync::Arc<crate::WorkPath>>,
+    ) -> Result<Self, DocumentError> {
+        let profile = strata_color::resolve_profile(icc.as_deref())?;
+        let active = layers.last().map(Layer::id);
         let doc = Document {
+            paths,
             guides: Vec::new(),
             selection: None,
             previous_selection: None,
-            resolution_dpi: default_resolution_dpi(),
+            resolution_dpi,
             preset: None,
             pool,
             id: DocumentId::fresh(),
@@ -658,7 +741,7 @@ impl DocumentCandidate {
                 width,
                 height,
             },
-            layers: vec![layer],
+            layers,
             active,
             format,
             working_icc: profile.icc,

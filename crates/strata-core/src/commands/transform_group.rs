@@ -3,24 +3,11 @@ use super::*;
 use crate::{
     Document, DocumentError, GeneratedGeometry, LayerId, LayerKind,
     geometry::Homography,
-    geometry_pixels::{self, Sampling},
+    geometry_pixels::{self, Sampling, union},
 };
 use strata_pixels::CoverageRect;
 fn invalid(message: &str) -> CommandError {
     CommandError::Invalid(message.into())
-}
-fn union(a: CoverageRect, b: CoverageRect) -> Result<CoverageRect, DocumentError> {
-    let x = a.x.min(b.x);
-    let y = a.y.min(b.y);
-    let right = (i128::from(a.x) + i128::from(a.width)).max(i128::from(b.x) + i128::from(b.width));
-    let bottom =
-        (i128::from(a.y) + i128::from(a.height)).max(i128::from(b.y) + i128::from(b.height));
-    Ok(CoverageRect {
-        x,
-        y,
-        width: u32::try_from(right - i128::from(x)).map_err(|_| DocumentError::ResourceLimit)?,
-        height: u32::try_from(bottom - i128::from(y)).map_err(|_| DocumentError::ResourceLimit)?,
-    })
 }
 fn extend(
     current: &mut Option<CoverageRect>,
@@ -201,7 +188,7 @@ pub(super) fn apply_roots(
         if source.effective_visibility(layer.id()) {
             extend(&mut visible, bounds)?;
         }
-        if layer.mask.is_some() {
+        if layer.mask.is_some() || layer.info.vector_mask.as_ref().is_some_and(|m| m.linked) {
             masks |= source.effective_visibility(layer.id());
         }
         if let Some(mask) = layer.mask.as_ref().filter(|_| translation.is_none()) {
@@ -338,6 +325,9 @@ pub(super) fn apply_roots(
             layer.info.mask.as_mut().unwrap().enabled =
                 original.info.mask.as_ref().unwrap().enabled;
         }
+        layer
+            .info
+            .transform_bindings(&original.info, transform, false)?;
         GeneratedGeometry::update_reference(
             &mut layer.info,
             &original.info,

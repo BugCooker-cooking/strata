@@ -12,7 +12,14 @@ mod geometry_resize;
 mod guides;
 mod ids;
 mod layer;
+mod paths;
+mod shapes;
+pub use shapes::{ShapeDefinition, ShapeGeometry, ShapeKind, ShapePaint};
+mod vector_mask;
+pub use paths::{PathAnchor, WorkPath};
+pub use vector_mask::VectorMask;
 mod project;
+mod psd;
 mod recovery;
 pub mod styles;
 mod subject;
@@ -25,7 +32,7 @@ pub use document::{
 };
 pub use fill_geometry::GeneratedGeometry;
 pub use guides::{Guide, GuideAxis, GuideRef, MAX_GUIDES, Presentation, RulerMetrics, RulerUnit};
-pub use ids::{DocumentId, GuideId, LayerId, StateId};
+pub use ids::{DocumentId, GuideId, LayerId, PathId, StateId};
 pub use layer::{
     BlendMode, ColorLabel, GeneratedCrop, Layer, LayerInfo, LayerKind, LayerLocks, LayerMaskInfo,
     LayerRef,

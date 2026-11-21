@@ -98,6 +98,47 @@ fn examples() -> Result<(), Box<dyn Error>> {
                         json!({"ruler_unit":"millimeters","ruler_origin":[100,200]}),
                     )?;
                 }
+                "layer.vector_mask.set" | "layer.vector_mask.remove" => {
+                    run(
+                        &mut editor,
+                        "path.create",
+                        json!({"name":"Outline","anchors":[{"position":[1,1]},{"position":[12,1]},{"position":[5,14]}]}),
+                    )?;
+                    if spec.id.ends_with(".remove") {
+                        run(
+                            &mut editor,
+                            "layer.vector_mask.set",
+                            json!({"layer":{"name":"Background"},"path":{"name":"Outline"}}),
+                        )?;
+                    }
+                }
+                "shape.update" => {
+                    run(
+                        &mut editor,
+                        "shape.create",
+                        json!({"name":"Badge","color":[65535,0,0,65535],"geometry":{"start":[1,1],"end":[12,9],"primitive":{"kind":"rectangle","radius":2}}}),
+                    )?;
+                }
+                "path.from_selection" => {
+                    run(
+                        &mut editor,
+                        "select.marquee",
+                        json!({"x":1,"y":1,"width":12,"height":12}),
+                    )?;
+                    run(
+                        &mut editor,
+                        "select.marquee",
+                        json!({"x":4,"y":4,"width":4,"height":4,"mode":"subtract"}),
+                    )?;
+                }
+                "path.split" | "layer.fill.path" | "path.get" | "path.list" | "path.update"
+                | "path.delete" | "select.from_path" => {
+                    run(
+                        &mut editor,
+                        "path.create",
+                        json!({"name":"Outline","anchors":[{"position":[2,2]},{"position":[13,2],"outgoing":[0,3]},{"position":[2,13]}]}),
+                    )?;
+                }
                 "view.guides.update" | "view.guides.delete" | "view.guides.clear" => {
                     run(
                         &mut editor,
@@ -429,6 +470,16 @@ fn examples() -> Result<(), Box<dyn Error>> {
                     )?;
                     args["resource"] = json!(editor.grant_read(&path, Source::Test)?);
                 }
+                "file.open" if example["resource"] == "fixture-psd" => {
+                    let path = dir.path().join("editable.psd");
+                    std::fs::write(
+                        &path,
+                        include_bytes!(
+                            "../../../crates/strata-core/tests/fixtures/psd/group-mask.psd"
+                        ),
+                    )?;
+                    args["resource"] = json!(editor.grant_read(&path, Source::Test)?);
+                }
                 "file.open" | "file.revert" => {
                     let path = dir.path().join("input.strata");
                     let grant = editor.grant_write(&path, false, Source::Test)?;
@@ -450,6 +501,28 @@ fn examples() -> Result<(), Box<dyn Error>> {
                         .ok_or("missing checkpoint")?;
                     args["resource"] =
                         json!(editor.grant_read(&store.path(&info.session_id)?, Source::Test)?);
+                }
+                "file.export_psd" => {
+                    let input = dir.path().join("editable.psd");
+                    std::fs::write(
+                        &input,
+                        include_bytes!(
+                            "../../../crates/strata-core/tests/fixtures/psd/group-mask.psd"
+                        ),
+                    )?;
+                    let grant = editor.grant_read(&input, Source::Test)?;
+                    run(
+                        &mut editor,
+                        "file.open",
+                        json!({"resource":grant,"discard_changes":true}),
+                    )?;
+                    run(
+                        &mut editor,
+                        "path.create",
+                        json!({"name":"交接路径","open_contours":[0],"anchors":[{"position":[0,0],"outgoing":[1,1]},{"position":[2,1],"incoming":[-1,1]}]}),
+                    )?;
+                    let output = dir.path().join("edited.psd");
+                    args["resource"] = json!(editor.grant_write(&output, false, Source::Test)?);
                 }
                 "file.save" | "file.save_as" | "file.export" | "file.quick_export" => {
                     let grant = editor.grant_write(
@@ -496,6 +569,36 @@ fn examples() -> Result<(), Box<dyn Error>> {
             };
             if !result.is_object() {
                 return Err(format!("{} returned non-object", spec.id).into());
+            }
+            if spec.id == "file.open" && example["resource"] == "fixture-psd" {
+                let doc = editor.document().ok_or("PSD example did not open")?;
+                if doc.bit_depth() != 16
+                    || doc.layers().len() != 5
+                    || doc.layers()[1].mask().is_none()
+                {
+                    return Err("PSD example did not preserve editable masked layers".into());
+                }
+            }
+            if spec.id == "file.export_psd" {
+                let bytes = std::fs::read(dir.path().join("edited.psd"))?;
+                let output = strata_io::psd::Psd::parse(&bytes, strata_core::MAX_LAYERS)?;
+                if output.layers.len() != 6
+                    || output.format.bit_depth() != 16
+                    || output.paths.len() != 1
+                    || output.paths[0].name != "交接路径"
+                    || !output.paths[0].contours[0].open
+                {
+                    return Err("layered PSD example lost its editable directory or depth".into());
+                }
+            }
+            if spec.id == "path.from_selection"
+                && editor.document().is_none_or(|doc| {
+                    doc.paths()
+                        .last()
+                        .is_none_or(|path| path.subpaths.len() != 1)
+                })
+            {
+                return Err("selection tracing example did not preserve its hole".into());
             }
             if spec.id == "file.revert"
                 && (!editor.snapshot().history.is_empty()

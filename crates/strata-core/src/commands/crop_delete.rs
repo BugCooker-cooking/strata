@@ -134,6 +134,14 @@ pub(super) fn apply(
             LayerKind::Solid { .. } | LayerKind::Gradient { .. }
         ) {
             let target = &mut doc.layers[index].info;
+            if let Some(shape) = &mut target.shape_paint {
+                match &mut shape.clip {
+                    Some(clip) => clip.crop(local),
+                    None => shape.clip = Some(crate::GeneratedGeometry::rectangular_support(local)),
+                }
+                // The independent color support clips future anchor edits too.
+                continue;
+            }
             if let Some(geometry) = &mut target.generated_geometry {
                 geometry.crop(local);
                 geometry.validate([info.x, info.y])?;

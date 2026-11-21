@@ -10,11 +10,21 @@ Strata is an open-source, AI-operable image editor with a portable Rust core and
 
 目前在 [BugCooker-cooking/strata](https://github.com/BugCooker-cooking/strata) 私有开发；成品完成后再决定公开，不自动切换仓库可见性。
 
-当前持续补齐 M7 编辑功能与 M8 产品化：在可移植AI、选区/蒙版/图层/调整基础上，已增加绘画与修复、基础滤镜及高反差保留、配置/位深与图像几何、原生裁剪/拉直/自由变换手柄、自动RGB校正，以及保留源定义的横排点/段落文字。原生应用和AI共用命令执行器，保留8/16位源样本、工作ICC、撤销和工程恢复。最近本机增量证据见[文字](docs/research/2026-11-m7-editable-text-progress.md)、[变换手柄](docs/research/2026-11-m7-transform-handles-progress.md)及[完整跟踪表](docs/plans/photoshop-feature-coverage.md)。
+P0 已完成逐项核对，目前在开发 P1。已有的编辑能力包括选区、蒙版、图层、调整、绘画与修复、基础滤镜及高反差保留、配置/位深与图像几何、原生裁剪/拉直/自由变换手柄、自动RGB校正，以及保留源定义的横排点/段落文字。原生应用和AI共用命令执行器，保留8/16位源样本、工作ICC、撤销和工程恢复。最近本机增量证据见[文字](docs/research/2026-11-m7-editable-text-progress.md)、[变换手柄](docs/research/2026-11-m7-transform-handles-progress.md)及[完整跟踪表](docs/plans/photoshop-feature-coverage.md)。
 
 2026-11-16 的 [P0 功能核对](docs/research/2026-11-p0-closure.md)覆盖多图层自由变换、可编辑填充与样式的整图几何、三种污点修复、双语界面、文档 RGB 属性和本机命令脚本。验收结果和剩余证据见该记录及[逐功能 AI 入口审计](docs/plans/ai-editing-entrypoint-coverage.md)。
 
-矢量路径和形状、智能对象、PSD、RAW、富文本及其他 P1–P3 编辑能力继续按[完整清单](docs/plans/photoshop-feature-coverage.md)追踪。真实模型质量、持续性能、其他设备和正式发布各有独立门槛。上图为 v1 界面设计稿。2026-11-05 起验证只在本机执行，以下 CI 链接为历史证据。
+2026-11-19 起，macOS 的“打开”及 AI 的 `file.open` 支持导入 8/16 位 RGB PSD，保留像素图层、图层组、基本栅格蒙版和部分调整层。可将结果另存为可继续编辑的 `.strata` 工程。半透明叠加使用 Strata 的线性光混合，与 PSD 内嵌预览可能有色差。[PSD 导入范围与验证](docs/research/2026-11-p1-psd-import.md)
+
+“文件 → 导出分层 PSD…”可把支持的像素层、组、蒙版、反相与曝光调整写回可编辑的 8/16 位 RGB 副本。AI 使用同一写入命令。[PSD 导出范围和互操作验证](docs/research/2026-11-p1-psd-export.md)
+
+钢笔工具（P）可创建、重编辑和保存开放或闭合的贝塞尔工作路径，可将轮廓载入选区或用前景色填充到新图层。还可以从选区生成包含孔洞和分离区域的路径，再编辑或载回选区。在 PSD 中也可以交接这些曲线、名称和手柄。[PSD 工作路径](docs/research/2026-11-p1-psd-work-paths.md) · [选区与复合轮廓](docs/research/2026-11-p1-compound-paths.md) · [钢笔与工作路径](docs/research/2026-11-p1-work-paths.md)
+
+路径面板可把工作路径绑定为图层的矢量蒙版。移动源锚点会改变图层可见区域，栅格蒙版可与它同时使用。[图层矢量蒙版与 PSD 交接](docs/research/2026-11-p1-vector-masks.md)
+
+形状工具（U）可拖动创建六种参数化图元，也能修改半径、边数、线宽、填色和路径锚点。[参数化形状](docs/research/2026-11-p1-shape-tools.md)
+
+接下来的实施顺序见[整个应用的开发计划](docs/plans/2026-11-19-app-roadmap.md)。智能对象、形状布尔运算、其余 PSD 兼容能力、RAW、富文本及其他 P1–P3 编辑能力继续按[完整清单](docs/plans/photoshop-feature-coverage.md)追踪。真实模型质量、持续性能、其他设备和正式发布各有独立门槛。上图为 v1 界面设计稿。2026-11-05 起验证只在本机执行，以下 CI 链接为历史证据。
 
 最近新增了保留原文的文字几何、嵌套图层组变换，以及持久参考线、标尺开关和移动吸附；核心、AI调用、原生测试、真实Metal、Release及单窗口增量验收已通过，示例已恢复并关闭。见[文字几何](docs/research/2026-11-m7-text-geometry-progress.md)和[参考线/吸附](docs/research/2026-11-m7-guides-snap-progress.md)；当前没有遗留测试实例。新增[图层智能参考线](docs/research/2026-11-m7-smart-guides-progress.md)与[标尺角标原点拖动/重置](docs/research/2026-11-m7-ruler-origin-drag-progress.md)通过本机自动化与Release，原生112项中111通过/1联网测试按配置跳过。用户解锁后，同一个Release窗口验证了V/数值实际吸附、小数原点/画布外取消/双击重置，恢复干净示例并退出，进程0；[单窗口范围记录](docs/research/data/2026-11-09-m7-smart-origin-native-closure.json)明确未观察的拖动中辅助线外观/延迟与持续大图门槛。
 

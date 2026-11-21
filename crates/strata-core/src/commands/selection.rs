@@ -187,7 +187,7 @@ fn ellipse(
     }
     Ok(out)
 }
-fn polygon(
+pub(super) fn polygon(
     doc: &Document,
     p: &PolygonSelection,
     cancel: &dyn Fn() -> bool,
@@ -202,68 +202,20 @@ fn polygon(
             "polygon needs 3..4096 finite points within ±1e12 canvas pixels".into(),
         ));
     }
+    compound_polygon(doc, std::slice::from_ref(&p.points), cancel)
+}
+pub(super) fn compound_polygon(
+    doc: &Document,
+    contours: &[Vec<[f64; 2]>],
+    cancel: &dyn Fn() -> bool,
+) -> Result<TiledMask, CommandError> {
     let mut out = DenseMask::empty(doc, 2)?;
-    let min_y = p
-        .points
-        .iter()
-        .map(|p| p[1])
-        .fold(f64::INFINITY, f64::min)
-        .floor()
-        .max(out.bounds.y as f64) as i64;
-    let max_y = p
-        .points
-        .iter()
-        .map(|p| p[1])
-        .fold(f64::NEG_INFINITY, f64::max)
-        .ceil()
-        .min(out.bounds.y as f64 + f64::from(out.height)) as i64;
-    let edges = p
-        .points
-        .iter()
-        .copied()
-        .zip(p.points.iter().copied().cycle().skip(1))
-        .take(p.points.len())
-        .collect::<Vec<_>>();
-    let mut crossings = Vec::with_capacity(p.points.len());
-    for y in min_y..max_y {
-        if cancel() {
-            return Err(CommandError::Expired);
+    crate::vector_mask::rasterize(contours, out.bounds, &mut out.values, cancel).map_err(|e| {
+        match e {
+            DocumentError::Cancelled => CommandError::Expired,
+            e => e.into(),
         }
-        for sy in 0..4 {
-            let scan = y as f64 + (f64::from(sy) + 0.5) / 4.0;
-            crossings.clear();
-            for (a, b) in &edges {
-                if (a[1] <= scan && b[1] > scan) || (b[1] <= scan && a[1] > scan) {
-                    crossings.push(a[0] + (scan - a[1]) * (b[0] - a[0]) / (b[1] - a[1]));
-                }
-            }
-            crossings.sort_by(f64::total_cmp);
-            for span in crossings.chunks_exact(2) {
-                let left = span[0].max(out.bounds.x as f64);
-                let right = span[1].min(out.bounds.x as f64 + f64::from(out.width));
-                if right <= left {
-                    continue;
-                }
-                for x in left.floor() as i64..right.ceil() as i64 {
-                    let mut count = 0u16;
-                    for sx in 0..4 {
-                        let sample = x as f64 + (f64::from(sx) + 0.5) / 4.0;
-                        if sample >= left && sample < right {
-                            count += 1;
-                        }
-                    }
-                    if x >= out.bounds.x && x < out.bounds.x + i64::from(out.width) {
-                        let index = (y - out.bounds.y) as usize * out.width as usize
-                            + (x - out.bounds.x) as usize;
-                        out.values[index] += count;
-                    }
-                }
-            }
-        }
-    }
-    for value in &mut out.values {
-        *value = (u32::from(*value) * 65535 / 16) as u16;
-    }
+    })?;
     out.tiled(doc, cancel)
 }
 fn distance_line(f: &[f64]) -> Vec<f64> {
@@ -642,6 +594,10 @@ pub(super) fn mutate_cancellable(
         "select.ellipse" => {
             let p: Marquee = parse(params)?;
             (ellipse(doc, &p, cancel)?, p.mode)
+        }
+        "select.from_path" => {
+            let p: super::paths::PathSelection = parse(params)?;
+            (super::paths::coverage(doc, &p.path, cancel)?, p.mode)
         }
         "select.polygon" | "select.lasso" => {
             let p: PolygonSelection = parse(params)?;

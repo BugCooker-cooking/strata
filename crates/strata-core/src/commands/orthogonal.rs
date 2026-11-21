@@ -230,6 +230,7 @@ pub(super) fn mutate(
         }
         layer.info.x = reference_origin[0];
         layer.info.y = reference_origin[1];
+        layer.info.transform_bindings(info, &transform, true)?;
         if info.generated_size.is_some()
             || matches!(
                 info.kind,
@@ -280,6 +281,7 @@ pub(super) fn mutate(
         doc.frame.width = before.height;
         doc.frame.height = before.width;
     }
+    crate::paths::transform_paths(&mut doc.paths, &transform)?;
     Ok(Some(
         serde_json::json!({"operation":p.operation,"previous_frame":before,"frame":doc.frame,"all_stored_content_transformed":true,"preserved_layer_structure":true}),
     ))

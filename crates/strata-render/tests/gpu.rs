@@ -2507,3 +2507,82 @@ fn prepared_image_cannot_cross_renderers() {
         .unwrap();
     assert!(b.commit_image(candidate).is_err());
 }
+
+#[test]
+fn vector_mask_exposure_tail_reuses_scene_but_refreshes_edited_path_coverage() {
+    let Some(mut renderer) = renderer() else {
+        return;
+    };
+    let mut e = strata_core::Editor::new();
+    for (id, p) in [
+        (
+            "file.new",
+            serde_json::json!({"width":16,"height":16,"bit_depth":16,"background":[16384,16384,16384,65535]}),
+        ),
+        (
+            "path.create",
+            serde_json::json!({"name":"Half","anchors":[{"position":[0,0]},{"position":[8,0]},{"position":[8,16]},{"position":[0,16]}]}),
+        ),
+        (
+            "layer.add_adjustment",
+            serde_json::json!({"name":"Exposure","type":"exposure","stops":1.0,"mask":"white"}),
+        ),
+        (
+            "layer.vector_mask.set",
+            serde_json::json!({"layer":{"name":"Exposure"},"path":{"name":"Half"}}),
+        ),
+    ] {
+        e.execute(e.request(strata_core::Source::User), id, p, |_| Ok(()))
+            .unwrap();
+    }
+    let mut previous = Vec::new();
+    for i in 0..3 {
+        if i == 1 {
+            e.execute(e.request(strata_core::Source::User),"path.update",serde_json::json!({"path":{"name":"Half"},"anchors":[{"position":[8,0]},{"position":[16,0]},{"position":[16,16]},{"position":[8,16]}]}),|_|Ok(())).unwrap();
+        }
+        if i == 2 {
+            e.execute(
+                e.request(strata_core::Source::User),
+                "edit.undo",
+                serde_json::json!({}),
+                |_| Ok(()),
+            )
+            .unwrap();
+        }
+        let scene = renderer
+            .prepare_document(e.document().unwrap(), i == 0)
+            .unwrap();
+        renderer.commit_document(scene).unwrap();
+        renderer
+            .set_view(ViewTransform {
+                zoom: 4.,
+                center_x: 8.,
+                center_y: 8.,
+            })
+            .unwrap();
+        renderer.render().unwrap();
+        let actual = renderer.read_offscreen_rgba().unwrap();
+        let PixelBuffer::Rgba16(cpu) = e.document().unwrap().export_pixels().unwrap() else {
+            panic!()
+        };
+        for (screen, x) in [(16, 4), (48, 12)] {
+            let observed = pixel(&actual, screen, 32);
+            for c in 0..3 {
+                let expected = (u32::from(cpu[4 * (8 * 16 + x) + c]) * 255 / 65535) as i16;
+                assert!((i16::from(observed[c]) - expected).abs() < 5);
+            }
+        }
+        let left = pixel(&actual, 16, 32)[0];
+        let right = pixel(&actual, 48, 32)[0];
+        if i == 0 {
+            previous = vec![left, right];
+            assert!(left > right + 10);
+        }
+        if i == 1 {
+            assert!(right > left + 10);
+        }
+        if i == 2 {
+            assert_eq!(previous, [left, right]);
+        }
+    }
+}

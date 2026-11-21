@@ -6,7 +6,7 @@ use std::{
 };
 use strata_core::{
     BlendMode, Document, Layer, LayerKind,
-    composite::{Compositor, LinearTile, layer_mask_signature, layer_mask_tile},
+    composite::{Compositor, LinearTile, effective_mask_tile, layer_mask_signature},
 };
 use strata_pixels::TileCoord;
 use strata_pixels::memory::{CacheSlot, MemoryKind, Reservation};
@@ -332,7 +332,7 @@ impl Scene {
                 }
                 selected.unwrap()
             };
-            let mask = self.mask_for(device, queue, coord, lod, tail.as_ref())?;
+            let mask = self.mask_for(device, queue, coord, lod, tail.as_ref(), cancel)?;
             let uniform = device.create_buffer(&wgpu::BufferDescriptor {
                 label: Some("Tile placement"),
                 size: 48,
@@ -387,8 +387,12 @@ impl Scene {
         coord: TileCoord,
         lod: u32,
         tail: Option<&Layer>,
+        cancel: &dyn Fn() -> bool,
     ) -> Result<Arc<GpuMask>, RenderError> {
-        let active = tail.filter(|layer| layer.info().mask.as_ref().is_some_and(|m| m.enabled));
+        let active = tail.filter(|layer| {
+            layer.info().mask.as_ref().is_some_and(|m| m.enabled)
+                || layer.info().vector_mask.as_ref().is_some_and(|m| m.enabled)
+        });
         let Some(layer) = active else {
             if let Some(mask) = &self.white_mask {
                 return Ok(mask.clone());
@@ -409,7 +413,7 @@ impl Scene {
         for y in -1..=1 {
             for x in -1..=1 {
                 let c = TileCoord::new(coord.x() + x, coord.y() + y).map_err(err)?;
-                signatures.push(layer_mask_signature(layer, c));
+                signatures.push(layer_mask_signature(&self.document, layer, c));
                 coords.push(c);
             }
         }
@@ -429,7 +433,7 @@ impl Scene {
             .into_iter()
             .map(|coord| {
                 let [x, y] = coord.origin();
-                layer_mask_tile(layer, x, y)
+                effective_mask_tile(&self.document, layer, x, y, cancel)
                     .map_err(err)
                     .map(|tile| tile.unwrap_or_else(|| vec![65535; 256 * 256]))
             })

@@ -1314,5 +1314,99 @@
         "path": "../research/2026-11-p0-closure.md"
       }
     ]
+  },
+  "PS-01-40267007aa": {
+    "implementation": "部分实现",
+    "acceptance": "RGB 8/16 位平面与分层 PSD；像素层、图层组、基本栅格蒙版、反相与受限曝光可编辑。",
+    "evidence": [
+      {
+        "label": "PSD 导入与本机验证",
+        "path": "../research/2026-11-p1-psd-import.md"
+      },
+      {
+        "label": "开放轮廓与 PSD 工作路径",
+        "path": "../research/2026-11-p1-psd-work-paths.md"
+      },
+      {
+        "label": "标准 PSD 矢量蒙版及纯色层",
+        "path": "../research/2026-11-p1-vector-masks.md"
+      }
+    ]
+  },
+  "PS-01-261e177d1e": {
+    "implementation": "部分实现",
+    "acceptance": "支持范围内的 8/16 位分层 PSD 可通过原生菜单及 AI 命令导出并重新编辑；文字、矢量、智能对象和其他调整类型继续扩展。",
+    "evidence": [
+      {
+        "label": "分层 PSD 导出与互操作验证",
+        "path": "../research/2026-11-p1-psd-export.md"
+      },
+      {
+        "label": "开放轮廓与 PSD 工作路径",
+        "path": "../research/2026-11-p1-psd-work-paths.md"
+      },
+      {
+        "label": "标准 PSD 矢量蒙版及纯色层",
+        "path": "../research/2026-11-p1-vector-masks.md"
+      }
+    ]
+  },
+  "PS-12-a132c853ab": {
+    "implementation": "部分实现",
+    "acceptance": "常规钢笔可创建、编辑开放与闭合轮廓，保留联动和独立手柄。弯度钢笔与自由钢笔仍待补齐。",
+    "evidence": [
+      {
+        "label": "闭合路径与钢笔验证",
+        "path": "../research/2026-11-p1-work-paths.md"
+      },
+      {
+        "label": "开放轮廓与 PSD 工作路径",
+        "path": "../research/2026-11-p1-psd-work-paths.md"
+      }
+    ]
+  },
+  "PS-12-595e7321ce": {
+    "implementation": "已实现",
+    "acceptance": "闭合工作路径支持列表选择、整体平移、单点与多锚点直接选择和移动、增删锚点、精确曲线分割及角点/手柄转换。",
+    "evidence": [
+      {
+        "label": "闭合路径与钢笔验证",
+        "path": "../research/2026-11-p1-work-paths.md"
+      }
+    ]
+  },
+  "PS-12-cfd8ae8285": {
+    "implementation": "已实现",
+    "acceptance": "可编辑复合路径、逐轮廓选择及带阈值和容差的双向转换；孔洞、分离区域、保存重开和撤销按实际轮廓验证。",
+    "evidence": [
+      {
+        "label": "闭合路径与钢笔验证",
+        "path": "../research/2026-11-p1-work-paths.md"
+      },
+      {
+        "label": "复合路径与选区追踪",
+        "path": "../research/2026-11-p1-compound-paths.md"
+      }
+    ]
+  },
+  "PS-04-9383ee3abd": {
+    "implementation": "已实现",
+    "acceptance": "路径驱动图层矢量蒙版，支持绑定、替换、启停、反相、链接、撤销、工程重开和原生编辑预览。",
+    "evidence": [
+      {
+        "label": "图层矢量蒙版与 PSD 交接",
+        "path": "../research/2026-11-p1-vector-masks.md"
+      }
+    ]
+  },
+  "PS-12-417500cf30": {
+    "implementation": "已实现",
+    "acceptance": "支持六种画布形状、参数重编辑和锚点编辑、独立复制、透明度与原色域、单步撤销及工程重开。",
+    "evidence": [
+      {
+        "label": "参数化形状与本机验收",
+        "path": "../research/2026-11-p1-shape-tools.md"
+      }
+    ]
   }
 }

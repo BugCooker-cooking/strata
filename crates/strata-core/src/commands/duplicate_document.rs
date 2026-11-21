@@ -117,6 +117,7 @@ pub(super) fn prepare(
         layer.info.x = frame.x;
         layer.info.y = frame.y;
         Document {
+            paths: original.paths.clone(),
             guides: original.guides.clone(),
             selection: original.selection.clone(),
             previous_selection: original.previous_selection.clone(),

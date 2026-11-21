@@ -21,8 +21,13 @@ fn cancelled() -> StrataError {
         message: "filter preview superseded or cancelled".into(),
     }
 }
-fn parameters(json: &str) -> Result<Value, StrataError> {
-    if json.len() > 64 * 1024 {
+fn parameters(json: &str, command: &str) -> Result<Value, StrataError> {
+    let limit = if command == "path.update" {
+        512 * 1024
+    } else {
+        64 * 1024
+    };
+    if json.len() > limit {
         return Err(render_error("filter parameters exceed preview limit"));
     }
     serde_json::from_str(json).map_err(|e| StrataError::Command {
@@ -112,7 +117,6 @@ impl StrataEngine {
         if self.tonal_preview_sequence.load(Ordering::Acquire) != sequence {
             return Err(cancelled());
         }
-        let parameters = parameters(&params_json)?;
         let (editor, interaction, command) = {
             let inner = self.lock()?;
             let preview = inner.tonal_preview.as_ref().ok_or_else(cancelled)?;
@@ -122,6 +126,7 @@ impl StrataEngine {
                 preview.filter.clone().ok_or_else(cancelled)?,
             )
         };
+        let parameters = parameters(&params_json, &command)?;
         let scoped = crate::tonal_preview::issued_interaction(self, &interaction, sequence)?;
         let scoped = if command == "layer.snap_position" {
             editor
@@ -230,7 +235,13 @@ impl StrataEngine {
             crate::tonal_preview::restore(&mut inner)?;
             return Ok(());
         }
-        let parameters = parameters(&params_json)?;
+        let command = self
+            .lock()?
+            .tonal_preview
+            .as_ref()
+            .and_then(|p| p.filter.clone())
+            .ok_or_else(cancelled)?;
+        let parameters = parameters(&params_json, &command)?;
         let ready = {
             let inner = self.lock()?;
             let preview = inner.tonal_preview.as_ref().ok_or_else(cancelled)?;
@@ -317,6 +328,42 @@ mod tests {
         )
         .unwrap();
         sequence
+    }
+    #[test]
+    fn vector_mask_path_preview_is_owned_display_only_and_restores_the_same_path_on_cancel() {
+        let (e, _) = engine();
+        let src:Value=serde_json::from_str(&e.dispatch("path.create".into(),json!({"name":"Mask","anchors":[{"position":[2,2]},{"position":[15,2]},{"position":[2,15]}]}).to_string()).unwrap()).unwrap();
+        e.dispatch(
+            "layer.vector_mask.set".into(),
+            json!({"layer":{"name":"Background"},"path":{"id":src["path_id"]}}).to_string(),
+        )
+        .unwrap();
+        let before = e.snapshot_json().unwrap();
+        let sequence = start(&e, "path.update");
+        let args = json!({"path":{"id":src["path_id"]},"anchors":[{"position":[5,5]},{"position":[15,2]},{"position":[2,15]}]});
+        e.preview_filter(args.to_string(), sequence).unwrap();
+        {
+            let inner = e.lock().unwrap();
+            let preview = inner.tonal_preview.as_ref().unwrap();
+            let doc = preview
+                .candidate
+                .as_ref()
+                .unwrap()
+                .prepared
+                .document()
+                .unwrap();
+            assert_eq!(doc.paths()[0].anchors[0].position, [5., 5.]);
+            let alpha = |d: &strata_core::Document| match d.export_pixels().unwrap() {
+                strata_pixels::PixelBuffer::Rgba16(v) => v[(3 * 16 + 3) * 4 + 3],
+                _ => panic!(),
+            };
+            assert_eq!(alpha(doc), 0);
+            assert!(alpha(inner.editor.document().unwrap()) > 0);
+        }
+        assert_eq!(e.snapshot_json().unwrap(), before);
+        e.end_filter_preview_checked("{}".into(), true, sequence)
+            .unwrap();
+        assert_eq!(e.snapshot_json().unwrap(), before);
     }
     #[test]
     fn preview_preserves_truth_cancel_restores_and_apply_commits_exact_candidate_once() {

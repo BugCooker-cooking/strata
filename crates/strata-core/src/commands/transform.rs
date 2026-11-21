@@ -189,6 +189,39 @@ pub(super) fn bounds(
                 bounds.validate()?;
                 return Ok(Some(bounds));
             }
+            if let Some(mask) = &info.vector_mask {
+                if mask.inverted {
+                    let f = doc.frame();
+                    return Ok(Some(strata_pixels::CoverageRect {
+                        x: f.x,
+                        y: f.y,
+                        width: f.width,
+                        height: f.height,
+                    }));
+                }
+                let contours = mask.contours(doc, info)?;
+                let mut min = [f64::INFINITY; 2];
+                let mut max = [f64::NEG_INFINITY; 2];
+                for p in contours.iter().flatten() {
+                    for k in 0..2 {
+                        min[k] = min[k].min(p[k]);
+                        max[k] = max[k].max(p[k]);
+                    }
+                }
+                let x = min[0].floor() as i64;
+                let y = min[1].floor() as i64;
+                let w = u32::try_from(max[0].ceil() as i64 - x)
+                    .map_err(|_| DocumentError::ResourceLimit)?;
+                let h = u32::try_from(max[1].ceil() as i64 - y)
+                    .map_err(|_| DocumentError::ResourceLimit)?;
+                return Ok((w > 0 && h > 0).then_some(strata_pixels::CoverageRect {
+                    x,
+                    y,
+                    width: w,
+                    height: h,
+                }));
+            }
+
             return Ok(None);
         }
         LayerKind::Pixel | LayerKind::Text { .. } => {}
@@ -301,7 +334,7 @@ pub(super) fn apply_leaf(
         }
         super::tree::move_position(doc, target, x, y)?;
         return Ok(
-            serde_json::json!({"layer_id":target,"scope":"whole_layer","output_bounds":output_bounds,"source_artboard_clipped":false,"mask_transformed":layer.mask.is_some(),"selection_transformed":false,"changed":dx!=0 || dy!=0}),
+            serde_json::json!({"layer_id":target,"scope":"whole_layer","output_bounds":output_bounds,"source_artboard_clipped":false,"mask_transformed":layer.mask.is_some() || layer.info().vector_mask.as_ref().is_some_and(|m|m.linked),"selection_transformed":false,"changed":dx!=0 || dy!=0}),
         );
     }
     let logical = geometry_pixels::transformed_bounds(bounds, transform, Sampling::Nearest)?;
@@ -373,6 +406,9 @@ pub(super) fn apply_leaf(
     }
     doc.layers[index].info.x = origin[0];
     doc.layers[index].info.y = origin[1];
+    doc.layers[index]
+        .info
+        .transform_bindings(&layer.info, transform, false)?;
     GeneratedGeometry::update_reference(
         &mut doc.layers[index].info,
         &layer.info,
@@ -395,6 +431,6 @@ pub(super) fn apply_leaf(
         output_bounds
     };
     Ok(
-        serde_json::json!({"layer_id":target,"scope":"whole_layer","output_bounds":output_bounds,"source_artboard_clipped":false,"mask_transformed":layer.mask.is_some(),"selection_transformed":false,"changed":true}),
+        serde_json::json!({"layer_id":target,"scope":"whole_layer","output_bounds":output_bounds,"source_artboard_clipped":false,"mask_transformed":layer.mask.is_some() || layer.info().vector_mask.as_ref().is_some_and(|m|m.linked),"selection_transformed":false,"changed":true}),
     )
 }
