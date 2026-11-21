@@ -1074,6 +1074,1595 @@ Permissions: `bound_document`
 }
 ```
 
+## `layer.vector_mask.set` — 绑定或编辑矢量蒙版
+
+Bind one layer, group or adjustment to an editable work path. Native and AI share this command. Use path on first bind or to replace the source. enabled, inverted, linked are optional; a new mask defaults to enabled, normal, linked to layer movement. Changing link state preserves the visible placement. Later source edits affect all bound layers, independently of their raster masks. Raster and vector coverages multiply, retaining source RGBA. Reject locked target/ancestors or stale expected_revision. One undo restores the previous binding. 中文：添加矢量蒙版、路径联动图层、启停或反相矢量蒙版、链接或解除图层移动。
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `false`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SetMask",
+  "type": "object",
+  "properties": {
+    "enabled": {
+      "type": [
+        "boolean",
+        "null"
+      ],
+      "default": null
+    },
+    "expected_revision": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "uint64",
+      "default": null,
+      "minimum": 0
+    },
+    "inverted": {
+      "type": [
+        "boolean",
+        "null"
+      ],
+      "default": null
+    },
+    "layer": {
+      "$ref": "#/$defs/LayerRef"
+    },
+    "linked": {
+      "type": [
+        "boolean",
+        "null"
+      ],
+      "default": null
+    },
+    "path": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PathRef"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "layer"
+  ],
+  "$defs": {
+    "LayerRef": {
+      "description": "Stable ID preferred. Duplicate names return candidates instead of guessing.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ]
+        }
+      ]
+    },
+    "PathRef": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MaskResult",
+  "type": "object",
+  "properties": {
+    "changed": {
+      "type": "boolean"
+    },
+    "layer_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "vector_mask": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/VectorMask"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "layer_id",
+    "changed"
+  ],
+  "$defs": {
+    "VectorMask": {
+      "type": "object",
+      "properties": {
+        "anchor": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "maxItems": 2,
+          "minItems": 2
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "inverted": {
+          "type": "boolean"
+        },
+        "linked": {
+          "type": "boolean"
+        },
+        "matrix": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 9,
+          "minItems": 9
+        },
+        "path": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "enabled",
+        "inverted",
+        "linked",
+        "anchor",
+        "matrix"
+      ]
+    }
+  }
+}
+```
+
+### Examples
+
+```json
+{
+  "layer": {
+    "name": "Background"
+  },
+  "path": {
+    "name": "Outline"
+  }
+}
+```
+
+## `layer.vector_mask.remove` — 移除矢量蒙版
+
+Remove the vector mask binding from a layer, leaving the work path, raster mask and source samples intact. Optional expected_revision binds the inspected document version. One undo restores the same source path and placement. 中文：移除矢量蒙版、解除路径绑定，保留工作路径及栅格蒙版。
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `false`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RemoveMask",
+  "type": "object",
+  "properties": {
+    "expected_revision": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "uint64",
+      "default": null,
+      "minimum": 0
+    },
+    "layer": {
+      "$ref": "#/$defs/LayerRef"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "layer"
+  ],
+  "$defs": {
+    "LayerRef": {
+      "description": "Stable ID preferred. Duplicate names return candidates instead of guessing.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MaskResult",
+  "type": "object",
+  "properties": {
+    "changed": {
+      "type": "boolean"
+    },
+    "layer_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "vector_mask": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/VectorMask"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "layer_id",
+    "changed"
+  ],
+  "$defs": {
+    "VectorMask": {
+      "type": "object",
+      "properties": {
+        "anchor": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "maxItems": 2,
+          "minItems": 2
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "inverted": {
+          "type": "boolean"
+        },
+        "linked": {
+          "type": "boolean"
+        },
+        "matrix": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 9,
+          "minItems": 9
+        },
+        "path": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "enabled",
+        "inverted",
+        "linked",
+        "anchor",
+        "matrix"
+      ]
+    }
+  }
+}
+```
+
+### Examples
+
+```json
+{
+  "layer": {
+    "name": "Background"
+  }
+}
+```
+
+## `shape.create` — 创建可编辑形状
+
+Create one parametric vector shape layer and a named work path in a single undo step. Use rectangle (radius optional; clamped to half the shorter side), ellipse, triangle, polygon (3..128 sides) or line (positive weight, butt ends). start/end are opposing corners in canvas pixels, or endpoints for a line. Reverse drags are valid. The layer has a solid working-RGB fill at document depth and a linked vector mask. Optional expected_document, expected_revision and expected_active_layer bind a native draft and its insertion context. Source selection is preserved. 中文：形状工具、矩形、圆角矩形、椭圆、三角形、多边形、直线；新建可编辑形状图层，支持撤销。
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `false`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CreateShape",
+  "type": "object",
+  "properties": {
+    "color": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "format": "uint16",
+        "maximum": 65535,
+        "minimum": 0
+      },
+      "maxItems": 4,
+      "minItems": 4
+    },
+    "expected_active_layer": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "uuid",
+      "default": null
+    },
+    "expected_document": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "uuid",
+      "default": null
+    },
+    "expected_revision": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "uint64",
+      "default": null,
+      "minimum": 0
+    },
+    "geometry": {
+      "$ref": "#/$defs/ShapeGeometry"
+    },
+    "name": {
+      "type": "string",
+      "maxLength": 256,
+      "minLength": 1
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "name",
+    "geometry",
+    "color"
+  ],
+  "$defs": {
+    "ShapeGeometry": {
+      "type": "object",
+      "properties": {
+        "end": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 2,
+          "minItems": 2
+        },
+        "primitive": {
+          "$ref": "#/$defs/ShapeKind"
+        },
+        "start": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 2,
+          "minItems": 2
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "start",
+        "end",
+        "primitive"
+      ]
+    },
+    "ShapeKind": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "rectangle"
+            },
+            "radius": {
+              "type": "number",
+              "format": "double",
+              "default": 0.0,
+              "maximum": 1000000000000.0,
+              "minimum": 0.0
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "ellipse"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "triangle"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "polygon"
+            },
+            "sides": {
+              "type": "integer",
+              "format": "uint16",
+              "maximum": 128,
+              "minimum": 3
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "sides"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "line"
+            },
+            "weight": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "maximum": 1000000000000.0
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "weight"
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ShapeResult",
+  "type": "object",
+  "properties": {
+    "changed": {
+      "type": "boolean"
+    },
+    "definition": {
+      "$ref": "#/$defs/ShapeDefinition"
+    },
+    "layer_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "path_id": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "layer_id",
+    "path_id",
+    "definition",
+    "changed"
+  ],
+  "$defs": {
+    "ShapeDefinition": {
+      "type": "object",
+      "properties": {
+        "geometry": {
+          "$ref": "#/$defs/ShapeGeometry"
+        },
+        "placement": {
+          "description": "Geometry is entered in its original coordinate space. Whole-image\nedits accumulate this affine mapping and keep the parameters editable.",
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 9,
+          "minItems": 9
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "geometry",
+        "placement"
+      ]
+    },
+    "ShapeGeometry": {
+      "type": "object",
+      "properties": {
+        "end": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 2,
+          "minItems": 2
+        },
+        "primitive": {
+          "$ref": "#/$defs/ShapeKind"
+        },
+        "start": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 2,
+          "minItems": 2
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "start",
+        "end",
+        "primitive"
+      ]
+    },
+    "ShapeKind": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "rectangle"
+            },
+            "radius": {
+              "type": "number",
+              "format": "double",
+              "default": 0.0,
+              "maximum": 1000000000000.0,
+              "minimum": 0.0
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "ellipse"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "triangle"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "polygon"
+            },
+            "sides": {
+              "type": "integer",
+              "format": "uint16",
+              "maximum": 128,
+              "minimum": 3
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "sides"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "line"
+            },
+            "weight": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "maximum": 1000000000000.0
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "weight"
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+### Examples
+
+```json
+{
+  "color": [
+    255,
+    80,
+    40,
+    255
+  ],
+  "geometry": {
+    "end": [
+      13,
+      12
+    ],
+    "primitive": {
+      "kind": "rectangle",
+      "radius": 2
+    },
+    "start": [
+      2,
+      3
+    ]
+  },
+  "name": "Badge"
+}
+```
+
+```json
+{
+  "color": [
+    65535,
+    20000,
+    32768,
+    65535
+  ],
+  "geometry": {
+    "end": [
+      14,
+      12
+    ],
+    "primitive": {
+      "kind": "rectangle"
+    },
+    "start": [
+      2,
+      2
+    ]
+  },
+  "name": "Illustration"
+}
+```
+
+```json
+{
+  "color": [
+    65535,
+    20000,
+    32768,
+    65535
+  ],
+  "geometry": {
+    "end": [
+      14,
+      12
+    ],
+    "primitive": {
+      "kind": "ellipse"
+    },
+    "start": [
+      2,
+      2
+    ]
+  },
+  "name": "Illustration"
+}
+```
+
+```json
+{
+  "color": [
+    65535,
+    20000,
+    32768,
+    65535
+  ],
+  "geometry": {
+    "end": [
+      14,
+      12
+    ],
+    "primitive": {
+      "kind": "triangle"
+    },
+    "start": [
+      2,
+      2
+    ]
+  },
+  "name": "Illustration"
+}
+```
+
+```json
+{
+  "color": [
+    65535,
+    20000,
+    32768,
+    65535
+  ],
+  "geometry": {
+    "end": [
+      14,
+      12
+    ],
+    "primitive": {
+      "kind": "polygon",
+      "sides": 5
+    },
+    "start": [
+      2,
+      2
+    ]
+  },
+  "name": "Illustration"
+}
+```
+
+```json
+{
+  "color": [
+    65535,
+    20000,
+    32768,
+    65535
+  ],
+  "geometry": {
+    "end": [
+      14,
+      12
+    ],
+    "primitive": {
+      "kind": "line",
+      "weight": 2
+    },
+    "start": [
+      2,
+      2
+    ]
+  },
+  "name": "Illustration"
+}
+```
+
+## `shape.update` — 修改形状尺寸与参数
+
+Change geometry and/or fill RGBA of a parametric shape. Geometry uses the source coordinate system stored by path.get; image and layer transforms retain their placement. Manual anchor changes turn the source into a freeform path editable with path.update. Duplicate shape layers have independent curves. An identical update is a no-op. Requires an editable layer; one undo. 中文：修改圆角半径、多边形边数、线宽、源尺寸或填色。
+
+Kind: `Mutate` · Undoable: `true` · Batchable: `false`
+
+Effects: `document.write`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "EditShape",
+  "type": "object",
+  "properties": {
+    "color": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "default": null,
+      "items": {
+        "type": "integer",
+        "format": "uint16",
+        "maximum": 65535,
+        "minimum": 0
+      },
+      "maxItems": 4,
+      "minItems": 4
+    },
+    "expected_revision": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "uint64",
+      "default": null,
+      "minimum": 0
+    },
+    "geometry": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ShapeGeometry"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "layer": {
+      "$ref": "#/$defs/LayerRef"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "layer"
+  ],
+  "$defs": {
+    "LayerRef": {
+      "description": "Stable ID preferred. Duplicate names return candidates instead of guessing.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ]
+        }
+      ]
+    },
+    "ShapeGeometry": {
+      "type": "object",
+      "properties": {
+        "end": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 2,
+          "minItems": 2
+        },
+        "primitive": {
+          "$ref": "#/$defs/ShapeKind"
+        },
+        "start": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 2,
+          "minItems": 2
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "start",
+        "end",
+        "primitive"
+      ]
+    },
+    "ShapeKind": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "rectangle"
+            },
+            "radius": {
+              "type": "number",
+              "format": "double",
+              "default": 0.0,
+              "maximum": 1000000000000.0,
+              "minimum": 0.0
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "ellipse"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "triangle"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "polygon"
+            },
+            "sides": {
+              "type": "integer",
+              "format": "uint16",
+              "maximum": 128,
+              "minimum": 3
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "sides"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "line"
+            },
+            "weight": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "maximum": 1000000000000.0
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "weight"
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ShapeResult",
+  "type": "object",
+  "properties": {
+    "changed": {
+      "type": "boolean"
+    },
+    "definition": {
+      "$ref": "#/$defs/ShapeDefinition"
+    },
+    "layer_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "path_id": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "layer_id",
+    "path_id",
+    "definition",
+    "changed"
+  ],
+  "$defs": {
+    "ShapeDefinition": {
+      "type": "object",
+      "properties": {
+        "geometry": {
+          "$ref": "#/$defs/ShapeGeometry"
+        },
+        "placement": {
+          "description": "Geometry is entered in its original coordinate space. Whole-image\nedits accumulate this affine mapping and keep the parameters editable.",
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 9,
+          "minItems": 9
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "geometry",
+        "placement"
+      ]
+    },
+    "ShapeGeometry": {
+      "type": "object",
+      "properties": {
+        "end": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 2,
+          "minItems": 2
+        },
+        "primitive": {
+          "$ref": "#/$defs/ShapeKind"
+        },
+        "start": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 2,
+          "minItems": 2
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "start",
+        "end",
+        "primitive"
+      ]
+    },
+    "ShapeKind": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "rectangle"
+            },
+            "radius": {
+              "type": "number",
+              "format": "double",
+              "default": 0.0,
+              "maximum": 1000000000000.0,
+              "minimum": 0.0
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "ellipse"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "triangle"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "polygon"
+            },
+            "sides": {
+              "type": "integer",
+              "format": "uint16",
+              "maximum": 128,
+              "minimum": 3
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "sides"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "line"
+            },
+            "weight": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "maximum": 1000000000000.0
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "weight"
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+### Examples
+
+```json
+{
+  "geometry": {
+    "end": [
+      14,
+      14
+    ],
+    "primitive": {
+      "kind": "polygon",
+      "sides": 5
+    },
+    "start": [
+      2,
+      3
+    ]
+  },
+  "layer": {
+    "name": "Badge"
+  }
+}
+```
+
+## `shape.outline` — 预览形状轮廓
+
+Return the actual cubic anchors for a shape draft in canvas coordinates. Uses the creation geometry generator and does not edit the document, layers, selection or history. 中文：预览形状锚点和方向手柄。
+
+Kind: `Query` · Undoable: `false` · Batchable: `false`
+
+Effects: `document.read`
+
+Permissions: `bound_document`
+
+- Host-bound source, session, document and revision; control ownership and resource limits are checked.
+
+### Parameters
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Outline",
+  "type": "object",
+  "properties": {
+    "geometry": {
+      "$ref": "#/$defs/ShapeGeometry"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "geometry"
+  ],
+  "$defs": {
+    "ShapeGeometry": {
+      "type": "object",
+      "properties": {
+        "end": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 2,
+          "minItems": 2
+        },
+        "primitive": {
+          "$ref": "#/$defs/ShapeKind"
+        },
+        "start": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 2,
+          "minItems": 2
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "start",
+        "end",
+        "primitive"
+      ]
+    },
+    "ShapeKind": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "rectangle"
+            },
+            "radius": {
+              "type": "number",
+              "format": "double",
+              "default": 0.0,
+              "maximum": 1000000000000.0,
+              "minimum": 0.0
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "ellipse"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "triangle"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "polygon"
+            },
+            "sides": {
+              "type": "integer",
+              "format": "uint16",
+              "maximum": 128,
+              "minimum": 3
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "sides"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "line"
+            },
+            "weight": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "maximum": 1000000000000.0
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "weight"
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+### Result
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "OutlineResult",
+  "type": "object",
+  "properties": {
+    "anchors": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/PathAnchor"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "anchors"
+  ],
+  "$defs": {
+    "PathAnchor": {
+      "type": "object",
+      "properties": {
+        "incoming": {
+          "type": "array",
+          "default": [
+            0.0,
+            0.0
+          ],
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 2,
+          "minItems": 2
+        },
+        "linked": {
+          "type": "boolean"
+        },
+        "outgoing": {
+          "type": "array",
+          "default": [
+            0.0,
+            0.0
+          ],
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 2,
+          "minItems": 2
+        },
+        "position": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 2,
+          "minItems": 2
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "position"
+      ]
+    }
+  }
+}
+```
+
+### Examples
+
+```json
+{
+  "geometry": {
+    "end": [
+      13,
+      12
+    ],
+    "primitive": {
+      "kind": "rectangle",
+      "radius": 2
+    },
+    "start": [
+      2,
+      3
+    ]
+  }
+}
+```
+
 ## `path.create` — 创建贝塞尔工作路径
 
 Create an open or closed Bézier work path (创建闭合贝塞尔路径或开放路径) with 2..1024 ordered anchors, up to 64 paths per document. Optional subpaths are additional closed contours with the same anchor format. Even-odd fill supports holes and islands. At most 64 contours and 2048 total anchors per path; the document supports 8192 anchors. position is absolute [x,y] in canvas pixels. Optional incoming/outgoing handle vectors are relative to that anchor and default to [0,0] for corners. Cubic segments join outgoing to the next incoming. All contours are closed by default; open_contours lists zero-based indices to leave open. linked=true couples tangent directions in the native editor, preserving the other handle length. 开放路径、闭合路径及复合轮廓。 Finite points and handle endpoints within ±1e12; name 1..256 UTF-8 bytes. Optional expected_revision binds a staged native draft. Changes document metadata in one undo step. 保存可编辑闭合路径、钢笔锚点和相对方向手柄，一次撤销；工程保留曲线，普通图像导出只写像素。
@@ -1814,6 +3403,16 @@ Permissions: `bound_document`
       "maxItems": 64,
       "uniqueItems": true
     },
+    "shape": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ShapeDefinition"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
     "subpaths": {
       "description": "Additional closed contours share the even-odd fill rule with anchors.",
       "type": "array",
@@ -1880,6 +3479,150 @@ Permissions: `bound_document`
       "additionalProperties": false,
       "required": [
         "position"
+      ]
+    },
+    "ShapeDefinition": {
+      "type": "object",
+      "properties": {
+        "geometry": {
+          "$ref": "#/$defs/ShapeGeometry"
+        },
+        "placement": {
+          "description": "Geometry is entered in its original coordinate space. Whole-image\nedits accumulate this affine mapping and keep the parameters editable.",
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 9,
+          "minItems": 9
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "geometry",
+        "placement"
+      ]
+    },
+    "ShapeGeometry": {
+      "type": "object",
+      "properties": {
+        "end": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 2,
+          "minItems": 2
+        },
+        "primitive": {
+          "$ref": "#/$defs/ShapeKind"
+        },
+        "start": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 2,
+          "minItems": 2
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "start",
+        "end",
+        "primitive"
+      ]
+    },
+    "ShapeKind": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "rectangle"
+            },
+            "radius": {
+              "type": "number",
+              "format": "double",
+              "default": 0.0,
+              "maximum": 1000000000000.0,
+              "minimum": 0.0
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "ellipse"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "triangle"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "polygon"
+            },
+            "sides": {
+              "type": "integer",
+              "format": "uint16",
+              "maximum": 128,
+              "minimum": 3
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "sides"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "line"
+            },
+            "weight": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "maximum": 1000000000000.0
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "weight"
+          ]
+        }
       ]
     }
   }
@@ -6105,6 +7848,16 @@ Permissions: `bound_document`
           "type": "boolean",
           "default": false
         },
+        "shape_paint": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ShapePaint"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "spatial_bounds": {
           "description": "Frozen sampling domain for spatial adjustments after canvas-only edits.",
           "anyOf": [
@@ -6126,6 +7879,16 @@ Permissions: `bound_document`
             "outer_glow": null,
             "stroke": null
           }
+        },
+        "vector_mask": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/VectorMask"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "visible": {
           "type": "boolean"
@@ -6767,6 +8530,174 @@ Permissions: `bound_document`
         "offset_y",
         "blur"
       ]
+    },
+    "ShapeDefinition": {
+      "type": "object",
+      "properties": {
+        "geometry": {
+          "$ref": "#/$defs/ShapeGeometry"
+        },
+        "placement": {
+          "description": "Geometry is entered in its original coordinate space. Whole-image\nedits accumulate this affine mapping and keep the parameters editable.",
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 9,
+          "minItems": 9
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "geometry",
+        "placement"
+      ]
+    },
+    "ShapeGeometry": {
+      "type": "object",
+      "properties": {
+        "end": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 2,
+          "minItems": 2
+        },
+        "primitive": {
+          "$ref": "#/$defs/ShapeKind"
+        },
+        "start": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 2,
+          "minItems": 2
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "start",
+        "end",
+        "primitive"
+      ]
+    },
+    "ShapeKind": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "rectangle"
+            },
+            "radius": {
+              "type": "number",
+              "format": "double",
+              "default": 0.0,
+              "maximum": 1000000000000.0,
+              "minimum": 0.0
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "ellipse"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "triangle"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "polygon"
+            },
+            "sides": {
+              "type": "integer",
+              "format": "uint16",
+              "maximum": 128,
+              "minimum": 3
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "sides"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "line"
+            },
+            "weight": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "maximum": 1000000000000.0
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "weight"
+          ]
+        }
+      ]
+    },
+    "ShapePaint": {
+      "description": "A shape uses constant ink through an editable vector mask. The optional\nlayer-local support records destructive crops independently of the path.",
+      "type": "object",
+      "properties": {
+        "clip": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GeneratedGeometry"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "owned_path": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uuid"
+        }
+      },
+      "additionalProperties": false
     },
     "SourceInfo": {
       "type": "string",
@@ -7716,6 +9647,51 @@ Permissions: `bound_document`
         "bilinear"
       ]
     },
+    "VectorMask": {
+      "type": "object",
+      "properties": {
+        "anchor": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "maxItems": 2,
+          "minItems": 2
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "inverted": {
+          "type": "boolean"
+        },
+        "linked": {
+          "type": "boolean"
+        },
+        "matrix": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 9,
+          "minItems": 9
+        },
+        "path": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "enabled",
+        "inverted",
+        "linked",
+        "anchor",
+        "matrix"
+      ]
+    },
     "WorkPath": {
       "type": "object",
       "properties": {
@@ -7746,6 +9722,16 @@ Permissions: `bound_document`
           },
           "maxItems": 64,
           "uniqueItems": true
+        },
+        "shape": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ShapeDefinition"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "subpaths": {
           "description": "Additional closed contours share the even-odd fill rule with anchors.",
@@ -8250,6 +10236,16 @@ Permissions: `bound_document`
           "type": "boolean",
           "default": false
         },
+        "shape_paint": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ShapePaint"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "spatial_bounds": {
           "description": "Frozen sampling domain for spatial adjustments after canvas-only edits.",
           "anyOf": [
@@ -8271,6 +10267,16 @@ Permissions: `bound_document`
             "outer_glow": null,
             "stroke": null
           }
+        },
+        "vector_mask": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/VectorMask"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "visible": {
           "type": "boolean"
@@ -8716,6 +10722,30 @@ Permissions: `bound_document`
         "offset_y",
         "blur"
       ]
+    },
+    "ShapePaint": {
+      "description": "A shape uses constant ink through an editable vector mask. The optional\nlayer-local support records destructive crops independently of the path.",
+      "type": "object",
+      "properties": {
+        "clip": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GeneratedGeometry"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "owned_path": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uuid"
+        }
+      },
+      "additionalProperties": false
     },
     "Stroke": {
       "type": "object",
@@ -9655,6 +11685,51 @@ Permissions: `bound_document`
       "enum": [
         "nearest",
         "bilinear"
+      ]
+    },
+    "VectorMask": {
+      "type": "object",
+      "properties": {
+        "anchor": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "maxItems": 2,
+          "minItems": 2
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "inverted": {
+          "type": "boolean"
+        },
+        "linked": {
+          "type": "boolean"
+        },
+        "matrix": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxItems": 9,
+          "minItems": 9
+        },
+        "path": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "enabled",
+        "inverted",
+        "linked",
+        "anchor",
+        "matrix"
       ]
     }
   }
@@ -12740,7 +14815,7 @@ Permissions: `bound_document`
 
 ## `file.open` — 打开文件
 
-Open an authorized image, Strata project or 8/16-bit RGB PSD. Import PSD pixel layers, nested groups, basic raster masks, invert and exposure (zero offset, gamma 1) as editable layers. Unsupported layer features such as type, vector masks and smart objects fail before replacing the document. Strata recomposites in linear light, so translucent overlaps can differ from the embedded Photoshop preview. Opening starts a fresh history and requires discard_changes for a dirty document. Saved PSD path resources retain open and closed cubic knots and Unicode names. Save edits to a Strata project. 中文：打开文件、导入分层 PSD、打开 Photoshop 文档、读取 PSD 路径资源。由宿主授权读取，保留像素层、组、基本栅格蒙版、反相和基本曝光。半透明区域按线性光重新合成。打开后开始新的历史，替换有未保存修改的文档须明确允许放弃修改。
+Open an authorized image, Strata project or 8/16-bit RGB PSD. Import PSD pixel layers, nested groups, basic raster masks, invert and exposure (zero offset, gamma 1) as editable layers. Standard PSD v3 vector masks and RGB solid-color fills remain editable. Unsupported layer features such as type, advanced vector operations and smart objects fail before replacing the document. Strata recomposites in linear light, so translucent overlaps can differ from the embedded Photoshop preview. Opening starts a fresh history and requires discard_changes for a dirty document. Saved PSD path resources retain open and closed cubic knots and Unicode names. Save edits to a Strata project. 中文：打开文件、导入分层 PSD、打开 Photoshop 文档、读取 PSD 路径资源。由宿主授权读取，保留像素层、组、基本栅格蒙版、矢量蒙版、RGB 纯色填充、反相和基本曝光。半透明区域按线性光重新合成。打开后开始新的历史，替换有未保存修改的文档须明确允许放弃修改。
 
 Kind: `Lifecycle` · Undoable: `false` · Batchable: `false`
 
@@ -13508,7 +15583,7 @@ Permissions: `bound_document, write_resource`
 
 ## `file.export_psd` — 导出分层 PSD 副本
 
-Export an editable RGB PSD v1 copy of the current artboard at its original 8/16-bit depth, DPI and working ICC. Retain pixel layers (including hidden RGB and off-artboard samples), groups, clipping, raster masks, invert and exposure. Layer coordinates are relative to the artboard. PSD stores opacity in 8 bits and exposure in a float. The embedded preview uses Strata's composite; other editors may reblend in a different space. Unsupported editable content fails before publication. An 8-bit PSD needs mask samples exactly representable in 8 bits. Saved work paths and their Unicode names are included as PSD path resources. Path knots are rounded to signed normalized 8.24 fixed point. The Strata project retains selections and guides. The PSD is a fixed snapshot taken at export preparation. Requires a host-authorized write destination; export does not mark the project saved or enter undo history. 中文：导出分层 PSD 副本、保存为 Photoshop 文件。保留图层、图层组、蒙版、工作路径、位深、ICC 和分辨率。宿主授权写入，导出记录独立于撤销。工程中保留选区和参考线。
+Export an editable RGB PSD v1 copy of the current artboard at its original 8/16-bit depth, DPI and working ICC. Retain pixel layers (including hidden RGB and off-artboard samples), groups, clipping, raster masks, invert and exposure. Layer coordinates are relative to the artboard. PSD stores opacity in 8 bits and exposure in a float. The embedded preview uses Strata's composite; other editors may reblend in a different space. Unsupported editable content fails before publication. An 8-bit PSD needs mask samples exactly representable in 8 bits. Export standard vmsk vector mask geometry and its flags as well as plain full-artboard opaque RGB solid-color fills. Perspective mask placement requires conversion for PSD. Saved work paths and Unicode names are included as PSD path resources. Path knots are rounded to signed normalized 8.24 fixed point. The Strata project retains selections and guides. The PSD is a fixed snapshot taken at export preparation. Requires a host-authorized write destination; export does not mark the project saved or enter undo history. 中文：导出分层 PSD 副本、保存为 Photoshop 文件。保留图层、图层组、栅格与矢量蒙版、工作路径、位深、ICC 和分辨率。宿主授权写入，导出记录独立于撤销。工程中保留选区和参考线。
 
 Kind: `External` · Undoable: `false` · Batchable: `false`
 

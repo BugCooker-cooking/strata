@@ -17,6 +17,7 @@ pub fn domain_summary(domain: &str) -> &str {
         "paint" => "Brushes, fill and gradients / 绘画",
         "transform" => "Move, transform and crop / 变换",
         "filter" => "Image filters / 滤镜",
+        "shape" => "Parametric vector shapes and editable geometry / 参数化矢量形状",
         "path" => "Editable closed Bézier work paths and anchors / 闭合路径与锚点",
         "type" => "Editable typography / 文字",
         "view" => "Canvas navigation, rulers, guides and snapping / 视图、标尺与参考线",

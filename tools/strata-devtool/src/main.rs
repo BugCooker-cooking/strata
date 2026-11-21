@@ -98,6 +98,27 @@ fn examples() -> Result<(), Box<dyn Error>> {
                         json!({"ruler_unit":"millimeters","ruler_origin":[100,200]}),
                     )?;
                 }
+                "layer.vector_mask.set" | "layer.vector_mask.remove" => {
+                    run(
+                        &mut editor,
+                        "path.create",
+                        json!({"name":"Outline","anchors":[{"position":[1,1]},{"position":[12,1]},{"position":[5,14]}]}),
+                    )?;
+                    if spec.id.ends_with(".remove") {
+                        run(
+                            &mut editor,
+                            "layer.vector_mask.set",
+                            json!({"layer":{"name":"Background"},"path":{"name":"Outline"}}),
+                        )?;
+                    }
+                }
+                "shape.update" => {
+                    run(
+                        &mut editor,
+                        "shape.create",
+                        json!({"name":"Badge","color":[65535,0,0,65535],"geometry":{"start":[1,1],"end":[12,9],"primitive":{"kind":"rectangle","radius":2}}}),
+                    )?;
+                }
                 "path.from_selection" => {
                     run(
                         &mut editor,

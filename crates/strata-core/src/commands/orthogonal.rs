@@ -230,6 +230,7 @@ pub(super) fn mutate(
         }
         layer.info.x = reference_origin[0];
         layer.info.y = reference_origin[1];
+        layer.info.transform_bindings(info, &transform, true)?;
         if info.generated_size.is_some()
             || matches!(
                 info.kind,

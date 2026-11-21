@@ -188,7 +188,7 @@ pub(super) fn apply_roots(
         if source.effective_visibility(layer.id()) {
             extend(&mut visible, bounds)?;
         }
-        if layer.mask.is_some() {
+        if layer.mask.is_some() || layer.info.vector_mask.as_ref().is_some_and(|m| m.linked) {
             masks |= source.effective_visibility(layer.id());
         }
         if let Some(mask) = layer.mask.as_ref().filter(|_| translation.is_none()) {
@@ -325,6 +325,9 @@ pub(super) fn apply_roots(
             layer.info.mask.as_mut().unwrap().enabled =
                 original.info.mask.as_ref().unwrap().enabled;
         }
+        layer
+            .info
+            .transform_bindings(&original.info, transform, false)?;
         GeneratedGeometry::update_reference(
             &mut layer.info,
             &original.info,

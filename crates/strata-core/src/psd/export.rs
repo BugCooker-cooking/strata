@@ -21,6 +21,7 @@ enum RecordKind {
     Divider,
     Invert,
     Exposure(f32),
+    Solid([f64; 3]),
 }
 struct Record<'a> {
     layer: &'a Layer,
@@ -109,6 +110,23 @@ fn records<'a>(
             return Err(unsupported(layer));
         }
         let kind = match &i.kind {
+            LayerKind::Solid { color }
+                if (i.shape_paint.as_ref().is_some_and(|p| p.clip.is_none())
+                    && i.vector_mask.is_some()
+                    || ((i.shape_paint.is_none()
+                        || i.shape_paint.as_ref().is_some_and(|p| p.clip.is_none()))
+                        && i.generated_geometry.is_none()
+                        && i.generated_crop.is_none()
+                        && i.generated_size.unwrap_or([frame.width, frame.height])
+                            == [frame.width, frame.height]
+                        && [i.x, i.y] == [frame.x, frame.y]
+                        && color[3] == if doc.bit_depth() == 8 { 255 } else { 65535 })) =>
+            {
+                let maximum = if doc.bit_depth() == 8 { 255.0 } else { 65535.0 };
+                RecordKind::Solid(std::array::from_fn(|k| {
+                    f64::from(color[k]) * 255.0 / maximum
+                }))
+            }
             LayerKind::Pixel => RecordKind::Pixel,
             LayerKind::Group => RecordKind::Folder,
             LayerKind::Exposure { stops } => RecordKind::Exposure(*stops as f32),
@@ -176,7 +194,8 @@ fn sample_bytes(r: CoverageRect, format: PixelFormat) -> u64 {
     u64::from(r.width) * u64::from(r.height) * format.bytes_per_sample() as u64
 }
 impl Record<'_> {
-    fn directory(&self, out: &mut Vec<u8>, format: PixelFormat) -> Result<u64, DocumentError> {
+    fn directory(&self, out: &mut Vec<u8>, doc: &Document) -> Result<u64, DocumentError> {
+        let format = doc.format();
         let info = self.layer.info();
         for value in self.rect {
             out.extend(value.to_be_bytes());
@@ -197,6 +216,18 @@ impl Record<'_> {
             out.extend(size.to_be_bytes());
         }
         let divider = matches!(self.kind, RecordKind::Divider);
+        let shape_alpha = if let LayerKind::Solid { color } = info.kind
+            && info.shape_paint.is_some()
+        {
+            f64::from(color[3])
+                / if format == PixelFormat::Rgba8 {
+                    255.0
+                } else {
+                    65535.0
+                }
+        } else {
+            1.0
+        };
         let opacity = |v: f64| (v * 255.0).round() as u8;
         out.extend(b"8BIM");
         out.extend(if divider || matches!(self.kind, RecordKind::Folder) {
@@ -265,6 +296,7 @@ impl Record<'_> {
                 tag(&mut extra, b"lsct", &folder);
             }
             RecordKind::Divider => tag(&mut extra, b"lsct", &3u32.to_be_bytes()),
+            RecordKind::Solid(rgb) => tag(&mut extra, b"SoCo", &strata_io::psd::encode_solid(rgb)),
             RecordKind::Invert => tag(&mut extra, b"nvrt", &[]),
             RecordKind::Exposure(stops) => {
                 let mut data = Vec::from(1u16.to_be_bytes());
@@ -275,8 +307,69 @@ impl Record<'_> {
             }
             RecordKind::Pixel => {}
         }
+        if let Some(m) = info.vector_mask.as_ref().filter(|_| !divider) {
+            let frame = doc.frame();
+            let path = m.source(doc)?;
+            let placement = m.effective(info)?;
+            if placement.values()[6] != 0. || placement.values()[7] != 0. {
+                return Err(invalid(
+                    "perspective vector mask needs an affine placement for editable PSD export",
+                ));
+            }
+            let saved = super::path_for_psd(
+                path,
+                [frame.x, frame.y],
+                [frame.width, frame.height],
+                Some(&placement),
+            )?;
+            let mut data = Vec::from(3u32.to_be_bytes());
+            let flags =
+                u32::from(m.inverted) | (u32::from(!m.linked) << 1) | (u32::from(!m.enabled) << 2);
+            data.extend(flags.to_be_bytes());
+            data.extend(saved.encode().map_err(|e| invalid(e.to_string()))?);
+            tag(&mut extra, b"vmsk", &data);
+            let translate = |x, y| crate::geometry::Homography::affine([1., 0., 0., 1., x, y]);
+            let origin =
+                translate(frame.x as f64, frame.y as f64).map_err(|e| invalid(e.to_string()))?;
+            let matrix = origin
+                .then(&placement)
+                .and_then(|m| m.then(&origin.inverted()))
+                .map_err(|e| invalid(e.to_string()))?;
+            let idx = doc
+                .paths()
+                .iter()
+                .position(|p| p.id == m.path)
+                .expect("validated source");
+            let shape_data = if let LayerKind::Solid { color } = info.kind
+                && info.shape_paint.is_some()
+            {
+                let mut definition = path.shape.clone();
+                if let Some(d) = &mut definition {
+                    d.transform(&origin.inverted())?;
+                }
+                serde_json::to_vec(&super::ShapeExtras {
+                    definition,
+                    depth: doc.bit_depth(),
+                    alpha: color[3],
+                    fill_opacity: info.fill_opacity,
+                })
+                .map_err(|e| invalid(e.to_string()))?
+            } else {
+                Vec::new()
+            };
+            let hint = strata_io::psd::MaskSourceHint {
+                shape_data,
+                resource: 2000 + idx as u16,
+                matrix: matrix.values(),
+            };
+            tag(&mut extra, b"shmd", &hint.encode());
+        }
         if !divider {
-            tag(&mut extra, b"iOpa", &[opacity(info.fill_opacity), 0, 0, 0]);
+            tag(
+                &mut extra,
+                b"iOpa",
+                &[opacity(info.fill_opacity * shape_alpha), 0, 0, 0],
+            );
             let locks = info.locks;
             let bits = u32::from(locks.transparency)
                 | (u32::from(locks.pixels) << 1)
@@ -393,7 +486,7 @@ pub(crate) fn encode(
     let mut directory = Vec::new();
     let mut payload_size = 0u64;
     for entry in &entries {
-        payload_size += entry.directory(&mut directory, format)?;
+        payload_size += entry.directory(&mut directory, doc)?;
     }
     let mut resources = Vec::new();
     let mut dpi = Vec::new();
@@ -405,43 +498,10 @@ pub(crate) fn encode(
     resource(&mut resources, 1039, &[], doc.working_icc());
     let mut unicode_names = Vec::new();
     if !doc.paths().is_empty() {
-        use strata_io::psd::paths::{
-            SavedContour, SavedKnot, SavedPath, encode_names, legacy_name,
-        };
-        let normalize = |p: [f64; 2]| {
-            [
-                (p[0] - f.x as f64) / f64::from(f.width),
-                (p[1] - f.y as f64) / f64::from(f.height),
-            ]
-        };
+        use strata_io::psd::paths::{encode_names, legacy_name};
         for (i, path) in doc.paths().iter().enumerate() {
             check(cancel)?;
-            let contours = path
-                .contours()
-                .enumerate()
-                .map(|(part, anchors)| {
-                    let knots = anchors
-                        .iter()
-                        .map(|a| {
-                            let abs = |v: [f64; 2]| {
-                                normalize([a.position[0] + v[0], a.position[1] + v[1]])
-                            };
-                            SavedKnot {
-                                linked: a.linked,
-                                points: [abs(a.incoming), normalize(a.position), abs(a.outgoing)],
-                            }
-                        })
-                        .collect();
-                    SavedContour {
-                        open: path.open_contours.contains(&part),
-                        knots,
-                    }
-                })
-                .collect();
-            let saved = SavedPath {
-                name: path.name.clone(),
-                contours,
-            };
+            let saved = super::path_for_psd(path, [f.x, f.y], [f.width, f.height], None)?;
             let encoded = saved
                 .encode()
                 .map_err(|e| invalid(format!("PSD path {}: {e}", saved.name)))?;

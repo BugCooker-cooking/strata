@@ -188,6 +188,10 @@ pub struct LayerInfo {
     pub kind: LayerKind,
     #[serde(default)]
     pub mask: Option<LayerMaskInfo>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub vector_mask: Option<crate::VectorMask>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub shape_paint: Option<crate::ShapePaint>,
     pub id: LayerId,
     pub name: String,
     pub visible: bool,
@@ -197,6 +201,22 @@ pub struct LayerInfo {
     pub y: i64,
 }
 
+impl LayerInfo {
+    pub(crate) fn transform_bindings(
+        &mut self,
+        old: &Self,
+        transform: &crate::geometry::Homography,
+        whole_image: bool,
+    ) -> Result<(), crate::DocumentError> {
+        crate::VectorMask::transform(self, old, transform, whole_image)?;
+        if let Some(paint) = &mut self.shape_paint
+            && let Some(clip) = &mut paint.clip
+        {
+            clip.transform_between([old.x, old.y], [self.x, self.y], transform)?;
+        }
+        Ok(())
+    }
+}
 #[derive(Clone, Debug)]
 pub struct Layer {
     pub(crate) info: LayerInfo,
@@ -230,6 +250,8 @@ impl Layer {
                 fill_opacity: 1.0,
                 locks: LayerLocks::default(),
                 color_label: None,
+                vector_mask: None,
+                shape_paint: None,
                 kind: LayerKind::Pixel,
                 mask: None,
                 id: LayerId::fresh(),

@@ -7,6 +7,7 @@ pub enum LayerType {
     Divider,
     Invert,
     Exposure(f64),
+    Solid([f64; 3]),
 }
 
 pub struct Mask<'a> {
@@ -33,6 +34,9 @@ pub struct LayerRecord<'a> {
     pub protection: u32,
     pub label: u16,
     pub mask: Option<Mask<'a>>,
+    raster_channel: Option<i16>,
+    pub vector_mask: Option<super::VectorMaskRecord>,
+    pub mask_source: Option<super::MaskSourceHint>,
     channels: Vec<(i16, usize, &'a [u8])>,
 }
 
@@ -43,7 +47,7 @@ impl LayerRecord<'_> {
         }
         let mut pixels = channels::opaque(self.bounds.width, self.bounds.height, format)?;
         for &(id, _, data) in &self.channels {
-            if id == -2 {
+            if id < -1 {
                 continue;
             }
             let channel = channels::decode(data, self.bounds.width, self.bounds.height, format)?;
@@ -113,7 +117,7 @@ pub(super) fn read<'a>(
     for layer in &mut records {
         for (id, len, data) in &mut layer.channels {
             *data = info.take(*len)?;
-            if *id == -2 {
+            if Some(*id) == layer.raster_channel {
                 layer
                     .mask
                     .as_mut()
@@ -131,14 +135,14 @@ pub(super) fn read<'a>(
 fn record<'a>(src: &mut Reader<'a>) -> Result<LayerRecord<'a>> {
     let bounds = src.rect()?;
     let count = src.short()?;
-    if count > 5 {
+    if count > 6 {
         return Err(Unsupported("additional layer channels".into()));
     }
     let mut channels = Vec::with_capacity(count as usize);
     for _ in 0..count {
         let id = src.short()? as i16;
         let length = src.word()? as usize;
-        if !(-2..=2).contains(&id) {
+        if !(-3..=2).contains(&id) {
             return Err(Unsupported(format!("layer channel {id}")));
         }
         if channels.iter().any(|&(seen, _, _)| seen == id) || length < 2 {
@@ -156,22 +160,63 @@ fn record<'a>(src: &mut Reader<'a>) -> Result<LayerRecord<'a>> {
     }
     let mut extra = src.section()?;
     let mut mask = extra.section()?;
-    let mask = if mask.0.is_empty() {
-        None
+    let real_channel = channels.iter().any(|&(id, _, _)| id == -3);
+    let mut derived = false;
+    let (mask, raster_channel) = if mask.0.is_empty() {
+        if channels.iter().any(|&(id, _, _)| id < -1) {
+            return Err(Invalid("mask channel without bounds"));
+        }
+        (None, None)
     } else {
-        let rect = mask.rect()?;
-        let background = mask.byte()?;
+        let bounds = mask.rect()?;
+        let bg = mask.byte()?;
         let flags = mask.byte()?;
-        if !matches!(background, 0 | 255) || flags & !2 != 0 || mask.0.len() != 2 {
+        if flags & !10 != 0 || !matches!(bg, 0 | 255) {
             return Err(Unsupported("advanced raster mask options".into()));
         }
-        mask.padding(2)?;
-        Some(Mask {
-            bounds: rect,
-            background,
-            enabled: flags & 2 == 0,
-            channel: &[],
-        })
+        derived = flags & 8 != 0;
+        let user = match mask.0.len() {
+            2 => {
+                mask.padding(2)?;
+                None
+            }
+            18 => {
+                let user_flags = mask.byte()?;
+                let user_bg = mask.byte()?;
+                let rect = mask.rect()?;
+                if user_flags & !2 != 0 || !matches!(user_bg, 0 | 255) {
+                    return Err(Unsupported("advanced real user mask".into()));
+                }
+                Some(Mask {
+                    bounds: rect,
+                    background: user_bg,
+                    enabled: user_flags & 2 == 0,
+                    channel: &[],
+                })
+            }
+            _ => return Err(Unsupported("advanced raster mask options".into())),
+        };
+        if real_channel {
+            (
+                Some(user.ok_or(Invalid("real user mask channel without metadata"))?),
+                Some(-3),
+            )
+        } else if derived {
+            if user.is_some_and(|m| m.bounds.width != 0 && m.bounds.height != 0) {
+                return Err(Unsupported("missing real user mask channel".into()));
+            }
+            (None, None)
+        } else {
+            (
+                Some(Mask {
+                    bounds,
+                    background: bg,
+                    enabled: flags & 2 == 0,
+                    channel: &[],
+                }),
+                Some(-2),
+            )
+        }
     };
     let ranges = extra.section()?;
     if !ranges.0.len().is_multiple_of(8) || ranges.0.chunks_exact(4).any(|r| r != [0, 0, 255, 255])
@@ -191,6 +236,9 @@ fn record<'a>(src: &mut Reader<'a>) -> Result<LayerRecord<'a>> {
         protection: u32::from(flags & 1),
         label: 0,
         mask,
+        raster_channel,
+        vector_mask: None,
+        mask_source: None,
         channels,
     };
     let mut unicode = None;
@@ -227,6 +275,14 @@ fn record<'a>(src: &mut Reader<'a>) -> Result<LayerRecord<'a>> {
                     return Err(Unsupported("scene group".into()));
                 }
             }
+            b"vmsk" | b"vsms" => {
+                if layer.vector_mask.is_some() {
+                    return Err(Invalid("duplicate vector mask"));
+                }
+                layer.vector_mask = Some(super::vector::read_mask(block)?);
+            }
+            b"SoCo" => layer.kind = LayerType::Solid(super::vector::read_solid(block)?),
+            b"shmd" => layer.mask_source = super::vector::read_metadata(block)?,
             b"nvrt" => layer.kind = LayerType::Invert,
             b"expA" => {
                 if block.short()? != 1 {
@@ -258,7 +314,7 @@ fn record<'a>(src: &mut Reader<'a>) -> Result<LayerRecord<'a>> {
             }
             b"clbl" if block.byte()? == 1 => {}
             b"infx" | b"knko" if block.byte()? == 0 => {}
-            b"lyid" | b"lnsr" | b"fxrp" | b"shmd" | b"lyvr" => {}
+            b"lyid" | b"lnsr" | b"fxrp" | b"lyvr" => {}
             _ => {
                 return Err(Unsupported(format!(
                     "layer block {}",
@@ -266,6 +322,11 @@ fn record<'a>(src: &mut Reader<'a>) -> Result<LayerRecord<'a>> {
                 )));
             }
         }
+    }
+    if derived && layer.vector_mask.is_none() {
+        return Err(Unsupported(
+            "derived raster mask without editable vector data".into(),
+        ));
     }
     extra.padding(3)?;
     layer.name = match unicode {

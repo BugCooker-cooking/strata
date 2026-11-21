@@ -43,7 +43,7 @@ impl Document {
             previous_selection: self.previous_selection.as_ref().map(TiledMask::layout),
             resolution_dpi: self.resolution_dpi,
             preset: self.preset.clone(),
-            version: if self.paths.iter().any(|p|p.requires_v13()){13} else if self.paths.iter().any(|p|!p.subpaths.is_empty() || p.anchors.len()>128){12} else if !self.paths.is_empty(){11} else if self.layers.iter().any(|l| l.info.generated_geometry.is_some()) {
+            version: if self.paths.iter().any(|p|p.shape.is_some()) || self.layers.iter().any(|l|l.info.shape_paint.is_some()){15} else if self.layers.iter().any(|l|l.info.vector_mask.is_some()){14} else if self.paths.iter().any(|p|p.requires_v13()){13} else if self.paths.iter().any(|p|!p.subpaths.is_empty() || p.anchors.len()>128){12} else if !self.paths.is_empty(){11} else if self.layers.iter().any(|l| l.info.generated_geometry.is_some()) {
                 10
             } else if !self.guides.is_empty() {
                 9
@@ -109,7 +109,7 @@ impl Document {
     ) -> Result<Self, DocumentError> {
         let meta: Manifest =
             serde_json::from_value(metadata).map_err(|e| DocumentError::Invalid(e.to_string()))?;
-        if !matches!(meta.version, 0..=13)
+        if !matches!(meta.version, 0..=15)
             || meta.layers.len() > crate::MAX_LAYERS
             || meta.guides.len() > crate::MAX_GUIDES
             || meta.working_icc.len() > 4 * 1024 * 1024
@@ -121,6 +121,19 @@ impl Document {
         {
             return Err(DocumentError::Invalid(
                 "project version or metadata size".into(),
+            ));
+        }
+        if meta.version < 15
+            && (meta.paths.iter().any(|p| p.shape.is_some())
+                || meta.layers.iter().any(|l| l.shape_paint.is_some()))
+        {
+            return Err(DocumentError::Invalid(
+                "parametric shape requires manifest version 15".into(),
+            ));
+        }
+        if meta.version < 14 && meta.layers.iter().any(|l| l.vector_mask.is_some()) {
+            return Err(DocumentError::Invalid(
+                "vector mask requires manifest version 14".into(),
             ));
         }
         if meta.version < 13 && meta.paths.iter().any(|p| p.requires_v13()) {

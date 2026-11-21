@@ -1326,6 +1326,10 @@
       {
         "label": "开放轮廓与 PSD 工作路径",
         "path": "../research/2026-11-p1-psd-work-paths.md"
+      },
+      {
+        "label": "标准 PSD 矢量蒙版及纯色层",
+        "path": "../research/2026-11-p1-vector-masks.md"
       }
     ]
   },
@@ -1340,6 +1344,10 @@
       {
         "label": "开放轮廓与 PSD 工作路径",
         "path": "../research/2026-11-p1-psd-work-paths.md"
+      },
+      {
+        "label": "标准 PSD 矢量蒙版及纯色层",
+        "path": "../research/2026-11-p1-vector-masks.md"
       }
     ]
   },
@@ -1378,6 +1386,26 @@
       {
         "label": "复合路径与选区追踪",
         "path": "../research/2026-11-p1-compound-paths.md"
+      }
+    ]
+  },
+  "PS-04-9383ee3abd": {
+    "implementation": "已实现",
+    "acceptance": "路径驱动图层矢量蒙版，支持绑定、替换、启停、反相、链接、撤销、工程重开和原生编辑预览。",
+    "evidence": [
+      {
+        "label": "图层矢量蒙版与 PSD 交接",
+        "path": "../research/2026-11-p1-vector-masks.md"
+      }
+    ]
+  },
+  "PS-12-417500cf30": {
+    "implementation": "已实现",
+    "acceptance": "支持六种画布形状、参数重编辑和锚点编辑、独立复制、透明度与原色域、单步撤销及工程重开。",
+    "evidence": [
+      {
+        "label": "参数化形状与本机验收",
+        "path": "../research/2026-11-p1-shape-tools.md"
       }
     ]
   }

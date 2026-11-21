@@ -24,6 +24,9 @@ final class CanvasView: NSView {
     private var paintTool = false
     private weak var pathInput: CanvasPathInput?
     private var penActive = false
+    private var shapeActive = false
+    private weak var shapeInput: CanvasShapeInput?
+    private let shapeOutline = CAShapeLayer()
     private let pathOutline = CAShapeLayer(), pathNodes = CAShapeLayer(), pathHandles = CAShapeLayer()
     private let paintGuide = CAShapeLayer()
     private var brushTool = false
@@ -133,6 +136,10 @@ final class CanvasView: NSView {
         transformInput.onRunning={[weak self]running in self?.onBrushRunning?(running)}
         transformInput.onCommitted={[weak self]in self?.markDirty();self?.onCommitted?()}
         transformInput.onError={[weak self]error in self?.onError?(error)}
+        shapeOutline.fillColor = NSColor.controlAccentColor.withAlphaComponent(0.14).cgColor
+        shapeOutline.strokeColor = NSColor.controlAccentColor.cgColor
+        shapeOutline.lineWidth = 1.5
+        layer?.addSublayer(shapeOutline)
         for overlay in [pathOutline, pathNodes, pathHandles] {
             overlay.fillColor = nil
             overlay.strokeColor = NSColor.systemBlue.cgColor
@@ -317,6 +324,7 @@ final class CanvasView: NSView {
         CATransaction.begin(); CATransaction.setDisableActions(true)
         defer { CATransaction.commit() }
         if penActive { drawWorkPath() }
+        if shapeActive { drawShapeDraft() }
         let overlay = engine.artboardOverlay()
         onViewChanged?(overlay, Double(engine.canvasZoom()), scale)
         guard let frame = overlay else {
@@ -364,6 +372,21 @@ final class CanvasView: NSView {
         guard zoom > 0 else { return nil }
         return NSPoint(x: documentOrigin.x + (point.x * scale - CGFloat(frame.x)) / zoom,
                        y: documentOrigin.y + (point.y * scale - CGFloat(frame.y)) / zoom)
+    }
+    func configureShape(_ model: WorkspaceModel) {
+        shapeActive = model.tool == .shape
+        shapeInput = model.shapeInput
+        model.shapeInput.onChange = { [weak self] in self?.drawShapeDraft() }
+        model.shapeInput.bind(model.snapshot, enabled: shapeActive && model.permissions.edits && model.hasDocument)
+        drawShapeDraft()
+    }
+    private func drawShapeDraft() {
+        CATransaction.begin(); CATransaction.setDisableActions(true); defer { CATransaction.commit() }
+        guard shapeActive, let path = shapeInput?.preview, let frame = engine.artboardOverlay() else { shapeOutline.path = nil; return }
+        let zoom = CGFloat(engine.canvasZoom())/scale
+        var transform = CGAffineTransform(a: zoom, b: 0, c: 0, d: zoom,
+            tx: CGFloat(frame.x)/scale-documentOrigin.x*zoom, ty: CGFloat(frame.y)/scale-documentOrigin.y*zoom)
+        shapeOutline.path = path.copy(using: &transform)
     }
     private func drawWorkPath() {
         guard penActive, let input = pathInput, let frame = engine.artboardOverlay() else {
@@ -593,6 +616,10 @@ final class CanvasView: NSView {
         guard !isWorkBusy else { return }
         benchmark?.cancel(BenchmarkFailure("User input interrupted benchmark"))
         window?.makeFirstResponder(self)
+        if shapeActive {
+            if let p = documentPoint(convert(event.locationInWindow, from: nil)) { shapeInput?.down(p) } else { shapeInput?.cancel() }
+            return
+        }
         if penActive {
             if let p = documentPoint(convert(event.locationInWindow, from: nil)) {
                 pathInput?.down(p, tolerance: 7/max(0.0001,CGFloat(engine.canvasZoom())/scale), modifiers: event.modifierFlags, clicks: event.clickCount)
@@ -629,6 +656,10 @@ final class CanvasView: NSView {
     }
 
     override func mouseDragged(with event: NSEvent) {
+        if shapeActive {
+            if let p = documentPoint(convert(event.locationInWindow, from: nil)) { shapeInput?.move(p, constrain: event.modifierFlags.contains(.shift)) } else { shapeInput?.cancel() }
+            return
+        }
         if penActive {
             if let p = documentPoint(convert(event.locationInWindow, from: nil)) { pathInput?.move(p) }
             return
@@ -661,6 +692,10 @@ final class CanvasView: NSView {
     }
 
     override func mouseUp(with event: NSEvent) {
+        if shapeActive {
+            if let p = documentPoint(convert(event.locationInWindow, from: nil)) { shapeInput?.up(p, constrain: event.modifierFlags.contains(.shift)) } else { shapeInput?.cancel() }
+            return
+        }
         if penActive { pathInput?.endDrag(); return }
         if guideInput.draft != nil{_ = guideInput.finish();return}
         if snapInput.active{if let document=documentPoint(convert(event.locationInWindow,from:nil)){snapInput.finish(at:document)}else{snapInput.cancel()};return}
@@ -680,6 +715,7 @@ final class CanvasView: NSView {
         catch { onError?(error) }
     }
     override func keyDown(with event: NSEvent) {
+        if shapeActive, event.keyCode == 53 { shapeInput?.cancel(); return }
         if penActive, let input = pathInput {
             switch event.keyCode {
             case 53: input.select(input.selectedID); return

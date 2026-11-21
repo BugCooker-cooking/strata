@@ -4724,3 +4724,146 @@ fn assistant_creates_inspects_and_closes_an_open_two_anchor_curve() {
                 .unwrap()
     );
 }
+
+#[test]
+fn assistant_binds_inverts_and_undoes_a_vector_mask_without_rasterizing_the_layer() {
+    let host = Host::new();
+    host.user("path.create",json!({"name":"Outline","anchors":[{"position":[0,0]},{"position":[12,0]},{"position":[12,10]},{"position":[0,10]}]}));
+    let before = host
+        .editor
+        .lock()
+        .unwrap()
+        .document()
+        .unwrap()
+        .to_archive()
+        .unwrap();
+    let mut s = host.session_with_prompt(
+        ExecutionMode::Direct,
+        "将路径绑定到图层作为矢量蒙版，然后反相。",
+    );
+    reply(
+        &mut s,
+        &host,
+        vec![
+            call(
+                "search-vector-mask",
+                "search_catalog",
+                json!({"query":"添加矢量蒙版"}),
+            ),
+            invoke(
+                "bind",
+                "layer.vector_mask.set",
+                json!({"layer":{"name":"Background"},"path":{"name":"Outline"}}),
+            ),
+            invoke(
+                "invert",
+                "layer.vector_mask.set",
+                json!({"layer":{"name":"Background"},"inverted":true}),
+            ),
+        ],
+    );
+    assert!(
+        result(s.poll(&host).unwrap())
+            .to_string()
+            .contains("layer.vector_mask.set")
+    );
+    let binding = result(s.poll(&host).unwrap());
+    assert!(binding["result"]["vector_mask"]["path"].is_string());
+    assert_eq!(
+        result(s.poll(&host).unwrap())["result"]["vector_mask"]["inverted"],
+        true
+    );
+    host.stop(s.turn_id()).unwrap();
+    host.user("edit.undo_turn", json!({"turn_id":s.turn_id()}));
+    assert!(
+        before
+            == host
+                .editor
+                .lock()
+                .unwrap()
+                .document()
+                .unwrap()
+                .to_archive()
+                .unwrap()
+    );
+}
+
+#[test]
+fn shape_tools_discover_preview_create_and_reedit_before_whole_turn_undo() {
+    let host = Host::new();
+    let before = host
+        .editor
+        .lock()
+        .unwrap()
+        .document()
+        .unwrap()
+        .to_archive()
+        .unwrap();
+    let mut s = host.session_with_prompt(
+        ExecutionMode::Direct,
+        "画一个圆角矩形，再把圆角半径改为 4 像素。",
+    );
+    let geom = |r| json!({"start":[2,2],"end":[14,12],"primitive":{"kind":"rectangle","radius":r}});
+    reply(
+        &mut s,
+        &host,
+        vec![
+            call(
+                "discover-shape",
+                "search_catalog",
+                json!({"query":"圆角矩形"}),
+            ),
+            invoke("draft-shape", "shape.outline", json!({"geometry":geom(2)})),
+            invoke(
+                "create-shape",
+                "shape.create",
+                json!({"name":"Badge","geometry":geom(2),"color":[50000,1500,30000,65535]}),
+            ),
+        ],
+    );
+    assert!(
+        result(s.poll(&host).unwrap())
+            .to_string()
+            .contains("shape.create")
+    );
+    assert_eq!(
+        result(s.poll(&host).unwrap())["result"]["anchors"]
+            .as_array()
+            .unwrap()
+            .len(),
+        8
+    );
+    let create = result(s.poll(&host).unwrap());
+    let id = create["result"]["layer_id"].clone();
+    let path = create["result"]["path_id"].clone();
+    reply(
+        &mut s,
+        &host,
+        vec![
+            invoke(
+                "update-radius",
+                "shape.update",
+                json!({"layer":{"id":id},"geometry":geom(4)}),
+            ),
+            invoke("read-shape", "path.get", json!({"path":{"id":path}})),
+        ],
+    );
+    assert_eq!(result(s.poll(&host).unwrap())["result"]["changed"], true);
+    assert_eq!(
+        result(s.poll(&host).unwrap())["result"]["shape"]["geometry"]["primitive"]["radius"],
+        4.
+    );
+    host.stop(s.turn_id()).unwrap();
+    host.user("edit.undo_turn", json!({"turn_id":s.turn_id()}));
+    assert!(
+        before
+            == host
+                .editor
+                .lock()
+                .unwrap()
+                .document()
+                .unwrap()
+                .to_archive()
+                .unwrap()
+    );
+}

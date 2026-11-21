@@ -17,6 +17,7 @@ struct WorkPath: Decodable, Identifiable, Equatable {
     let id: String
     let name: String
     let anchors: [PathAnchor]
+    let shape: ShapeSource?
     let openContours: Set<Int>?
     let subpaths: [[PathAnchor]]?
     var contours: [[PathAnchor]] { [anchors] + (subpaths ?? []) }
@@ -47,10 +48,27 @@ final class CanvasPathInput: ObservableObject {
     private var drag: Drag?
     private var lastPoint = CGPoint.zero
     var onChanged: (() -> Void)?
+    var onMaskPreview: (([String: Any]) -> Void)?
+    var onCancelMaskPreview: (() -> Void)?
+    private var maskSource: String?
+    private var previewingMask = false
+    private func endPreview() {
+        if previewingMask { previewingMask = false; onCancelMaskPreview?() }
+    }
+    private func didEdit() {
+        onChanged?()
+        guard let id = selectedID, id == maskSource, canApply else { endPreview(); return }
+        previewingMask = true
+        onMaskPreview?(editParameters)
+    }
     var onCommand: ((String, [String: Any]) -> Void)?
 
     func bind(_ snapshot: EditorSnapshot?, enabled: Bool) {
         let newPaths = snapshot?.paths ?? []
+        let activeMask = snapshot?.layers.first { $0.id == snapshot?.activeLayer }?.vectorMask
+        let nextSource = activeMask?.enabled == true ? activeMask?.path : nil
+        if maskSource != nextSource { endPreview() }
+        maskSource = nextSource
         let newControl = snapshot?.control?.kind ?? ""
         let switched = documentID != snapshot?.documentId
         let changed = switched || revision != snapshot?.revision || control != newControl || self.enabled != enabled
@@ -68,6 +86,7 @@ final class CanvasPathInput: ObservableObject {
         select(switched ? nil : created ?? selectedID)
     }
     func select(_ id: String?) {
+        endPreview()
         let selected = paths.first { $0.id == id }
         let nextContour = selectedID == id ? contour : 0
         selectedID = selected?.id
@@ -93,7 +112,7 @@ final class CanvasPathInput: ObservableObject {
     func setOpen(_ value: Bool) {
         guard enabled else { return }
         if value { openContours.insert(contour) } else { openContours.remove(contour) }
-        onChanged?()
+        didEdit()
     }
     func addContour() {
         guard canAddContour else { return }
@@ -106,6 +125,7 @@ final class CanvasPathInput: ObservableObject {
         openContours = Set(openContours.compactMap { i in i == contour ? nil : (i > contour ? i-1 : i) })
         contours.remove(at: contour)
         chooseContour(next)
+        didEdit()
     }
     func trace(threshold: Int, tolerance: Double) {
         guard enabled, !hasDraftChanges, (1...65535).contains(threshold), (0...10).contains(tolerance) else { return }
@@ -170,6 +190,8 @@ final class CanvasPathInput: ObservableObject {
             index = insertion
             selectedAnchors = [insertion]
             drag = .symmetric
+            didEdit()
+            return
         }
         onChanged?()
     }
@@ -185,7 +207,7 @@ final class CanvasPathInput: ObservableObject {
                 for i in selectedAnchors { anchors[i].position = anchors[i].position.offset(delta) }
             }
             lastPoint = point
-            onChanged?()
+            didEdit()
             return
         }
         guard let index else { return }
@@ -207,18 +229,18 @@ final class CanvasPathInput: ObservableObject {
             anchors[index].outgoing = offset
             anchors[index].incoming = CGPoint(x: -offset.x, y: -offset.y)
         }
-        onChanged?()
+        didEdit()
     }
     func endDrag() { drag = nil }
     func corner() {
         guard enabled else { return }
         for i in selectedAnchors { anchors[i].incoming = .zero; anchors[i].outgoing = .zero; anchors[i].linked = nil }
-        onChanged?()
+        didEdit()
     }
     func unlinkHandles() {
         guard enabled else { return }
         for i in selectedAnchors { anchors[i].linked = nil }
-        onChanged?()
+        didEdit()
     }
     var canRemoveAnchors: Bool {
         !selectedAnchors.isEmpty && (selectedID == nil || anchors.count - selectedAnchors.count >= 2)
@@ -233,19 +255,21 @@ final class CanvasPathInput: ObservableObject {
         selectedAnchors.removeAll()
         self.index = nil
         drag = nil
-        onChanged?()
+        didEdit()
     }
-    func apply() {
-        guard canApply else { return }
+    private var editParameters: [String: Any] {
         var params: [String: Any] = ["name": name, "anchors": contours[0].map(\.parameters),
             "open_contours": openContours.sorted(), "subpaths": contours.dropFirst().map { $0.map(\.parameters) }, "expected_revision": revision]
         if let selectedID {
             params["path"] = ["id": selectedID]
-            onCommand?("path.update", params)
-        } else {
-            pendingCreation = true
-            onCommand?("path.create", params)
         }
+        return params
+    }
+    func apply() {
+        guard canApply else { return }
+        endPreview()
+        pendingCreation = selectedID == nil
+        onCommand?(pendingCreation ? "path.create" : "path.update", editParameters)
     }
     func deletePath() {
         guard enabled, let selectedID else { return }

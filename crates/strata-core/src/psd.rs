@@ -19,6 +19,15 @@ use strata_pixels::{
     memory::{MemoryKind, MemoryPool},
 };
 
+#[derive(serde::Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
+struct ShapeExtras {
+    definition: Option<crate::ShapeDefinition>,
+    depth: u8,
+    alpha: u16,
+    fill_opacity: f64,
+}
+
 pub(crate) fn open(
     path: &Path,
     mut input: File,
@@ -70,6 +79,12 @@ pub(crate) fn open(
         )
         .map_err(DocumentError::from)
     };
+    let mut paths: Vec<_> = psd
+        .paths
+        .iter()
+        .map(|saved| std::sync::Arc::new(work_path(saved, &saved.name, psd.width, psd.height)))
+        .collect();
+    let saved_count = paths.len();
     let mut layers = Vec::with_capacity(psd.layers.len().max(1));
     if psd.layers.is_empty() {
         let _scratch = reserve(area(frame) * 8 * format.bytes_per_sample() as u64 + 1)?;
@@ -112,7 +127,93 @@ pub(crate) fn open(
                 None => TiledPixels::with_pool(format, tile_limit(format), pool.clone()),
             };
             let mut layer = Layer::new(src.name.clone(), pixels);
-            configure(&mut layer, src).map_err(map)?;
+            configure(&mut layer, src, format).map_err(map)?;
+            if let Some(v) = &src.vector_mask {
+                let fresh = work_path(
+                    &v.path,
+                    &format!("Vector mask {}", paths.len() + 1),
+                    psd.width,
+                    psd.height,
+                );
+                let matched = src.mask_source.as_ref().and_then(|hint| {
+                    let idx = psd.path_resource_ids.binary_search(&hint.resource).ok()?;
+                    let source = paths.get(..saved_count)?.get(idx)?;
+                    let m = crate::geometry::Homography::new(hint.matrix).ok()?;
+                    if m.values()[6] != 0. || m.values()[7] != 0. {
+                        return None;
+                    }
+                    let stored =
+                        path_for_psd(source, [0, 0], [psd.width, psd.height], Some(&m)).ok()?;
+                    if !same_knots(&stored, &v.path) {
+                        return None;
+                    }
+                    Some((idx, m.values()))
+                });
+                let mut mask = if let Some((idx, matrix)) = matched {
+                    let id = paths[idx].id;
+                    if matches!(layer.info.kind, LayerKind::Solid { .. })
+                        && let Some(extra) = src
+                            .mask_source
+                            .as_ref()
+                            .and_then(|h| serde_json::from_slice::<ShapeExtras>(&h.shape_data).ok())
+                    {
+                        let maximum = if format == PixelFormat::Rgba8 {
+                            255u16
+                        } else {
+                            65535
+                        };
+                        if extra.depth == format.bit_depth()
+                            && extra.alpha <= maximum
+                            && (0.0..=1.).contains(&extra.fill_opacity)
+                            && (extra.fill_opacity * f64::from(extra.alpha) / f64::from(maximum)
+                                * 255.)
+                                .round() as u8
+                                == src.fill_opacity
+                        {
+                            if let LayerKind::Solid { color } = &mut layer.info.kind {
+                                color[3] = extra.alpha;
+                            }
+                            layer.info.fill_opacity = extra.fill_opacity;
+                        }
+                        if let Some(def) = extra.definition
+                            && let Ok(anchors) = def.anchors()
+                        {
+                            let mut candidate = (*paths[idx]).clone();
+                            candidate.anchors = anchors;
+                            candidate.shape = Some(def);
+                            if candidate.validate().is_ok()
+                                && let Ok(expected) =
+                                    path_for_psd(&candidate, [0, 0], [psd.width, psd.height], None)
+                                && expected
+                                    .encode()
+                                    .is_ok_and(|a| psd.paths[idx].encode().is_ok_and(|b| a == b))
+                            {
+                                paths[idx] = std::sync::Arc::new(candidate);
+                            }
+                        }
+                    }
+                    let mut mask = crate::VectorMask::new(id, &layer.info, v.linked);
+                    mask.matrix = matrix;
+                    mask
+                } else {
+                    if paths.len() >= crate::paths::MAX_PATHS {
+                        return Err(map(PsdError::Limit).into());
+                    }
+                    let mask = crate::VectorMask::new(fresh.id, &layer.info, v.linked);
+                    paths.push(std::sync::Arc::new(fresh));
+                    mask
+                };
+                mask.enabled = v.enabled;
+                mask.inverted = v.inverted;
+                let mask_id = mask.path;
+                layer.info.vector_mask = Some(mask);
+                if matches!(layer.info.kind, LayerKind::Solid { .. }) {
+                    layer.info.shape_paint = Some(crate::ShapePaint {
+                        owned_path: Some(mask_id),
+                        ..Default::default()
+                    });
+                }
+            }
             layer.info.parent = parents.last().copied();
             if src.kind == LayerType::Folder {
                 if parents.len() >= 16 {
@@ -138,7 +239,7 @@ pub(crate) fn open(
         }
         layers.reverse();
     }
-    let mut doc = DocumentCandidate::from_layers(
+    let doc = DocumentCandidate::from_layers_with_paths(
         psd.width,
         psd.height,
         format,
@@ -146,56 +247,120 @@ pub(crate) fn open(
         layers,
         psd.resolution_dpi,
         pool.clone(),
+        paths,
     )?
     .into_document();
-    for resource in psd.paths {
-        let mut contours = Vec::new();
-        let mut open_contours = std::collections::BTreeSet::new();
-        let canvas = |p: [f64; 2]| [p[0] * f64::from(psd.width), p[1] * f64::from(psd.height)];
-        for (i, contour) in resource.contours.into_iter().enumerate() {
-            if contour.open {
-                open_contours.insert(i);
-            }
-            contours.push(
-                contour
-                    .knots
-                    .into_iter()
-                    .map(|knot| {
-                        let [before, at, after] = knot.points;
-                        let position = canvas(at);
-                        let before = canvas(before);
-                        let after = canvas(after);
-                        crate::PathAnchor {
-                            linked: knot.linked,
-                            position,
-                            incoming: std::array::from_fn(|k| before[k] - position[k]),
-                            outgoing: std::array::from_fn(|k| after[k] - position[k]),
-                        }
-                    })
-                    .collect(),
-            );
-        }
-        let mut parts = contours.into_iter();
-        let path = crate::WorkPath {
-            id: crate::PathId::fresh(),
-            name: resource.name,
-            anchors: parts
-                .next()
-                .ok_or_else(|| map(PsdError::Invalid("empty path resource")))?,
-            subpaths: parts.collect(),
-            open_contours,
-        };
-        doc.paths.push(std::sync::Arc::new(path));
-    }
-    doc.validate()?;
     Ok(doc)
+}
+fn work_path(
+    resource: &strata_io::psd::paths::SavedPath,
+    name: &str,
+    width: u32,
+    height: u32,
+) -> crate::WorkPath {
+    let mut open_contours = std::collections::BTreeSet::new();
+    let canvas = |p: [f64; 2]| [p[0] * f64::from(width), p[1] * f64::from(height)];
+    let mut contours = resource.contours.iter().enumerate().map(|(i, contour)| {
+        if contour.open {
+            open_contours.insert(i);
+        }
+        contour
+            .knots
+            .iter()
+            .map(|knot| {
+                let [before, position, after] = knot.points.map(canvas);
+                crate::PathAnchor {
+                    position,
+                    linked: knot.linked,
+                    incoming: std::array::from_fn(|k| before[k] - position[k]),
+                    outgoing: std::array::from_fn(|k| after[k] - position[k]),
+                }
+            })
+            .collect()
+    });
+    crate::WorkPath {
+        id: crate::PathId::fresh(),
+        shape: None,
+        name: name.into(),
+        anchors: contours.next().expect("validated PSD path"),
+        subpaths: contours.collect(),
+        open_contours,
+    }
+}
+fn path_for_psd(
+    path: &crate::WorkPath,
+    origin: [i64; 2],
+    size: [u32; 2],
+    placement: Option<&crate::geometry::Homography>,
+) -> Result<strata_io::psd::paths::SavedPath, DocumentError> {
+    use strata_io::psd::paths::{SavedContour, SavedKnot, SavedPath};
+    let normalize = |p: [f64; 2]| -> Result<_, DocumentError> {
+        let p = if let Some(m) = placement {
+            m.map(p)
+                .map_err(|e| DocumentError::Invalid(e.to_string()))?
+        } else {
+            p
+        };
+        Ok(std::array::from_fn(|k| {
+            (p[k] - origin[k] as f64) / f64::from(size[k])
+        }))
+    };
+    let mut contours = Vec::new();
+    for (i, anchors) in path.contours().enumerate() {
+        let mut knots = Vec::new();
+        for a in anchors {
+            let abs = |v: [f64; 2]| normalize([a.position[0] + v[0], a.position[1] + v[1]]);
+            knots.push(SavedKnot {
+                linked: a.linked,
+                points: [abs(a.incoming)?, normalize(a.position)?, abs(a.outgoing)?],
+            });
+        }
+        contours.push(SavedContour {
+            open: path.open_contours.contains(&i),
+            knots,
+        });
+    }
+    Ok(SavedPath {
+        name: path.name.clone(),
+        contours,
+    })
+}
+fn same_knots(a: &strata_io::psd::paths::SavedPath, b: &strata_io::psd::paths::SavedPath) -> bool {
+    a.contours.len() == b.contours.len()
+        && a.contours.iter().zip(&b.contours).all(|(a, b)| {
+            a.open == b.open
+                && a.knots.len() == b.knots.len()
+                && a.knots.iter().zip(&b.knots).all(|(a, b)| {
+                    a.linked == b.linked
+                        && a.points
+                            .iter()
+                            .flatten()
+                            .zip(b.points.iter().flatten())
+                            .all(|(x, y)| (x - y).abs() <= 2. / 16777216.)
+                })
+        })
 }
 fn area(rect: CoverageRect) -> u64 {
     u64::from(rect.width) * u64::from(rect.height)
 }
-fn configure(layer: &mut Layer, src: &LayerRecord<'_>) -> Result<(), PsdError> {
+fn configure(
+    layer: &mut Layer,
+    src: &LayerRecord<'_>,
+    format: PixelFormat,
+) -> Result<(), PsdError> {
     let info = &mut layer.info;
     info.kind = match src.kind {
+        LayerType::Solid(rgb) => {
+            let max = if format == PixelFormat::Rgba8 {
+                255
+            } else {
+                65535
+            };
+            let [r, g, b] = rgb.map(|v| (v / 255.0 * f64::from(max)).round() as u16);
+            LayerKind::Solid {
+                color: [r, g, b, max],
+            }
+        }
         LayerType::Pixel => LayerKind::Pixel,
         LayerType::Folder => LayerKind::Group,
         LayerType::Invert => LayerKind::Adjustment {

@@ -9,8 +9,6 @@ extension StrataError {
             switch message {
             case "unsupported PSD feature: layer block TySh", "unsupported PSD feature: layer block tySh":
                 return L10n.text("此 PSD 含有可编辑文字层。请在副本中将文字栅格化后再打开。")
-            case "unsupported PSD feature: layer block SoCo", "unsupported PSD feature: layer block vmsk", "unsupported PSD feature: layer block vsms":
-                return L10n.text("此 PSD 含有填充图层或矢量蒙版。请在副本中将相应图层栅格化后再打开。")
             case "unsupported PSD feature: layer block SoLd", "unsupported PSD feature: layer block SoLE", "unsupported PSD feature: layer block PlLd":
                 return L10n.text("此 PSD 含有智能对象。请在副本中将智能对象栅格化后再打开。")
             default:
@@ -34,6 +32,12 @@ extension StrataError {
         case .UnsavedChanges:
             return L10n.text("当前文档有未保存修改，请先保存或确认放弃修改。")
         case .Command(let message):
+            if message.contains("remove vector mask bindings before deleting") {
+                return L10n.text("这条工作路径正在控制图层的矢量蒙版。请先移除该绑定，或为图层选择另一条路径。")
+            }
+            if message.contains("unlock the vector mask layer") {
+                return L10n.text("请先解锁使用此矢量蒙版的图层及其父组。")
+            }
             if let marker = message.range(of: "PSD export cannot represent this layer: ") {
                 return L10n.format("图层“{0}”含有当前 PSD 导出无法保留的内容。请在副本中将它栅格化后重试。", String(message[marker.upperBound...]))
             }

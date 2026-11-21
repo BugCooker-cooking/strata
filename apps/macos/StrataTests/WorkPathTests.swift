@@ -138,6 +138,53 @@ final class WorkPathTests: XCTestCase {
         XCTAssertEqual(try XCTUnwrap(saved.subpaths?[0][0].outgoing.y), 2, accuracy: 0.00001)
     }
 
+    func testVectorMaskDragPreviewsAndCancelsBeforeOneCommittedEdit() async throws {
+        let engine = StrataEngine(listener: EngineEvents { _ in })
+        func command(_ id: String, _ params: [String: Any]) throws {
+            _ = try engine.dispatch(command: id, paramsJson: commandJSON(params))
+        }
+        try command("file.new", ["width": 20, "height": 16, "bit_depth": 16, "background": [65535, 0, 0, 65535]])
+        try command("path.create", ["name": "Outline", "anchors": [[2,2], [10,2], [10,12], [2,12]].map { ["position": $0] }])
+        try command("layer.vector_mask.set", ["layer": ["name": "Background"], "path": ["name": "Outline"]])
+        let controller = MainWindowController(engine: engine)
+        defer { controller.canvas.shutdown() }
+        controller.refresh()
+        controller.workspace.selectTool(.pen)
+        let input = controller.workspace.pathInput
+        let preview = try XCTUnwrap(controller.workspace.tonalPreview)
+        let id = try XCTUnwrap(controller.state?.layers[0].vectorMask?.path)
+        let revision = try XCTUnwrap(controller.state?.revision)
+        let history = try XCTUnwrap(controller.state?.historyCursor)
+        input.select(id)
+        func drag() {
+            input.down(CGPoint(x: 10, y: 2), tolerance: 1, modifiers: [], clicks: 1)
+            input.move(CGPoint(x: 16, y: 2))
+            input.endDrag()
+        }
+        func idle() async throws {
+            for _ in 0..<300 where controller.busy || preview.busy { try await Task.sleep(for: .milliseconds(10)) }
+            XCTAssertFalse(controller.busy || preview.busy)
+        }
+        drag()
+        try await idle()
+        XCTAssertTrue(preview.enabled)
+        XCTAssertTrue(preview.error.isEmpty, preview.error)
+        XCTAssertEqual(try EditorSnapshot.decode(engine.snapshotJson()).revision, revision)
+        input.select(id)
+        try await idle()
+        XCTAssertFalse(preview.enabled)
+        XCTAssertEqual(input.anchors[1].position.x, 10)
+        drag()
+        try await idle()
+        input.apply()
+        try await idle()
+        controller.refresh()
+        XCTAssertEqual(controller.state?.historyCursor, history + 1)
+        XCTAssertEqual(controller.state?.paths?.first?.anchors[1].position.x, 16)
+        try command("edit.undo", [:])
+        XCTAssertEqual(try EditorSnapshot.decode(engine.snapshotJson()).paths?.first?.anchors[1].position.x, 10)
+    }
+
     func testPenDraftEditsThroughTheEngineAndCancelsOnRevisionChange() throws {
         let engine = StrataEngine(listener: EngineEvents { _ in })
         func command(_ id: String, _ params: [String: Any]) throws {

@@ -2,7 +2,7 @@
 
 当前开发期审计快照。完整编辑功能与最终 AI 审计仍未闭环；不得把注册数量当作全部功能覆盖。
 
-真实注册命令 158；参数示例 234；综合功能 265；已有映射 107。
+真实注册命令 163；参数示例 244；综合功能 265；已有映射 109。
 
 已实现但未映射 0；部分入口 6；原生未知命令引用 0；未类型化返回 0。
 
@@ -30,8 +30,8 @@
 | PS-01-894622b1ce | 快速导出 / 导出为（格式、尺寸、质量） | 已实现 | 已映射 | `file.export`、`file.export_preset.get`、`file.export_preset.set`、`file.quick_export` · 导出宽度 2048 像素的 PNG。 · Existing file.export plus real file.export_preset.get/set and file.quick_export cover this row. App settings have strict schemas, validated persistence, shared versions, no file capabilities and no document undo; AI separately approves settings and each file resource, including Direct mode. Full local core/AI and actual file-decode/permission/concurrency tests, native persistence, Metal/Release/lint/209examples passed. Corrected one-window JPEG83/sRGB/white256×384 and original-sizePNG write/readback, clean-source/default restoration/normal quit/process0 passed. This completes the stated quick/explicit export row, not other file/PSD/RAW/batch or complete Photoshop scope. |
 | PS-01-e7337088bf | 置入图片为图层 | 已实现 | 已映射 | `file.place` · 把我选择的图片置入为新图层。 |
 | PS-01-265b9a61ab | 恢复到上次保存 | 已实现 | 已映射 | `file.revert_status`、`file.revert` · 读取当前文档是否能恢复到上次保存，以及来源文件名；不要读取文件或泄露完整路径。 · Actual current-source lifecycle reload through file.open decoder/project/render preparation. Strict schemas, bilingual search/describe, discard_changes=true, optional expected_revision, fresh matching host-selected read resource and a source pin at commit. Metadata exposes only the current source basename/kind/dirty. Core/archive/decode/path/cancel/stale/display-failure, AI decline/fresh grant/real reload/context rebind and actual native/Metal/Release gates passed. One-window menu cancel/apply and last-window exit preserved source/default settings. Revert clears undo/redo; it is not an undoable edit or a source-file write. This closes the revert row, not remaining Photoshop/file capabilities. |
-| PS-01-40267007aa | PSD 导入 | 部分实现 | 部分入口 | `file.open` · 打开我选择的分层 PSD，保留可编辑的图层组、像素层和栅格蒙版。 · 使用宿主文件选择器，支持范围和部分兼容项见 PSD 导入记录。文字、矢量、智能对象和其余调整图层仍待接入。 支持 PSD 的保存路径资源和 Unicode 路径名称。 |
-| PS-01-261e177d1e | PSD 导出 | 部分实现 | 部分入口 | `file.export_psd` · 导出一个分层 PSD 副本，让对方继续编辑图层和蒙版。 · 原尺寸 8/16 位 RGB，保留支持的像素层、组、基本蒙版与反相/曝光。宿主授权发布固定快照，文件写入不进入文档撤销历史。其余可编辑图层类型继续跟踪。 支持 PSD 的保存路径资源和 Unicode 路径名称。 |
+| PS-01-40267007aa | PSD 导入 | 部分实现 | 部分入口 | `file.open` · 打开我选择的分层 PSD，保留可编辑的图层组、像素层和栅格蒙版。 · 使用宿主文件选择器，支持范围和部分兼容项见 PSD 导入记录。文字、复杂矢量结构、智能对象和其余调整图层仍待接入。 支持 PSD 的保存路径资源和 Unicode 路径名称。 支持标准矢量蒙版和基本 RGB 纯色填充。 |
+| PS-01-261e177d1e | PSD 导出 | 部分实现 | 部分入口 | `file.export_psd` · 导出一个分层 PSD 副本，让对方继续编辑图层和蒙版。 · 原尺寸 8/16 位 RGB，保留支持的像素层、组、基本蒙版与反相/曝光。宿主授权发布固定快照，文件写入不进入文档撤销历史。其余可编辑图层类型继续跟踪。 支持 PSD 的保存路径资源和 Unicode 路径名称。 支持标准矢量蒙版和基本 RGB 纯色填充。 |
 | PS-01-ab934d783e | 打开 RAW | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-01-b49b476915 | 置入链接文件 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-01-a69a5778e5 | 图层 / 画板导出为文件 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
@@ -97,7 +97,7 @@
 | PS-04-ef23225e49 | 挖空 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-04-c9a10eae37 | 智能对象：转换、编辑内容、替换内容、栅格化 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-04-9b3a04c666 | 智能滤镜 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
-| PS-04-9383ee3abd | 矢量蒙版 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
+| PS-04-9383ee3abd | 矢量蒙版 | 已实现 | 已映射 | `layer.vector_mask.set`、`layer.vector_mask.remove`、`path.get`、`path.update` · 将当前图层绑定到轮廓路径作为矢量蒙版，然后移动一个锚点。 · 已有像素层、组、填充和调整层可绑定工作路径。启用、反相、移动链接、源曲线重编辑和移除均走真实执行器；栅格与矢量覆盖相乘。 |
 | PS-04-dd95b3b697 | 图层筛选与查找 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-04-53f23afed6 | 画板 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-04-f22dbf0e07 | 图层复合 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
@@ -221,7 +221,7 @@
 | PS-11-d0e9236cfa | 文字蒙版工具 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-11-b2feb2a72d | 字形面板 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
 | PS-11-0907b4762e | 匹配字体 🤖 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
-| PS-12-417500cf30 | 形状：矩形（含圆角）/ 椭圆 / 直线 / 多边形 / 三角形 | 待实现 | 待实现/待核对 | 保留最终入口与提示核对任务 |
+| PS-12-417500cf30 | 形状：矩形（含圆角）/ 椭圆 / 直线 / 多边形 / 三角形 | 已实现 | 已映射 | `shape.create`、`shape.update`、`shape.outline`、`path.get`、`path.update`、`layer.fill.solid.set` · 用形状工具新建一个可编辑的圆角矩形。 · 矩形、圆角矩形、椭圆、线段、3–128 边多边形和三角形共用参数几何与路径蒙版。生成真实纯色图层，可重编辑、撤销、重开并通过分层 PSD 交接。 |
 | PS-12-a132c853ab | 钢笔 / 弯度钢笔 / 自由钢笔 | 部分实现 | 部分入口 | `path.create`、`path.update` · 用钢笔创建闭合贝塞尔路径，保留可编辑手柄。 · 常规钢笔支持开放与闭合的多轮廓路径、联动和独立手柄。弯度钢笔及自由钢笔仍待补齐。 |
 | PS-12-595e7321ce | 添加 / 删除 / 转换锚点；路径选择 / 直接选择 | 已实现 | 已映射 | `path.list`、`path.get`、`path.update`、`path.split` · 读取路径锚点，再移动第二个锚点并保留控制手柄。 · 闭合工作路径支持列表选择、整体平移、单点与多锚点直接选择和移动、增删锚点、精确曲线分割及角点/手柄转换。 |
 | PS-12-cfd8ae8285 | 路径面板、路径与选区互转 | 已实现 | 已映射 | `path.list`、`path.get`、`path.create`、`path.update`、`path.delete`、`select.from_path`、`layer.fill.path`、`path.from_selection` · 从当前选区建立路径，保留孔洞和分离区域，再转回选区。 · 路径面板与命令支持双向转换。覆盖阈值可选，容差为零时精确沿像素边界追踪。偶奇规则保留独立轮廓、孔洞和嵌套岛。 |

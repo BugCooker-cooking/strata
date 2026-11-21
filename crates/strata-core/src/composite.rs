@@ -164,9 +164,21 @@ fn fingerprint(doc: &Document, coord: TileCoord, layers: usize) -> u64 {
             }
         }
         if touched {
+            crate::vector_mask::hash_mask(doc, layer, &mut hash);
             layer.info.id.hash(&mut hash);
             layer.info.parent.hash(&mut hash);
             layer.info.clipped.hash(&mut hash);
+            layer.info.shape_paint.hash(&mut hash);
+            if layer.info.shape_paint.is_some()
+                && layer
+                    .info
+                    .vector_mask
+                    .as_ref()
+                    .is_none_or(|m| !m.enabled || m.inverted)
+            {
+                let f = doc.frame();
+                (f.x, f.y, f.width, f.height).hash(&mut hash);
+            }
             layer.info.generated_size.hash(&mut hash);
             layer.info.generated_crop.hash(&mut hash);
             layer.info.generated_geometry.hash(&mut hash);
@@ -190,6 +202,7 @@ fn fingerprint(doc: &Document, coord: TileCoord, layers: usize) -> u64 {
                             mask.tile_version(*c).hash(&mut hash);
                         }
                     }
+                    crate::vector_mask::hash_mask(doc, candidate, &mut hash);
                     serde_json::to_vec(candidate.info())
                         .expect("validated layer")
                         .hash(&mut hash);
@@ -217,6 +230,7 @@ fn fingerprint(doc: &Document, coord: TileCoord, layers: usize) -> u64 {
                             .expect("frame metadata")
                             .hash(&mut hash);
                         for candidate in doc.layers().iter().take_while(|l| l.id() != layer.id()) {
+                            crate::vector_mask::hash_mask(doc, candidate, &mut hash);
                             serde_json::to_vec(candidate.info())
                                 .expect("layer metadata")
                                 .hash(&mut hash);
@@ -313,6 +327,7 @@ fn compose_tile(
         && layer.info.blend_mode == BlendMode::Normal
         && matches!(layer.info.kind, LayerKind::Pixel)
         && layer.mask.is_none()
+        && layer.info.vector_mask.as_ref().is_none_or(|m| !m.enabled)
         && layer.info.styles.is_empty()
         && let Some(sx) = ox.checked_sub(layer.info.x)
         && let Some(sy) = oy.checked_sub(layer.info.y)
@@ -526,7 +541,7 @@ fn compose_sequence(
             let _group_scratch = doc
                 .memory_pool()
                 .reserve(MemoryKind::Transient, 256 * 256 * 34)?;
-            let mask = layer_mask_tile(layer, ox, oy)?;
+            let mask = effective_mask_tile(doc, layer, ox, oy, cancel)?;
             if layer.info.pass_through
                 && layer.info.blend_mode == BlendMode::Normal
                 && !(clipping && ordinal > 0)
@@ -592,7 +607,7 @@ fn compose_sequence(
             }
             continue;
         }
-        let mask = layer_mask_tile(layer, ox, oy)?;
+        let mask = effective_mask_tile(doc, layer, ox, oy, cancel)?;
         if let LayerKind::Adjustment { adjustment } = &layer.info.kind {
             if adjustment.is_identity() && layer.info.blend_mode == BlendMode::Normal {
                 continue;
@@ -801,6 +816,42 @@ fn compose_sequence(
     Ok(out)
 }
 
+pub fn effective_mask_tile(
+    doc: &Document,
+    layer: &crate::Layer,
+    x: i64,
+    y: i64,
+    cancel: &dyn Fn() -> bool,
+) -> Result<Option<Vec<u16>>, DocumentError> {
+    let raster = layer_mask_tile(layer, x, y)?;
+    let Some(vector) = layer.info.vector_mask.as_ref().filter(|m| m.enabled) else {
+        return Ok(raster);
+    };
+    let mut values = vec![0; 256 * 256];
+    let contours = vector.contours(doc, &layer.info)?;
+    crate::vector_mask::rasterize(
+        &contours,
+        strata_pixels::CoverageRect {
+            x,
+            y,
+            width: 256,
+            height: 256,
+        },
+        &mut values,
+        cancel,
+    )?;
+    if vector.inverted {
+        for v in &mut values {
+            *v = u16::MAX - *v;
+        }
+    }
+    if let Some(raster) = raster {
+        for (v, r) in values.iter_mut().zip(raster) {
+            *v = ((u32::from(*v) * u32::from(r) + 32767) / 65535) as u16;
+        }
+    }
+    Ok(Some(values))
+}
 pub fn layer_mask_tile(
     layer: &crate::Layer,
     x: i64,
@@ -830,8 +881,9 @@ pub fn layer_mask_tile(
     };
     Ok(Some(mask.region_tile(mx, my)?))
 }
-pub fn layer_mask_signature(layer: &crate::Layer, coord: TileCoord) -> u64 {
+pub fn layer_mask_signature(doc: &Document, layer: &crate::Layer, coord: TileCoord) -> u64 {
     let mut hash = std::collections::hash_map::DefaultHasher::new();
+    crate::vector_mask::hash_mask(doc, layer, &mut hash);
     layer.info.x.hash(&mut hash);
     layer.info.y.hash(&mut hash);
     if let (Some(mask), Some(meta)) = (&layer.mask, &layer.info.mask) {
@@ -947,6 +999,11 @@ impl Document {
             && visible[0].info.blend_mode == BlendMode::Normal
             && matches!(visible[0].info.kind, LayerKind::Pixel)
             && visible[0].mask.is_none()
+            && visible[0]
+                .info
+                .vector_mask
+                .as_ref()
+                .is_none_or(|m| !m.enabled)
             && visible[0].info.styles.is_empty()
         {
             let l = visible[0];
@@ -1109,6 +1166,38 @@ pub(crate) fn generated_fill(
     let start = endpoints[0].map(f64::from);
     let end = endpoints[1].map(f64::from);
     let [ox, oy] = coord.origin();
+    if let Some(paint) = &layer.info.shape_paint
+        && matches!(layer.info.kind, LayerKind::Solid { .. })
+    {
+        let mut pixels = vec![start; 256 * 256];
+        let frame = doc.frame();
+        let finite_mask = layer
+            .info
+            .vector_mask
+            .as_ref()
+            .is_some_and(|m| m.enabled && !m.inverted);
+        if paint.clip.is_some() || !finite_mask {
+            for (i, p) in pixels.iter_mut().enumerate() {
+                let (x, y) = (
+                    ox as f64 + (i % 256) as f64 + 0.5,
+                    oy as f64 + (i / 256) as f64 + 0.5,
+                );
+                let inside = paint.clip.as_ref().map_or_else(
+                    || {
+                        x >= frame.x as f64
+                            && y >= frame.y as f64
+                            && x < frame.x as f64 + f64::from(frame.width)
+                            && y < frame.y as f64 + f64::from(frame.height)
+                    },
+                    |clip| clip.contains([x - layer.info.x as f64, y - layer.info.y as f64]),
+                );
+                if !inside {
+                    *p = [0.; 4];
+                }
+            }
+        }
+        return Ok(pixels);
+    }
     let [width, height] = layer
         .info
         .generated_size

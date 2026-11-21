@@ -18,7 +18,7 @@ MARKDOWN = ROOT / 'docs/plans/ai-editing-entrypoint-coverage.md'
 REPORT = ROOT / 'docs/research/data/ai-editing-entrypoint-audit.json'
 META = {'browse_catalog', 'search_catalog', 'describe_commands', 'invoke_command',
         'invoke_batch', 'inspect_document', 'view_canvas', 'ask_user'}
-PATTERN = re.compile(r'"((?:system|document|file|edit|image|layer|select|adjust|retouch|paint|transform|filter|type|path|color|view)\.[a-z][a-z0-9_.]+)"')
+PATTERN = re.compile(r'"((?:system|document|file|edit|image|layer|select|adjust|retouch|paint|transform|filter|type|path|shape|color|view)\.[a-z][a-z0-9_.]+)"')
 
 
 def nodes(root, node, path, seen=None):

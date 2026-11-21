@@ -2,6 +2,8 @@
 //! the encoded file so the caller can expand and tile one layer at a time.
 mod channels;
 mod layers;
+mod vector;
+pub use vector::{MaskSourceHint, VectorMaskRecord, encode_solid};
 pub mod paths;
 
 pub use layers::{LayerRecord, LayerType, Mask};
@@ -90,6 +92,7 @@ pub struct Psd<'a> {
     pub icc: Option<&'a [u8]>,
     pub resolution_dpi: u32,
     pub paths: Vec<paths::SavedPath>,
+    pub path_resource_ids: Vec<u16>,
     /// PSD records are in bottom-to-top order, including section dividers.
     pub layers: Vec<LayerRecord<'a>>,
     composite: &'a [u8],
@@ -218,6 +221,7 @@ impl<'a> Psd<'a> {
             icc,
             resolution_dpi,
             layers,
+            path_resource_ids: saved.keys().copied().collect(),
             paths: saved.into_values().collect(),
             composite: src.0,
         })

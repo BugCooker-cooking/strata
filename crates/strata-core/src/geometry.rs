@@ -138,6 +138,12 @@ impl Homography {
     pub fn values(&self) -> [f64; 9] {
         std::array::from_fn(|i| self.forward[i / 3][i % 3])
     }
+    pub(crate) fn inverted(&self) -> Self {
+        Self {
+            forward: self.inverse,
+            inverse: self.forward,
+        }
+    }
     /// Apply this mapping first and `next` second.
     pub fn then(&self, next: &Self) -> Result<Self, GeometryError> {
         let result = multiply(next.forward, self.forward);

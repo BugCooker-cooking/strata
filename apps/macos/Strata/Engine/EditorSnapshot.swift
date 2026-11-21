@@ -30,6 +30,14 @@ struct EditorSnapshot: Decodable, Sendable {
             let text:AIJSON?
         }
         struct Mask: Decodable, Sendable { let enabled: Bool }
+        struct VectorMask: Decodable, Sendable {
+            let path: String
+            let enabled: Bool
+            let inverted: Bool
+            let linked: Bool
+        }
+        let vectorMask: VectorMask?
+        let shapePaint: AIJSON?
         struct Locks: Decodable, Sendable { let transparency:Bool;let pixels:Bool;let position:Bool;let all:Bool }
         let id: String; let name: String; let visible: Bool; let opacity: Double; let blendMode: String; let x: Int64; let y: Int64
         let kind: Kind?; let mask: Mask?
@@ -40,7 +48,7 @@ struct EditorSnapshot: Decodable, Sendable {
         let styles:AIJSON?
         var exposure: Double? { kind?.kind == "exposure" ? kind?.stops : nil }
         func canTransform(scope:String)->Bool{
-            let eligible = scope == "whole_layer" ? !isAdjustment || mask != nil : scope == "selection" && (kind?.kind ?? "pixel") == "pixel"
+            let eligible = scope == "whole_layer" ? !isAdjustment || mask != nil || vectorMask?.linked == true : scope == "selection" && (kind?.kind ?? "pixel") == "pixel"
             return eligible && locks?.all != true && locks?.pixels != true && locks?.position != true && locks?.transparency != true
         }
         var isGroup:Bool{kind?.kind=="group"}

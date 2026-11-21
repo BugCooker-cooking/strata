@@ -45,6 +45,24 @@ struct PathControls: View {
                     Button(L10n.text("路径转选区")) { input.loadSelection() }.disabled(!input.hasSavedGeometry)
                     Button(L10n.text("删除路径")) { input.deletePath() }.disabled(input.selectedID == nil)
                 }
+                if let target = model.selected {
+                    DisclosureGroup(L10n.text("图层矢量蒙版")) {
+                        VStack(alignment: .leading, spacing: 5) {
+                            Button(L10n.text("将所选路径绑定到图层")) {
+                                if let path = input.selectedID { setMask(target, ["path": ["id": path]]) }
+                            }.disabled(!input.hasSavedGeometry || input.selectedID == target.vectorMask?.path)
+                            if let mask = target.vectorMask {
+                                Button(L10n.text("编辑蒙版源路径")) { input.select(mask.path) }
+                                Toggle(L10n.text("启用矢量蒙版"), isOn: Binding(get: { mask.enabled }, set: { setMask(target, ["enabled": $0]) }))
+                                Toggle(L10n.text("反相矢量蒙版"), isOn: Binding(get: { mask.inverted }, set: { setMask(target, ["inverted": $0]) }))
+                                Toggle(L10n.text("随图层移动"), isOn: Binding(get: { mask.linked }, set: { setMask(target, ["linked": $0]) }))
+                                Button(L10n.text("移除矢量蒙版")) {
+                                    model.send(.command("layer.vector_mask.remove", ["layer": ["id": target.id]]))
+                                }
+                            }
+                        }
+                    }
+                }
                 DisclosureGroup(L10n.text("从选区建立路径")) {
                     LabeledContent(L10n.text("覆盖阈值")) {
                         TextField("1–65535", value: $threshold, format: .number).frame(width: 72)
@@ -59,4 +77,11 @@ struct PathControls: View {
             }.padding(10)
         }.disabled(!input.enabled || !model.permissions.edits)
     }
+    private func setMask(_ layer: EditorSnapshot.Layer, _ values: [String: Any]) {
+        var args = values
+        args["layer"] = ["id": layer.id]
+        args["expected_revision"] = model.snapshot?.revision
+        model.send(.command("layer.vector_mask.set", args))
+    }
+
 }

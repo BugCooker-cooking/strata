@@ -138,6 +138,28 @@ impl GeneratedGeometry {
         Ok(result)
     }
 
+    pub(crate) fn rectangular_support(rect: CoverageRect) -> Self {
+        Self {
+            matrix: [1., 0., 0., 0., 1., 0., 0., 0., 1.],
+            support: rect_points(rect),
+        }
+    }
+    pub(crate) fn transform_between(
+        &mut self,
+        old: [i64; 2],
+        new: [i64; 2],
+        transform: &Homography,
+    ) -> Result<(), DocumentError> {
+        let local = translation([-(new[0] as f64), -(new[1] as f64)])?;
+        let relative = translation([old[0] as f64, old[1] as f64])?
+            .then(transform)
+            .and_then(|m| m.then(&local))
+            .map_err(invalid)?;
+        self.support = relative.map_polygon(&self.support).map_err(invalid)?;
+        normalize_support(&mut self.support);
+        self.matrix = self.mapping()?.then(&relative).map_err(invalid)?.values();
+        self.validate(new)
+    }
     pub(crate) fn crop(&mut self, bounds: CoverageRect) {
         // Sutherland-Hodgman clipping in the current local plane. Inserting
         // an edge here prevents later transforms resurrecting discarded fill.

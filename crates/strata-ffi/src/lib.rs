@@ -35,6 +35,17 @@ pub use local::SelectionEdge;
 mod thumbnails;
 pub use thumbnails::LayerThumbnail;
 
+/// Pure, document-independent geometry for a drag outline. The registered
+/// shape commands use the identical source generator.
+#[uniffi::export]
+pub fn shape_outline_json(geometry_json: String) -> Result<String, StrataError> {
+    if geometry_json.len() > 4096 {
+        return Err(render_error("shape parameters too large"));
+    }
+    let g: strata_core::ShapeGeometry =
+        serde_json::from_str(&geometry_json).map_err(render_error)?;
+    serde_json::to_string(&g.outline().map_err(render_error)?).map_err(render_error)
+}
 /// Process resource maintenance must not keep any document engine alive.
 #[uniffi::export]
 pub fn trim_global_source_memory() -> Result<(), StrataError> {

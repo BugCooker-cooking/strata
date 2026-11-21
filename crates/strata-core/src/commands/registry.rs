@@ -112,6 +112,52 @@ fn build_catalog() -> Vec<CommandSpec> {
         "Trace the current selection into one editable compound work path. Preserve disconnected islands and holes using even-odd contours. Mask codes >= threshold (1..65535, default 32768) are inside. tolerance (0..10 canvas pixels, default 0) controls polygon simplification. At zero the traced pixel boundary exactly reproduces the thresholded selection. Curve segments initially have corner anchors. Reject empty or over-complex results atomically; 64 contours, 1024 anchors per contour and 2048 per path. Returns stable path_id and changed. One undo restores the previous path list; leaves selection and image samples intact. 中文：选区转工作路径、从选区建立路径、保留孔洞与分离区域。阈值和简化容差可调，支持整回合撤销。",
         json!({"name":"Selection outline","threshold":32768,"tolerance":0})
     );
+    command!(
+        "layer.vector_mask.set",
+        vector_masks::SetMask,
+        Mutate,
+        "绑定或编辑矢量蒙版",
+        "Bind or edit vector mask",
+        "Bind one layer, group or adjustment to an editable work path. Native and AI share this command. Use path on first bind or to replace the source. enabled, inverted, linked are optional; a new mask defaults to enabled, normal, linked to layer movement. Changing link state preserves the visible placement. Later source edits affect all bound layers, independently of their raster masks. Raster and vector coverages multiply, retaining source RGBA. Reject locked target/ancestors or stale expected_revision. One undo restores the previous binding. 中文：添加矢量蒙版、路径联动图层、启停或反相矢量蒙版、链接或解除图层移动。",
+        json!({"layer":{"name":"Background"},"path":{"name":"Outline"}})
+    );
+    command!(
+        "layer.vector_mask.remove",
+        vector_masks::RemoveMask,
+        Mutate,
+        "移除矢量蒙版",
+        "Remove vector mask",
+        "Remove the vector mask binding from a layer, leaving the work path, raster mask and source samples intact. Optional expected_revision binds the inspected document version. One undo restores the same source path and placement. 中文：移除矢量蒙版、解除路径绑定，保留工作路径及栅格蒙版。",
+        json!({"layer":{"name":"Background"}})
+    );
+    let rect = json!({"start":[2,3],"end":[13,12],"primitive":{"kind":"rectangle","radius":2}});
+    command!(
+        "shape.create",
+        shapes::CreateShape,
+        Mutate,
+        "创建可编辑形状",
+        "Create editable shape",
+        "Create one parametric vector shape layer and a named work path in a single undo step. Use rectangle (radius optional; clamped to half the shorter side), ellipse, triangle, polygon (3..128 sides) or line (positive weight, butt ends). start/end are opposing corners in canvas pixels, or endpoints for a line. Reverse drags are valid. The layer has a solid working-RGB fill at document depth and a linked vector mask. Optional expected_document, expected_revision and expected_active_layer bind a native draft and its insertion context. Source selection is preserved. 中文：形状工具、矩形、圆角矩形、椭圆、三角形、多边形、直线；新建可编辑形状图层，支持撤销。",
+        json!({"name":"Badge","geometry":rect,"color":[255,80,40,255]})
+    );
+    command!(
+        "shape.update",
+        shapes::EditShape,
+        Mutate,
+        "修改形状尺寸与参数",
+        "Edit shape parameters",
+        "Change geometry and/or fill RGBA of a parametric shape. Geometry uses the source coordinate system stored by path.get; image and layer transforms retain their placement. Manual anchor changes turn the source into a freeform path editable with path.update. Duplicate shape layers have independent curves. An identical update is a no-op. Requires an editable layer; one undo. 中文：修改圆角半径、多边形边数、线宽、源尺寸或填色。",
+        json!({"layer":{"name":"Badge"},"geometry":{"start":[2,3],"end":[14,14],"primitive":{"kind":"polygon","sides":5}}})
+    );
+    command!(
+        "shape.outline",
+        shapes::Outline,
+        Query,
+        "预览形状轮廓",
+        "Inspect shape outline",
+        "Return the actual cubic anchors for a shape draft in canvas coordinates. Uses the creation geometry generator and does not edit the document, layers, selection or history. 中文：预览形状锚点和方向手柄。",
+        json!({"geometry":rect})
+    );
     let triangle = json!([{"position":[2,2]},{"position":[13,2],"outgoing":[0,3]},{"position":[2,13],"incoming":[3,0]}]);
     command!(
         "path.create",
@@ -623,7 +669,7 @@ fn build_catalog() -> Vec<CommandSpec> {
         Lifecycle,
         "打开文件",
         "Open file",
-        "Open an authorized image, Strata project or 8/16-bit RGB PSD. Import PSD pixel layers, nested groups, basic raster masks, invert and exposure (zero offset, gamma 1) as editable layers. Unsupported layer features such as type, vector masks and smart objects fail before replacing the document. Strata recomposites in linear light, so translucent overlaps can differ from the embedded Photoshop preview. Opening starts a fresh history and requires discard_changes for a dirty document. Saved PSD path resources retain open and closed cubic knots and Unicode names. Save edits to a Strata project. 中文：打开文件、导入分层 PSD、打开 Photoshop 文档、读取 PSD 路径资源。由宿主授权读取，保留像素层、组、基本栅格蒙版、反相和基本曝光。半透明区域按线性光重新合成。打开后开始新的历史，替换有未保存修改的文档须明确允许放弃修改。",
+        "Open an authorized image, Strata project or 8/16-bit RGB PSD. Import PSD pixel layers, nested groups, basic raster masks, invert and exposure (zero offset, gamma 1) as editable layers. Standard PSD v3 vector masks and RGB solid-color fills remain editable. Unsupported layer features such as type, advanced vector operations and smart objects fail before replacing the document. Strata recomposites in linear light, so translucent overlaps can differ from the embedded Photoshop preview. Opening starts a fresh history and requires discard_changes for a dirty document. Saved PSD path resources retain open and closed cubic knots and Unicode names. Save edits to a Strata project. 中文：打开文件、导入分层 PSD、打开 Photoshop 文档、读取 PSD 路径资源。由宿主授权读取，保留像素层、组、基本栅格蒙版、矢量蒙版、RGB 纯色填充、反相和基本曝光。半透明区域按线性光重新合成。打开后开始新的历史，替换有未保存修改的文档须明确允许放弃修改。",
         json!({"resource":"fixture-read"})
     );
     command!(
@@ -704,7 +750,7 @@ fn build_catalog() -> Vec<CommandSpec> {
         External,
         "导出分层 PSD 副本",
         "Export layered Photoshop PSD",
-        "Export an editable RGB PSD v1 copy of the current artboard at its original 8/16-bit depth, DPI and working ICC. Retain pixel layers (including hidden RGB and off-artboard samples), groups, clipping, raster masks, invert and exposure. Layer coordinates are relative to the artboard. PSD stores opacity in 8 bits and exposure in a float. The embedded preview uses Strata's composite; other editors may reblend in a different space. Unsupported editable content fails before publication. An 8-bit PSD needs mask samples exactly representable in 8 bits. Saved work paths and their Unicode names are included as PSD path resources. Path knots are rounded to signed normalized 8.24 fixed point. The Strata project retains selections and guides. The PSD is a fixed snapshot taken at export preparation. Requires a host-authorized write destination; export does not mark the project saved or enter undo history. 中文：导出分层 PSD 副本、保存为 Photoshop 文件。保留图层、图层组、蒙版、工作路径、位深、ICC 和分辨率。宿主授权写入，导出记录独立于撤销。工程中保留选区和参考线。",
+        "Export an editable RGB PSD v1 copy of the current artboard at its original 8/16-bit depth, DPI and working ICC. Retain pixel layers (including hidden RGB and off-artboard samples), groups, clipping, raster masks, invert and exposure. Layer coordinates are relative to the artboard. PSD stores opacity in 8 bits and exposure in a float. The embedded preview uses Strata's composite; other editors may reblend in a different space. Unsupported editable content fails before publication. An 8-bit PSD needs mask samples exactly representable in 8 bits. Export standard vmsk vector mask geometry and its flags as well as plain full-artboard opaque RGB solid-color fills. Perspective mask placement requires conversion for PSD. Saved work paths and Unicode names are included as PSD path resources. Path knots are rounded to signed normalized 8.24 fixed point. The Strata project retains selections and guides. The PSD is a fixed snapshot taken at export preparation. Requires a host-authorized write destination; export does not mark the project saved or enter undo history. 中文：导出分层 PSD 副本、保存为 Photoshop 文件。保留图层、图层组、栅格与矢量蒙版、工作路径、位深、ICC 和分辨率。宿主授权写入，导出记录独立于撤销。工程中保留选区和参考线。",
         json!({"resource":"fixture-psd-output"})
     );
     command!(
@@ -1458,6 +1504,11 @@ fn build_catalog() -> Vec<CommandSpec> {
     );
     for item in &mut list {
         item.returns = match item.id {
+            "shape.create" | "shape.update" => schemars::schema_for!(shapes::ShapeResult),
+            "shape.outline" => schemars::schema_for!(shapes::OutlineResult),
+            "layer.vector_mask.set" | "layer.vector_mask.remove" => {
+                schemars::schema_for!(vector_masks::MaskResult)
+            }
             "path.create"
             | "path.from_selection"
             | "path.update"
@@ -1558,6 +1609,17 @@ fn build_catalog() -> Vec<CommandSpec> {
         ) {
             item.effects.push("file.read");
             item.permissions.push("read_resource");
+        }
+        if item.id == "shape.create" {
+            for primitive in [
+                json!({"kind":"rectangle"}),
+                json!({"kind":"ellipse"}),
+                json!({"kind":"triangle"}),
+                json!({"kind":"polygon","sides":5}),
+                json!({"kind":"line","weight":2}),
+            ] {
+                item.examples.push(json!({"name":"Illustration","color":[65535,20000,32768,65535],"geometry":{"start":[2,2],"end":[14,12],"primitive":primitive}}));
+            }
         }
         if item.id == "path.create" {
             item.examples.push(json!({"name":"Open curve","open_contours":[0],"anchors":[{"position":[2,4],"incoming":[-1,0],"outgoing":[2,0],"linked":true},{"position":[12,9],"incoming":[-3,2]}]}));
@@ -1707,7 +1769,10 @@ fn build_catalog() -> Vec<CommandSpec> {
             item.effects = vec!["font.catalog.read"];
             item.permissions = vec!["bound_editor"];
         }
-        if item.id.starts_with("path.") || matches!(item.id, "select.from_path" | "layer.fill.path")
+        if item.id.starts_with("shape.")
+            || item.id.starts_with("layer.vector_mask.")
+            || item.id.starts_with("path.")
+            || matches!(item.id, "select.from_path" | "layer.fill.path")
         {
             item.batchable = false;
             item.returns

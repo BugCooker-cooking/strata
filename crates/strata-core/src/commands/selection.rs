@@ -210,60 +210,12 @@ pub(super) fn compound_polygon(
     cancel: &dyn Fn() -> bool,
 ) -> Result<TiledMask, CommandError> {
     let mut out = DenseMask::empty(doc, 2)?;
-    let mut low = f64::INFINITY;
-    let mut high = f64::NEG_INFINITY;
-    let mut edges = Vec::new();
-    for contour in contours {
-        for (&a, &b) in contour.iter().zip(contour.iter().cycle().skip(1)) {
-            low = low.min(a[1]);
-            high = high.max(a[1]);
-            if a[1] != b[1] {
-                edges.push((a, b));
-            }
+    crate::vector_mask::rasterize(contours, out.bounds, &mut out.values, cancel).map_err(|e| {
+        match e {
+            DocumentError::Cancelled => CommandError::Expired,
+            e => e.into(),
         }
-    }
-    let min_y = (low.floor() as i64).max(out.bounds.y);
-    let max_y = (high.ceil() as i64).min(out.bounds.y + i64::from(out.height));
-    let mut crossings = Vec::with_capacity(edges.len());
-    for y in min_y..max_y {
-        if cancel() {
-            return Err(CommandError::Expired);
-        }
-        for sy in 0..4 {
-            let scan = y as f64 + (f64::from(sy) + 0.5) / 4.0;
-            crossings.clear();
-            for (a, b) in &edges {
-                if (a[1] <= scan && b[1] > scan) || (b[1] <= scan && a[1] > scan) {
-                    crossings.push(a[0] + (scan - a[1]) * (b[0] - a[0]) / (b[1] - a[1]));
-                }
-            }
-            crossings.sort_by(f64::total_cmp);
-            for span in crossings.chunks_exact(2) {
-                let left = span[0].max(out.bounds.x as f64);
-                let right = span[1].min(out.bounds.x as f64 + f64::from(out.width));
-                if right <= left {
-                    continue;
-                }
-                for x in left.floor() as i64..right.ceil() as i64 {
-                    let mut count = 0u16;
-                    for sx in 0..4 {
-                        let sample = x as f64 + (f64::from(sx) + 0.5) / 4.0;
-                        if sample >= left && sample < right {
-                            count += 1;
-                        }
-                    }
-                    if x >= out.bounds.x && x < out.bounds.x + i64::from(out.width) {
-                        let index = (y - out.bounds.y) as usize * out.width as usize
-                            + (x - out.bounds.x) as usize;
-                        out.values[index] += count;
-                    }
-                }
-            }
-        }
-    }
-    for value in &mut out.values {
-        *value = (u32::from(*value) * 65535 / 16) as u16;
-    }
+    })?;
     out.tiled(doc, cancel)
 }
 fn distance_line(f: &[f64]) -> Vec<f64> {

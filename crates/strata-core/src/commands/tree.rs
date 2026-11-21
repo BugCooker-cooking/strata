@@ -229,7 +229,26 @@ pub(super) fn delete(doc: &mut Document, target: crate::LayerId) -> Result<Value
             "subtree contains fully locked layers".into(),
         ));
     }
+    let owned: HashSet<_> = doc
+        .layers
+        .iter()
+        .filter(|l| ids.contains(&l.id()))
+        .filter_map(|l| {
+            l.info
+                .shape_paint
+                .as_ref()?
+                .owned_path
+                .filter(|id| l.info.vector_mask.as_ref().is_some_and(|m| m.path == *id))
+        })
+        .collect();
     doc.layers.retain(|l| !ids.contains(&l.id()));
+    doc.paths.retain(|p| {
+        !owned.contains(&p.id)
+            || doc
+                .layers
+                .iter()
+                .any(|l| l.info.vector_mask.as_ref().is_some_and(|m| m.path == p.id))
+    });
     if doc.active.is_some_and(|id| ids.contains(&id)) {
         doc.active = doc.layers.last().map(Layer::id)
     }
@@ -251,11 +270,39 @@ pub(super) fn duplicate(doc: &mut Document, target: crate::LayerId) -> Result<Va
         .collect();
     let new = map[&target];
     let insertion = doc.layers.iter().rposition(|l| l.id() == target).unwrap() + 1;
+    // A duplicated shape owns an independent editable curve. Within a copied
+    // group keep shared bindings pointed at the same copied source.
+    let mut paths = HashMap::new();
+    for l in &copies {
+        if let Some(mask) = l
+            .info
+            .vector_mask
+            .as_ref()
+            .filter(|_| l.info.shape_paint.is_some())
+            && !paths.contains_key(&mask.path)
+        {
+            if doc.paths.len() >= crate::paths::MAX_PATHS {
+                return Err(DocumentError::ResourceLimit.into());
+            }
+            let mut path = mask.source(doc)?.clone();
+            path.id = crate::PathId::fresh();
+            paths.insert(mask.path, path.id);
+            doc.paths.push(std::sync::Arc::new(path));
+        }
+    }
     let copies = copies
         .into_iter()
         .map(|mut l| {
             let root = l.id() == target;
             l.info.id = map[&l.id()];
+            if let Some(mask) = &mut l.info.vector_mask
+                && let Some(id) = paths.get(&mask.path)
+            {
+                mask.path = *id;
+                if let Some(shape) = &mut l.info.shape_paint {
+                    shape.owned_path = Some(*id);
+                }
+            }
             if let Some(parent) = l.info.parent {
                 l.info.parent = Some(*map.get(&parent).unwrap_or(&parent));
             }

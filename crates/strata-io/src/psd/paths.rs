@@ -22,6 +22,14 @@ pub struct SavedPath {
 }
 impl SavedPath {
     pub(super) fn read(name: &[u8], bytes: &[u8], used: &mut usize) -> Result<Self> {
+        Self::read_contours(name, bytes, used, false)
+    }
+    pub(super) fn read_contours(
+        name: &[u8],
+        bytes: &[u8],
+        used: &mut usize,
+        mask: bool,
+    ) -> Result<Self> {
         if !bytes.len().is_multiple_of(26) {
             return Err(Invalid("saved path record length"));
         }
@@ -46,7 +54,9 @@ impl SavedPath {
                         return Err(Limit);
                     }
                     let operation = rec.short()? as i16;
-                    if !matches!(operation, 0 | 1) {
+                    if !matches!(operation, 0 | 1)
+                        || (mask && operation == 1 && !contours.is_empty())
+                    {
                         return Err(Unsupported("saved path boolean operator".into()));
                     }
                     let open = selector == 3;
@@ -170,7 +180,7 @@ pub fn legacy_name(name: &str) -> Vec<u8> {
         })
         .collect()
 }
-fn unicode(data: &mut Reader<'_>) -> Result<String> {
+pub(super) fn unicode(data: &mut Reader<'_>) -> Result<String> {
     let count = data.word()? as usize;
     if count > 1024 {
         return Err(Limit);
@@ -187,11 +197,16 @@ fn unicode(data: &mut Reader<'_>) -> Result<String> {
     }
     Ok(s)
 }
-fn key<'a>(d: &mut Reader<'a>) -> Result<&'a [u8]> {
+pub(super) fn key<'a>(d: &mut Reader<'a>) -> Result<&'a [u8]> {
     let n = d.word()? as usize;
     d.take(if n == 0 { 4 } else { n })
 }
-fn descriptor(d: &mut Reader<'_>, class: &[u8], field: &[u8], kind: &[u8; 4]) -> Result<()> {
+pub(super) fn descriptor(
+    d: &mut Reader<'_>,
+    class: &[u8],
+    field: &[u8],
+    kind: &[u8; 4],
+) -> Result<()> {
     unicode(d)?;
     if key(d)? != class || d.word()? != 1 || key(d)? != field {
         return Err(Unsupported("Unicode path-name descriptor".into()));
@@ -216,17 +231,17 @@ pub(super) fn read_names(mut data: Reader<'_>) -> Result<Vec<String>> {
     data.padding(3)?;
     Ok(names)
 }
-fn write_text(out: &mut Vec<u8>, s: &str) {
+pub(super) fn write_text(out: &mut Vec<u8>, s: &str) {
     out.extend(((s.encode_utf16().count() + 1) as u32).to_be_bytes());
     for unit in s.encode_utf16().chain(std::iter::once(0)) {
         out.extend(unit.to_be_bytes());
     }
 }
-fn write_key(out: &mut Vec<u8>, s: &[u8]) {
+pub(super) fn write_key(out: &mut Vec<u8>, s: &[u8]) {
     out.extend((s.len() as u32).to_be_bytes());
     out.extend(s);
 }
-fn write_descriptor(out: &mut Vec<u8>, class: &[u8], field: &[u8], kind: &[u8; 4]) {
+pub(super) fn write_descriptor(out: &mut Vec<u8>, class: &[u8], field: &[u8], kind: &[u8; 4]) {
     write_text(out, "");
     write_key(out, class);
     out.extend(1u32.to_be_bytes());

@@ -198,6 +198,7 @@ pub enum SourceInfo {
 
 #[derive(Clone)]
 struct HistoryEntry {
+    annotations_only: bool,
     info: HistoryInfo,
     before: Document,
     after: Document,
@@ -817,6 +818,7 @@ impl Editor {
                 | "transform.apply"
                 | "image.auto"
                 | "layer.snap_position"
+                | "path.update"
         ) {
             return Err(CommandError::Invalid(
                 "unsupported pixel filter preview".into(),
@@ -824,7 +826,24 @@ impl Editor {
         }
         self.authorize(&Source::User, command, CommandKind::Mutate)?;
         let doc = self.document().ok_or(CommandError::NoDocument)?;
-        let layer = if command == "transform.apply" {
+        let layer = if command == "path.update" {
+            let target = doc.resolve(&layer)?;
+            let owner = doc
+                .layers()
+                .iter()
+                .find(|l| l.id() == target)
+                .ok_or(DocumentError::LayerNotFound)?;
+            let path = owner
+                .info()
+                .vector_mask
+                .as_ref()
+                .ok_or_else(|| {
+                    CommandError::Invalid("select a layer with a bound vector mask".into())
+                })?
+                .path;
+            super::vector_masks::check_path_edit(doc, path)?;
+            target
+        } else if command == "transform.apply" {
             super::transform::target(doc, &layer)?.0
         } else if command == "layer.snap_position" {
             let target = doc.resolve(&layer)?;
@@ -860,10 +879,24 @@ impl Editor {
                 | "transform.apply"
                 | "image.auto"
                 | "layer.snap_position"
+                | "path.update"
         ) {
             return Err(CommandError::Invalid(
                 "unsupported pixel filter preview".into(),
             ));
+        }
+        if command == "path.update" {
+            let doc = self.document().ok_or(CommandError::NoDocument)?;
+            let bound = doc
+                .layers()
+                .iter()
+                .find(|l| l.id() == interaction.layer)
+                .and_then(|l| l.info().vector_mask.as_ref())
+                .ok_or(CommandError::Stale)?;
+            if params.get("path") != Some(&json!({"id":bound.path})) {
+                return Err(CommandError::Stale);
+            }
+            return self.prepare(interaction.request.clone(), command, params);
         }
         let fields = params
             .as_object_mut()
@@ -1370,6 +1403,7 @@ impl Editor {
                     }
                 } else if id != "paint.sample_color"
                     && id != "layer.pixel_bounds"
+                    && id != "shape.outline"
                     && id != "path.get"
                     && id != "type.inspect"
                     && id != "view.guides.list"
@@ -1400,6 +1434,11 @@ impl Editor {
                             self.document().ok_or(CommandError::NoDocument)?,
                             params.clone(),
                         )?
+                    } else if id == "shape.outline" {
+                        let p: super::shapes::Outline = parse(params.clone())?;
+                        json!(super::shapes::OutlineResult {
+                            anchors: p.geometry.outline()?
+                        })
                     } else if id == "path.list" {
                         super::paths::list(self.document().ok_or(CommandError::NoDocument)?)
                     } else if id == "path.get" {
@@ -1558,12 +1597,39 @@ impl Editor {
                         Action::Edit,
                         super::paths::fill(doc, params.clone(), &|| request.expired())?,
                     )
+                } else if id.starts_with("shape.") {
+                    let result = super::shapes::mutate(doc, id, params.clone(), self.revision)?;
+                    (
+                        if result["changed"] == false {
+                            Action::Query
+                        } else {
+                            Action::Edit
+                        },
+                        result,
+                    )
+                } else if id.starts_with("layer.vector_mask.") {
+                    let result =
+                        super::vector_masks::mutate(doc, id, params.clone(), self.revision)?;
+                    (
+                        if result["changed"] == false {
+                            Action::Query
+                        } else {
+                            Action::Edit
+                        },
+                        result,
+                    )
                 } else if id.starts_with("path.") {
-                    annotations_only = true;
                     let result =
                         super::paths::mutate(doc, id, params.clone(), self.revision, &|| {
                             request.expired()
                         })?;
+                    let path_id: crate::PathId = parse(result["path_id"].clone())?;
+                    annotations_only = !doc.layers().iter().any(|l| {
+                        l.info()
+                            .vector_mask
+                            .as_ref()
+                            .is_some_and(|m| m.enabled && m.path == path_id)
+                    });
                     (
                         if result["changed"] == false {
                             Action::Query
@@ -1775,10 +1841,7 @@ impl Editor {
                 });
                 annotations_only = self.history[next.min(self.cursor)..next.max(self.cursor)]
                     .iter()
-                    .all(|e| {
-                        e.info.command.starts_with("view.guides.")
-                            || e.info.command.starts_with("path.")
-                    });
+                    .all(|entry| entry.annotations_only);
                 selected = candidate.as_ref().and_then(Document::active_layer);
                 (Action::History(next), json!({"history_cursor":next}))
             }
@@ -2236,6 +2299,7 @@ impl Editor {
                     Source::Test => SourceInfo::Test,
                 };
                 self.history.push(HistoryEntry {
+                    annotations_only: prepared.annotations_only,
                     info: HistoryInfo {
                         command: prepared.command.clone(),
                         source,

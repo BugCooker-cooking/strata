@@ -241,6 +241,7 @@ pub(super) fn mutate(
             super::local::attach(target, mask);
             target.info.mask.as_mut().unwrap().enabled = enabled;
         }
+        target.info.transform_bindings(info, &transform, true)?;
         GeneratedGeometry::update_reference(&mut target.info, info, &old, &transform)?;
         target.info.spatial_bounds = info
             .spatial_bounds

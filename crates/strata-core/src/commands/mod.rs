@@ -73,6 +73,8 @@ macro_rules! params {
     };
 }
 mod paths;
+mod shapes;
+mod vector_masks;
 params!(Empty {});
 params!(DuplicateDocument {
     #[schemars(length(min = 1, max = 256))]

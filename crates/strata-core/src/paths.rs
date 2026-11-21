@@ -28,6 +28,8 @@ pub struct PathAnchor {
 #[serde(deny_unknown_fields)]
 pub struct WorkPath {
     pub id: PathId,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub shape: Option<crate::ShapeDefinition>,
     #[schemars(length(min = 1, max = 256))]
     pub name: String,
     #[schemars(length(min = 2, max = 1024))]
@@ -85,6 +87,15 @@ impl WorkPath {
         if self.open_contours.iter().any(|&i| i > self.subpaths.len()) {
             return Err(DocumentError::Invalid(
                 "open contour index does not exist".into(),
+            ));
+        }
+        if let Some(shape) = &self.shape
+            && (!self.open_contours.is_empty()
+                || !self.subpaths.is_empty()
+                || !shape.matches(&self.anchors)?)
+        {
+            return Err(DocumentError::Invalid(
+                "parametric shape source and anchors disagree".into(),
             ));
         }
         if self.subpaths.len() >= MAX_CONTOURS || self.anchor_count() > MAX_PATH_ANCHORS {
@@ -161,14 +172,27 @@ impl WorkPath {
                 outgoing: minus(right, position),
             },
         );
+        self.shape = None;
         self.validate()
     }
     pub(crate) fn polygons(&self) -> Result<Vec<Vec<Point>>, DocumentError> {
+        self.mapped_polygons(None)
+    }
+    pub(crate) fn mapped_polygons(
+        &self,
+        placement: Option<&Homography>,
+    ) -> Result<Vec<Vec<Point>>, DocumentError> {
         let mut contours = Vec::new();
         let mut total = 0;
         for (index, anchors) in self.contours().enumerate() {
             let open = self.open_contours.contains(&index);
-            let mut points = vec![anchors[0].position];
+            let first = anchors[0].position;
+            let mut points = vec![match placement {
+                Some(m) => m
+                    .map(first)
+                    .map_err(|e| DocumentError::Invalid(e.to_string()))?,
+                None => first,
+            }];
             for (a, b) in anchors
                 .iter()
                 .zip(anchors.iter().cycle().skip(1))
@@ -182,6 +206,7 @@ impl WorkPath {
                         b.position,
                     ],
                     0,
+                    placement,
                     &mut points,
                 )?;
             }
@@ -202,12 +227,21 @@ impl WorkPath {
 fn flatten(
     [a, b, c, d]: [Point; 4],
     depth: u8,
+    placement: Option<&Homography>,
     points: &mut Vec<Point>,
 ) -> Result<(), DocumentError> {
-    let v = minus(d, a);
+    let [pa, pb, pc, pd] = if let Some(m) = placement {
+        m.map_polygon(&[a, b, c, d])
+            .map_err(|e| DocumentError::Invalid(e.to_string()))?
+            .try_into()
+            .expect("four controls")
+    } else {
+        [a, b, c, d]
+    };
+    let v = minus(pd, pa);
     let len = v[0] * v[0] + v[1] * v[1];
     let flat = |p: Point| {
-        let q = minus(p, a);
+        let q = minus(p, pa);
         let t = if len == 0.0 {
             0.0
         } else {
@@ -215,11 +249,11 @@ fn flatten(
         };
         (q[0] - t * v[0]).hypot(q[1] - t * v[1]) <= 0.125
     };
-    if flat(b) && flat(c) {
+    if flat(pb) && flat(pc) {
         if points.len() >= 4097 {
             return Err(DocumentError::ResourceLimit);
         }
-        points.push(d);
+        points.push(pd);
         return Ok(());
     }
     if depth >= 24 {
@@ -228,11 +262,29 @@ fn flatten(
     let (ab, bc, cd) = (mid(a, b), mid(b, c), mid(c, d));
     let (left, right) = (mid(ab, bc), mid(bc, cd));
     let center = mid(left, right);
-    flatten([a, ab, left, center], depth + 1, points)?;
-    flatten([center, right, cd, d], depth + 1, points)
+    flatten([a, ab, left, center], depth + 1, placement, points)?;
+    flatten([center, right, cd, d], depth + 1, placement, points)
 }
 pub(crate) fn transform_paths(
     paths: &mut [Arc<WorkPath>],
+    matrix: &Homography,
+) -> Result<(), DocumentError> {
+    for path in paths {
+        let path = Arc::make_mut(path);
+        if let Some(shape) = &mut path.shape {
+            shape.transform(matrix)?;
+            path.anchors = shape.anchors()?;
+        } else {
+            for a in path.contours_mut().flatten() {
+                transform_anchor(a, matrix)?;
+            }
+        }
+        path.validate()?;
+    }
+    Ok(())
+}
+pub(crate) fn transform_anchor(
+    a: &mut PathAnchor,
     matrix: &Homography,
 ) -> Result<(), DocumentError> {
     let map = |p| {
@@ -240,15 +292,9 @@ pub(crate) fn transform_paths(
             .map(p)
             .map_err(|e| DocumentError::Invalid(e.to_string()))
     };
-    for path in paths {
-        let path = Arc::make_mut(path);
-        for a in path.contours_mut().flatten() {
-            let position = map(a.position)?;
-            a.incoming = minus(map(plus(a.position, a.incoming))?, position);
-            a.outgoing = minus(map(plus(a.position, a.outgoing))?, position);
-            a.position = position;
-        }
-        path.validate()?;
-    }
+    let position = map(a.position)?;
+    a.incoming = minus(map(plus(a.position, a.incoming))?, position);
+    a.outgoing = minus(map(plus(a.position, a.outgoing))?, position);
+    a.position = position;
     Ok(())
 }

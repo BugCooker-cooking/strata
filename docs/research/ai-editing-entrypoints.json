@@ -2477,9 +2477,14 @@
           "text": "打开我选的 PSD，保留工作路径及开放和闭合轮廓。",
           "query": "PSD 路径资源",
           "command": "file.open"
+        },
+        {
+          "text": "打开含 RGB 纯色形状和矢量蒙版的分层 PSD。",
+          "query": "矢量蒙版 PSD",
+          "command": "file.open"
         }
       ],
-      "note": "使用宿主文件选择器，支持范围和部分兼容项见 PSD 导入记录。文字、矢量、智能对象和其余调整图层仍待接入。 支持 PSD 的保存路径资源和 Unicode 路径名称。"
+      "note": "使用宿主文件选择器，支持范围和部分兼容项见 PSD 导入记录。文字、复杂矢量结构、智能对象和其余调整图层仍待接入。 支持 PSD 的保存路径资源和 Unicode 路径名称。 支持标准矢量蒙版和基本 RGB 纯色填充。"
     },
     "PS-01-261e177d1e": {
       "scope": "editing",
@@ -2502,9 +2507,14 @@
           "text": "把开放曲线、闭合轮廓及其名称一起导出为分层 PSD。",
           "query": "工作路径 PSD",
           "command": "file.export_psd"
+        },
+        {
+          "text": "将可编辑纯色形状、矢量蒙版与工作路径导出为 PSD。",
+          "query": "矢量蒙版 PSD",
+          "command": "file.export_psd"
         }
       ],
-      "note": "原尺寸 8/16 位 RGB，保留支持的像素层、组、基本蒙版与反相/曝光。宿主授权发布固定快照，文件写入不进入文档撤销历史。其余可编辑图层类型继续跟踪。 支持 PSD 的保存路径资源和 Unicode 路径名称。"
+      "note": "原尺寸 8/16 位 RGB，保留支持的像素层、组、基本蒙版与反相/曝光。宿主授权发布固定快照，文件写入不进入文档撤销历史。其余可编辑图层类型继续跟踪。 支持 PSD 的保存路径资源和 Unicode 路径名称。 支持标准矢量蒙版和基本 RGB 纯色填充。"
     },
     "PS-12-a132c853ab": {
       "scope": "editing",
@@ -2596,6 +2606,64 @@
         }
       ],
       "note": "路径面板与命令支持双向转换。覆盖阈值可选，容差为零时精确沿像素边界追踪。偶奇规则保留独立轮廓、孔洞和嵌套岛。"
+    },
+    "PS-04-9383ee3abd": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "layer.vector_mask.set",
+        "layer.vector_mask.remove",
+        "path.get",
+        "path.update"
+      ],
+      "prompts": [
+        {
+          "text": "将当前图层绑定到轮廓路径作为矢量蒙版，然后移动一个锚点。",
+          "query": "添加矢量蒙版",
+          "command": "layer.vector_mask.set"
+        },
+        {
+          "text": "Bind a work path to a layer as a vector mask and invert it.",
+          "query": "Bind or edit vector mask",
+          "command": "layer.vector_mask.set"
+        },
+        {
+          "text": "移除矢量蒙版，保留原始路径和像素。",
+          "query": "移除矢量蒙版",
+          "command": "layer.vector_mask.remove"
+        }
+      ],
+      "note": "已有像素层、组、填充和调整层可绑定工作路径。启用、反相、移动链接、源曲线重编辑和移除均走真实执行器；栅格与矢量覆盖相乘。"
+    },
+    "PS-12-417500cf30": {
+      "scope": "editing",
+      "coverage": "complete",
+      "commands": [
+        "shape.create",
+        "shape.update",
+        "shape.outline",
+        "path.get",
+        "path.update",
+        "layer.fill.solid.set"
+      ],
+      "prompts": [
+        {
+          "text": "用形状工具新建一个可编辑的圆角矩形。",
+          "query": "圆角矩形",
+          "command": "shape.create"
+        },
+        {
+          "text": "Change the polygon side count and fill color.",
+          "query": "Edit shape parameters",
+          "command": "shape.update"
+        },
+        {
+          "text": "在提交之前预览形状锚点。",
+          "query": "预览形状锚点",
+          "command": "shape.outline"
+        }
+      ],
+      "note": "矩形、圆角矩形、椭圆、线段、3–128 边多边形和三角形共用参数几何与路径蒙版。生成真实纯色图层，可重编辑、撤销、重开并通过分层 PSD 交接。"
     }
   }
 }

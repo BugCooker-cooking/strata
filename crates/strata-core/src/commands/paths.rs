@@ -149,6 +149,7 @@ pub(super) fn mutate(
             };
             let path = WorkPath {
                 id: PathId::fresh(),
+                shape: None,
                 name,
                 anchors,
                 subpaths,
@@ -173,8 +174,9 @@ pub(super) fn mutate(
             }
             let index = resolve(doc, &p.path)?;
             let old = &doc.paths[index];
-            let path = WorkPath {
+            let mut path = WorkPath {
                 id: old.id,
+                shape: old.shape.clone(),
                 name: p.name.unwrap_or_else(|| old.name.clone()),
                 anchors: p.anchors.unwrap_or_else(|| old.anchors.clone()),
                 subpaths: p.subpaths.unwrap_or_else(|| old.subpaths.clone()),
@@ -184,6 +186,13 @@ pub(super) fn mutate(
                     .transpose()?
                     .unwrap_or_else(|| old.open_contours.clone()),
             };
+            if path.anchors != old.anchors
+                || path.subpaths != old.subpaths
+                || path.open_contours != old.open_contours
+            {
+                super::vector_masks::check_path_edit(doc, old.id)?;
+                path.shape = None;
+            }
             path.validate()?;
             let changed = path != **old;
             let id = path.id;
@@ -196,6 +205,7 @@ pub(super) fn mutate(
             let p: SplitPath = parse(params)?;
             matches_revision(p.expected_revision)?;
             let index = resolve(doc, &p.path)?;
+            super::vector_masks::check_path_edit(doc, doc.paths[index].id)?;
             let path = Arc::make_mut(&mut doc.paths[index]);
             path.split(p.contour, p.segment, p.t)?;
             (path.id, true)
@@ -204,6 +214,16 @@ pub(super) fn mutate(
             let p: DeletePath = parse(params)?;
             matches_revision(p.expected_revision)?;
             let index = resolve(doc, &p.path)?;
+            if doc.layers().iter().any(|l| {
+                l.info()
+                    .vector_mask
+                    .as_ref()
+                    .is_some_and(|m| m.path == doc.paths[index].id)
+            }) {
+                return Err(CommandError::Invalid(
+                    "remove vector mask bindings before deleting their source path".into(),
+                ));
+            }
             (doc.paths.remove(index).id, true)
         }
         _ => return Err(CommandError::Invalid("unknown path edit".into())),
